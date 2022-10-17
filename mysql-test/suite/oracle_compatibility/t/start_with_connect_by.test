@@ -1,0 +1,1134 @@
+#
+#  兼容Oracle `start with connect by` 语法
+#
+
+create database yxx;
+use yxx;
+create table nums (pid int primary key, ppid int);
+insert into nums values (1, 0);
+insert into nums values (2, 0);
+insert into nums values (3, 2);
+insert into nums values (4, 2);
+insert into nums values (5, 2);
+insert into nums values (6, 1);
+insert into nums values (7, 1);
+insert into nums values (8, 2);
+insert into nums values (9, 6);
+insert into nums values (10,6);
+
+
+create table tab1 (c1 int, c2 int);
+insert into tab1 values (66, 66);
+insert into tab1 values (99, 99);
+
+
+--echo #########################################################################
+--echo #  test case 1: basic usage
+--echo #########################################################################
+
+select * from nums start with pid = 1 connect by ppid = prior pid;
+
+
+--echo #########################################################################
+--echo #  test case 2: basic usage with db or table name
+--echo #########################################################################
+
+--echo "********** combinations for different places of table_name **********"
+
+select * from nums start with pid = 1 connect by ppid = prior nums.pid;
+
+select * from nums start with pid = 1 connect by nums.ppid = prior pid;
+
+select * from nums start with pid = 1 connect by nums.ppid = prior nums.pid;
+
+select * from nums start with nums.pid = 1 connect by ppid = prior pid;
+
+select * from nums start with nums.pid = 1 connect by ppid = prior nums.pid;
+
+select * from nums start with nums.pid = 1 connect by nums.ppid = prior pid;
+
+select * from nums start with nums.pid = 1 connect by nums.ppid = prior nums.pid;
+
+--echo "********** combinations for different places of db_table_name **********"
+
+select * from nums start with pid = 1 connect by ppid = prior yxx.nums.pid;
+
+select * from nums start with pid = 1 connect by yxx.nums.ppid = prior pid;
+
+select * from nums start with pid = 1 connect by yxx.nums.ppid = prior yxx.nums.pid;
+
+select * from nums start with yxx.nums.pid = 1 connect by ppid = prior pid;
+
+select * from nums start with yxx.nums.pid = 1 connect by ppid = prior yxx.nums.pid;
+
+select * from nums start with yxx.nums.pid = 1 connect by yxx.nums.ppid = prior pid;
+
+select * from nums start with yxx.nums.pid = 1 connect by yxx.nums.ppid = prior yxx.nums.pid;
+
+--echo "********** combinations while selecting from db_table **********"
+
+select * from yxx.nums start with pid = 1 connect by ppid = prior nums.pid;
+
+select * from yxx.nums start with pid = 1 connect by nums.ppid = prior pid;
+
+select * from yxx.nums start with pid = 1 connect by nums.ppid = prior nums.pid;
+
+select * from yxx.nums start with nums.pid = 1 connect by ppid = prior pid;
+
+select * from yxx.nums start with nums.pid = 1 connect by ppid = prior nums.pid;
+
+select * from yxx.nums start with nums.pid = 1 connect by nums.ppid = prior pid;
+
+select * from yxx.nums start with nums.pid = 1 connect by nums.ppid = prior nums.pid;
+
+
+select * from yxx.nums start with pid = 1 connect by ppid = prior yxx.nums.pid;
+
+select * from yxx.nums start with pid = 1 connect by yxx.nums.ppid = prior pid;
+
+select * from yxx.nums start with pid = 1 connect by yxx.nums.ppid = prior yxx.nums.pid;
+
+select * from yxx.nums start with yxx.nums.pid = 1 connect by ppid = prior pid;
+
+select * from yxx.nums start with yxx.nums.pid = 1 connect by ppid = prior yxx.nums.pid;
+
+select * from yxx.nums start with yxx.nums.pid = 1 connect by yxx.nums.ppid = prior pid;
+
+select * from yxx.nums start with yxx.nums.pid = 1 connect by yxx.nums.ppid = prior yxx.nums.pid;
+
+
+select * from yxx.nums start with yxx.nums.pid = 1 connect by nums.ppid = prior yxx.nums.pid;
+
+select * from yxx.nums start with yxx.nums.pid = 1 connect by yxx.nums.ppid = prior nums.pid;
+
+select * from yxx.nums start with nums.pid = 1 connect by yxx.nums.ppid = prior yxx.nums.pid;
+
+
+--echo "********** select_list with db_table_name **********"
+
+select nums.* from nums start with pid = 1 connect by ppid = prior pid;
+
+select yxx.nums.* from nums start with pid = 1 connect by ppid = prior pid;
+
+select nums.* from yxx.nums start with pid = 1 connect by ppid = prior pid;
+
+select yxx.nums.* from yxx.nums start with pid = 1 connect by ppid = prior pid;
+
+
+select nums.* from nums start with nums.pid = 1 connect by nums.ppid = prior nums.pid;
+
+select yxx.nums.* from nums start with nums.pid = 1 connect by nums.ppid = prior nums.pid;
+
+select nums.* from yxx.nums start with nums.pid = 1 connect by nums.ppid = prior nums.pid;
+
+select yxx.nums.* from yxx.nums start with nums.pid = 1 connect by nums.ppid = prior nums.pid;
+
+
+select nums.* from nums start with yxx.nums.pid = 1 connect by yxx.nums.ppid = prior yxx.nums.pid;
+
+select yxx.nums.* from nums start with yxx.nums.pid = 1 connect by yxx.nums.ppid = prior yxx.nums.pid;
+
+select nums.* from yxx.nums start with yxx.nums.pid = 1 connect by yxx.nums.ppid = prior yxx.nums.pid;
+
+select yxx.nums.* from yxx.nums start with yxx.nums.pid = 1 connect by yxx.nums.ppid = prior yxx.nums.pid;
+
+
+--echo #########################################################################
+--echo #  test case 3: basic usage with table_name alias
+--echo #########################################################################
+
+--echo "********** with alias **********"
+
+select * from nums t start with pid = 1 connect by ppid = prior pid;
+
+select * from nums t start with t.pid = 1 connect by t.ppid = prior t.pid;
+
+select t.* from nums t start with pid = 1 connect by ppid = prior pid;
+
+select t.* from nums t start with t.pid = 1 connect by t.ppid = prior t.pid;
+
+select * from yxx.nums t start with pid = 1 connect by ppid = prior pid;
+
+select * from yxx.nums t start with t.pid = 1 connect by t.ppid = prior t.pid;
+
+select t.* from yxx.nums t start with pid = 1 connect by ppid = prior pid;
+
+select t.* from yxx.nums t start with t.pid = 1 connect by t.ppid = prior t.pid;
+
+select t.* from yxx.nums t start with yxx.t.pid = 1 connect by yxx.t.ppid = prior yxx.t.pid;
+
+--echo "********** with as alias**********"
+
+select * from nums as t start with pid = 1 connect by ppid = prior pid;
+
+select * from nums as t start with t.pid = 1 connect by t.ppid = prior t.pid;
+
+select t.* from nums as t start with pid = 1 connect by ppid = prior pid;
+
+select t.* from nums as t start with t.pid = 1 connect by t.ppid = prior t.pid;
+
+select * from yxx.nums as t start with pid = 1 connect by ppid = prior pid;
+
+select * from yxx.nums as t start with t.pid = 1 connect by t.ppid = prior t.pid;
+
+select t.* from yxx.nums as t start with pid = 1 connect by ppid = prior pid;
+
+select t.* from yxx.nums as t start with t.pid = 1 connect by t.ppid = prior t.pid;
+
+select t.* from yxx.nums as t start with yxx.t.pid = 1 connect by yxx.t.ppid = prior yxx.t.pid;
+
+
+--echo "********** access fields with actual tablename when alias exists **********"
+
+--error ER_BAD_FIELD_ERROR
+select * from nums t start with nums.pid = 1 connect by ppid = prior pid;
+
+--error ER_BAD_FIELD_ERROR
+select * from nums t start with pid = 1 connect by nums.ppid = prior pid;
+
+--error ER_BAD_FIELD_ERROR
+select * from nums t start with pid = 1 connect by ppid = prior nums.pid;
+
+--error ER_BAD_FIELD_ERROR
+select nums.* from nums t start with pid = 1 connect by ppid = prior pid;
+
+--error ER_BAD_FIELD_ERROR
+select * from nums t start with yxx.nums.pid = 1 connect by ppid = prior pid;
+
+--error ER_BAD_FIELD_ERROR
+select * from nums t start with pid = 1 connect by yxx.nums.ppid = prior pid;
+
+--error ER_BAD_FIELD_ERROR
+select * from nums t start with pid = 1 connect by ppid = prior yxx.nums.pid;
+
+--error ER_BAD_FIELD_ERROR
+select yxx.nums.* from nums t start with pid = 1 connect by ppid = prior pid;
+
+
+--echo #########################################################################
+--echo #  test case 4: select many fields
+--echo #########################################################################
+
+select pid, ppid from nums start with pid = 1 connect by ppid = prior pid;
+
+select nums.pid, nums.ppid from nums start with pid = 1 connect by ppid = prior pid;
+
+select yxx.nums.pid, yxx.nums.ppid from nums start with pid = 1 connect by ppid = prior pid;
+
+select pid, ppid from nums t start with pid = 1 connect by ppid = prior pid;
+
+select t.pid, t.ppid from nums t start with pid = 1 connect by ppid = prior pid;
+
+--echo "field with alias"
+
+select pid as c1, ppid as c2 from nums start with pid = 1 connect by ppid = prior pid;
+
+--error ER_BAD_FIELD_ERROR
+select pid as c1, ppid as c2 from nums start with c1 = 1 connect by c2 = prior c1;
+
+
+--echo #########################################################################
+--echo #  test case 5: test different parts of query_expression
+--echo #########################################################################
+
+--echo ########## select_list ##########
+
+select (select pid from nums start with pid = 1 connect by ppid = prior pid order by pid desc limit 1) from dual;
+
+--echo ########## where_clause ##########
+select * from nums t where pid > 0 start with pid = 1 connect by ppid = prior pid;
+
+select * from nums t where pid > 1 start with pid = 1 connect by ppid = prior pid;
+
+select * from nums t where pid > 6 start with pid = 1 connect by ppid = prior pid;
+
+select * from nums t where 1 start with pid = 1 connect by ppid = prior pid;
+
+select * from nums t where 0 start with pid = 1 connect by ppid = prior pid;
+
+select * from nums t where 1 = 1 start with pid = 1 connect by ppid = prior pid;
+
+select * from nums t where 1 = 0 start with pid = 1 connect by ppid = prior pid;
+
+select * from nums t where 0 != 1 start with pid = 1 connect by ppid = prior pid;
+
+--echo ########## outfile ##########
+disable_query_log;
+# TODO: exporting of this format has not been supported
+#--error ER_SYNTAX_ERROR
+#select * from nums into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test.1" start with pid = 1 connect by ppid = prior pid;
+#eval select load_file(concat('$MYSQLTEST_VARDIR/tmp', "/outfile-test.1"));
+
+eval select * from nums start with pid = 1 connect by ppid = prior pid into outfile "$MYSQLTEST_VARDIR/tmp/outfile.log";
+--replace_result $MYSQLTEST_VARDIR MYSQLTEST_VARDIR
+eval select load_file(concat('$MYSQLTEST_VARDIR/tmp', "/outfile.log"));
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile.log
+
+enable_query_log;
+
+
+--echo ########## order by limit ##########
+select t.pid, t.ppid from nums t start with pid = 1 connect by ppid = prior pid order by pid desc limit 3;
+
+select t.pid, t.ppid from nums t start with pid = 1 connect by ppid = prior pid order by ppid desc limit 3;
+
+
+--echo ########## with clause ##########
+with recursive sub as (select * from nums start with pid = 1 connect by ppid = prior pid) select * from sub;
+
+
+--echo ########## window clause ##########
+# TODO: window clause test
+
+
+--echo ########## aggregate ##########
+
+select count(*) from nums start with pid = 1 connect by ppid = prior pid;
+
+select sum(pid), sum(ppid) from nums start with pid = 1 connect by ppid = prior pid;
+
+select min(pid), min(ppid) from nums start with pid = 1 connect by ppid = prior pid;
+
+select max(pid), max(ppid) from nums start with pid = 1 connect by ppid = prior pid;
+
+select avg(pid), avg(ppid) from nums start with pid = 1 connect by ppid = prior pid;
+
+select avg(distinct pid), avg(distinct ppid) from nums start with pid = 1 connect by ppid = prior pid;
+
+--echo ########## aggregate with operations ##########
+
+select min(pid), min(ppid), max(pid), max(ppid), avg(pid), avg(ppid)
+  from nums start with pid = 1 connect by ppid = prior pid;
+
+select min(pid)+1, min(ppid)+1, max(pid)+1, max(ppid)+1, avg(pid)+1, avg(ppid)+1
+  from nums start with pid = 1 connect by ppid = prior pid;
+
+select min(pid)-1, min(ppid)-1, max(pid)-1, max(ppid)-1, avg(pid)-1, avg(ppid)-1
+  from nums start with pid = 1 connect by ppid = prior pid;
+
+select min(pid)*2, min(ppid)*2, max(pid)*2, max(ppid)*2, avg(pid)*2, avg(ppid)*2
+  from nums start with pid = 1 connect by ppid = prior pid;
+
+select min(pid)/2, min(ppid)/2, max(pid)/2, max(ppid)/2, avg(pid)/2, avg(ppid)/2
+  from nums start with pid = 1 connect by ppid = prior pid;
+
+select min(pid)%2, min(ppid)%2, max(pid)%2, max(ppid)%2, avg(pid)%2, avg(ppid)%2
+  from nums start with pid = 1 connect by ppid = prior pid;
+
+
+select count(*) from nums where pid > 5 start with pid = 1 connect by ppid = prior pid;
+
+select sum(pid), sum(ppid) from nums where pid > 5 start with pid = 1 connect by ppid = prior pid;
+
+select min(pid), min(ppid) from nums where pid > 5 start with pid = 1 connect by ppid = prior pid;
+
+select max(pid), max(ppid) from nums where pid > 5 start with pid = 1 connect by ppid = prior pid;
+
+select avg(pid), avg(ppid) from nums where pid > 5 start with pid = 1 connect by ppid = prior pid;
+
+select avg(distinct pid), avg(distinct ppid) from nums where pid > 5 start with pid = 1 connect by ppid = prior pid;
+
+
+--echo ########## test select options ##########
+
+#distinct
+select distinct(pid) from nums start with pid <= 3 connect by ppid = prior pid;
+
+#STRAIGHT_JOIN
+select STRAIGHT_JOIN pid from nums start with pid = 1 connect by ppid = prior pid;
+
+#HIGH_PRIORITY
+select HIGH_PRIORITY pid from nums start with pid = 1 connect by ppid = prior pid;
+
+
+--echo ########## from_clause ##########
+
+#dual
+select 1,2,3 from dual start with 1 connect by 0;
+
+select 1,2,3 from dual where 1 start with 1 connect by 0;
+
+select 1,2,3 from dual where 1 = 1 start with 1 connect by 0;
+
+
+--echo #########################################################################
+--echo #  test case 6: use `start with connect by` as derived table
+--echo #########################################################################
+
+select * from (select * from nums start with pid = 1 connect by ppid = prior pid) t;
+
+select * from (select nums.* from nums start with pid = 1 connect by ppid = prior pid) t;
+
+select * from (select yxx.nums.* from nums start with pid = 1 connect by ppid = prior pid) t;
+
+select * from (select * from nums t start with pid = 1 connect by ppid = prior pid) t;
+
+select * from (select t.* from nums t start with pid = 1 connect by ppid = prior pid) t;
+
+
+select * from (select pid, ppid from nums start with pid = 1 connect by ppid = prior pid) t;
+
+select * from (select nums.pid, nums.ppid from nums start with pid = 1 connect by ppid = prior pid) t;
+
+select * from (select yxx.nums.pid, yxx.nums.ppid from nums start with pid = 1 connect by ppid = prior pid) t;
+
+select * from (select pid, ppid from nums t start with pid = 1 connect by ppid = prior pid) t;
+
+select * from (select t.pid, t.ppid from nums t start with pid = 1 connect by ppid = prior pid) t;
+
+
+
+--echo #########################################################################
+--echo #  test case 7: use `start with connect by` in subquery
+--echo #########################################################################
+
+# in subqeury
+select * from nums where pid in (select pid from nums start with pid = 1 connect by ppid = prior pid);
+
+# exists subquery
+select * from nums t where exists (select * from nums start with pid = t.pid connect by ppid = prior pid);
+
+create table nums1 like nums;
+insert into nums1 select * from nums;
+
+--error ER_BAD_FIELD_ERROR
+select pid from nums where exists (select * from nums1 where nums1.pid > nums.pid and nums.pid % 2 = 0 start with 1 connect by 0);
+drop table nums1;
+
+
+
+--echo #########################################################################
+--echo #  test case 8: use `start with connect by` in join_list
+--echo #########################################################################
+
+# inner join
+
+select * from (select t.* from nums t start with pid = 1 connect by ppid = prior pid) t, tab1;
+
+select * from tab1, (select t.* from nums t start with pid = 1 connect by ppid = prior pid) t;
+
+select * from (select t.* from nums t start with pid = 1 connect by ppid = prior pid) t join tab1 on t.pid < tab1.c1;
+
+select * from tab1 join (select t.* from nums t start with pid = 1 connect by ppid = prior pid) t on t.pid < tab1.c1;
+
+select * from (select * from nums start with pid = 1 connect by ppid = prior pid) t1 join (select * from nums start with pid = 1 connect by ppid = prior pid) t2 on t1.pid = t2.pid;
+
+# left join
+
+select * from (select * from nums where pid > 1 start with pid = 1 connect by ppid = prior pid) t1 left join (select * from nums where pid > 6 start with pid = 1 connect by ppid = prior pid) t2 on t1.pid = t2.pid;
+
+# right join
+
+select * from (select * from nums where pid > 6 start with pid = 1 connect by ppid = prior pid) t1 right join (select * from nums where pid > 1 start with pid = 1 connect by ppid = prior pid) t2 on t1.pid = t2.pid;
+
+# full join
+
+select * from (select * from nums where pid >= 6 start with pid = 1 connect by ppid = prior pid) t1 full join (select * from nums where pid <= 7 start with pid = 1 connect by ppid = prior pid) t2 on t1.pid = t2.pid;
+
+# natural join
+
+select * from nums t1 natural join nums t2;
+
+create table nums1 (pid int primary key, c1 int);
+insert into nums1 select * from nums;
+
+select * from nums natural join nums1;
+
+select * from nums t1 natural join nums1 t2;
+
+drop table nums1;
+
+
+--echo #########################################################################
+--echo #  test case 9: use `start with connect by` in union
+--echo #########################################################################
+
+select t.* from nums t start with pid = 1 connect by ppid = prior pid union select * from tab1;
+
+select * from tab1 union select t.* from nums t start with pid = 1 connect by ppid = prior pid;
+
+select t.* from nums t start with pid = 1 connect by ppid = prior pid union all select * from tab1;
+
+select * from tab1 union all select t.* from nums t start with pid = 1 connect by ppid = prior pid;
+
+(select t.* from nums t where pid % 2 = 1 start with pid = 1 connect by ppid = prior pid)
+  union all
+(select t.* from nums t where pid % 2 = 0 start with pid = 1 connect by ppid = prior pid);
+
+
+--echo #########################################################################
+--echo #  test case 10: data with null field
+--echo #########################################################################
+
+create table nulltest(id int, nid int);
+insert into nulltest values (NULL, 1);
+insert into nulltest values (NULL, 2);
+insert into nulltest values (1, 3);
+insert into nulltest values (1, 4);
+insert into nulltest values (2, 5);
+insert into nulltest values (5, 6);
+
+select * from nulltest start with id is null connect by id = prior nid;
+
+select * from nulltest start with id is null connect by id = prior id;
+
+--echo #########################################################################
+--echo #  test case 11: result set is empty
+--echo #########################################################################
+
+select * from nums t start with pid = 11111 connect by ppid = prior pid;
+
+
+--echo #########################################################################
+--echo #  test case 12: part of used items are not in select_list
+--echo #########################################################################
+
+create table test1 (id char(10), pid char(10), c1 char(10));
+
+insert into test1 values('002', '000', '111'); 
+insert into test1 values('003', '002', '222');  
+insert into test1 values('010', '003', '333'); 
+
+select * from test1 start with id='002' connect by 0;
+
+select * from test1 start with id='002' connect by pid = prior id;
+
+select c1 from test1 start with id='002' connect by pid = prior id;
+
+select pid, c1 from test1 start with id='002' connect by pid = prior id;
+
+select id, pid, c1 from test1 start with id='002' connect by pid = prior id;
+
+select test1.id, pid, test1.c1 from test1 start with id='002' connect by pid = prior id;
+
+select yxx.test1.id, pid, yxx.test1.c1 from test1 start with id='002' connect by pid = prior id;
+
+select id, pid, c1 from test1 t start with id='002' connect by pid = prior id;
+
+select t.id, pid, t.c1 from test1 t start with id='002' connect by pid = prior id;
+
+
+--echo #########################################################################
+--echo #  test case 13: transaction test
+--echo #########################################################################
+
+--echo "`start with connect by` in transaction"
+
+start transaction;
+select pid, ppid from nums where pid > 1 start with pid = 1 connect by ppid = prior pid;
+commit;
+
+start transaction;
+select pid, ppid from nums where pid > 6  start with pid = 1 connect by ppid = prior pid;
+select pid, ppid from nums where pid <= 6 start with pid = 1 connect by ppid = prior pid;
+commit;
+
+--echo "`start with connect by` mixed with other sql in transaction"
+
+create table tt(id int, age int);
+insert into tt values (1,1), (5,5), (10,10);
+
+--echo # `start with connect by` mixed with select in transaction
+start transaction;
+select * from tt;
+select pid, ppid from nums where pid > 0 start with pid = 1 connect by ppid = prior pid;
+select * from tt;
+select pid, ppid from nums where pid > 0 start with pid = 1 connect by ppid = prior pid;
+select * from tt;
+commit;
+
+--echo # `start with connect by` mixed with dml in transaction
+start transaction;
+select * from tt;
+select pid, ppid from nums where pid > 0 start with pid = 1 connect by ppid = prior pid;
+update tt set age = age + 1;
+select * from tt;
+select pid, ppid from nums where pid > 0 start with pid = 1 connect by ppid = prior pid;
+update tt set age = age + 1;
+select * from tt;
+commit;
+
+select * from tt;
+
+--echo # `start with connect by` mixed with ddl in transaction
+start transaction;
+select * from tt;
+select pid, ppid from nums where pid > 0 start with pid = 1 connect by ppid = prior pid;
+alter table tt add column c int;
+update tt set c = 666;
+commit;
+
+select * from tt;
+
+
+--echo #########################################################################
+--echo #  test case 14: prepare statement
+--echo #########################################################################
+
+#test1 with char
+prepare ps1 from "select pid, id from test1 start with id=? connect by pid = prior id;";
+set @a = '002';
+execute ps1 using @a;
+
+#nums with int
+prepare ps2 from "select * from nums start with pid = ? connect by ppid = prior pid;";
+set @b = 1;
+execute ps2 using @b;
+
+
+--echo #########################################################################
+--echo #  test case 15: failed cases from other tests
+--echo #########################################################################
+
+(SELECT 1 UNION SELECT 2) ORDER BY 1;
+
+(SELECT 1 as c1, 2 as c2 UNION SELECT * from nums start with pid = 1 connect by ppid = prior pid) ORDER BY 1;
+
+(SELECT * from nums start with pid = 1 connect by ppid = prior pid UNION SELECT 1, 2 ) ORDER BY 1;
+
+
+create table t1 (c1 int, c2 int);
+insert into t1 values (1,1), (2,2);
+create table t2 like t1;
+insert into t2 values (3,3),(4,4);
+
+SELECT c1, c2 FROM ( ( (SELECT c1, c2 FROM t1) UNION (SELECT c1, c2 FROM t2) ) ORDER BY c2 DESC, c1 ASC LIMIT 1 ) AS res;
+
+with cte as (select * from t1) (select * from cte UNION select * from cte) ORDER BY c1;
+
+# expressions after prior
+select * from nums start with pid = 1 connect by ppid*1 = prior (pid*pid);
+
+# only the first pid after prior are under pid
+select * from nums start with pid = 1 connect by ppid*1 = prior pid*pid;
+
+
+--echo #########################################################################
+--echo #  test case 16: access view with `start with connect by`
+--echo #########################################################################
+
+--echo "(1) `start with connect by` in view"
+
+create view v_1 as select * from nums start with pid = 1 connect by ppid = prior pid;
+
+select * from v_1;
+
+select pid, ppid from v_1;
+
+create view v_2 as select pid, ppid from nums start with pid = 1 connect by ppid = prior pid;
+
+select * from v_2;
+
+select pid, ppid from v_2;
+
+
+--echo "(2) view in `start with connect by`"
+
+create view qv as select * from nums;
+
+# correct usage
+#
+select * from qv start with pid = 1 connect by ppid = prior pid;
+
+select pid from qv start with pid = 1 connect by ppid = prior pid;
+
+select pid, ppid from qv start with pid = 1 connect by ppid = prior pid;
+
+select qv.* from qv start with qv.pid = 1 connect by qv.ppid = prior qv.pid;
+
+select qv.pid from qv start with qv.pid = 1 connect by qv.ppid = prior qv.pid;
+
+select qv.pid, qv.ppid from qv start with qv.pid = 1 connect by qv.ppid = prior qv.pid;
+
+select yxx.qv.* from yxx.qv start with yxx.qv.pid = 1 connect by yxx.qv.ppid = prior yxx.qv.pid;
+
+select yxx.qv.pid from yxx.qv start with yxx.qv.pid = 1 connect by yxx.qv.ppid = prior yxx.qv.pid;
+
+select yxx.qv.pid, yxx.qv.ppid from yxx.qv start with yxx.qv.pid = 1 connect by yxx.qv.ppid = prior yxx.qv.pid;
+
+# with aggregate
+select min(pid), min(ppid), max(pid), max(ppid), avg(pid), avg(ppid) from qv where pid > 5 start with pid = 1 connect by ppid = prior pid;
+
+
+# wrong usage, with incorrect db name, table name or field name
+#
+--error ER_BAD_FIELD_ERROR
+select a from qv start with pid = 1 connect by ppid = prior pid;
+
+--error ER_NO_SUCH_TABLE
+select * from qv1 start with pid = 1 connect by ppid = prior pid;
+
+--error ER_BAD_FIELD_ERROR
+select * from qv start with pid1 = 1 connect by ppid = prior pid;
+
+--error ER_BAD_FIELD_ERROR
+select * from qv start with pid = 1 connect by ppid1 = prior pid;
+
+--replace_regex /tmp_inner_cte_[0-9]*/tmp_inner_cte_xxxx/
+--error ER_BAD_FIELD_ERROR
+select * from qv start with pid = 1 connect by ppid = prior pid1;
+
+
+--error ER_BAD_FIELD_ERROR
+select qv1.* from qv start with qv.pid = 1 connect by qv.ppid = prior qv.pid;
+
+--error ER_NO_SUCH_TABLE
+select qv1.* from qv1 start with qv.pid = 1 connect by qv.ppid = prior qv.pid;
+
+--error ER_BAD_FIELD_ERROR
+select qv.* from qv start with qv1.pid = 1 connect by qv.ppid = prior qv.pid;
+
+--error ER_BAD_FIELD_ERROR
+select qv.* from qv start with qv.pid = 1 connect by qv1.ppid = prior qv.pid;
+
+--error ER_BAD_FIELD_ERROR
+select qv.* from qv start with qv.pid = 1 connect by qv.ppid = prior qv1.pid;
+
+
+--error ER_BAD_FIELD_ERROR
+select yxx1.qv.* from yxx.qv start with yxx.qv.pid = 1 connect by yxx.qv.ppid = prior yxx.qv.pid;
+
+--error ER_BAD_FIELD_ERROR
+select yxx.qv1.* from yxx.qv start with yxx.qv.pid = 1 connect by yxx.qv.ppid = prior yxx.qv.pid;
+
+--replace_regex /tmp_inner_cte_[0-9]*/tmp_inner_cte_xxxx/
+--error ER_BAD_FIELD_ERROR
+select yxx.qv1.a from yxx.qv start with yxx.qv.pid = 1 connect by yxx.qv.ppid = prior yxx.qv.pid;
+
+--error ER_BAD_DB_ERROR
+select yxx.qv.* from yxx1.qv start with yxx.qv.pid = 1 connect by yxx.qv.ppid = prior yxx.qv.pid;
+
+--error ER_NO_SUCH_TABLE
+select yxx.qv.* from yxx.qv1 start with yxx.qv.pid = 1 connect by yxx.qv.ppid = prior yxx.qv.pid;
+
+--error ER_BAD_FIELD_ERROR
+select yxx.qv.* from yxx.qv start with yxx1.qv.pid = 1 connect by yxx.qv.ppid = prior yxx.qv.pid;
+
+--error ER_BAD_FIELD_ERROR
+select yxx.qv.* from yxx.qv start with yxx.qv1.pid = 1 connect by yxx.qv.ppid = prior yxx.qv.pid;
+
+--error ER_BAD_FIELD_ERROR
+select yxx.qv.* from yxx.qv start with yxx.qv.pid1 = 1 connect by yxx.qv.ppid = prior yxx.qv.pid;
+
+--error ER_BAD_FIELD_ERROR
+select yxx.qv.* from yxx.qv start with yxx.qv.pid = 1 connect by yxx1.qv.ppid = prior yxx.qv.pid;
+
+--error ER_BAD_FIELD_ERROR
+select yxx.qv.* from yxx.qv start with yxx.qv.pid = 1 connect by yxx.qv1.ppid = prior yxx.qv.pid;
+
+--error ER_BAD_FIELD_ERROR
+select yxx.qv.* from yxx.qv start with yxx.qv.pid = 1 connect by yxx.qv.ppid1 = prior yxx.qv.pid;
+
+--error ER_BAD_FIELD_ERROR
+select yxx.qv.* from yxx.qv start with yxx.qv.pid = 1 connect by yxx.qv.ppid = prior yxx1.qv.pid;
+
+--error ER_BAD_FIELD_ERROR
+select yxx.qv.* from yxx.qv start with yxx.qv.pid = 1 connect by yxx.qv.ppid = prior yxx.qv1.pid;
+
+--replace_regex /tmp_inner_cte_[0-9]*/tmp_inner_cte_xxxx/
+--error ER_BAD_FIELD_ERROR
+select yxx.qv.* from yxx.qv start with yxx.qv.pid = 1 connect by yxx.qv.ppid = prior yxx.qv.pid1;
+
+
+drop view qv;
+
+
+--echo #########################################################################
+--echo #  test case 17: use items of different sources in `start with connect by`
+--echo #########################################################################
+
+--echo "use local variable"
+
+set @p = 1;
+
+select pid, ppid from nums start with pid = @p connect by ppid = prior pid;
+
+select pid, ppid from nums where pid > @p start with pid = @p connect by ppid = prior pid;
+
+set @p = 5;
+
+select pid, ppid from nums start with pid = @p connect by ppid = prior pid;
+
+select pid, ppid from nums where pid > @p start with pid = @p connect by ppid = prior pid;
+
+
+
+--echo #########################################################################
+--echo #  test case 18: test `start with connect by` in non-select
+--echo #########################################################################
+
+--echo "create as select"
+
+create table nums_bak as select * from nums where pid > 1 start with pid = 1 connect by ppid = prior pid;
+
+select * from nums_bak;
+
+drop table nums_bak;
+
+--echo "insert into select"
+
+create table nums_insert like nums;
+
+insert into nums_insert select * from nums start with pid = 1 connect by ppid = prior pid;
+
+select * from nums_insert;
+
+drop table nums_insert;
+
+
+--echo #########################################################################
+--echo #  test case 19: nested `start with connect by`
+--echo #########################################################################
+
+select * from nums 
+  start with pid in (select pid from nums start with pid = 1 connect by ppid = prior pid)
+  connect by 0;
+
+select * from nums where pid > 5
+  start with pid in (select pid from nums start with pid = 1 connect by ppid = prior pid)
+  connect by 0;
+
+select * from nums 
+  start with  pid in (select pid from nums  start with pid = 1 connect by 0) 
+  connect by ppid = prior pid;
+
+select * from nums where pid > 5 
+  start with  pid in (select pid from nums  start with pid = 1 connect by 0) 
+  connect by ppid = prior pid;
+
+
+
+--echo #########################################################################
+--echo #  test case 20: use `start with connect by` in routines
+--echo #########################################################################
+
+--echo "(1) in procedure"
+
+# common procedure
+--delimiter /
+create procedure proc_swcb() 
+begin
+  select * from nums start with pid = 1 connect by ppid = prior pid;
+end;
+/
+
+call proc_swcb();/
+drop procedure proc_swcb;/
+--delimiter ;
+
+# oracle mode procedure
+set @@parse_mode = 2;
+--delimiter /
+create procedure proc_swcb()
+as
+begin
+  select * from nums start with pid = 1 connect by ppid = prior pid;
+end;
+/
+
+call proc_swcb();/
+drop procedure proc_swcb;/
+--delimiter ;
+set @@parse_mode = 1;
+
+# oracle declare block
+set @@parse_mode = 2;
+--delimiter /
+declare
+  a int :=1;
+begin
+  select * from nums start with pid = a connect by ppid = prior pid;
+end;
+/
+
+--delimiter ;
+set @@parse_mode = 1;
+
+
+--echo # execute `start with connet by` sql repeatly in procedure
+
+--delimiter /
+create or replace procedure proc_repeat()
+begin
+    DECLARE t INT DEFAULT 0;
+    WHILE t < 8 DO
+        select * from nums where pid > t start with pid = 1 connect by ppid = prior pid;
+        SET t = t + 1;
+    END WHILE;
+end;
+/
+
+--delimiter ;
+
+call proc_repeat();
+drop procedure proc_repeat;
+
+
+
+--echo #########################################################################
+--echo #  test case 21: keywords test
+--echo #########################################################################
+
+# start can be db_name, table_name, field_name
+
+create database start;
+
+use start;
+
+create table start.start (id int, start int);
+
+insert into start.start values (1,1);
+
+select id, start from start.start;
+
+select id as start from start.start;
+
+--error ER_PARSE_ERROR
+select * from start.start as start;
+
+drop database start;
+
+use yxx;
+
+
+# `start` used in procedure
+set @@parse_mode = 2;
+--delimiter /
+
+# `start` as procedure name
+create procedure start()
+as
+begin
+end;
+/
+
+# `start` as input param of procedure
+create procedure teststart1(start int)
+as
+  a int := start;
+begin
+end;
+/
+call teststart1(1);/
+
+# `start` as label not supported now
+--error ER_PARSE_ERROR
+create procedure teststart2()
+as
+  a int := 1;
+begin
+  start:
+  begin
+    select a;
+  end;
+end;
+/
+
+# `start` as variable in declare block not supported
+# sp_ora_variable_declare didn't include this
+--error ER_PARSE_ERROR
+declare
+  start int := 1;
+begin
+  select start;
+end;
+/
+
+--delimiter ;
+
+# role, user, local var
+create role start;
+drop role start;
+
+create user start;
+drop user start;
+
+set @start = 1;
+select @start;
+
+# view
+create view start as select * from nums;
+
+select * from start join nums on start.pid = nums.pid;
+
+drop view start;
+
+# func
+--delimiter //
+create function start1(x int)
+returns int reads sql data
+begin
+  declare ret int;
+  return ret;
+end//
+--delimiter ;
+
+select start1(5);
+drop function if exists start1;
+
+# trigger
+create table nums1 like nums;
+
+--delimiter /
+create trigger start before insert on nums1
+for each row
+begin
+end;
+/
+--delimiter ;
+
+insert into nums1 select * from nums;
+
+drop trigger start;
+drop table nums1;
+
+# event
+drop event if exists start;
+create event start
+on schedule at current_timestamp+interval 1 second
+do
+  select 1;
+
+--sleep 2
+
+
+--echo #########################################################################
+--echo #  test case 22: `start with connect by` support distributed mvcc
+--echo #########################################################################
+
+# stop purge first
+set @@global.innodb_purge_stop_now = ON;
+set @transaction_isolation_session_orig = @@global.transaction_isolation;
+set @@session.transaction_isolation= 'READ-COMMITTED';
+
+create table dmvcc (id int primary key, c1 int, GTID bigint);
+insert into dmvcc values (1, 10000, 10000), (2, 10000, 10000), (3, 10000, 10000), (4, 10000, 10000);
+
+select * from dmvcc;
+
+# change data version
+update dmvcc set c1 = 10001, GTID = 10001;
+update dmvcc set c1 = 10002, GTID = 10002;
+update dmvcc set c1 = 10003, GTID = 10003;
+update dmvcc set c1 = 10004, GTID = 10004;
+update dmvcc set c1 = 10005, GTID = 10005;
+
+select * from dmvcc;
+
+# test distributed mvcc
+select * from dmvcc start with id = 1 connect by id = 2*(prior id);
+
+select /*+ SET_VAR(active_gtm_gtid_list=' ') SET_VAR(next_gtm_gtid=10001)*/ * from dmvcc 
+    start with id = 1 connect by id = 2*(prior id);
+
+select /*+ SET_VAR(active_gtm_gtid_list=' ') SET_VAR(next_gtm_gtid=10003)*/ * from dmvcc 
+    start with id = 1 connect by id = 2*(prior id);
+
+select /*+ SET_VAR(active_gtm_gtid_list=' ') SET_VAR(next_gtm_gtid=10005)*/ * from dmvcc 
+    start with id = 1 connect by id = 2*(prior id);
+
+select /*+ SET_VAR(active_gtm_gtid_list=' ') SET_VAR(next_gtm_gtid=10005)*/ c1 from dmvcc
+    start with id = 1 connect by id = 2*(prior id);
+
+select /*+ SET_VAR(active_gtm_gtid_list=' ') SET_VAR(next_gtm_gtid=10005)*/ c1 from dmvcc
+    where id > 1 start with id = 1 connect by id = 2*(prior id);
+
+set @@global.innodb_purge_run_now = ON;
+set @@session.transaction_isolation= @transaction_isolation_session_orig;
+
+
+--echo #########################################################################
+--echo #  test case 23: some bad cases
+--echo #########################################################################
+
+--echo "`group by` cannot be used together with `start with connect by`"
+--error ER_START_WITH_CONNECT_BY
+select t.* from nums t start with pid = 1 connect by ppid = prior pid group by pid;
+
+--echo "`having` cannot be used together with `start with connect by`"
+--error ER_START_WITH_CONNECT_BY
+select t.* from nums t start with pid = 1 connect by ppid = prior pid having pid > 1;
+
+--echo "`group by` and `having` cannot be used together with `start with connect by`"
+--error ER_START_WITH_CONNECT_BY
+select t.* from nums t start with pid = 1 connect by ppid = prior pid group by pid having pid > 1;
+
+--echo "multiple tables are not supported currently"
+--error ER_START_WITH_CONNECT_BY
+select * from nums, tab1 start with pid = 1 connect by ppid = prior pid;
+
+--error ER_START_WITH_CONNECT_BY
+select * from nums join tab1 on pid < id start with pid = 1 connect by ppid = prior pid;
+
+
+--echo "table of select_list not exists"
+--error ER_BAD_FIELD_ERROR
+select a.id, pid, c1 from test1 start with id='002' connect by pid = prior id;
+
+--error ER_BAD_FIELD_ERROR
+select id, a.pid, c1 from test1 start with id='002' connect by pid = prior id;
+
+--error ER_BAD_FIELD_ERROR
+select id, pid, a.c1 from test1 start with id='002' connect by pid = prior id;
+
+--error ER_BAD_FIELD_ERROR
+select a.a.id, pid, c1 from test1 start with id='002' connect by pid = prior id;
+
+--error ER_BAD_FIELD_ERROR
+select id, a.a.pid, c1 from test1 t start with id='002' connect by pid = prior id;
+
+--error ER_BAD_FIELD_ERROR
+select id, pid, a.a.c1 from test1 t start with id='002' connect by pid = prior id;
+
+--error ER_BAD_FIELD_ERROR
+select a.id, a.pid, a.c1 from test1 t start with id='002' connect by pid = prior id;
+
+--error ER_BAD_FIELD_ERROR
+select a.a.id, a.a.pid, a.a.c1 from test1 t start with id='002' connect by pid = prior id;
+
+
+--echo "table of conditions not exists"
+--error ER_BAD_FIELD_ERROR
+select id, pid, c1 from test1 start with a.id='002' connect by pid = prior id;
+
+--error ER_BAD_FIELD_ERROR
+select id, pid, c1 from test1 start with id='002' connect by a.pid = prior id;
+
+--error ER_BAD_FIELD_ERROR
+select id, pid, c1 from test1 start with id='002' connect by pid = prior a.id;
+
+--error ER_BAD_FIELD_ERROR
+select id, pid, c1 from test1 start with a.a.id='002' connect by pid = prior id;
+
+--error ER_BAD_FIELD_ERROR
+select id, pid, c1 from test1 start with id='002' connect by a.a.pid = prior id;
+
+--error ER_BAD_FIELD_ERROR
+select id, pid, c1 from test1 start with id='002' connect by pid = prior a.a.id;
+
+--echo "fields not exist"
+--error ER_BAD_FIELD_ERROR
+select id___, pid, c1 from test1 start with id='002' connect by pid = prior id;
+
+--error ER_BAD_FIELD_ERROR
+select id, pid___, c1 from test1 start with id='002' connect by pid = prior id;
+
+--error ER_BAD_FIELD_ERROR
+select id, pid, c1___ from test1 start with id='002' connect by pid = prior id;
+
+--error ER_BAD_FIELD_ERROR
+select id, pid, c1 from test1 start with id___='002' connect by pid = prior id;
+
+--error ER_BAD_FIELD_ERROR
+select id, pid, c1 from test1 start with id='002' connect by pid___ = prior id;
+
+--replace_regex /tmp_inner_cte_[0-9]*/tmp_inner_cte_xxxx/
+--error ER_BAD_FIELD_ERROR
+select id, pid, c1 from test1 start with id='002' connect by pid = prior id___;
+
+
+
+
+
+--echo "restore..."
+drop database yxx;

@@ -1,0 +1,352 @@
+##########################################################
+# test cases for "tmp_table_max_rows"
+##########################################################
+
+#--source include/have_innodb.inc
+#--source include/not_embedded.inc
+--source include/not_windows.inc
+
+set @old_tmp_table_size = @@global.tmp_table_size;
+set @old_internal_tmp_mem_storage_engine = @@internal_tmp_mem_storage_engine;
+set internal_tmp_mem_storage_engine = "MEMORY";
+
+--disable_warnings
+set sql_mode=STRICT_TRANS_TABLES;
+drop database if exists dbtest;
+--enable_warnings
+create database dbtest;
+create table dbtest.tb1(id int ,c1 int);
+create table dbtest.tb2(id int ,c1 int);
+create table dbtest.tb3(id int,c1 int,PRIMARY KEY (`id`,`c1`));
+
+--delimiter //
+create procedure dbtest.load_tb1(count int unsigned)
+begin
+set @c=0;
+start transaction;
+while @c <count DO
+INSERT INTO dbtest.tb1 values(@c,@c);
+set @c=@c+1;
+end while;
+commit;
+end;
+//
+--delimiter ;
+
+--delimiter //
+create procedure dbtest.load_tb2(count int unsigned)
+begin
+set @c=0;
+start transaction;
+while @c <count DO
+INSERT INTO dbtest.tb2 values(@c,@c);
+set @c=@c+1;
+end while;
+commit;
+end;
+//
+--delimiter ;
+
+--delimiter //
+create procedure dbtest.load_tb3(count int unsigned)
+begin
+set @c=0;
+start transaction;
+while @c <count DO
+INSERT INTO dbtest.tb3 values(@c,@c);
+set @c=@c+1;
+end while;
+commit;
+end;
+//
+--delimiter ;
+
+#the min tmp_table_size is 1k
+set global tmp_table_size=1024; 
+set tmp_table_size=1024;  
+
+--echo ##########################################################
+--echo # test case 1:  insert select
+--echo ##########################################################
+
+call dbtest.load_tb1(200); 
+set tmp_table_max_rows=0;
+insert into dbtest.tb1 select * from dbtest.tb1; 
+set tmp_table_max_rows=400;
+insert into dbtest.tb1 select * from dbtest.tb1; 
+set tmp_table_max_rows=399;
+--error ER_EXISTS_BIG_TMP_TABLE
+insert into dbtest.tb1 select * from dbtest.tb1;
+set tmp_table_max_rows=1;
+--error ER_EXISTS_BIG_TMP_TABLE
+insert into dbtest.tb1 select * from dbtest.tb1; 
+
+truncate table dbtest.tb1;
+
+
+--echo ##########################################################
+--echo # test case 2:    union
+--echo ##########################################################
+use dbtest;
+call dbtest.load_tb1(200);
+insert into tb2 values(300,300);
+set tmp_table_max_rows=0;
+--disable_result_log
+select * from dbtest.tb1 union select * from dbtest.tb2;
+--enable_result_log
+set tmp_table_max_rows=201;
+--disable_result_log
+select * from dbtest.tb1 union select * from dbtest.tb2;
+--enable_result_log
+set tmp_table_max_rows=200;
+--error ER_EXISTS_BIG_TMP_TABLE
+select * from dbtest.tb1 union select * from dbtest.tb2;
+set tmp_table_max_rows=1;
+--error ER_EXISTS_BIG_TMP_TABLE
+select * from dbtest.tb1 union select * from dbtest.tb2;
+truncate table tb1;
+truncate table tb2;
+
+
+
+--echo ##########################################################
+--echo # test case 3:  view
+--echo ##########################################################
+use dbtest;
+call dbtest.load_tb1(200);
+insert into tb2 values(300,300);
+
+####view+union#########
+create view v1 as select * from tb1 union select * from tb2;
+set tmp_table_max_rows=0;
+--disable_result_log
+select * from v1;
+--enable_result_log
+set tmp_table_max_rows=201;
+--disable_result_log
+select * from v1;
+--enable_result_log
+set tmp_table_max_rows=200;
+--error ER_EXISTS_BIG_TMP_TABLE
+select * from v1;
+set tmp_table_max_rows=1;
+--error ER_EXISTS_BIG_TMP_TABLE
+select * from v1;
+drop view v1;
+
+####view+temptable algorithm#########
+create algorithm=temptable view v1 as select * from tb1;
+set tmp_table_max_rows=0;
+--disable_result_log
+select * from v1;
+--enable_result_log
+set tmp_table_max_rows=200;
+--disable_result_log
+select * from v1;
+--enable_result_log
+set tmp_table_max_rows=199;
+--error ER_EXISTS_BIG_TMP_TABLE
+select * from v1;
+set tmp_table_max_rows=1;
+--error ER_EXISTS_BIG_TMP_TABLE
+select * from v1;
+drop view v1;
+
+####view+count/sum#########
+
+create view v1 as select distinct id, sum(c1) from tb1 group by id;
+set tmp_table_max_rows=0;
+--disable_result_log
+select * from v1;
+--enable_result_log
+set tmp_table_max_rows=200;
+--disable_result_log
+select * from v1;
+--enable_result_log
+set tmp_table_max_rows=199;
+--error ER_EXISTS_BIG_TMP_TABLE
+select * from v1;
+set tmp_table_max_rows=1;
+--error ER_EXISTS_BIG_TMP_TABLE
+select * from v1;
+drop view v1; 
+
+truncate table tb1;
+truncate table tb2;
+
+ 
+
+--echo ##########################################################
+--echo # test case 4:  order by +group by
+--echo ##########################################################
+ 
+use dbtest;
+call dbtest.load_tb1(200);
+call dbtest.load_tb2(200);
+
+#order by and group by diff col 
+set tmp_table_max_rows=0;
+--disable_result_log
+select * from tb1 group by id order by c1 ;
+--enable_result_log
+set tmp_table_max_rows=200;
+--disable_result_log
+select * from tb1 group by id order by c1 ;
+--enable_result_log
+set tmp_table_max_rows=199;
+--error ER_EXISTS_BIG_TMP_TABLE
+select * from tb1 group by id order by c1 ;
+set tmp_table_max_rows=1;
+--error ER_EXISTS_BIG_TMP_TABLE
+select * from tb1 group by id order by c1 ;
+
+
+#order by and group by diff col groupby id with index
+call dbtest.load_tb3(200);
+set tmp_table_max_rows=0;
+--disable_result_log
+select * from tb3 group by c1 order by id ;
+--enable_result_log
+set tmp_table_max_rows=200;
+--disable_result_log
+select * from tb3 group by c1 order by id ;
+--enable_result_log
+set tmp_table_max_rows=199;
+--error ER_EXISTS_BIG_TMP_TABLE
+select * from tb3 group by c1 order by id ;
+set tmp_table_max_rows=1;
+--error ER_EXISTS_BIG_TMP_TABLE
+select * from tb3 group by c1 order by id ;
+truncate table tb3;
+
+#order by  
+#set tmp_table_max_rows=0;
+#--disable_result_log
+#select tb1.c1,tb2.c1 from tb1,tb2 where tb1.id=tb2.id order by tb1.id;
+#--enable_result_log
+#set tmp_table_max_rows=200;
+#--disable_result_log
+#select tb1.c1,tb2.c1 from tb1,tb2 where tb1.id=tb2.id order by tb1.id;
+#--enable_result_log
+#set tmp_table_max_rows=199;
+#--error ER_EXISTS_BIG_TMP_TABLE
+#select tb1.c1,tb2.c1 from tb1,tb2 where tb1.id=tb2.id order by tb1.id;
+#set tmp_table_max_rows=1;
+#--error ER_EXISTS_BIG_TMP_TABLE
+#select tb1.c1,tb2.c1 from tb1,tb2 where tb1.id=tb2.id order by tb1.id;
+
+#group by
+set tmp_table_max_rows=0;
+--disable_result_log
+select tb1.c1,tb2.c1 from tb1,tb2 where tb1.id=tb2.id group by tb1.id;
+--enable_result_log
+set tmp_table_max_rows=200;
+--disable_result_log
+select tb1.c1,tb2.c1 from tb1,tb2 where tb1.id=tb2.id group by tb1.id;
+--enable_result_log
+set tmp_table_max_rows=199;
+--error ER_EXISTS_BIG_TMP_TABLE
+select tb1.c1,tb2.c1 from tb1,tb2 where tb1.id=tb2.id group by tb1.id;
+set tmp_table_max_rows=1;
+--error ER_EXISTS_BIG_TMP_TABLE
+select tb1.c1,tb2.c1 from tb1,tb2 where tb1.id=tb2.id group by tb1.id;
+
+truncate table tb1;
+truncate table tb2;
+
+--echo ##########################################################
+--echo # test case 5:  subquery and semi join 
+--echo ##########################################################
+
+###subquery###
+use dbtest;
+call dbtest.load_tb1(300);
+call dbtest.load_tb2(300);
+
+set tmp_table_max_rows=0;
+--disable_result_log
+select * from tb1 where id in  (select id from tb2);
+--enable_result_log 
+set tmp_table_max_rows=300;
+--disable_result_log
+select * from tb1 where id in  (select id from tb2);
+--enable_result_log
+set tmp_table_max_rows=299;
+--error ER_EXISTS_BIG_TMP_TABLE
+select * from tb1 where id in  (select id from tb2);
+set tmp_table_max_rows=1;
+--error ER_EXISTS_BIG_TMP_TABLE
+select * from tb1 where id in  (select id from tb2);
+call dbtest.load_tb1(300);
+
+###view+subquery###
+use dbtest;
+call dbtest.load_tb3(200);
+call dbtest.load_tb1(200);
+create view v1 as select * from tb3 where id in (select id from tb1);
+
+set tmp_table_max_rows=0;
+--disable_result_log
+select * from v1;
+--enable_result_log
+set tmp_table_max_rows=1000;
+--disable_result_log
+select * from v1;
+--enable_result_log
+set tmp_table_max_rows=200;
+--error ER_EXISTS_BIG_TMP_TABLE
+select * from v1;
+set tmp_table_max_rows=1;
+--error ER_EXISTS_BIG_TMP_TABLE
+select * from v1;
+
+truncate table tb1;
+truncate table tb2;
+truncate table tb3;
+drop view v1;
+
+--echo ##########################################################
+--echo # test case 6:  distinct and order by 
+--echo ##########################################################
+use dbtest;
+call dbtest.load_tb1(200);
+
+set tmp_table_max_rows=0;
+--disable_result_log
+select distinct * from tb1 order by tb1.id;
+--enable_result_log
+set tmp_table_max_rows=200;
+--disable_result_log
+select distinct * from tb1 order by tb1.id;
+--enable_result_log
+set tmp_table_max_rows=199;
+--error ER_EXISTS_BIG_TMP_TABLE
+select distinct * from tb1 order by tb1.id;
+set tmp_table_max_rows=1;
+--error ER_EXISTS_BIG_TMP_TABLE
+select distinct * from tb1 order by tb1.id;
+truncate table tb1;
+
+--echo ##########################################################
+--echo # test case 7:  multi-table update
+--echo ##########################################################
+use dbtest;
+call dbtest.load_tb1(200);
+call dbtest.load_tb2(200);
+set tmp_table_max_rows=0;
+update tb1 ,tb2 set tb1.c1=9,tb2.c1=9 where tb1.id=tb2.id;
+set tmp_table_max_rows=200;
+update tb1 ,tb2 set tb1.c1=10,tb2.c1=10 where tb1.id=tb2.id;
+set tmp_table_max_rows=199;
+--error ER_EXISTS_BIG_TMP_TABLE
+update tb1 ,tb2 set tb1.c1=11,tb2.c1=12 where tb1.id=tb2.id;
+set tmp_table_max_rows=1;
+--error ER_EXISTS_BIG_TMP_TABLE
+update tb1 ,tb2 set tb1.c1=11,tb2.c1=12 where tb1.id=tb2.id;
+
+set global tmp_table_size= @old_tmp_table_size;
+set tmp_table_size= @old_tmp_table_size;
+set internal_tmp_mem_storage_engine = @old_internal_tmp_mem_storage_engine;
+drop database dbtest;
+
+

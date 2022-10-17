@@ -1,0 +1,450 @@
+--echo ---------------------------------------------------------------
+--echo ## Additon test to_number for oracle compatibility
+--echo ---------------------------------------------------------------
+set @@sql_mode = STRICT_TRANS_TABLES;
+select @@sql_mode;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_1: addition test for "G" or "," in fmt
+--echo ---------------------------------------------------------------
+## 1.1 Test for normal
+select to_number('1,00.00','9G99D99') as result from dual;
+select to_number('1,00.00','9,99.99') as result from dual;
+select to_number('2233','9ggg0900') "Amount" from dual;
+
+## 1.2 Test invalid fmt
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number(',100.00','G999D99') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('+,100.00','SG999D99') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('$,100.00','$G999D99') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('$,100.00','LG999D99') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('USD,100.00','CG999D99') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('$,100.00','UG999D99') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('+2233','S,,,90900') "Amount" from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('$2233','L,,,90900') "Amount" from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('$2233','U,,,90900') "Amount" from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('$2233','$,,,90900') "Amount" from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('USD2233','C,,,90900') "Amount" from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('100.0,0','999D9G9') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('100.0,0','999.9G9') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('1,00.00','9G99.99') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('1,00.00',',999.99') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('100.0,0','999.9,9') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('100.0,0','999D9,9') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('1,00.00','9,99D99') as result from dual;
+
+## 1.3 Test invalid value
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('2233USD','9GGG090C') "Amount" from dual;
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_2: addition test for "S" in fmt
+--echo ---------------------------------------------------------------
+## 2.1 Normal tests in oracle_to_num.test
+select to_number('-.','S') "Amount" from dual;
+select to_number('+.','S') "Amount" from dual;
+select to_number('-,,.','S') "Amount" from dual;
+
+## 2.2 Test invalid fmt
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('1-234','9S999') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-1234-','S9999S') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-1234-','S9999MI') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-1234','S9999PR') as result from dual;
+
+## 2.2 Test invalid value
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('-','S') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('+','S') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number(' ','S') as result from dual;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_3: addition test for "MI" in fmt
+--echo ---------------------------------------------------------------
+## 3.1 Normal tests in oracle_to_num.test
+## 3.2 Addition test for normal output
+select to_number('+','MI') as result from dual;
+select to_number('-','MI') as result from dual;
+select to_number(',. ','MI') as result from dual;
+
+## 3.3 Addition test for invalid value
+--error ER_TO_NUM_VALUE_INVALID
+select to_number(' ','MI') as result from dual;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_4: addition test for "PR" in fmt
+--echo ---------------------------------------------------------------
+## 4.1 Normal tests in oracle_to_num.test
+## 4.2 Addition test for normal output
+select to_number('<>','PR') as result from dual;
+select to_number(',,.','PR') as result from dual;
+select to_number('<,,.>','PR') as result from dual;
+
+## 4.3 Addition test for invalid value
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('+','PR') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('-','PR') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number(' ','PR') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number(',..','PR') as result from dual;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_5: test for "$" in fmt
+--echo ---------------------------------------------------------------
+## 5.1 Tests for normal output
+select to_number('$22338','9,,,,,,,0900$9') as result from dual;
+select to_number('$223,,,,,,,,38','9GG$gggg09009') as result from dual;
+select to_number('$1,234.56','9,9$99.00') as result from dual;
+select to_number('-$1,234.56','9,9$99.00') as result from dual;
+select to_number('$1234+','$9999MI') as result from dual;
+select to_number('$1234-','9999$MI') as result from dual;
+select to_number('<$1234>','$9999PR') as result from dual;
+select to_number('<$1234>','9999$PR') as result from dual;
+select to_number('$1234','9999$PR') as result from dual;
+select to_number('$-','$S') as result from dual;
+select to_number('$+','$S') as result from dual;
+select to_number('+$0','S9$') as result from dual;
+
+## 5.2 Addition test for invalid fmt
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('$$1,234.56','$9,999$.00') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('$1234-','9999MI$') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('$-12','$S99') as result from dual;
+
+## 5.4 Addition test for invalid value
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('$+1,234.56','9,9$99.00') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('+$1,234.56','9,9$99.00') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('$-1,234.56','9,9$99.00') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('12$34.56','99$99.00') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('$<1234>','$9999PR') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('-$','S$') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('+$','S$') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('+0$','S9$') as result from dual;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_6: test for "U" in fmt
+--echo ---------------------------------------------------------------
+## 6.1 Test for normal
+select to_number('-100.88$','9G999D99U') "Amount" from dual;
+select to_number('-$100.88','U9G999D99') "Amount" from dual;
+select to_number('-100.88$','9,999.99U') "Amount" from dual;
+select to_number('-$100.88','U9,999.99') "Amount" from dual;
+select to_number('-$1234','U9999') as result from dual;
+select to_number('-100$','9G999U') as result from dual;
+select to_number('-100$','9G99U9') as result from dual;
+select to_number('-100$','9,999U') as result from dual;
+select to_number('-100$6','9999U9') as result from dual;
+select to_number('-100$','9G9GGGgg9GGU9') as result from dual;
+select to_number('$10,,,,,,,0,,,,','U99ggg9') from dual;
+
+## 6.2 Test for invalid fmt
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100$$','999UU') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100$$','999$U') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100$$','999LU') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100USD$','999CU') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100$','9,99U9') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100$','999U9G9') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100$.6','9999UD9') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100.$6','9999DU9') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100$.6','9999U.9') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100.$6','9999.U9') as result from dual;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_7: test for "C" in fmt
+--echo ---------------------------------------------------------------
+## 7.1 Test for normal
+select to_number('-100.88USD','9G999D99C') "Amount" from dual;
+select to_number('-USD100.88','C9G999D99') "Amount" from dual;
+select to_number('-100.88USD','9,999.99C') "Amount" from dual;
+select to_number('-USD100.88','C9,999.99') "Amount" from dual;
+select to_number('USD123','C999') as result from dual;
+select to_number('-100USD','9G999C') as result from dual;
+select to_number('-100USD','9G99C9') as result from dual;
+select to_number('-100USD','9,999C') as result from dual;
+select to_number('-100USD6','9999C9') as result from dual;
+select to_number('-100USD','9G9GGGgg9GGC9') as result from dual;
+select to_number('USD10,,,,,,,0,,,,','C99ggg9') from dual;
+
+## 7.2 Test for invalid fmt
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100USDUSD','999CC') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100$USD','999$C') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100$USD','999LC') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100$USD','999UC') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100USD','9,99C9') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100USD','999C9G9') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100USD.6','9999CD9') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100.USD6','9999DC9') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100USD.6','9999C.9') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100.USD6','9999.C9') as result from dual;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_8: addition test for "L" in fmt
+--echo ---------------------------------------------------------------
+## 8.1 Test for normal
+select to_number('-100.88$','9G999D99L') "Amount" from dual;
+select to_number('-$100.88','L9G999D99') "Amount" from dual;
+select to_number('-100.88$','9,999.99L') "Amount" from dual;
+select to_number('-$100.88','L9,999.99') "Amount" from dual;
+select to_number('-100$','9G999L') as result from dual;
+select to_number('-100$','9G99L9') as result from dual;
+select to_number('-100$','9,999L') as result from dual;
+select to_number('-100$6','9999L9') as result from dual;
+select to_number('-100$','9G9GGGgg9GGL9') as result from dual;
+select to_number('$10,,,,,,,0,,,,','L99ggg9') from dual;
+
+## 8.2 Test for invalid fmt
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100$$','999LL') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100$$','999$L') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100$$','999UL') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100USD$','999CL') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100$','9,99L9') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100$','999L9G9') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100$.6','9999LD9') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100.$6','9999DL9') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100$.6','9999L.9') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('-100.$6','9999.L9') as result from dual;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_9: test for "X" in fmt
+--echo ---------------------------------------------------------------
+## test not more than 16 characters value
+select to_number(0,'xxxxxx') from dual;
+select to_number('0','xxxxxx') from dual;
+select to_number(123,'xxxxxx') from dual;
+select to_number('1234567890ABCDEF','XXXXXXXXXXXXXXXX') from dual;
+select to_number(repeat('f',16),repeat('X',16)) from dual;
+## test more than 16 characters value
+select to_number('1234567890ABCDEF1','XXXXXXXXXXXXXXXXX') from dual;
+select to_number(repeat('f',17),repeat('X',17)) from dual;
+## test max input value
+select to_number(repeat('f',53),repeat('X',53)) from dual;
+--error ER_TO_NUM_OUT_OF_RANGE
+select to_number(repeat('f',54),repeat('X',64)) from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number(123,'xx') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number(-123,'xx') as result from dual;
+
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('12.34','xxDxx') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('12.34','xx.xx') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('$1234','$xxxx') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('$1234','Lxxxx') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('$1234','Uxxxx') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('USD1234','Cxxxx') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('1234$','xxxxL') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('1234$','xxxxU') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('1234USD','xxxxC') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('123','xxx9') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('123','9xxx') as result from dual;
+#### Temporarily we dont support '0' use with 'X' in fmt although oracle support.
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('123','0xxx') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('123','xxx0') as result from dual;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_10: test for "" in fmt
+--echo ---------------------------------------------------------------
+select to_number('.','') as result from dual;
+select to_number(',','') as result from dual;
+select to_number(',,,','') as result from dual;
+select to_number(',,,.','') as result from dual;
+select to_number('-,','') as result from dual;
+select to_number('-,,.','') as result from dual;
+select to_number('','') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('..','') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('.,','') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('+,,.','') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('+','') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('-','') as result from dual;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_11: test for "" in value
+--echo ---------------------------------------------------------------
+select to_number('','') as result from dual;
+select to_number('','asdfqwfeqw') as result from dual;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_13: test for procedure
+--echo ---------------------------------------------------------------
+create database if not exists to_num_test;
+drop procedure if exists to_num_test.sp_to_num;
+delimiter $$;
+CREATE OR REPLACE PROCEDURE to_num_test.sp_to_num(p_value varchar(100),p_fmt varchar(100))
+BEGIN
+   select to_number(p_value, p_fmt) from dual;
+END$$
+delimiter ;$$
+call to_num_test.sp_to_num('123','999');
+drop procedure to_num_test.sp_to_num;
+drop database to_num_test;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_14: test for prepare
+--echo ---------------------------------------------------------------
+prepare pron from 'select to_number(?, ?) from dual';
+set @p = '$123.34';
+set @q = '99$9D99';
+execute pron using @p, @q;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_15: Some test in code review
+--echo ---------------------------------------------------------------
+select to_number(',.',1/0) as result from dual;
+select to_number('-.1','S999.9') "Amount" from dual;
+select to_number('+,,,,2.','S9') "Amount" from dual;
+select to_number('+,,,,.','S') "Amount" from dual;
+select to_number('2,2,2233$8','9ggGGggggg9g0900U9') "Amount" from dual;
+select to_number('11.-','99MI') "Amount" from dual;
+select to_number('12','99D') "Amount" from dual;
+select to_number('-,,.','S.') from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('<123','999PR') from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('123 ','999PR') from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number(' ','9') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('-','S$') from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('1.1. ','9.9MI') "Amount" from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('1.1.','9.9PR') "Amount" from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('11..-','99MI') "Amount" from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('11...-','99MI') "Amount" from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('$','L099') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('-','S999') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('1.100','9.9') from dual;
+
+##some tests examples in code
+select to_number('12,,,3.4','99G9D9') from dual;
+select to_number('1,,','9') from dual;
+select to_number('1,,+','9S') from dual;
+select to_number('123,,,.4','999.9') from dual;
+select to_number('-1.','9.') from dual;
+select to_number('-1','9.') from dual;
+select to_number('2233$8','9ggGGggggg0900U9') "Amount" from dual;
+select to_number('2233USD','9ggGGggggg0900C') "Amount" from dual;
+select to_number('1,1,,','9G9G') from dual;
+select to_number('1,1,,,,+','9,9,S') from dual;
+select to_number('-,,.','S') as result from dual;
+select to_number(',. ','MI') as result from dual;
+select to_number(',.','PR') as result from dual;
+select to_number('<,.>','PR') as result from dual;
+select to_number('+$0','S9$') as result from dual;
+select to_number('$','L999') as result from dual;
+select to_number('+$','SL999') as result from dual;
+select to_number('-1','S999') from dual;
+select to_number('-.1','SD9') from dual;
+select to_number('-.1','S.9') from dual;
+select to_number('-,,.','S99') from dual;
+select to_number('A','X') as result from dual;
+select to_number('-$1','SL9') from dual;
+select to_number('-$','SL') from dual;
+select to_number('-$','DL') from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('-','S999') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('-','.') from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('2233USD','9ggg090C') "Amount" from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('-','S') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number(' ','MI') from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number(',.+','PR') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number(',. ','PR') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('12 ','99') from dual;

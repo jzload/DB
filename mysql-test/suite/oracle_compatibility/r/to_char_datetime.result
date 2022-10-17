@@ -1,0 +1,396 @@
+SELECT TO_CHAR('2018/02/18', 'YYYY') FROM dual;
+TO_CHAR('2018/02/18', 'YYYY')
+2018
+SELECT TO_CHAR('2018/02/18', 'YYY') FROM dual;
+TO_CHAR('2018/02/18', 'YYY')
+2018
+SELECT TO_CHAR('2018/02/18', 'YY') FROM dual;
+TO_CHAR('2018/02/18', 'YY')
+18
+SELECT TO_CHAR('2018/02/18', 'Y') FROM dual;
+TO_CHAR('2018/02/18', 'Y')
+2018
+SELECT TO_CHAR('2018/02/18', 'YYYYY') FROM dual;
+ERROR 42000: Incorrect parameters in the call to native function 'to_char'
+SELECT TO_CHAR('2018/02/18', 'YYYYYY') FROM dual;
+ERROR 42000: Incorrect parameters in the call to native function 'to_char'
+SELECT TO_CHAR('2018/02/18', YYYY) FROM dual;
+ERROR 42000: Incorrect parameters in the call to native function 'to_char'
+SELECT TO_CHAR(2018/02/18, 'YYYY') FROM dual;
+TO_CHAR(2018/02/18, 'YYYY')
+NULL
+Warnings:
+Warning	1292	Incorrect datetime value: '56.055555555555555555'
+SELECT TO_CHAR(2018/02/18, 'YY') FROM dual;
+TO_CHAR(2018/02/18, 'YY')
+NULL
+Warnings:
+Warning	1292	Incorrect datetime value: '56.055555555555555555'
+SELECT TO_CHAR(2018, 'YYYY') FROM dual;
+TO_CHAR(2018, 'YYYY')
+NULL
+Warnings:
+Warning	1292	Incorrect datetime value: '2018'
+SELECT TO_CHAR('2018', 'yyyy') FROM dual;
+TO_CHAR('2018', 'yyyy')
+NULL
+Warnings:
+Warning	1292	Incorrect datetime value: '2018'
+SELECT TO_CHAR('2018/10/10', 'YyYy') FROM dual;
+TO_CHAR('2018/10/10', 'YyYy')
+2018
+SELECT TO_CHAR('2018/10/10', 'YYYy') FROM dual;
+TO_CHAR('2018/10/10', 'YYYy')
+2018
+SELECT TO_CHAR('2018/10/10', 'yyyY') FROM dual;
+TO_CHAR('2018/10/10', 'yyyY')
+2018
+SELECT TO_CHAR('2018/02', 'YYYY') FROM dual;
+TO_CHAR('2018/02', 'YYYY')
+NULL
+Warnings:
+Warning	1292	Incorrect datetime value: '2018/02'
+SELECT TO_CHAR('2 018/10/10', 'yyyy') FROM dual;
+TO_CHAR('2 018/10/10', 'yyyy')
+NULL
+Warnings:
+Warning	1292	Incorrect datetime value: '2 018/10/10'
+SELECT TO_CHAR('2,018/10/10', 'yyyy') FROM dual;
+TO_CHAR('2,018/10/10', 'yyyy')
+NULL
+Warnings:
+Warning	1292	Incorrect datetime value: '2,018/10/10'
+SELECT TO_CHAR('2018/10/10', 'y,yyy') FROM dual;
+TO_CHAR('2018/10/10', 'y,yyy')
+2018,2018
+SELECT TO_CHAR('2018/10/9', 'mm') FROM dual;
+TO_CHAR('2018/10/9', 'mm')
+10
+SELECT TO_CHAR('2018-10-9', 'mm') FROM dual;
+TO_CHAR('2018-10-9', 'mm')
+10
+SELECT TO_CHAR('10-9', 'mm') FROM dual;
+TO_CHAR('10-9', 'mm')
+NULL
+Warnings:
+Warning	1292	Incorrect datetime value: '10-9'
+SELECT TO_CHAR('10', 'mm') FROM dual;
+TO_CHAR('10', 'mm')
+NULL
+Warnings:
+Warning	1292	Incorrect datetime value: '10'
+SELECT TO_CHAR('2018-10-9', 'MM') FROM dual;
+TO_CHAR('2018-10-9', 'MM')
+10
+SELECT TO_CHAR('2018/10/9', 'MM') FROM dual;
+TO_CHAR('2018/10/9', 'MM')
+10
+SELECT TO_CHAR('2018-10-9', mm) FROM dual;
+ERROR 42000: Incorrect parameters in the call to native function 'to_char'
+SELECT TO_CHAR('2018/10/9', MM) FROM dual;
+ERROR 42000: Incorrect parameters in the call to native function 'to_char'
+SELECT TO_CHAR('-2018/10/9', 'MM') FROM dual;
+TO_CHAR('-2018/10/9', 'MM')
+NULL
+Warnings:
+Warning	1292	Incorrect datetime value: '-2018/10/9'
+SELECT TO_CHAR('2018/-10/-9', 'MM') FROM dual;
+TO_CHAR('2018/-10/-9', 'MM')
+10
+SELECT TO_CHAR('2018/+10/-9', 'MM') FROM dual;
+TO_CHAR('2018/+10/-9', 'MM')
+10
+SELECT TO_CHAR('+2018/+10/-9', 'MM') FROM dual;
+TO_CHAR('+2018/+10/-9', 'MM')
+NULL
+Warnings:
+Warning	1292	Incorrect datetime value: '+2018/+10/-9'
+SELECT TO_CHAR('+2018/+-10/-9', 'MM') FROM dual;
+TO_CHAR('+2018/+-10/-9', 'MM')
+NULL
+Warnings:
+Warning	1292	Incorrect datetime value: '+2018/+-10/-9'
+SELECT to_char('2020+12+01 13:24:45.123456','month');
+to_char('2020+12+01 13:24:45.123456','month')
+December
+select to_char('2020+12+01 13:24:45.123456','mon');
+to_char('2020+12+01 13:24:45.123456','mon')
+Dec
+select to_char('2020+12+01 13:24:45.123456','MON');
+to_char('2020+12+01 13:24:45.123456','MON')
+Dec
+select to_char('2020+12+01 13:24:45.123456','MONTH');
+to_char('2020+12+01 13:24:45.123456','MONTH')
+December
+select to_char('2020-12-01 13:24:45.123456','Dd');
+to_char('2020-12-01 13:24:45.123456','Dd')
+01
+select to_char('2020-12-01 13:24:45.123456','DD');
+to_char('2020-12-01 13:24:45.123456','DD')
+01
+select to_char('2020-12-01 13:24:45.123456','dd');
+to_char('2020-12-01 13:24:45.123456','dd')
+01
+select to_char('2020-12-01 13:24:45.123456','yyyymmdd');
+to_char('2020-12-01 13:24:45.123456','yyyymmdd')
+20201201
+select to_char('2020-12-01 13:24:45.123456','mmdd yyyy');
+to_char('2020-12-01 13:24:45.123456','mmdd yyyy')
+1201 2020
+select to_char('2020-12-01 13:24:45.123456','mMdd YYYy');
+to_char('2020-12-01 13:24:45.123456','mMdd YYYy')
+1201 2020
+select to_char('2020,12,01 13:24:45.123456','mMdd YYYy');
+to_char('2020,12,01 13:24:45.123456','mMdd YYYy')
+1201 2020
+select to_char('20201201 13:24:45.123456','mMdd YYYy');
+to_char('20201201 13:24:45.123456','mMdd YYYy')
+NULL
+Warnings:
+Warning	1292	Incorrect datetime value: '20201201 13:24:45.123456'
+select to_char('2020 12 01 13:24:45.123456','mMdd YYYy');
+to_char('2020 12 01 13:24:45.123456','mMdd YYYy')
+NULL
+Warnings:
+Warning	1292	Incorrect datetime value: '2020 12 01 13:24:45.123456'
+select to_char('2020+12+01 13:24:45.123456','mMdd YYYy');
+to_char('2020+12+01 13:24:45.123456','mMdd YYYy')
+1201 2020
+select to_char('2020+12+01 13:24:45.123456','mM+dd YYYy');
+to_char('2020+12+01 13:24:45.123456','mM+dd YYYy')
+12+01 2020
+select to_char('2020+12+01 13:24:45.123456','mM+dd YY+Yy');
+to_char('2020+12+01 13:24:45.123456','mM+dd YY+Yy')
+12+01 20+20
+select to_char('2020+12+01 13:24:45.123456','mM#dd YYYy');
+to_char('2020+12+01 13:24:45.123456','mM#dd YYYy')
+12#01 2020
+select to_char('2020+12+01 13:24:45.123456','mM$$dd YYYy');
+to_char('2020+12+01 13:24:45.123456','mM$$dd YYYy')
+12$$01 2020
+select to_char('2020+12+01 13:24:45.123456','HH');
+to_char('2020+12+01 13:24:45.123456','HH')
+01
+select to_char('2020+12+01 13:24:45.123456','hh');
+to_char('2020+12+01 13:24:45.123456','hh')
+01
+select to_char('2020+12+01 13:24:45.123456','hH');
+to_char('2020+12+01 13:24:45.123456','hH')
+01
+select to_char('2020+12+01 13:24:45.123456','HH24');
+to_char('2020+12+01 13:24:45.123456','HH24')
+13
+select to_char('2020+12+01 13:24:45.123456','hh24');
+to_char('2020+12+01 13:24:45.123456','hh24')
+13
+select to_char('2020+12+01 13:24:45.123456','hH24');
+to_char('2020+12+01 13:24:45.123456','hH24')
+13
+select to_char('2020+12+01 13:24:45.123456','hH12');
+ERROR 42000: Incorrect parameters in the call to native function 'to_char'
+select to_char('2020+12+01 13:24:45.123456','HH12');
+ERROR 42000: Incorrect parameters in the call to native function 'to_char'
+select to_char('2020+12+01 13:24:45.123456','hh12');
+ERROR 42000: Incorrect parameters in the call to native function 'to_char'
+select to_char('2020+12+01 13:24:45.123456','MI');
+to_char('2020+12+01 13:24:45.123456','MI')
+24
+select to_char('2020+12+01 13:24:45.123456','mi');
+to_char('2020+12+01 13:24:45.123456','mi')
+24
+select to_char('2020+12+01 13:24:45.123456','Mi');
+to_char('2020+12+01 13:24:45.123456','Mi')
+24
+select to_char('2020+12+01 13:24:45.123456','mI');
+to_char('2020+12+01 13:24:45.123456','mI')
+24
+select to_char('2020+12+01 13:24:45.123456','mI12');
+ERROR 42000: Incorrect parameters in the call to native function 'to_char'
+select to_char('2020+12+01 13:24:45.123456','mI60');
+ERROR 42000: Incorrect parameters in the call to native function 'to_char'
+select to_char('2020+12+01 13:24:45.123456','mI59');
+ERROR 42000: Incorrect parameters in the call to native function 'to_char'
+select to_char('2020+12+01 13:24:45.123456','mI58');
+ERROR 42000: Incorrect parameters in the call to native function 'to_char'
+select to_char('2020+12+01 13:24:45.123456','ss');
+to_char('2020+12+01 13:24:45.123456','ss')
+45
+select to_char('2020+12+01 13:24:45.123456','sS');
+to_char('2020+12+01 13:24:45.123456','sS')
+45
+select to_char('2020+12+01 13:24:45.123456','Ss');
+to_char('2020+12+01 13:24:45.123456','Ss')
+45
+select to_char('2020+12+01 13:24:45.123456','SS');
+to_char('2020+12+01 13:24:45.123456','SS')
+45
+select to_char('2020+12+01 13:24:45.123456','+SS');
+to_char('2020+12+01 13:24:45.123456','+SS')
++45
+select to_char('2020+12+01 13:24:45.123456','#sS');
+to_char('2020+12+01 13:24:45.123456','#sS')
+#45
+select to_char('2020+12+01 13:24:45.123456','FF');
+to_char('2020+12+01 13:24:45.123456','FF')
+123456
+select to_char('2020+12+01 13:24:45.123456','ff0');
+ERROR 42000: Incorrect parameters in the call to native function 'to_char'
+select to_char('2020+12+01 13:24:45.123456','FF1');
+to_char('2020+12+01 13:24:45.123456','FF1')
+1
+select to_char('2020+12+01 13:24:45.123456','FF2');
+to_char('2020+12+01 13:24:45.123456','FF2')
+12
+select to_char('2020+12+01 13:24:45.123456','FF3');
+to_char('2020+12+01 13:24:45.123456','FF3')
+123
+select to_char('2020+12+01 13:24:45.123456','FF4');
+to_char('2020+12+01 13:24:45.123456','FF4')
+1234
+select to_char('2020+12+01 13:24:45.123456','FF5');
+to_char('2020+12+01 13:24:45.123456','FF5')
+12345
+select to_char('2020+12+01 13:24:45.123456','FF6');
+to_char('2020+12+01 13:24:45.123456','FF6')
+123456
+select to_char('2020+12+01 13:24:45.123456','FF7');
+to_char('2020+12+01 13:24:45.123456','FF7')
+1234560
+select to_char('2020+12+01 13:24:45.123456','FF8');
+to_char('2020+12+01 13:24:45.123456','FF8')
+12345600
+select to_char('2020+12+01 13:24:45.123456','FF9');
+to_char('2020+12+01 13:24:45.123456','FF9')
+123456000
+select to_char('2020+12+01 13:24:45.123456','Ff8');
+to_char('2020+12+01 13:24:45.123456','Ff8')
+12345600
+select to_char('2020+12+01 13:24:45.123456','ff8');
+to_char('2020+12+01 13:24:45.123456','ff8')
+12345600
+select to_char('2020+12+01 13:24:45.123456','0ff');
+ERROR 42000: Incorrect parameters in the call to native function 'to_char'
+select to_char('2020+12+01 13:24:45.123456','FF10');
+ERROR 42000: Incorrect parameters in the call to native function 'to_char'
+select to_char('2020+12+01 13:24:45.123456','FF11');
+ERROR 42000: Incorrect parameters in the call to native function 'to_char'
+select to_char('2020+12+01 13:24:45.123456','FF99');
+ERROR 42000: Incorrect parameters in the call to native function 'to_char'
+select to_char('2020+12+01 13:24:45.123456','8ff');
+ERROR 42000: Incorrect parameters in the call to native function 'to_char'
+select to_char('2020+12+01 13:24:45.123456','9ff');
+ERROR 42000: Incorrect parameters in the call to native function 'to_char'
+select to_char('2020+12+01 13:24:45.123456','ff0ff');
+ERROR 42000: Incorrect parameters in the call to native function 'to_char'
+select to_char(timestamp'2020-06-05 13:24:45.123456','mimi') result from dual;
+result
+2424
+select to_char(timestamp'2020-06-05 13:24:45.123456','ssss') result from dual;
+result
+4545
+select to_char(timestamp'2020-06-05 13:24:45.123456','ss:ss') result from dual;
+result
+45:45
+select to_char(timestamp'2020-06-05 13:24:45.123456','hhhh') result from dual;
+result
+0101
+select to_char(timestamp'2020-06-05 13:24:45.123456','hh hh') result from dual;
+result
+01 01
+select to_char(timestamp'2020-06-05 13:24:45.123456','dd dd') result from dual;
+result
+05 05
+select to_char(timestamp'2020-06-05 13:24:45.123456','dd d dd') result from dual;
+result
+05 6 05
+select to_char(timestamp'2020-06-05 13:24:45.123456','ddddd') result from dual;
+ERROR 42000: Incorrect parameters in the call to native function 'to_char'
+select to_char(timestamp'2020-06-05 13:24:45.123456','mm mm') result from dual;
+result
+06 06
+select to_char(timestamp'2020-06-05 13:24:45.123456','mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm') result from dual;
+result
+06060606060606060606060606060606
+select to_char(timestamp'2020-06-05 13:24:45.123456','yyyy yyyy') result from dual;
+result
+2020 2020
+select to_char(timestamp'2020-06-05 13:24:45.123456','yy yy') result from dual;
+result
+20 20
+select to_char(timestamp'2020-06-05 13:24:45.123456','month month month') result from dual;
+result
+June June June
+select to_char(timestamp'2020-06-05 13:24:45.123456','month mm') result from dual;
+result
+June 06
+select  TO_CHAR(date'2020-06-05','yyyy-mm-dd  yyyy-mm-dd') result from dual;
+result
+2020-06-05  2020-06-05
+select to_char(timestamp'2020-05-01 09:09:59.123400','yyyy-mm-dd hh:mi:ss.ff3 yyyy-mm-dd hh:mi:ss.ff3 yyyy-mm-dd hh:mi:ss.ff3') result from dual;
+result
+2020-05-01 09:09:59.123 2020-05-01 09:09:59.123 2020-05-01 09:09:59.123
+select to_char(timestamp'2020-05-01 09:09:59.123400','fmyyyy-mm-dd hh:mi:ss.ff3fm') from dual;
+to_char(timestamp'2020-05-01 09:09:59.123400','fmyyyy-mm-dd hh:mi:ss.ff3fm')
+2020-5-1 9:9:59.123
+select to_char(timestamp'2020-05-01 09:09:59.123400','fmyyyy-mm-dd fmhh:mi:ss.ff3fm') from dual;
+to_char(timestamp'2020-05-01 09:09:59.123400','fmyyyy-mm-dd fmhh:mi:ss.ff3fm')
+2020-5-1 9:9:59.123
+select to_char(timestamp'2020-05-01 09:09:59.123400','fmyyyy-fmmm-dd fmhh:mi:ss.ff3fm') from dual;
+to_char(timestamp'2020-05-01 09:09:59.123400','fmyyyy-fmmm-dd fmhh:mi:ss.ff3fm')
+2020-5-1 9:9:59.123
+select to_char(timestamp'2020-05-01 09:09:59.123400','fmyyyy-fmfmmm-dd fmhh:mi:ss.ff3fm') from dual;
+to_char(timestamp'2020-05-01 09:09:59.123400','fmyyyy-fmfmmm-dd fmhh:mi:ss.ff3fm')
+2020-5-1 9:9:59.123
+select to_char(timestamp'2020-01-20 16:35:16.123456','y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y') result from dual;
+result
+2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020 2020
+select to_char(timestamp'2020-01-20 16:35:16.123456','y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y') from dual;
+ERROR 42000: Incorrect parameters in the call to native function 'to_char'
+select to_char(timestamp'2020-06-05 13:24:45.123456','ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9') result from dual;
+result
+123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000123456000
+select to_char(timestamp'2020-06-05 13:24:45.123456','ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9') result from dual;
+ERROR 42000: Incorrect parameters in the call to native function 'to_char'
+select to_char('2020-04-15 13:24:45.123456','d');
+to_char('2020-04-15 13:24:45.123456','d')
+4
+select to_char('2020-04-15 13:24:45.123456','D');
+to_char('2020-04-15 13:24:45.123456','D')
+4
+select to_char('2020-04-15 13:24:45.123456','ddd');
+ERROR 42000: Incorrect parameters in the call to native function 'to_char'
+select to_char('2020-04-15 13:24:45.123456','w');
+ERROR 42000: Incorrect parameters in the call to native function 'to_char'
+select to_char('2020-04-15 13:24:45.123456','day');
+ERROR 42000: Incorrect parameters in the call to native function 'to_char'
+select to_char('2020-04-15 13:24:45.123456','Q');
+to_char('2020-04-15 13:24:45.123456','Q')
+q
+select to_char('2020-04-15 13:24:45.123456','D D D D');
+to_char('2020-04-15 13:24:45.123456','D D D D')
+4 4 4 4
+select to_char('2020-05-01 09:09:59.123400','yyyy-mm-dd hh:mi:ss.ff');
+to_char('2020-05-01 09:09:59.123400','yyyy-mm-dd hh:mi:ss.ff')
+2020-05-01 09:09:59.123400
+select to_char('2020-05-01 09:09:59.123400','fmyyyy-mm-dd hh:mi:ss.ff');
+to_char('2020-05-01 09:09:59.123400','fmyyyy-mm-dd hh:mi:ss.ff')
+2020-5-1 9:9:59.123400
+select to_char('2020-05-01 09:09:59.123400','fm yyyy-mm-dd hh:mi:ss.ff');
+to_char('2020-05-01 09:09:59.123400','fm yyyy-mm-dd hh:mi:ss.ff')
+ 2020-5-1 9:9:59.123400
+select to_char('2020-05-01 09:09:59.123400','yyyy-mm-dd fmhh:mi:ss.ff');
+to_char('2020-05-01 09:09:59.123400','yyyy-mm-dd fmhh:mi:ss.ff')
+2020-05-01 9:9:59.123400
+select to_char('2020-05-01 09:09:59.123400','yyyy-mm-dd fm hh:mi:ss.ff');
+to_char('2020-05-01 09:09:59.123400','yyyy-mm-dd fm hh:mi:ss.ff')
+2020-05-01  9:9:59.123400
+select to_char('2020-05-01 09:09:59.123400','yyyy-mm-dd f m hh:mi:ss.ff');
+ERROR 42000: Incorrect parameters in the call to native function 'to_char'
+select to_char('2000-01-01' + INTERVAL '123-2' YEAR_MONTH) from dual;
+to_char('2000-01-01' + INTERVAL '123-2' YEAR_MONTH)
+2123-03-01
+select to_char('0' + INTERVAL '123-2' YEAR_MONTH) from dual;
+to_char('0' + INTERVAL '123-2' YEAR_MONTH)
+NULL
+Warnings:
+Warning	1292	Incorrect datetime value: '0'

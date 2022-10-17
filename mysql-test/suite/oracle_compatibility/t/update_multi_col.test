@@ -1,0 +1,166 @@
+#
+#  update t1 set (c1, c2) = (select 1,2 from dual)
+# 
+# Syntax:
+#   UPDATE [LOW_PRIORITY] [IGNORE] table_reference
+#    SET assignment_list
+#    [WHERE where_condition]
+#    [ORDER BY ...]
+#    [LIMIT row_count]
+
+# value:
+#   {expr | DEFAULT}
+
+# assignment:
+#    col_name = value
+#    | (col_name[, col_name_list] ...) = subquery
+
+create table t1 (c1 int , c2 int, c3 int);
+insert into t1 (c1,c2) values(1,2),(3,4),(5,6);
+
+--echo ---------------------------------------------------------------
+--echo ## Test Case 1: update single values
+--echo --------------------------------------------------------------- 
+update t1 set c2 = c2 + 1 where c1= 1;
+select * from t1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test Case 2: update multi col success
+--echo ---------------------------------------------------------------
+update t1 set (c1, c2) = (select 1, 2 from dual) where c1= 1;
+update t1 set (c1, c2) = (select 1, 2 from dual), (c2, c3) = (select 2, 3 ) where c1= 2;
+select * from t1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test Case 3: update multi values error
+--echo ---------------------------------------------------------------
+--error 1064
+update t1 set (c1, c2) = (1,2) where c1= 1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test Case 4: update multi values error
+--echo ---------------------------------------------------------------
+--error 1241
+update t1 set (c1, c2) = (select 22 from dual) where c1= 1;
+--error 1072
+update t1 set (c1, c2 + 1) = (select 22,1 from dual) where c1= 1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test Case 5: update can sucess
+--echo ---------------------------------------------------------------
+update t1 set (c1) = (select 1 from dual) where c1= 1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test Case 6: update col can multi set
+--echo ---------------------------------------------------------------
+update t1 set (c1,c1) = (select 1,2 from dual) where c1= 1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test Case 7: select nochange: select tuple error
+--echo ---------------------------------------------------------------
+--error 1241
+select (c1, c2) from t1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test Case 8: select nochange: select single with param sucess
+--echo ---------------------------------------------------------------
+select (c1) from t1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test Case 9: select nochange: select single success
+--echo ---------------------------------------------------------------
+select (c1 + 1) from t1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test Case 10: insert nochange: normal insert
+--echo ---------------------------------------------------------------
+insert into t1 (c1, c2) values(100,200);
+insert into t1 values(150, 250, 300);
+insert into t1 set c1 = 300, c2 = 200;
+
+--echo ---------------------------------------------------------------
+--echo ## Test Case 11: select nochange: multi set error
+--echo ---------------------------------------------------------------
+--error 1241
+insert into t1 set (c1, c2) = (select 1, 2 from dual);
+
+--echo ---------------------------------------------------------------
+--echo ## Test Case 12: view nochange: normal select, insert
+--echo ---------------------------------------------------------------
+drop table if exists t1;
+CREATE TABLE t1(i1 int not null auto_increment, c1 INT, primary key(i1)) engine=innodb;
+CREATE TABLE t2(i1 int not null auto_increment, c2 INT, primary key(i1)) engine=innodb;
+begin;
+INSERT INTO t1(c1) VALUES (11), (12);
+INSERT INTO t2(c2) VALUES (13), (14);
+CREATE VIEW v16 AS SELECT c1, c2 FROM t1, t2;
+INSERT INTO v16(c1) VALUES (15),(16);
+commit;
+
+--echo ---------------------------------------------------------------
+--echo ## Test Case 13: view nochange: 
+--echo ## update set multi cols error same with multi set col
+--echo ---------------------------------------------------------------
+--error 1393
+update v16 set (c1, c2) = (select 1, 2 from dual) where c1 = 11;
+--error 1393
+update v16 set c1 =1, c2 = 2 where c1 = 11;
+
+--echo ---------------------------------------------------------------
+--echo ## Test Case 14 Other
+--echo ## update set multi cols error table empty table
+--echo ---------------------------------------------------------------
+create table t3 (c1 int, c2 int);
+insert into t3 values(1,2),(2,3);
+create table t4(c1 int, c2 int, c3 int, c4 int, c5 int);
+insert into t4 values(1,2,3,4,5);
+--echo Test Case 14.1: empty select value
+select * from t1;
+update t1 set i1 = (select c1 from t3 where c1 = 3) where c1= 1;
+update t1 set c1 = (select c2 from t3 where c1 = 3) where c1= 1;
+update t1 set (i1, c1) = (select c1, c2 from t3 where c1 = 3) where c1= 1;
+--echo ## should no change of t1
+select * from t1;
+--error 1365 
+update t4 set (c1,c2) = (select c1/0, c2  from t3 where c1 = 1) where c1 = 1;
+--error 1242
+update t4 set (c1,c2) = (select c1, c2  from t3) where c1 = 1;
+--error 1241
+update t3, t4 set (t3.c1,t4.c2) = (select 1, 2 from dual);
+update t3, t4 set t3.c1 = (select 1 from dual),t4.c1= (select  2 from dual);
+--echo ---------------------------------------------------------------
+--echo ## Test Case 15 all kinds
+--echo ## update set multi cols all kinds 
+--echo ---------------------------------------------------------------
+update t4 set (c1,c2,c3) = (select c1, c2, 22  from t3 where c1 = 1),
+               c3 = 32,
+               (c4, c5) = (select c1, c2  from t3 where c1 = 1)
+        where c1 = 1;
+select * from t3;
+select * from t4;
+--echo ---------------------------------------------------------------
+--echo ## Test Case 16 replace
+--echo ##  
+--echo ---------------------------------------------------------------
+CREATE TABLE test (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  data VARCHAR(64) DEFAULT NULL,
+  ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id)
+);
+REPLACE INTO test VALUES (1, 'Old', '2014-08-20 18:47:00');
+REPLACE INTO test VALUES (1, 'New', '2014-08-20 18:47:42');
+select * from test;
+--echo ---------------------------------------------------------------
+--echo ## Test Case 17 update multi table where has row item
+--echo ##  
+--echo ---------------------------------------------------------------
+update t3, t4 set t3.c1= (select 12 from dual) where (t3.c1, t4.c1) > (0,0);
+update t4 set (c1,c2,c3) = (select c1, c2, 22  from t3 where (c1,c2) = (1,2))  where c1 = 1;
+select * from t4;
+--echo ---------------------------------------------------------------
+--echo ## clear up env
+--echo --------------------------------------------------------------- 
+DROP TABLE t1, test;
+DROP TABLE t2, t3, t4;
+DROP VIEW  v16;

@@ -1,0 +1,664 @@
+--source include/master-slave.inc
+
+drop database if exists insert_all_into_values_test;
+create database insert_all_into_values_test;
+create table insert_all_into_values_test.t1(id int primary key, name varchar(25));
+create table insert_all_into_values_test.t2(id int primary key, name varchar(25));
+create table insert_all_into_values_test.t3(id int primary key, name varchar(25));
+
+--echo ---------------------------------------------------------------
+--echo ## Test insert all into values for oracle compatibility
+--echo ---------------------------------------------------------------
+
+--echo ---------------------------------------------------------------
+--echo ## Test_1: test insert all into 3 tables
+--echo ---------------------------------------------------------------
+
+--connection master
+
+insert all into insert_all_into_values_test.t1 values(1,'xx') 
+           into insert_all_into_values_test.t2(id,name) values(2,'xx') 
+           into insert_all_into_values_test.t3(id) values(3) 
+           select * from dual;
+
+select * from insert_all_into_values_test.t1;
+select * from insert_all_into_values_test.t2;
+select * from insert_all_into_values_test.t3;
+
+--connection slave
+--source include/start_slave.inc
+--source include/wait_for_slave_to_start.inc
+
+--echo ## slave data:
+
+select * from insert_all_into_values_test.t1;
+select * from insert_all_into_values_test.t2;
+select * from insert_all_into_values_test.t3;
+
+--source include/stop_slave.inc
+--source include/wait_for_slave_to_stop.inc
+
+--echo ---------------------------------------------------------------
+--echo ## Test_2: test insert all into 3 tables, multi values
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_into_values_test.t1;
+truncate table insert_all_into_values_test.t2;
+truncate table insert_all_into_values_test.t3;
+
+insert all into insert_all_into_values_test.t1 values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.t2 values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.t3 values(1,'xx'),(2,'xx')
+           select * from dual;
+
+explain insert all into insert_all_into_values_test.t1 values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.t2 values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.t3 values(1,'xx'),(2,'xx')
+           select * from dual;
+
+explain insert into insert_all_into_values_test.t1 values(1,'xx'),(2,'xx');
+
+select * from insert_all_into_values_test.t1;
+select * from insert_all_into_values_test.t2;
+select * from insert_all_into_values_test.t3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_3: test insert all into values select 1 from dual
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_into_values_test.t1;
+truncate table insert_all_into_values_test.t2;
+truncate table insert_all_into_values_test.t3;
+
+insert all into insert_all_into_values_test.t1 values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.t2 values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.t3 values(1,'xx'),(2,'xx')
+           select 1 from dual;
+
+explain insert all into insert_all_into_values_test.t1 values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.t2 values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.t3 values(1,'xx'),(2,'xx')
+           select 1 from dual;
+
+select * from insert_all_into_values_test.t1;
+select * from insert_all_into_values_test.t2;
+select * from insert_all_into_values_test.t3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_4: test insert all into values select * from t1, not from dual
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_into_values_test.t1;
+truncate table insert_all_into_values_test.t2;
+truncate table insert_all_into_values_test.t3;
+
+insert into insert_all_into_values_test.t1 values(3,'xx');
+
+--error ER_PARSE_ERROR
+insert all into insert_all_into_values_test.t2 values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.t3 values(1,'xx'),(2,'xx')
+           select * from t1;
+
+--error ER_PARSE_ERROR
+explain insert all into insert_all_into_values_test.t2 values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.t3 values(1,'xx'),(2,'xx')
+           select * from t1;
+
+select * from insert_all_into_values_test.t1;
+select * from insert_all_into_values_test.t2;
+select * from insert_all_into_values_test.t3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_5: test insert all into values, multi select
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_into_values_test.t1;
+truncate table insert_all_into_values_test.t2;
+truncate table insert_all_into_values_test.t3;
+
+insert into insert_all_into_values_test.t1 values(3,'xx');
+
+--error ER_PARSE_ERROR
+insert all into insert_all_into_values_test.t2 values(1,'xx'),(2,'xx') select * from dual
+           into insert_all_into_values_test.t3 values(1,'xx'),(2,'xx') select * from dual;
+
+--error ER_PARSE_ERROR
+explain insert all into insert_all_into_values_test.t2 values(1,'xx'),(2,'xx') select * from dual
+           into insert_all_into_values_test.t3 values(1,'xx'),(2,'xx') select * from dual;
+
+select * from insert_all_into_values_test.t1;
+select * from insert_all_into_values_test.t2;
+select * from insert_all_into_values_test.t3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_6: test insert all into view
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_into_values_test.t1;
+truncate table insert_all_into_values_test.t2;
+truncate table insert_all_into_values_test.t3;
+
+insert into insert_all_into_values_test.t1 values(3,'xx');
+
+create view insert_all_into_values_test.view_t1 as select * from insert_all_into_values_test.t1;
+
+--error ER_INSERT_ALL_ERROR
+insert all into insert_all_into_values_test.view_t1 values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.t3 values(1,'xx'),(2,'xx')
+           select * from dual;
+
+--error ER_INSERT_ALL_ERROR
+explain insert all into insert_all_into_values_test.view_t1 values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.t3 values(1,'xx'),(2,'xx')
+           select * from dual;
+
+--error ER_INSERT_ALL_ERROR
+insert all into insert_all_into_values_test.t3 values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.view_t1 values(1,'xx'),(2,'xx')
+           select * from dual;
+
+--error ER_INSERT_ALL_ERROR
+explain insert all into insert_all_into_values_test.t3 values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.view_t1 values(1,'xx'),(2,'xx')
+           select * from dual;
+
+select * from insert_all_into_values_test.t1;
+select * from insert_all_into_values_test.t2;
+select * from insert_all_into_values_test.t3;
+select * from insert_all_into_values_test.view_t1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_7: test insert all into empty values
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_into_values_test.t1;
+truncate table insert_all_into_values_test.t2;
+truncate table insert_all_into_values_test.t3;
+
+--error ER_NO_DEFAULT_FOR_FIELD
+insert all into insert_all_into_values_test.t1 values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.t3 values()
+           select * from dual;
+
+explain insert all into insert_all_into_values_test.t1 values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.t3 values()
+           select * from dual;
+
+select * from insert_all_into_values_test.t1;
+select * from insert_all_into_values_test.t2;
+select * from insert_all_into_values_test.t3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_8: test insert all into same values, part of columns, primary key auto increment
+--echo ---------------------------------------------------------------
+
+create table insert_all_into_values_test.t4(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_into_values_test.t5(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_into_values_test.t6(id int primary key auto_increment, name varchar(25), address varchar(25));
+
+insert all into insert_all_into_values_test.t4(id, name) values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.t5(id, address) values(2, 'place')
+           into insert_all_into_values_test.t6 values(1,'haha','street')
+           into insert_all_into_values_test.t6(name, address) values('haha','street')
+           select * from dual;
+
+explain insert all into insert_all_into_values_test.t4(id, name) values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.t5(id, address) values(2, 'place')
+           into insert_all_into_values_test.t6 values(1,'haha','street')
+           into insert_all_into_values_test.t6(name, address) values('haha','street')
+           select * from dual;
+
+select * from insert_all_into_values_test.t4;
+select * from insert_all_into_values_test.t5;
+select * from insert_all_into_values_test.t6;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_9: test insert all into tables,test if case sensitive
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_into_values_test.t4;
+truncate table insert_all_into_values_test.t5;
+truncate table insert_all_into_values_test.t6;
+
+--error ER_BAD_DB_ERROR
+insert all into INSERT_ALL_INTO_VALUES_TEST.T4(id,name) values(1,'xx'),(2,'xx') 
+           into insert_all_into_values_test.T5(id, address) values(3, 'place') 
+           into INSERT_ALL_INTO_VALUES_TEST.t6(name, address) values('haha','street') 
+           select * from dual;
+
+select * from insert_all_into_values_test.t4;
+select * from insert_all_into_values_test.t5;
+select * from insert_all_into_values_test.t6;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_10: test insert all into tables,same table name,different db name
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_into_values_test.t1;
+truncate table insert_all_into_values_test.t2;
+truncate table insert_all_into_values_test.t3;
+
+create database insert_all_into_values_test1;
+create table insert_all_into_values_test1.t1(id int primary key auto_increment, name varchar(25));
+create table insert_all_into_values_test1.t2(id int primary key auto_increment, name varchar(25));
+create table insert_all_into_values_test1.t3(id int primary key auto_increment, name varchar(25));
+
+insert all into insert_all_into_values_test.t1(id, name) values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test1.t1(id, name) values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.t2(id) values(3),(4)
+           into insert_all_into_values_test1.t2(id) values(3),(4)
+           into insert_all_into_values_test.t3 values(5,'xx'),(6,'xx')
+           into insert_all_into_values_test1.t3 values(5,'xx'),(6,'xx')
+           select * from dual;
+
+select * from insert_all_into_values_test.t1;
+select * from insert_all_into_values_test.t2;
+select * from insert_all_into_values_test.t3;
+select * from insert_all_into_values_test1.t1;
+select * from insert_all_into_values_test1.t2;
+select * from insert_all_into_values_test1.t3;
+
+drop database insert_all_into_values_test1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_11: test insert all into tables,in 'use db' stmt
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_into_values_test.t1;
+truncate table insert_all_into_values_test.t2;
+truncate table insert_all_into_values_test.t3;
+
+create database insert_all_into_values_test1;
+create table insert_all_into_values_test1.t1(id int primary key auto_increment, name varchar(25));
+create table insert_all_into_values_test1.t2(id int primary key auto_increment, name varchar(25));
+create table insert_all_into_values_test1.t3(id int primary key auto_increment, name varchar(25));
+
+use insert_all_into_values_test;
+
+insert all into insert_all_into_values_test.t1(id, name) values(1,'xx'),(2,'xx')
+           into t1(id, name) values(3,'xx'),(4,'xx')
+           into insert_all_into_values_test1.t1(id) values(1),(2)
+           select * from dual;
+
+select * from insert_all_into_values_test.t1;
+select * from insert_all_into_values_test1.t1;
+
+drop database insert_all_into_values_test1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_12: test insert all into tables,all type
+--echo ---------------------------------------------------------------
+
+create table insert_all_into_values_test.t7(
+  id       int       primary key auto_increment,
+  tinyid   tinyint,
+  smallid  smallint,
+  medid    mediumint,
+  bigid    bigint,
+  floid    float,
+  douid    double,
+  deid     decimal(3,2),
+  dateid   date,
+  timeid   time,
+  yearid   year,
+  dtid     datetime,
+  tsid     timestamp,
+  name     varchar(25),
+  name1    char(10),
+  tbname   tinyblob,
+  txname   tinytext,
+  bname    blob,
+  tname    text,
+  mbname   mediumblob,
+  mtname   mediumtext,
+  lbname   longblob,
+  ltname   longtext,
+  a        SET('A','B','C'),
+  b        ENUM('F','M')
+);
+
+insert all into insert_all_into_values_test.t7 values(1, 2, 3, 4, 5, 5.61, 5.554, 6.987, '2020-06-01', '18:18:16', 2020, '2020-06-01 00:00:00', '2020-06-01 00:00:00', 'ss', 'ss', 'xx', 'xx', 'ss', 'ss', 'xx', 'xx', 's', 'x', 'A', 'M')
+           into insert_all_into_values_test.t7 values(2, 2, 3, 4, 5, 5.61, 5.554, 6.987, '2020-06-01', '18:18:16', 2020, '2020-06-01 00:00:00', '2020-06-01 00:00:00', 'ss', 'ss', 'xx', 'xx', 'ss', 'ss', 'xx', 'xx', 's', 'x', 'B', 'F')
+           select * from dual;
+
+select * from insert_all_into_values_test.t7;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_13: test insert all into tables,in transaction
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_into_values_test.t1;
+truncate table insert_all_into_values_test.t2;
+truncate table insert_all_into_values_test.t3;
+
+begin;
+
+insert all into insert_all_into_values_test.t1(id, name) values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.t2(id) values(1),(2)
+           select * from dual;
+
+commit;
+
+select * from insert_all_into_values_test.t1;
+select * from insert_all_into_values_test.t2;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_14: test insert all into tables,in transaction,ddl end
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_into_values_test.t1;
+truncate table insert_all_into_values_test.t2;
+
+begin;
+
+insert all into insert_all_into_values_test.t1(id, name) values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.t2(id) values(1),(2)
+           select * from dual;
+
+drop table insert_all_into_values_test.t6;
+
+select * from insert_all_into_values_test.t1;
+select * from insert_all_into_values_test.t2;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_15: test insert all into tables,transaction rollback
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_into_values_test.t1;
+truncate table insert_all_into_values_test.t2;
+
+begin;
+
+insert all into insert_all_into_values_test.t1(id, name) values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.t2(id) values(1),(2)
+           select * from dual;
+
+rollback;
+
+select * from insert_all_into_values_test.t1;
+select * from insert_all_into_values_test.t2;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_16: test insert all into tables,different fields num and values num
+--echo ---------------------------------------------------------------
+
+create table insert_all_into_values_test.t6(id int primary key auto_increment, name varchar(25), address varchar(25) default 'place', phone_num bigint default 0, score double not null);
+
+insert all into insert_all_into_values_test.t6(id, name, score) values(1,'xx', 0.05),(2,'xx', 0.01)
+           into insert_all_into_values_test.t6(id, score) values(3, 50.55),(4, 34.23)
+           into insert_all_into_values_test.t6(address, score) values(1, 50.55),(2, 34.23)
+           select * from dual;
+
+explain insert all into insert_all_into_values_test.t6(id, name, score) values(1,'xx', 0.05),(2,'xx', 0.01)
+           into insert_all_into_values_test.t6(id, score) values(3, 50.55),(4, 34.23)
+           into insert_all_into_values_test.t6(address, score) values(1, 50.55),(2, 34.23)
+           select * from dual;
+
+select * from insert_all_into_values_test.t6;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_17: abnormal test,table not exist
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_into_values_test.t1;
+truncate table insert_all_into_values_test.t2;
+
+--error ER_NO_SUCH_TABLE
+insert all into insert_all_into_values_test.t8(id, name, score) values(1,'xx', 0.05),(2,'xx', 0.01)
+           into insert_all_into_values_test.t1(id, name) values(1, 'nn'),(2, 'yy')
+           into insert_all_into_values_test.t2(id, name) values(1, '50.55'),(2, '34.23')
+           select * from dual;
+
+--error ER_NO_SUCH_TABLE
+insert all into insert_all_into_values_test.t1(id, name, score) values(1,'xx', 0.05),(2,'xx', 0.01)
+           into insert_all_into_values_test.t8(id, name) values(1, 'nn'),(2, 'yy')
+           into insert_all_into_values_test.t2(id, name) values(1, '50.55'),(2, '34.23')
+           select * from dual;
+
+--error ER_NO_SUCH_TABLE
+insert all into insert_all_into_values_test.t1(id, name, score) values(1,'xx', 0.05),(2,'xx', 0.01)
+           into insert_all_into_values_test.t2(id, name) values(1, 'nn'),(2, 'yy')
+           into insert_all_into_values_test.t8(id, name) values(1, '50.55'),(2, '34.23')
+           select * from dual;
+
+--error ER_NO_SUCH_TABLE
+explain insert all into insert_all_into_values_test.t1(id, name, score) values(1,'xx', 0.05),(2,'xx', 0.01)
+           into insert_all_into_values_test.t2(id, name) values(1, 'nn'),(2, 'yy')
+           into insert_all_into_values_test.t8(id, name) values(1, '50.55'),(2, '34.23')
+           select * from dual;
+
+select * from insert_all_into_values_test.t1;
+select * from insert_all_into_values_test.t2;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_18: abnormal test,primary key conflict
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_into_values_test.t1;
+truncate table insert_all_into_values_test.t2;
+
+--error ER_DUP_ENTRY
+insert all into insert_all_into_values_test.t6(id, name, score) values(1,'xx', 0.05),(2,'xx', 0.01)
+           into insert_all_into_values_test.t1(id, name) values(1, 'nn'),(2, 'yy')
+           into insert_all_into_values_test.t2(id, name) values(1, '50.55'),(2, '34.23')
+           select * from dual;
+
+--error ER_DUP_ENTRY
+insert all into insert_all_into_values_test.t1(id, name) values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.t6(id, name, score) values(1, 'nn', '0.05'),(2, 'yy', '0.01')
+           into insert_all_into_values_test.t2(id, name) values(1, '50.55'),(2, '34.23')
+           select * from dual;
+
+--error ER_DUP_ENTRY
+insert all into insert_all_into_values_test.t1(id, name) values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.t2(id, name) values(1, 'nn'),(2, 'yy')
+           into insert_all_into_values_test.t6(id, name, score) values(1, '50.55', '1.11'),(2, '34.23', '0.01')
+           select * from dual;
+
+explain insert all into insert_all_into_values_test.t1(id, name) values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.t2(id, name) values(1, 'nn'),(2, 'yy')
+           into insert_all_into_values_test.t6(id, name, score) values(1, '50.55', '1.11'),(2, '34.23', '0.01')
+           select * from dual;
+
+select * from insert_all_into_values_test.t1;
+select * from insert_all_into_values_test.t2;
+select * from insert_all_into_values_test.t6;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_19: abnormal test,fields num not match values num
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_into_values_test.t1;
+truncate table insert_all_into_values_test.t2;
+truncate table insert_all_into_values_test.t6;
+
+--error ER_WRONG_VALUE_COUNT_ON_ROW
+insert all into insert_all_into_values_test.t6(id, name, score) values(1,'xx'),(2,'xx', 0.01)
+           into insert_all_into_values_test.t1(id, name) values(1, 'nn'),(2, 'yy')
+           into insert_all_into_values_test.t2(id, name) values(1, '50.55'),(2, '34.23')
+           select * from dual;
+
+--error ER_WRONG_VALUE_COUNT_ON_ROW
+insert all into insert_all_into_values_test.t1(id, name) values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.t6(id, name) values(1, 'nn'),(2)
+           into insert_all_into_values_test.t2(id, name) values(1, '50.55'),(2, '34.23')
+           select * from dual;
+
+--error ER_WRONG_VALUE_COUNT_ON_ROW
+insert all into insert_all_into_values_test.t1(id, name) values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.t2(id, name) values(1, 'nn'),(2, 'yy')
+           into insert_all_into_values_test.t6(id, name) values(1),(2)
+           select * from dual;
+
+--error ER_WRONG_VALUE_COUNT_ON_ROW
+explain insert all into insert_all_into_values_test.t1(id, name) values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.t2(id, name) values(1, 'nn'),(2, 'yy')
+           into insert_all_into_values_test.t6(id, name) values(1),(2)
+           select * from dual;
+
+select * from insert_all_into_values_test.t1;
+select * from insert_all_into_values_test.t2;
+select * from insert_all_into_values_test.t6;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_20: abnormal test,insert all on duplicate key
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_into_values_test.t1;
+
+--error ER_PARSE_ERROR
+insert all into insert_all_into_values_test.t1(id, name) values(1,'xx'),(2,'xx') 
+           on duplicate key update id=(select id from insert_all_into_values_test.t1)
+           select * from dual;
+
+select * from insert_all_into_values_test.t1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_21: test select insert_all_into_values_test.t1 from dual
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_into_values_test.t1;
+truncate table insert_all_into_values_test.t2;
+truncate table insert_all_into_values_test.t3;
+insert into insert_all_into_values_test.t1 values(1,'s');
+
+insert all into insert_all_into_values_test.t2(id, name) values(1,'xx'),(2,'xx')
+           into insert_all_into_values_test.t3(id, name) values(1,'xx'),(2,'xx')
+           select insert_all_into_values_test.t1 from dual;
+
+select * from insert_all_into_values_test.t1;
+select * from insert_all_into_values_test.t2;
+select * from insert_all_into_values_test.t3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_22: test insert all into temporary table
+--echo ---------------------------------------------------------------
+
+create temporary table insert_all_into_values_test.tmp_table(id int primary key auto_increment, name varchar(25));
+
+insert all into insert_all_into_values_test.tmp_table(id, name) values(1,'xx'),(2,'xx')
+           select insert_all_into_values_test.t1 from dual;
+
+explain insert all into insert_all_into_values_test.tmp_table(id, name) values(1,'xx'),(2,'xx')
+           select insert_all_into_values_test.t1 from dual;
+
+--error ER_CANT_REOPEN_TABLE
+insert all into insert_all_into_values_test.tmp_table(id, name) values(5,'xx'),(6,'xx')
+           into insert_all_into_values_test.tmp_table(id, name) values(3,'xx'),(4,'xx')
+           select insert_all_into_values_test.t1 from dual;
+
+--error ER_CANT_REOPEN_TABLE
+explain insert all into insert_all_into_values_test.tmp_table(id, name) values(5,'xx'),(6,'xx')
+           into insert_all_into_values_test.tmp_table(id, name) values(3,'xx'),(4,'xx')
+           select insert_all_into_values_test.t1 from dual;
+
+select * from insert_all_into_values_test.tmp_table;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_23: test insert all into values in prepare stmt
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_into_values_test.t1;
+
+prepare prod_t1 from "insert all into insert_all_into_values_test.t1(id, name) values(?,?)
+                                 into insert_all_into_values_test.t1(id, name) values(?,?)
+                                 select * from dual";
+
+set @a=1;
+set @b='s';
+set @c=2;
+set @d='ss';
+
+execute prod_t1 using @a,@b,@c,@d;
+
+select * from insert_all_into_values_test.t1;
+
+DEALLOCATE prepare prod_t1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_24: test insert all into 100 tables
+--echo ---------------------------------------------------------------
+
+create table insert_all_into_values_test.t10(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_into_values_test.t11(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_into_values_test.t12(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_into_values_test.t13(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_into_values_test.t14(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_into_values_test.t15(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_into_values_test.t16(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_into_values_test.t17(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_into_values_test.t18(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_into_values_test.t19(id int primary key auto_increment, name varchar(25), address varchar(25));
+
+use insert_all_into_values_test;
+DELIMITER |;
+DROP PROCEDURE IF EXISTS `insert_sql_pro` |
+CREATE PROCEDURE `insert_sql_pro`()
+BEGIN
+DECLARE i INT;
+DECLARE j INT;
+DECLARE table_name blob;
+DECLARE value_name blob;
+DECLARE sql_stmt blob;
+DECLARE sql_tmp blob;
+SET i = 10;
+SET @sql_item="";
+WHILE i<20 DO
+set j = 1;
+WHILE j<11 DO
+set sql_tmp = @sql_item;
+set table_name = CONCAT('t', i, "(name, address)" );
+set value_name = CONCAT(' values(', '"xiaoxiao",', '"street") ');
+SET sql_stmt = CONCAT(
+'into ', table_name, value_name
+);
+SET @sql_item = CONCAT(sql_tmp, sql_stmt);
+SET j = j+1;
+END WHILE;
+SET i = i+1;
+END WHILE;
+set @sql = CONCAT('insert all ', @sql_item, 'select * from dual');
+PREPARE create_stmt FROM @sql;
+EXECUTE create_stmt;
+END |
+DELIMITER ;|
+
+call insert_sql_pro;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_25: test explain insert all into values
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_into_values_test.t1;
+truncate table insert_all_into_values_test.t2;
+truncate table insert_all_into_values_test.t3;
+
+explain insert all into insert_all_into_values_test.t1(id, name) values(5,'xx'),(6,'xx')
+           into insert_all_into_values_test.t2(id, name) values(3,'xx'),(4,'xx')
+           into insert_all_into_values_test.t3(id, name) values(1,'xx'),(2,'xx')
+           select * from dual;
+
+explain insert all into insert_all_into_values_test.t1(id, name) values(5,'xx'),(6,'xx')
+           into insert_all_into_values_test.t2(id, name) values(3,'xx'),(4,'xx')
+           into insert_all_into_values_test.t3(id, name) values(1,'xx'),(2,'xx')
+           select 1 from dual;
+
+create database insert_all_into_values_test1;
+use insert_all_into_values_test1;
+create table t1(id int, name varchar(25));
+
+explain insert all into insert_all_into_values_test.t1(id, name) values(5,'xx'),(6,'xx')
+           into t1(id, name) values(3,'xx'),(4,'xx')
+           select * from dual;
+drop database insert_all_into_values_test1;
+
+--echo ---------------------------------------------------------------
+--echo ## End test insert all into values
+--echo ---------------------------------------------------------------
+--connection master
+drop database if exists INSERT_ALL_INTO_TEST;
+drop database if exists insert_all_into_values_test;
+
+--connection slave
+drop database if exists INSERT_ALL_INTO_TEST;
+drop database if exists insert_all_into_values_test;

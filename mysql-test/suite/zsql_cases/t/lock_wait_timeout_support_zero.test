@@ -1,0 +1,151 @@
+################################################################################
+# this is a testcase for variable lock_wait_timeout for a recent change for this
+# variable: lock_wait_timeout used not to support to assign as value 0, but now
+# support. while assigned as 0, MDL lock aquirement procedure will not block, 
+# which means the MDL aquirement result success or failure will return immediately.
+# In this testcase, the scene where lock_wait_timeout is assigned as 0 will be 
+# tested emphasly.
+################################################################################
+
+--disable_warnings
+drop database if exists yxx;
+--enable_warnings
+create database yxx;
+create table yxx.mytest (id int primary key);
+
+
+--echo "remember old lock_wait_timeout"
+SET @old_lock_wait_timeout = @@global.lock_wait_timeout;
+--echo "set lock_wait_timeout as 5 second"
+SEt @@global.lock_wait_timeout = 5;
+
+--echo "start test..."
+connect (conn1, 127.0.0.1,root,,);
+connect (conn2, 127.0.0.1,root,,);
+
+
+--echo #########################################################################
+--echo #  test case 1: DML operations in one session will work normaly
+--echo #########################################################################
+
+set @@session.lock_wait_timeout = 0;
+insert into yxx.mytest values (1), (2);
+update yxx.mytest set id = id + 5;
+select * from yxx.mytest;
+delete from yxx.mytest;
+insert into yxx.mytest values (11), (22);
+update yxx.mytest set id = id + 5;
+select * from yxx.mytest;
+delete from yxx.mytest;
+
+
+--echo #########################################################################
+--echo #  test case 2: DML operations in different sessions will work normaly
+--echo #########################################################################
+
+begin;
+insert into yxx.mytest values (10);
+commit;
+
+connection conn1;
+set @@session.lock_wait_timeout = 0;
+SET AUTOCOMMIT = 1;
+BEGIN;
+insert into yxx.mytest values (1), (2);
+commit;
+
+connection conn2;
+set @@session.lock_wait_timeout = 0;
+SET AUTOCOMMIT = 1;
+BEGIN;
+insert into yxx.mytest values (11), (22);
+commit;
+
+connection conn1;
+update yxx.mytest set id = id + 5 where id < 10;
+select * from yxx.mytest where id < 10;
+
+connection conn2;
+update yxx.mytest set id = id + 5 where id > 10;
+select * from yxx.mytest where id > 10;
+
+connection conn1;
+delete from yxx.mytest where id < 10;
+
+connection conn2;
+delete from yxx.mytest where id > 10;
+
+connection conn1;
+commit;
+connection conn2;
+commit;
+
+delete from yxx.mytest;
+commit;
+
+--echo #########################################################################
+--echo #  test case 3: without other transaction, DDL will work normaly
+--echo #########################################################################
+
+connection conn1;
+set AUTOCOMMIT = 1;
+set @@session.lock_wait_timeout = 0;
+truncate table yxx.mytest;
+create database newdb;
+create table newdb.test (id int, name varchar(64), age int);
+alter table newdb.test drop column age;
+alter table newdb.test add column (age int);
+insert into newdb.test values (1000, "ABC", 10);
+insert into newdb.test values (1001, "DEF", 11);
+alter table newdb.test add index `age_index` (age);
+select * from newdb.test;
+drop index `age_index` on newdb.test;
+drop table newdb.test;
+drop database newdb;
+
+
+
+--echo #########################################################################
+--echo #  test case 4: with DML in other session, DDL will fail directly
+--echo #########################################################################
+
+connection conn1;
+set AUTOCOMMIT = 1;
+begin;
+insert into yxx.mytest values (1);
+
+connection conn2;
+set @@session.lock_wait_timeout = 0;
+select NOW() into @t1;
+--error ER_LOCK_WAIT_TIMEOUT
+alter table yxx.mytest add column `name` varchar(64);
+select NOW() into @t2;
+select timestampdiff(second, @t1, @t2)  <= 1;
+
+select NOW() into @t1;
+--error ER_LOCK_WAIT_TIMEOUT
+lock table yxx.mytest write;
+select NOW() into @t2;
+select timestampdiff(second, @t1, @t2)  <= 1;
+
+select NOW() into @t1;
+--error ER_LOCK_WAIT_TIMEOUT
+truncate table yxx.mytest;
+select NOW() into @t2;
+select timestampdiff(second, @t1, @t2)  <= 1;
+
+insert into yxx.mytest values (2);
+delete from yxx.mytest where id = 2;
+commit;
+
+connection conn1;
+rollback;
+
+DISCONNECT conn1;
+DISCONNECT conn2;
+
+--echo "====================restore variables===================="
+connection default;
+SET @@global.lock_wait_timeout = @old_lock_wait_timeout;
+drop database if exists yxx;
+

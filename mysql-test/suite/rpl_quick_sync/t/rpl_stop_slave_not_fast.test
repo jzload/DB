@@ -1,0 +1,102 @@
+--source include/not_group_replication_plugin.inc
+--source include/master-slave.inc
+--source include/have_binlog_format_row.inc
+--source include/have_debug.inc
+
+# init the table and procedure.
+--echo [on slave]
+connection slave;
+stop slave sql_thread;
+set global slave_parallel_workers = 4;
+start slave sql_thread;
+call mtr.add_suppression("The slave coordinator and worker threads are stopped, possibly leaving data in inconsistent state");
+
+--echo [on master]
+connection master;
+set global max_binlog_size = 10485760;
+drop database if exists test_db;
+create database test_db;
+create table test_db.tb1(a int key , c1 varchar(100), c2 varchar(100));
+delimiter //;
+create procedure test_db.load(count int unsigned)
+begin
+set @c=0;
+start transaction;
+while @c <count DO
+INSERT INTO test_db.tb1 select @c,repeat(char(97+rand()*26),100),repeat(char(97+rand()*26),100);
+set @c=@c+1;
+end while;
+commit;
+end;//
+delimiter ;//
+
+
+# Test 1. For test stop slave sql_thread over 60s
+--echo [on slave]
+connection slave;
+let $read_pos1= query_get_value(SHOW SLAVE STATUS, Read_Master_Log_Pos, 1);
+
+--echo [on master]
+connection master;
+--send call test_db.load(150000)
+
+--echo [on slave]
+connection slave;
+let $read_pos2= query_get_value(SHOW SLAVE STATUS, Read_Master_Log_Pos, 1);
+while($read_pos1 == $read_pos2)
+{
+    sleep 1;
+    let $read_pos2= query_get_value(SHOW SLAVE STATUS, Read_Master_Log_Pos, 1);
+}
+stop slave io_thread;
+--let $time1= query_get_value(select unix_timestamp(), unix_timestamp(), 1)
+stop slave sql_thread;
+--let $time2= query_get_value(select unix_timestamp(), unix_timestamp(), 1)
+--let $result= query_get_value(select case ($time2-$time1>60) when 1 then 1 else 0 end as value1, value1, 1)
+if($result == 1)
+{
+    --echo "stop slave sql_thread in special case need more than 60s.";
+}
+
+--echo [on master]
+connection master;
+--reap
+let $master_file= query_get_value(SHOW MASTER STATUS, File, 1);
+let $master_pos= query_get_value(SHOW MASTER STATUS, Position, 1);
+--echo [on slave]
+connection slave;
+start slave;
+let $slave_file= query_get_value(SHOW SLAVE STATUS, Relay_Master_Log_File, 1);
+while($master_file != $slave_file)
+{
+    sleep 1;
+    let $slave_file= query_get_value(SHOW SLAVE STATUS, Relay_Master_Log_File, 1);
+}
+let $slave_pos= query_get_value(SHOW SLAVE STATUS, Exec_Master_Log_Pos, 1);
+while($master_pos != $slave_pos)
+{
+    sleep 1;
+    let $slave_pos= query_get_value(SHOW SLAVE STATUS, Exec_Master_Log_Pos, 1);
+}
+
+--echo [on master]
+connection master;
+truncate table test_db.tb1;
+
+
+# clean up
+--echo ==== Cleanup ====
+--echo [on master]
+connection master;
+DROP database test_db;
+set global max_binlog_size = 1073741824;
+
+--echo [on slave]
+connection slave;
+stop slave sql_thread;
+set global slave_parallel_workers = 0;
+start slave sql_thread;
+
+--echo End of tests
+--source include/rpl_end.inc
+

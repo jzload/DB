@@ -1,0 +1,49 @@
+#bug copy table failed and another connector show create table loading to cash
+#
+#
+#
+#
+connect (conn1, localhost, root,,);
+connect (conn2, localhost, root,,);
+
+connection conn1;
+create database test_copy;
+use test_copy;
+CREATE TABLE `ttt` (   
+`c1` varchar(100) COLLATE utf8mb4_bin NOT NULL,   
+`DA` varchar(30) COLLATE utf8mb4_bin NOT NULL,   
+`IN1` varchar(300) COLLATE utf8mb4_bin NOT NULL,   
+`IV` varchar(300) COLLATE utf8mb4_bin NOT NULL,   
+`RT_key` varchar(26) COLLATE utf8mb4_bin DEFAULT NULL,   
+`FN` varchar(30) COLLATE utf8mb4_bin NOT NULL,   
+`AV` varchar(1000) COLLATE utf8mb4_bin DEFAULT NULL,   
+`NL` varchar(1000) COLLATE utf8mb4_bin DEFAULT NULL,   
+PRIMARY KEY (`c1`,`DA`,`IN1`,`IV`,`FN`),   
+KEY `csa` (`RT_key`) ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+
+CREATE TABLE `ttt1` (   
+`c1` varchar(100) COLLATE utf8mb4_bin NOT NULL,   
+`DA` varchar(30) COLLATE utf8mb4_bin NOT NULL,   
+`IN1` varchar(300) COLLATE utf8mb4_bin NOT NULL,   
+`IV` varchar(300) COLLATE utf8mb4_bin NOT NULL,   
+`RT_key` varchar(26) COLLATE utf8mb4_bin NOT NULL,   
+`FN` varchar(30) COLLATE utf8mb4_bin NOT NULL,   
+`AV` varchar(1000) COLLATE utf8mb4_bin DEFAULT NULL,   
+`NL` varchar(1000) COLLATE utf8mb4_bin DEFAULT NULL,   
+PRIMARY KEY (`c1`,`DA`,`IN1`,`IV`,`FN`),   
+KEY `csa` (`RT_key`) ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+--error ER_COPY_TABLE_FAILED
+copy table from ttt1 to ttt;
+
+connection conn2;
+show create table test_copy.ttt1;
+
+
+show create table test_copy.ttt;
+
+show create table test_copy.ttt;
+
+drop database test_copy;
+

@@ -1,0 +1,138 @@
+##########################################################
+# Test cases of rpl send binlog optimize bug. 
+# [BUG] the master will skip some gtid which need send to slave
+# in some cases.
+##########################################################
+
+--source include/have_log_bin.inc
+--source include/not_group_replication_plugin.inc
+--source include/master-slave.inc
+#semisync plugine has built in ,we do not need to install it
+
+--source include/rpl_connection_slave.inc
+--source include/stop_slave.inc
+--source include/start_slave.inc
+
+#########################################################
+#prepare table A
+#########################################################
+--source include/rpl_connection_slave.inc
+set global rpl_semi_sync_slave_enabled = ON;
+--source include/stop_slave.inc
+--source include/start_slave.inc
+
+
+--source include/rpl_connection_master.inc
+set global rpl_semi_sync_master_enabled = OFF; 
+set global rpl_semi_sync_master_wait_cond_hwm = '1:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '1:0';
+set global rpl_semi_sync_master_group1 = '1,2:1';
+set global rpl_semi_sync_master_quick_sync_enabled=ON;
+set global rpl_semi_sync_master_enabled = ON; 
+--let $assert_status_name= Rpl_semi_sync_master_current_wait_groups
+--let $assert_status_value= 1
+--source include/assert_status.inc
+--let $assert_status_name= Rpl_semi_sync_master_active_groups
+--let $assert_status_value= 1
+--source include/assert_status.inc
+
+
+--source include/rpl_connection_master.inc
+--disable_warnings
+drop database if exists test_db;
+create database if not exists test_db;
+--enable_warnings
+use test_db;
+create table tb1 (id int primary key , c1 int)ENGINE=InnoDB;
+
+--echo #########################################################
+--echo #CASE 1:[BUG] the master will skip some gtid which need send to slave in some cases.
+--echo #########################################################
+--source include/rpl_connection_master.inc
+reset master;
+
+
+--source include/rpl_connection_slave.inc
+stop slave;
+reset slave all;
+reset master;
+--disable_query_log
+--disable_warnings
+eval CHANGE MASTER TO MASTER_USER='root',MASTER_PORT=$MASTER_MYPORT,MASTER_HOST='127.0.0.1',MASTER_AUTO_POSITION=1;
+--enable_warnings
+--enable_query_log
+--source include/start_slave.inc
+
+
+--source include/rpl_connection_master.inc
+insert into test_db.tb1 values(1,1);
+insert into test_db.tb1 values(2,2);
+truncate table test_db.tb1;
+insert into test_db.tb1 values(3,3);
+insert into test_db.tb1 values(4,4);
+
+
+let $prefix_uuid= query_get_value(show variables like 'server_uuid', Value, 1);
+let $master_gtid= query_get_value(SHOW MASTER STATUS, Executed_Gtid_Set, 1);
+if (`select '$master_gtid' != '$prefix_uuid:1-5'`)
+{
+  echo '$master_gtid' != '$prefix_uuid:1-5';
+  die gtid is not same;
+}
+
+
+--source include/rpl_connection_slave.inc
+stop slave;
+reset slave all;
+reset master;
+--disable_query_log
+eval set global gtid_purged='$prefix_uuid:1-2:4-5';
+--disable_warnings
+eval CHANGE MASTER TO MASTER_USER='root',MASTER_PORT=$MASTER_MYPORT,MASTER_HOST='127.0.0.1',MASTER_HEARTBEAT_PERIOD=1,MASTER_AUTO_POSITION=1;
+--enable_warnings
+--enable_query_log
+--source include/start_slave.inc
+
+--source include/rpl_connection_master.inc
+insert into test_db.tb1 values(5,5);
+insert into test_db.tb1 values(6,6);
+
+sleep 1;
+
+--source include/rpl_connection_slave.inc
+let $slave_gtid= query_get_value(SHOW MASTER STATUS, Executed_Gtid_Set, 1);
+if (`select '$slave_gtid' != '$prefix_uuid:1-7'`)
+{
+  echo '$slave_gtid' != '$prefix_uuid:1-7';
+  die gtid is not same;
+}
+
+
+--echo #########################################################
+--echo #END.
+--echo #########################################################
+
+--source include/rpl_connection_slave.inc
+call mtr.add_suppression("An unexpected event sequence was detected by the IO thread");
+call mtr.add_suppression("GTID_LOG_EVENT .* is not expected in an event stream");
+set global rpl_semi_sync_slave_enabled = OFF; 
+
+--source include/rpl_connection_master.inc
+drop database test_db;
+CALL mtr.add_suppression(".*Got an error reading communication packets.*");
+set global rpl_semi_sync_master_enabled = OFF; 
+set global rpl_semi_sync_master_wait_cond_lwm = '';
+set global rpl_semi_sync_master_wait_cond_hwm = '';
+set global rpl_semi_sync_master_group1 = '';
+
+
+
+--source include/rpl_end.inc
+
+
+
+
+ 
+
+
+

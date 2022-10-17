@@ -1,0 +1,897 @@
+set parse_mode=2;
+set nls_length_semantics='CHAR';
+select "预置数据开始";
+预置数据开始
+预置数据开始
+create database if not exists oracle_proc;
+use oracle_proc;
+drop table if exists oracle_proc.emp;
+create table oracle_proc.emp(empno int primary key,ename varchar2(40),job varchar2(40),sal number(7,3));
+start transaction;
+insert into oracle_proc.emp(empno,ename,job,sal) values(1,'oracle_proc',  'engineer',1456.32);
+insert into oracle_proc.emp(empno,ename,job,sal) values(2,'linqi',   'manager',7456.32);
+insert into oracle_proc.emp(empno,ename,job,sal) values(3,'linting', 'sales',9456.32);
+insert into oracle_proc.emp(empno,ename,job,sal) values(4,'zhaoyhui',  'engineer',8914.2);
+insert into oracle_proc.emp(empno,ename,job,sal) values(5,'shiwen',   'manager',456.78);
+insert into oracle_proc.emp(empno,ename,job,sal) values(6,'lyz', 'sales',3568.23);
+commit;
+drop table if exists oracle_proc.employee;
+create table oracle_proc.employee(empno int primary key,ename varchar2(40),job varchar2(40),sal number(7,3));
+start transaction;
+insert into oracle_proc.employee(empno,ename,job,sal) values(1,'oracle_proc',  'engineer',1456.32);
+insert into oracle_proc.employee(empno,ename,job,sal) values(2,'linqi',   'manager',7456.32);
+insert into oracle_proc.employee(empno,ename,job,sal) values(3,'linting', 'sales',9456.32);
+insert into oracle_proc.employee(empno,ename,job,sal) values(4,'zhaoyhui',  'engineer',8914.2);
+insert into oracle_proc.employee(empno,ename,job,sal) values(5,'shiwen',   'manager',456.78);
+insert into oracle_proc.employee(empno,ename,job,sal) values(6,'lyz', 'sales',3568.23);
+insert into oracle_proc.employee(empno,ename,job,sal) values(7,'zhangxueyou',  'engineer',8914.2);
+commit;
+drop  table if exists employee2;
+create table oracle_proc.employee2(empno int primary key,ename varchar2(40),job varchar2(40),sal number(7,3));
+start transaction;
+insert into oracle_proc.employee2(empno,ename,job,sal) values(1,'guofucheng',  'engineer',256);
+insert into oracle_proc.employee2(empno,ename,job,sal) values(3,'liudehua',   'manager',789);
+insert into oracle_proc.employee2(empno,ename,job,sal) values(5,'limin', 'sales',123);
+insert into oracle_proc.employee2(empno,ename,job,sal) values(7,'zhangxueyou',  'engineer',568);
+insert into oracle_proc.employee2(empno,ename,job,sal) values(9,'zhangweijian',   'manager',456);
+insert into oracle_proc.employee2(empno,ename,job,sal) values(11,'jackie', 'sales',3568);
+commit;
+drop  table if exists employee3;
+create table oracle_proc.employee3(empno int primary key,ename varchar2(40),job varchar2(40),sal number(7,3));
+start transaction;
+insert into oracle_proc.employee3(empno,ename,job,sal) values(13,'jetli', 'sales',3568.23);
+insert into oracle_proc.employee3(empno,ename,job,sal) values(14,'xietingfeng', 'sales',30.23);
+commit;
+create or replace view emp_view as select * from emp;
+select "预置数据完毕";
+预置数据完毕
+预置数据完毕
+select "兼容number类型";
+兼容number类型
+兼容number类型
+drop procedure if exists oracle_proc.sp_declare_1;
+create procedure oracle_proc.sp_declare_1(str_para1 in varchar2, num_para2 in number)
+as
+num_var1 number;
+begin
+num_var1:=num_para2;
+select num_var1;
+end //
+call oracle_proc.sp_declare_1('oracle_proc',1.23);
+num_var1
+1
+select  "兼容varchar2类型";
+兼容varchar2类型
+兼容varchar2类型
+drop procedure if exists oracle_proc.sp_declare_1;
+create procedure oracle_proc.sp_declare_1(str_para1 in varchar2(20), num_para2 in number)
+as
+num_var1 varchar2(20);
+begin
+num_var1 := str_para1;
+select num_var1;
+end //
+call oracle_proc.sp_declare_1('oracle_proc',1.23);
+num_var1
+oracle_proc
+select "兼容 pls_integer类型";
+兼容 pls_integer类型
+兼容 pls_integer类型
+drop procedure if exists oracle_proc.SP_PLS_INTEGER;
+CREATE OR REPLACE PROCEDURE oracle_proc.SP_PLS_INTEGER(p_flag  integer)
+as
+v_tmp pls_integer;
+begin
+v_tmp := p_flag;
+-- dbms_output.put_line(v_tmp);
+select v_tmp;
+end //
+call oracle_proc.SP_PLS_INTEGER(3);
+v_tmp
+3
+select  "兼容CLOB类型";
+兼容CLOB类型
+兼容CLOB类型
+drop table if exists oracle_proc.employee4;
+create table oracle_proc.employee4(empno int primary key, ename CLOB);
+select "ORACLE声明变量方式";
+ORACLE声明变量方式
+ORACLE声明变量方式
+drop procedure if exists oracle_proc.sp_declare_1;
+create procedure oracle_proc.sp_declare_1(str_para1 in varchar2, num_para2 in number)
+as
+num_var1 number;
+begin
+set num_var1 = num_para2;
+select num_var1;
+end //
+call oracle_proc.sp_declare_1('oracle_proc',1.23);
+num_var1
+1
+select "兼容ORACLE赋值语句";
+兼容ORACLE赋值语句
+兼容ORACLE赋值语句
+drop procedure if exists oracle_proc.sp_declare_1;
+create  procedure oracle_proc.sp_declare_1(str_para1 in varchar2, num_para2 in number)
+as
+num_var1 number;
+begin
+if num_para2 > 10 then
+num_var1 := 20;
+end if;
+-- num_var1 := num_para2;
+select num_var1;
+end //
+call oracle_proc.sp_declare_1('oracle_proc',1.23);
+num_var1
+NULL
+call oracle_proc.sp_declare_1('oracle_proc',11.23);
+num_var1
+20
+select "兼容创建或替换存储过程";
+兼容创建或替换存储过程
+兼容创建或替换存储过程
+drop procedure if exists oracle_proc.p_for;
+create or replace procedure oracle_proc.p_for(n out int) AS
+i int;
+begin
+n:=0;
+for i in 1..5 loop
+n := n+1;
+select n;
+end loop;
+end //
+call oracle_proc.p_for(@n);
+n
+1
+n
+2
+n
+3
+n
+4
+n
+5
+select  "兼容存储过程结束标记";
+兼容存储过程结束标记
+兼容存储过程结束标记
+drop procedure if exists oracle_proc.sp_declare_1;
+create  procedure oracle_proc.sp_declare_1(str_para1 in varchar2, num_para2 in number)
+as
+num_var1 number;
+begin
+set num_var1 = num_para2;
+select num_var1;
+end  sp_declare_1 //
+call oracle_proc.sp_declare_1('oracle_proc',1.23);
+num_var1
+1
+call oracle_proc.sp_declare_1('oracle_proc',11.23);
+num_var1
+11
+select "存储过程调用存储过程";
+存储过程调用存储过程
+存储过程调用存储过程
+drop procedure if exists oracle_proc.sp_call_1;
+create or replace procedure oracle_proc.sp_call_1(p_age int)
+is
+v_idx int := 1;
+begin
+for v_idx in 1..p_age loop
+select v_idx;
+end loop loop_first;
+end //
+drop procedure if exists oracle_proc.sp_call_2;
+create or replace procedure oracle_proc.sp_call_2(p_age int)
+is
+v_idx int := 1;
+begin
+select v_idx;
+sp_call_1(p_age);
+end //
+call sp_call_2(5);
+v_idx
+1
+v_idx
+1
+v_idx
+2
+v_idx
+3
+v_idx
+4
+v_idx
+5
+select "命名标记法传递实参";
+命名标记法传递实参
+命名标记法传递实参
+drop procedure if exists oracle_proc.sp_param_1;
+create or replace procedure oracle_proc.sp_param_1(p_count1 int,p_count2 int)
+as
+begin
+select p_count1 , p_count2;
+end //
+call sp_param_1(10,20);
+p_count1	p_count2
+10	20
+call sp_param_1(p_count2=>10,p_count1=>20);
+p_count1	p_count2
+20	10
+select "用:=指定缺省值参数";
+用:=指定缺省值参数
+用:=指定缺省值参数
+drop procedure if exists oracle_proc.sp_in_out_param1;
+create or replace procedure oracle_proc.sp_in_out_param1(p_count0 out int, p_count1 out int, p_count2 int:=1)
+as
+begin
+p_count1 := p_count2*2;
+p_count0 := p_count1 - 1;
+select p_count0, p_count1 , p_count2;
+end //
+set @v_var1=30;
+set @v_var2=100;
+call sp_in_out_param1(@v_var1,@v_var2,2);
+p_count0	p_count1	p_count2
+3	4	2
+select @v_var1,@v_var2;
+@v_var1	@v_var2
+3	4
+select "用default指定缺省值参数";
+用default指定缺省值参数
+用default指定缺省值参数
+drop procedure if exists oracle_proc.sp_in_out_param2;
+create or replace procedure oracle_proc.sp_in_out_param2(p_count0 out int, p_count1 out int, p_count2 int default 1)
+as
+begin
+p_count1 := p_count2*2;
+p_count0 := p_count1 - 1;
+select p_count0, p_count1 , p_count2;
+end //
+set @v_var1=30;
+set @v_var2=100;
+call oracle_proc.sp_in_out_param2(@v_var1,@v_var2,2);
+p_count0	p_count1	p_count2
+3	4	2
+select @v_var1,@v_var2;
+@v_var1	@v_var2
+3	4
+select "调用支持缺省值";
+调用支持缺省值
+调用支持缺省值
+set @v_var1=30;
+set @v_var2=100;
+call oracle_proc.sp_in_out_param1(@v_var1,@v_var2);
+p_count0	p_count1	p_count2
+1	2	1
+set @v_var1=30;
+set @v_var2=100;
+call oracle_proc.sp_in_out_param2(@v_var1,@v_var2);
+p_count0	p_count1	p_count2
+1	2	1
+select "兼容execute immediat(结果集不对) 修改为复制表则可以";
+兼容execute immediat(结果集不对) 修改为复制表则可以
+兼容execute immediat(结果集不对) 修改为复制表则可以
+drop table if exists oracle_proc.employee;
+create table oracle_proc.employee(empno int primary key,ename varchar2(40),job varchar2(40),sal number(7,3)) ;
+start transaction;
+insert into oracle_proc.employee(empno,ename,job,sal) values(1,'oracle_proc',  'engineer',1456.32);
+insert into oracle_proc.employee(empno,ename,job,sal) values(2,'linqi',   'manager',7456.32);
+insert into oracle_proc.employee(empno,ename,job,sal) values(3,'linting', 'sales',9456.32);
+insert into oracle_proc.employee(empno,ename,job,sal) values(4,'zhaoyhui',  'engineer',8914.2);
+insert into oracle_proc.employee(empno,ename,job,sal) values(5,'shiwen',   'manager',456.78);
+insert into oracle_proc.employee(empno,ename,job,sal) values(6,'lyz', 'sales',3568.23);
+insert into oracle_proc.employee(empno,ename,job,sal) values(7,'zhangxueyou',  'engineer',8914.2);
+commit;
+drop  table if exists oracle_proc.employee3;
+create table oracle_proc.employee3(xempno int primary key,xename varchar2(40),xjob varchar2(40),xsal number(7,3)) ;
+start transaction;
+insert into oracle_proc.employee3(xempno,xename,xjob,xsal) values(13,'jetli', 'sales',3568.23);
+insert into oracle_proc.employee3(xempno,xename,xjob,xsal) values(7,'zhangxueyou',  'engineer',568);
+insert into oracle_proc.employee3(xempno,xename,xjob,xsal) values(9,'zhangweijian',   'manager',456);
+insert into oracle_proc.employee3(xempno,xename,xjob,xsal) values(11,'jackie', 'sales',3568);
+commit;
+drop procedure if exists oracle_proc.SP_FROM_SUBS_NO_ALIAS;
+CREATE OR REPLACE PROCEDURE SP_FROM_SUBS_NO_ALIAS(v_flag       integer)
+as
+begin
+execute immediate 'select * from (select xempno from employee3) tt join employee on xempno = employee.empno';
+end //
+call SP_FROM_SUBS_NO_ALIAS(3);
+xempno	empno	ename	job	sal
+7	7	zhangxueyou	engineer	8914.200
+select "支持语句块";
+支持语句块
+支持语句块
+drop procedure if exists  oracle_proc.sp_block_5;
+create procedure oracle_proc.sp_block_5(p_size int)
+is
+v_str1 varchar2(100);
+begin
+select 'first level';
+declare
+v_str varchar2(100);
+begin
+select 'second level';
+declare
+v_str3 varchar2(100);
+begin
+select 'third level';
+end;
+if (p_size<5) then
+v_str := 'little than 5';
+v_str1 := 'xxxxxx';
+else
+v_str := 'bigger than 5';
+v_str1 := 'yyyyyyyyyyyyy';
+end if;
+select concat(v_str1 , '____' , v_str);
+end;
+end //
+call oracle_proc.sp_block_5(1);
+first level
+first level
+second level
+second level
+third level
+third level
+concat(v_str1 , '____' , v_str)
+xxxxxx____little than 5
+call oracle_proc.sp_block_5(5);
+first level
+first level
+second level
+second level
+third level
+third level
+concat(v_str1 , '____' , v_str)
+yyyyyyyyyyyyy____bigger than 5
+call oracle_proc.sp_block_5(10);
+first level
+first level
+second level
+second level
+third level
+third level
+concat(v_str1 , '____' , v_str)
+yyyyyyyyyyyyy____bigger than 5
+select "兼容if语句";
+兼容if语句
+兼容if语句
+drop procedure if exists  oracle_proc.sp_declare_1;
+create  procedure oracle_proc.sp_declare_1(str_para1 in varchar2, num_para2 in number)
+as
+num_var1 number;
+begin
+if num_para2 < 5 then
+num_var1 := 4.12;
+elsif num_para2 > 20 then
+num_var1 := 50.23;
+else
+num_var1 := 15 ;
+end if;
+select num_var1;
+end //
+call oracle_proc.sp_declare_1('oracle_proc',123);
+num_var1
+50
+select "兼容loop循环";
+兼容loop循环
+兼容loop循环
+drop procedure if exists  oracle_proc.sp_loop1_1;
+create procedure oracle_proc.sp_loop1_1(i_var in integer)
+as
+i_tmp_var int;
+begin
+i_tmp_var := i_var;
+loop
+select i_tmp_var;
+i_tmp_var := i_tmp_var - 1;
+if i_tmp_var<=3 then
+exit;
+end if;
+end loop;
+end //
+call oracle_proc.sp_loop1_1(6);
+i_tmp_var
+6
+i_tmp_var
+5
+i_tmp_var
+4
+select "兼容while循环";
+兼容while循环
+兼容while循环
+drop procedure if exists oracle_proc.sp_loop1_1;
+create procedure oracle_proc.sp_loop1_1(i_var in integer)
+as
+i_tmp_var int;
+begin
+i_tmp_var := i_var;
+while i_tmp_var > 0
+loop
+select i_tmp_var;
+i_tmp_var := i_tmp_var - 1;
+end loop;
+end //
+call oracle_proc.sp_loop1_1(5);
+i_tmp_var
+5
+i_tmp_var
+4
+i_tmp_var
+3
+i_tmp_var
+2
+i_tmp_var
+1
+select "正向for循环";
+正向for循环
+正向for循环
+drop procedure if exists oracle_proc.sp_loop3;
+create procedure oracle_proc.sp_loop3(i_var in integer)
+as
+begin
+for  i_tmp_var in 1..2 loop
+select i_tmp_var;
+end loop;
+end //
+call oracle_proc.sp_loop3(5);
+i_tmp_var
+1
+i_tmp_var
+2
+select "反向for循环";
+反向for循环
+反向for循环
+drop procedure if exists oracle_proc.sp_loop3;
+create procedure oracle_proc.sp_loop3(i_var in integer)
+as
+begin
+for  i_tmp_var in reverse 1..2 loop
+select i_tmp_var;
+end loop;
+end //
+call oracle_proc.sp_loop3(5);
+i_tmp_var
+2
+i_tmp_var
+1
+select "Exit when";
+Exit when
+Exit when
+drop procedure if exists oracle_proc.sp_loop1_1;
+create procedure oracle_proc.sp_loop1_1(i_var in integer)
+as
+i_tmp_var int;
+begin
+i_tmp_var := i_var;
+loop
+select i_tmp_var;
+i_tmp_var := i_tmp_var - 1;
+exit when i_tmp_var<4;
+end loop;
+end //
+call oracle_proc.sp_loop1_1(6);
+i_tmp_var
+6
+i_tmp_var
+5
+i_tmp_var
+4
+select "Exit";
+Exit
+Exit
+drop procedure if exists oracle_proc.sp_loop1_1;
+create procedure oracle_proc.sp_loop1_1(i_var in integer)
+as
+i_tmp_var int;
+begin
+i_tmp_var := i_var;
+loop
+select i_tmp_var;
+i_tmp_var := i_tmp_var - 1;
+exit;
+end loop;
+end //
+call oracle_proc.sp_loop1_1(6);
+i_tmp_var
+6
+select "带标签循环";
+带标签循环
+带标签循环
+drop procedure if exists oracle_proc.sp_loop_cycle_12;
+create or replace procedure oracle_proc.sp_loop_cycle_12(p_age int)
+is
+v_idx int := 1;
+v_idx2 int :=1;
+begin
+<<loop_first>>
+loop
+exit loop_first when v_idx>p_age;
+-- dbms_output.put_line(v_idx);
+select v_idx;
+v_idx := v_idx+1;
+<<loop_second>>
+loop
+v_idx2 := v_idx2+1;
+-- dbms_output.put_line(v_idx2);
+select v_idx2;
+exit loop_second when v_idx2>3;
+end loop;
+end loop ;
+end //
+call oracle_proc.sp_loop_cycle_12(5);
+v_idx
+1
+v_idx2
+2
+v_idx2
+3
+v_idx2
+4
+v_idx
+2
+v_idx2
+5
+v_idx
+3
+v_idx2
+6
+v_idx
+4
+v_idx2
+7
+v_idx
+5
+v_idx2
+8
+select  "end loop后面跟一个未声明的标签";
+end loop后面跟一个未声明的标签
+end loop后面跟一个未声明的标签
+drop procedure if exists oracle_proc.sp_loop_cycle_4;
+create or replace procedure oracle_proc.sp_loop_cycle_4(p_age int)
+is
+v_idx int := 1;
+begin
+loop
+exit when v_idx>p_age;
+select v_idx;
+v_idx := v_idx+1;
+end loop loop_first;
+v_idx :=1 ;
+loop
+exit when v_idx>p_age;
+select v_idx;
+v_idx := v_idx+1;
+end loop loop_first;
+end //
+call oracle_proc.sp_loop_cycle_4(5);
+v_idx
+1
+v_idx
+2
+v_idx
+3
+v_idx
+4
+v_idx
+5
+v_idx
+1
+v_idx
+2
+v_idx
+3
+v_idx
+4
+v_idx
+5
+select "声明静态游标";
+声明静态游标
+声明静态游标
+drop table if exists oracle_proc.emp;
+create table oracle_proc.emp(empno int primary key,ename varchar2(40),job varchar2(40),sal number(7,3));
+start transaction;
+insert into oracle_proc.emp(empno,ename,job,sal) values(1,'oracle_proc',  'engineer',1456.32);
+insert into oracle_proc.emp(empno,ename,job,sal) values(2,'linqi',   'manager',7456.32);
+insert into oracle_proc.emp(empno,ename,job,sal) values(3,'linting', 'sales',9456.32);
+insert into oracle_proc.emp(empno,ename,job,sal) values(4,'zhaoyhui',  'engineer',8914.2);
+insert into oracle_proc.emp(empno,ename,job,sal) values(5,'shiwen',   'manager',456.78);
+insert into oracle_proc.emp(empno,ename,job,sal) values(6,'lyz', 'sales',3568.23);
+commit;
+drop procedure if exists oracle_proc.sp_cursor_1;
+create  procedure oracle_proc.sp_cursor_1(int_var int)
+is
+emp_row int;
+cursor csr_emp is select empno from emp;
+begin
+open csr_emp;
+loop
+fetch csr_emp into emp_row;
+exit when csr_emp%notfound;
+select emp_row;
+end loop;
+close csr_emp;
+end //
+call sp_cursor_1(5);
+emp_row
+1
+emp_row
+2
+emp_row
+3
+emp_row
+4
+emp_row
+5
+emp_row
+6
+select  "游标属性：%found";
+游标属性：%found
+游标属性：%found
+drop procedure if exists oracle_proc.sp_cursor_1;
+create  procedure oracle_proc.sp_cursor_1(int_var int)
+is
+emp_row int;
+cursor csr_emp is select empno from emp;
+begin
+open csr_emp;
+loop
+fetch csr_emp into emp_row;
+exit when csr_emp%notfound;
+select emp_row;
+end loop;
+close csr_emp;
+end //
+call oracle_proc.sp_cursor_1(2);
+emp_row
+1
+emp_row
+2
+emp_row
+3
+emp_row
+4
+emp_row
+5
+emp_row
+6
+select "游标属性：%notfound";
+游标属性：%notfound
+游标属性：%notfound
+drop procedure if exists oracle_proc.sp_cursor_1;
+create  procedure oracle_proc.sp_cursor_1(int_var int)
+is
+emp_row int;
+cursor csr_emp is select empno from emp;
+begin
+open csr_emp;
+loop
+fetch csr_emp into emp_row;
+exit when csr_emp%notfound;
+select emp_row;
+end loop;
+close csr_emp;
+end //
+call oracle_proc.sp_cursor_1(5);
+emp_row
+1
+emp_row
+2
+emp_row
+3
+emp_row
+4
+emp_row
+5
+emp_row
+6
+select  "for loop隐式使用游标";
+for loop隐式使用游标
+for loop隐式使用游标
+drop procedure if exists oracle_proc.sp_cursor_for_1;
+create  procedure oracle_proc.sp_cursor_for_1(int_var int)
+is
+begin
+for emp_row in (select empno from emp) loop
+select emp_row.empno;
+end loop;
+end //
+call oracle_proc.sp_cursor_for_1(5);
+emp_row.empno
+1
+emp_row.empno
+2
+emp_row.empno
+3
+emp_row.empno
+4
+emp_row.empno
+5
+emp_row.empno
+6
+select  "隐式使用的游标含有表达式";
+隐式使用的游标含有表达式
+隐式使用的游标含有表达式
+drop procedure if exists oracle_proc.sp_cursor_for_3;
+create  procedure oracle_proc.sp_cursor_for_3(int_var  int)
+is
+begin
+for emp_row in (select concat(ename,'_',empno) x from emp) loop
+select  emp_row.x;
+end loop;
+end //
+call oracle_proc.sp_cursor_for_3(5);
+emp_row.x
+oracle_proc_1
+emp_row.x
+linqi_2
+emp_row.x
+linting_3
+emp_row.x
+zhaoyhui_4
+emp_row.x
+shiwen_5
+emp_row.x
+lyz_6
+select "隐式使用的游标含有聚合函数";
+隐式使用的游标含有聚合函数
+隐式使用的游标含有聚合函数
+drop procedure if exists oracle_proc.sp_cursor_for_3;
+create  procedure oracle_proc.sp_cursor_for_3(int_var int)
+is
+begin
+for emp_row in (select max(ename) x from emp) loop
+select emp_row.x;
+end loop;
+end //
+call oracle_proc.sp_cursor_for_3(5);
+emp_row.x
+zhaoyhui
+select  "隐式使用的游标含有select *";
+隐式使用的游标含有select *
+隐式使用的游标含有select *
+drop procedure if exists oracle_proc.sp_cursor_for;
+create  procedure oracle_proc.sp_cursor_for(int_var int)
+is
+begin
+for emp_row in (select * from emp) loop
+select emp_row.empno;
+end loop;
+end //
+call oracle_proc.sp_cursor_for(5);
+emp_row.empno
+1
+emp_row.empno
+2
+emp_row.empno
+3
+emp_row.empno
+4
+emp_row.empno
+5
+emp_row.empno
+6
+select  "隐式使用的游标中含有视图";
+隐式使用的游标中含有视图
+隐式使用的游标中含有视图
+create or replace view oracle_proc.emp_view as select * from oracle_proc.emp;
+drop procedure if exists oracle_proc.sp_sp_wild_12;
+create or replace procedure oracle_proc.sp_wild_12(p_age int)
+is
+begin
+for v_sal in (select  empno  from emp_view) loop
+select v_sal.empno;
+end loop;
+end //
+call sp_wild_12(1);
+v_sal.empno
+1
+v_sal.empno
+2
+v_sal.empno
+3
+v_sal.empno
+4
+v_sal.empno
+5
+v_sal.empno
+6
+select  "声明和根据变量打开动态游标";
+声明和根据变量打开动态游标
+声明和根据变量打开动态游标
+drop procedure if exists oracle_proc.sp_sys_ref_curosr2;
+create procedure oracle_proc.sp_sys_ref_curosr2(v_strsql varchar2)
+is
+v_empno int;
+v_ename varchar2(100);
+emp_csr sys_refcursor;
+begin
+open emp_csr for v_strsql;
+loop
+fetch emp_csr into v_empno,v_ename;
+exit when emp_csr%notfound;
+select v_empno , ':' , v_ename;
+end loop;
+close emp_csr;
+end //
+call oracle_proc.sp_sys_ref_curosr2('select empno,ename from emp');
+v_empno	:	v_ename
+1	:	oracle_proc
+v_empno	:	v_ename
+2	:	linqi
+v_empno	:	v_ename
+3	:	linting
+v_empno	:	v_ename
+4	:	zhaoyhui
+v_empno	:	v_ename
+5	:	shiwen
+v_empno	:	v_ename
+6	:	lyz
+select  "声明和根据查询语句打开动态游标";
+声明和根据查询语句打开动态游标
+声明和根据查询语句打开动态游标
+drop procedure if exists oracle_proc.sp_cursor_1;
+create  procedure oracle_proc.sp_cursor_1(int_var int)
+is
+emp_row int;
+csr_emp sys_refcursor;
+begin
+open csr_emp for select empno from emp;
+loop
+fetch csr_emp into emp_row;
+exit when csr_emp%notfound;
+select emp_row;
+end loop;
+close csr_emp;
+end //
+call oracle_proc.sp_cursor_1(5);
+emp_row
+1
+emp_row
+2
+emp_row
+3
+emp_row
+4
+emp_row
+5
+emp_row
+6
+select  "捕捉others异常，获取SQLCODE和SQLERRM";
+捕捉others异常，获取SQLCODE和SQLERRM
+捕捉others异常，获取SQLCODE和SQLERRM
+drop procedure if exists oracle_proc.sp_exception_0;
+create  procedure oracle_proc.sp_exception_0(v_int int)
+is
+v_ErrorCode NUMBER(10,3);
+v_ErrText   VARCHAR2(200);
+begin
+select 'hello';
+drop table lp_no_exists;
+exception 
+when others then
+v_ErrorCode := SQLCODE;
+v_ErrText   := SUBSTR(SQLERRM,1,200);
+-- dbms_output.put_line(v_ErrorCode||'-'||v_ErrText);
+select v_ErrorCode, v_ErrText;
+end //
+call oracle_proc.sp_exception_0(0);
+hello
+hello
+v_ErrorCode	v_ErrText
+1051.000	Unknown table 'oracle_proc.lp_no_exists'
+select  "TO_CHAR";
+TO_CHAR
+TO_CHAR
+drop procedure if exists oracle_proc.sp_to_char;
+CREATE OR REPLACE PROCEDURE oracle_proc.sp_to_char(p_date date)
+AS
+BEGIN
+select to_char(p_date, 'yyyy-MM-dd') from dual;
+END //
+call sp_to_char('2018-08-20');
+to_char(p_date, 'yyyy-MM-dd')
+2018-08-20
+drop database if exists oracle_proc;
+set global parse_mode=1;

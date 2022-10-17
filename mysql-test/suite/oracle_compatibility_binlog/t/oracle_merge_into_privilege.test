@@ -1,0 +1,108 @@
+source include/have_binlog_format_row.inc;
+
+# preparation
+create database merge_db;
+use merge_db;
+create table tm1 (a int, b int);
+create table tm2 (a int, b int);
+create table tm3 (a int, b int);
+
+insert into tm1 values (1,1),(2,2);
+insert into tm2 values (1,2),(2,1),(3,3),(4,4);
+insert into tm3 values (1,4),(2,3),(3,1),(4,2);
+
+CREATE USER dummy@localhost;
+GRANT SELECT ON merge_db.tm1 TO dummy@localhost;
+GRANT SELECT ON merge_db.tm2 TO dummy@localhost;
+FLUSH PRIVILEGES;
+
+SET @old_lock_wait_timeout=@@global.lock_wait_timeout;
+SET @old_innodb_lock_wait_timeout=@@global.innodb_lock_wait_timeout;
+SET @@global.lock_wait_timeout=1;
+SET @@global.innodb_lock_wait_timeout=1;
+
+connect (conn1, 127.0.0.1,dummy,,);
+
+connection conn1;
+## ONLY SELECT PRIVILEGE
+--error ER_TABLEACCESS_DENIED_ERROR
+merge into merge_db.tm1 using merge_db.tm2 on(merge_db.tm1.a = merge_db.tm2.a) when matched then update set merge_db.tm1.b=merge_db.tm2.b when not matched then insert values (merge_db.tm2.a,merge_db.tm2.b);
+--error ER_TABLEACCESS_DENIED_ERROR
+merge into merge_db.tm1 using merge_db.tm2 on(merge_db.tm1.a = merge_db.tm2.a) when not matched then insert values (merge_db.tm2.a,merge_db.tm2.b);
+--error ER_TABLEACCESS_DENIED_ERROR
+merge into merge_db.tm1 using merge_db.tm2 on(merge_db.tm1.a = merge_db.tm2.a) when matched then update set merge_db.tm1.b=merge_db.tm2.b;
+
+connection default;
+GRANT UPDATE ON merge_db.tm1 TO dummy@localhost;
+FLUSH PRIVILEGES;
+
+connection conn1;
+## SELECT & UPDATE PRIVILEGE on target table
+--error ER_TABLEACCESS_DENIED_ERROR
+merge into merge_db.tm1 using merge_db.tm2 on(merge_db.tm1.a = merge_db.tm2.a) when matched then update set merge_db.tm1.b=merge_db.tm2.b when not matched then insert values (merge_db.tm2.a,merge_db.tm2.b);
+--error ER_TABLEACCESS_DENIED_ERROR
+merge into merge_db.tm1 using merge_db.tm2 on(merge_db.tm1.a = merge_db.tm2.a) when not matched then insert values (merge_db.tm2.a,merge_db.tm2.b);
+merge into merge_db.tm1 using merge_db.tm2 on(merge_db.tm1.a = merge_db.tm2.a) when matched then update set merge_db.tm1.b=merge_db.tm2.b;
+
+## target table is derived table
+--error ER_TABLEACCESS_DENIED_ERROR
+merge into (select * from merge_db.tm1) t using merge_db.tm2 on(t.a = merge_db.tm2.a) when matched then update set t.b=merge_db.tm2.b when not matched then insert values (merge_db.tm2.a,merge_db.tm2.b);
+
+connection default;
+REVOKE UPDATE ON merge_db.tm1 FROM dummy@localhost;
+GRANT INSERT ON merge_db.tm1 TO dummy@localhost;
+FLUSH PRIVILEGES;
+
+connection conn1;
+## SELECT & UPDATE PRIVILEGE on target table
+--error ER_TABLEACCESS_DENIED_ERROR
+merge into merge_db.tm1 using merge_db.tm2 on(merge_db.tm1.a = merge_db.tm2.a) when matched then update set merge_db.tm1.b=merge_db.tm2.b when not matched then insert values (merge_db.tm2.a,merge_db.tm2.b);
+merge into merge_db.tm1 using merge_db.tm2 on(merge_db.tm1.a = merge_db.tm2.a) when not matched then insert values (merge_db.tm2.a,merge_db.tm2.b);
+--error ER_TABLEACCESS_DENIED_ERROR
+merge into merge_db.tm1 using merge_db.tm2 on(merge_db.tm1.a = merge_db.tm2.a) when matched then update set merge_db.tm1.b=merge_db.tm2.b;
+
+## target table is derived table
+--error ER_TABLEACCESS_DENIED_ERROR
+merge into (select * from merge_db.tm1) t using merge_db.tm2 on(t.a = merge_db.tm2.a) when matched then update set t.b=merge_db.tm2.b when not matched then insert values (merge_db.tm2.a,merge_db.tm2.b);
+
+connection default;
+GRANT INSERT,UPDATE,SELECT ON merge_db.tm1 TO dummy@localhost;
+FLUSH PRIVILEGES;
+delete from tm1;
+insert into tm2 values (1,2),(2,1),(3,3),(4,4);
+
+connection conn1;
+## SELECT & UPDATE & INSERT PRIVILEGE on target table
+merge into merge_db.tm1 using merge_db.tm2 on(merge_db.tm1.a = merge_db.tm2.a) when matched then update set merge_db.tm1.b=merge_db.tm2.b when not matched then insert values (merge_db.tm2.a,merge_db.tm2.b);
+
+## target table is derived table
+merge into (select * from merge_db.tm1) t using merge_db.tm2 on(t.a = merge_db.tm2.a) when matched then update set t.b=merge_db.tm2.b when not matched then insert values (merge_db.tm2.a,merge_db.tm2.b);
+
+## source table is multi-table
+--error ER_TABLEACCESS_DENIED_ERROR
+merge into merge_db.tm1 using (select tm2.b a ,tm3.b b from merge_db.tm2 join merge_db.tm3 on tm2.a=tm3.a)dt on(merge_db.tm1.a = dt.a) when matched then update set merge_db.tm1.b=dt.b when not matched then insert values (dt.a,dt.b);
+
+connection default;
+create view merge_db.v1 as select * from merge_db.tm1;
+insert into merge_db.v1 values (1,1);
+
+connection conn1;
+--error ER_TABLEACCESS_DENIED_ERROR
+merge into merge_db.v1 using merge_db.tm2 on(v1.a = merge_db.tm2.a) when matched then update set v1.b=merge_db.tm2.b when not matched then insert values (merge_db.tm2.a,merge_db.tm2.b);
+
+connection default;
+GRANT INSERT,UPDATE,SELECT ON merge_db.v1 TO dummy@localhost;
+REVOKE INSERT,UPDATE,SELECT ON merge_db.tm1 FROM dummy@localhost;
+FLUSH PRIVILEGES;
+delete from tm1;
+insert into tm2 values (1,2),(2,1),(3,3),(4,4);
+
+connection conn1;
+## SELECT & UPDATE & INSERT PRIVILEGE on target view table (base table do not have privileges)
+merge into merge_db.v1 using merge_db.tm2 on(v1.a = merge_db.tm2.a) when matched then update set v1.b=merge_db.tm2.b when not matched then insert values (merge_db.tm2.a,merge_db.tm2.b);
+
+connection default;
+DROP USER dummy@localhost;
+drop database if exists merge_db;
+SET @@global.lock_wait_timeout=@old_lock_wait_timeout;
+SET @@global.innodb_lock_wait_timeout=@old_innodb_lock_wait_timeout;

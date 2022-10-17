@@ -1,0 +1,18 @@
+drop database if exists timezone5_test1;
+show variables like "%time_zone%";
+Variable_name	Value
+system_time_zone	CST
+time_zone	+08:00
+create database timezone5_test1;
+use timezone5_test1;
+create table t1(time timestamp);
+insert into t1 values('1986-05-04 00:01:02');
+insert into t1 values('1988-04-10 00:12:08');
+insert into t1 values('1989-04-16 00:02:32');
+select * from t1;
+time
+1986-05-04 00:01:02
+1988-04-10 00:12:08
+1989-04-16 00:02:32
+drop table t1;
+drop database timezone5_test1;

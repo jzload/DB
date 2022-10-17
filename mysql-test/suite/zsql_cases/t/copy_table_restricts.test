@@ -1,0 +1,265 @@
+#
+# test the abnormal test for copy_table
+#
+
+--source include/have_log_bin.inc
+
+
+
+--echo #########################
+--echo #CASE 1: Grammar error
+--echo #########################
+--disable_warnings
+drop database if exists test_db;
+create database if not exists test_db;
+--enable_warnings
+use test_db;
+create table tb1 (id int primary key , c1 int);
+create table tb2 (id int primary key , c1 int);
+create table tb3 (id int primary key , c1 int);
+insert into tb1 values(1,1);
+insert into tb1 values(2,2);
+--disable_abort_on_error
+copy tb1 to tb2;
+copy table tb1 to tb2;
+copy table from tb1 to tb2,tb3 ;
+copy table from tb1 to tb2 and tb3 ;
+--enable_abort_on_error
+copy table from tb1 to tb2; 
+select * from tb1 for update;
+select * from tb2 for update;
+ 
+
+--echo #########################
+--echo #CASE 2: do not support tmp table
+--echo #########################
+--disable_warnings
+drop database if exists test_db;
+create database if not exists test_db;
+--enable_warnings
+use test_db;
+create temporary table tmp1(id int ,c1 int);
+create temporary table tmp2(id int ,c1 int);
+insert into tmp1 values(1,1);
+insert into tmp1 values(2,2);
+select * from tmp1;
+--disable_abort_on_error
+copy table from tmp1 to tmp2;
+--enable_abort_on_error
+select * from tmp1 for update;
+select * from tmp2 for update;
+
+
+--echo #########################
+--echo #CASE 3:  only support individual table space
+--echo #########################
+--disable_warnings
+drop database if exists test_db;
+create database if not exists test_db;
+--enable_warnings
+use test_db;
+eval set global innodb_file_per_table=OFF;
+show variables like 'innodb_file_per_table';
+create table tb1(id int primary key,c1 int);
+create table tb2(id int primary key,c1 int);
+insert into tb1 values (1,1);
+insert into tb1 values (2,2);
+--disable_abort_on_error
+copy table from tb1 to tb2;
+--enable_abort_on_error
+select * from tb1 for update;
+select * from tb2 for update;
+eval set global innodb_file_per_table=ON;
+
+
+--echo #################################
+--echo #CASE 4:  do not support encrypted table space
+--echo #################################
+
+# Restart the server with keyring loaded
+--exec echo "wait" > $MYSQLTEST_VARDIR/tmp/mysqld.1.expect
+-- send_shutdown
+-- source include/wait_until_disconnected.inc
+--exec echo "restart:--early-plugin-load="keyring_file=$KEYRING_PLUGIN" --loose-keyring_file_data=$MYSQL_TMP_DIR/mysecret_keyring10 $KEYRING_PLUGIN_OPT" > $MYSQLTEST_VARDIR/tmp/mysqld.1.expect
+--enable_reconnect
+--source include/wait_until_connected_again.inc
+--disable_reconnect
+
+--disable_query_log
+call mtr.add_suppression("InnoDB: Table is not in an encrypted tablespace, but the data file which trying to import is an encrypted tablespace");
+--enable_query_log
+
+eval  set global  keyring_operations=ON;
+show variables like 'keyring_operations';
+
+--disable_warnings
+drop database if exists test_db;
+create database if not exists test_db;
+--enable_warnings
+use test_db;
+create table tb1(id int primary key,c1 int);
+create table tb2(id int primary key,c1 int);
+insert into tb1 values (1,1);
+insert into tb1 values (2,2);
+
+ALTER TABLE tb1 ENCRYPTION='Y';
+--disable_abort_on_error
+copy table from tb1 to tb2;
+--enable_abort_on_error
+select * from tb1 for update;
+select * from tb2 for update;
+
+
+#ALTER TABLE tb2 ENCRYPTION='Y';
+#copy table from tb1 to tb2;
+#select * from tb1 for update;
+#select * from tb2 for update;
+
+#ALTER TABLE tb1 ENCRYPTION='N';
+#copy table from tb1 to tb2;
+#select * from tb1 for update;
+#select * from tb2 for update;
+
+
+--echo #################################
+--echo #CASE 5:  do not support virtual table
+--echo #################################
+--disable_warnings
+drop database if exists test_db;
+create database if not exists test_db;
+--enable_warnings
+use test_db;
+create table tb1(id int primary key,c1 int);
+create table tb2(id int primary key,c1 int);
+create view v1 as select * from tb1;
+create view v2 as select * from tb2;
+insert into tb1 values (1,1);
+insert into tb1 values (2,2);
+--disable_abort_on_error
+copy table from v1 to v2;
+--enable_abort_on_error
+select * from v1 for update;
+select * from v2 for update;
+
+
+
+--echo ##################################
+--echo #CASE 6: do not support copy system table  
+--echo ##################################
+--disable_warnings
+drop database if exists test_db;
+create database if not exists test_db;
+--enable_warnings
+use test_db;
+create table tb1 like information_schema.PLUGINS;
+--disable_abort_on_error
+copy table from information_schema.PLUGINS to tb1;
+--enable_abort_on_error
+--disable_abort_on_error
+select PLUGIN_TYPE from information_schema.PLUGINS  where PLUGIN_NAME='InnoDB' for update;
+--enable_abort_on_error
+select PLUGIN_TYPE from tb1 for update;
+
+
+
+--echo ##############################
+--echo #CASE 7: do not support foreign key either A or B, even if the foreign_key_checks=off
+--echo ##############################
+
+--echo case7.1 : A has fk but B hasn't
+--disable_warnings
+drop database if exists test_db;
+create database if not exists test_db;
+--enable_warnings
+use test_db;
+create table tb1(id int primary key,c1 int);
+create table fk_tb1(age int, id int, constraint fk_tb1_id foreign key(id) references tb1(id));
+create table tb2(id int primary key,c1 int);
+insert into tb1 values (1,1);
+insert into fk_tb1 values (1,1);
+--disable_abort_on_error
+copy table from tb1 to tb2;
+--enable_abort_on_error
+select * from tb1 for update;
+select * from tb2 for update;
+
+
+--echo case7.2: A do not has fk but B has,do not support when foreign_key_checks=ON
+--disable_query_log
+call mtr.add_suppression("InnoDB: Unable to import tablespace `test_db`.`tb4` because it already exists.  Please DISCARD the tablespace before IMPORT");
+--enable_query_log
+create table tb3(id int primary key,c1 int);
+create table tb4(id int primary key,c1 int);
+create table fk_tb4(age int, id int, constraint fk_tb4_id foreign key(id) references tb4(id));
+insert into tb3 values (1,1);
+eval set foreign_key_checks=ON;
+show variables like '%foreign_key_checks%';
+--disable_abort_on_error
+copy table from tb3 to tb4;
+--enable_abort_on_error
+select * from tb3 for update;
+select * from tb4 for update;
+eval set foreign_key_checks=OFF;
+show variables like '%foreign_key_checks%';
+--disable_abort_on_error
+copy table from tb3 to tb4;
+--enable_abort_on_error
+select * from tb3 for update;
+select * from tb4 for update;
+
+
+--echo case7.3 A has fk and B has,do not support when foreign_key_checks=ON
+
+--disable_query_log
+call mtr.add_suppression("InnoDB: Unable to import tablespace `test_db`.`tb6` because it already exists.  Please DISCARD the tablespace before IMPORT");
+--enable_query_log
+create table tb5(id int primary key,c1 int);
+create table tb6(id int primary key,c1 int);
+create table fk_tb5(age int, id int, constraint fk_tb5_id foreign key(id) references tb5(id));
+create table fk_tb6(age int, id int, constraint fk_tb6_id foreign key(id) references tb6(id));
+insert into tb5 values (1,1);
+eval set foreign_key_checks=ON;
+show variables like '%foreign_key_checks%';
+--disable_abort_on_error
+copy table from tb5 to tb6;
+--enable_abort_on_error
+select * from tb5 for update;
+select * from tb6 for update;
+eval set foreign_key_checks=OFF;
+show variables like '%foreign_key_checks%';
+--disable_abort_on_error
+copy table from tb5 to tb6;
+--enable_abort_on_error
+select * from tb5 for update;
+select * from tb6 for update;
+
+##############################
+--echo CASE 8: support table has fulltext index 
+##############################
+--disable_warnings
+drop database if exists test_db;
+create database if not exists test_db;
+--enable_warnings
+use test_db;
+create table tb1 (id int ,c1 varchar(10), fulltext(c1));
+create table tb2 (id int ,c1 varchar(10), fulltext(c1));
+insert into tb1 values(1,'my');
+--disable_abort_on_error
+copy table from tb1 to tb2;
+--enable_abort_on_error
+select * from tb1 for update;
+select * from tb2 for update;
+
+
+
+################ test finish clean ####################################
+
+drop database test_db;
+
+
+
+
+
+
+
+

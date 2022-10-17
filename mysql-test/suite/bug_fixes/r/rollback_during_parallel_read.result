@@ -1,0 +1,29 @@
+DROP TABLE IF EXISTS t1;
+DROP TABLE IF EXISTS t2;
+CREATE TABLE t1(a int primary key, b int, c varchar(2048), d varchar(2048), e varchar(2048));
+CREATE TABLE t2(a int primary key, b int, c varchar(2048), d varchar(2048), e varchar(2048));
+CREATE PROCEDURE sp1(a int, b int)
+BEGIN
+declare var1 int;
+declare var2 varchar(2048);
+set var1=a;
+set var2=repeat('a', 2048);
+while var1 < b do
+insert into t1 values(var1, var1, var2, var2, var2);
+set var1=var1+1;
+end while;
+END//
+CALL sp1(1, 50000);
+SET AUTOCOMMIT = 0;
+INSERT INTO t2 SELECT * FROM t1;
+SELECT count(0) FROM t2;;
+ROLLBACK;
+count(0)
+0
+SELECT count(*) FROM t1;;
+SELECT ID FROM INFORMATION_SCHEMA.PROCESSLIST WHERE INFO = 'SELECT count(*) FROM t1' INTO @thread_id;
+KILL QUERY @thread_id;
+ERROR 70100: Query execution was interrupted
+DROP TABLE t1;
+DROP TABLE t2;
+DROP PROCEDURE sp1;

@@ -1,0 +1,866 @@
+################################################################################
+# WL#7169 Semisync: make master wait for more than one slave to ack back
+#
+# The worklog added semisync master variable
+# rpl_semi_sync_master_wait_for_slave_count. The variable controls how many acks
+# from different slaves the transaction should wait for.
+#
+# The test verifies rpl_semi_sync_master_wait_for_slave_count works well.
+################################################################################
+--source include/not_group_replication_plugin.inc
+--source include/have_binlog_format_row.inc
+--source include/have_log_bin.inc
+
+--let rpl_topology=1->2
+--source include/rpl_init.inc
+--source include/rpl_sync.inc
+
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+--source include/install_semisync_master.inc
+
+--echo ####################################################################
+--echo # Test Case: check the thread_pool_size of threadpool mode
+--echo ####################################################################
+--let $assert_variable_name= thread_pool_size
+--let $assert_variable_value= 4
+--source include/assert_variable.inc
+
+# It is for coverage test to cover the debug code.
+SET GLOBAL rpl_semi_sync_master_enabled = 0;
+set global rpl_semi_sync_master_timeout = 1000;
+
+--echo ###################################################################
+--echo # Test Case: add slave 2
+--echo ###################################################################
+--let $rpl_connection_name= server_2
+--source include/rpl_connection.inc
+--source include/install_semisync_slave.inc
+
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+--let $clients= query_get_value(show status like "Rpl_semi_sync_master_clients", Value, 1)
+while($clients != 1)
+{
+  sleep 10;
+  --let $clients= query_get_value(show status like "Rpl_semi_sync_master_clients", Value, 1)
+}
+
+--echo ###################################################################
+--echo # the base config and status for quick sync
+--echo ###################################################################
+set global rpl_semi_sync_master_wait_cond_hwm = '2:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '2:0';
+set global rpl_semi_sync_master_group1 = '2,3:1';
+set global rpl_semi_sync_master_group2 = '1,4:1';
+set global rpl_semi_sync_master_wait_no_slave = OFF;
+set global rpl_semi_sync_master_enabled = ON;
+
+--let $assert_status_name= Rpl_semi_sync_master_active_groups
+--let $assert_status_value= 1
+--source include/assert_status.inc
+--let $assert_status_name= Rpl_semi_sync_master_current_stat_master_flag
+--let $assert_status_value= 0
+--source include/assert_status.inc
+--let $assert_status_name= Rpl_semi_sync_master_current_wait_groups
+--let $assert_status_value= 2
+--source include/assert_status.inc
+--let $assert_status_name= Rpl_semi_sync_master_err_flag
+--let $assert_status_value= 1
+--source include/assert_status.inc
+--let $group1_status_expect= 1:GROUP_ACTIVE
+--let $group1_status= [show status like "Rpl_semi_sync_master_group1_status", Value, 1]
+--let assert_cond= "$group1_status" like "$group1_status_expect"
+--let assert_text= Rpl_semi_sync_master_group1_status should be 1:GROUP_ACTIVE
+--source include/assert.inc
+--let $group2_status_expect= 0:GROUP_UNACTIVE
+--let $group2_status= [show status like "Rpl_semi_sync_master_group2_status", Value, 1]
+--let assert_cond= "$group2_status" like "$group2_status_expect"
+--let assert_text= Rpl_semi_sync_master_group2_status should be 0:GROUP_UNACTIVE
+--source include/assert.inc
+
+
+
+--echo ###################################################################
+--echo # test master_case_root.sql
+--echo ###################################################################
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+
+
+##-- ##----------------------------------------------------------------------------------------------------------------------------------
+##------------------
+##-- root user login
+##-- ##------------------------------------------------------------------------------------------------------------------------------------##------------------
+drop user if exists repl_test@'localhost';
+drop user if exists repl_test@'%';
+
+create user repl_test@'localhost' identified by 'repl_test';
+create user repl_test@'%' identified by 'repl_test';
+
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, RELOAD, LOCK TABLES, REPLICATION SLAVE, REPLICATION CLIENT, 
+CREATE ROUTINE, ALTER ROUTINE, CREATE TABLESPACE,ALTER,create temporary tables on *.* TO 'repl_test'@'localhost' ;
+GRANT Process on *.* TO 'repl_test'@'localhost' ;
+GRANT File on *.* TO 'repl_test'@'localhost' ;
+GRANT Show view on *.* TO 'repl_test'@'localhost' ;
+GRANT Trigger  on *.* TO 'repl_test'@'localhost' ;
+GRANT event  on *.* TO 'repl_test'@'localhost' ;
+
+
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, RELOAD, LOCK TABLES, REPLICATION SLAVE, REPLICATION CLIENT, 
+CREATE ROUTINE, ALTER ROUTINE, CREATE TABLESPACE,ALTER,create temporary tables on *.* TO 'repl_test'@'%' ;
+
+
+
+drop database if exists it_quick_sync_read_only;
+
+create database it_quick_sync_read_only;
+
+drop database if exists `#mysql50#a-b-c`;
+create database `#mysql50#a-b-c`;
+
+
+use it_quick_sync_read_only;
+
+
+drop table if exists t1;
+drop table if exists t2;
+drop table if exists t3;
+drop table if exists t4;
+
+create table t1(id int);
+create index t1_index1 on t1(id);
+create table t2(id int primary key, name varchar(10));
+create table t3(id int);
+create table t4(id int);
+
+create table tb_test1(id int) engine = myisam;
+create table tb_test2(id int) engine = myisam;
+
+
+create view view1 as select t2.name from t1 join t2 where t1.id = t2.id;
+
+create temporary table tmp1(id int, name varchar(20));
+
+insert into t1 values(1),(2),(3);
+insert into t2 values(1,'1'),(2,'2'),(3,'3');
+insert into t3 values(4),(5),(6);
+insert into t4 values(7),(8),(9);
+
+insert into tmp1 values(10,'x'),(11,'y'),(12,'z');
+
+
+--delimiter //
+create procedure sp_test1(p_id int)
+begin
+  insert into t1 values(p_id);
+end
+//
+--delimiter ;
+call sp_test1(222);
+
+
+
+--delimiter //
+create function sf_test1(p_id int) returns int
+DETERMINISTIC
+begin
+  return p_id * p_id;
+end
+//
+--delimiter ;
+
+select sf_test1(222);
+
+set @sum = 0;
+create trigger trig_test1 before insert on t1 for each row 
+set @sum = @sum + new.id;
+insert into t1 values(333); 
+select @sum;
+
+
+create event event_test1
+on schedule at CURRENT_TIMESTAMP  +  interval 1  minute 
+do
+update t3 set id = id + 20;
+
+
+
+##-- ----------------------------------------------------
+##-- -----------------------------------------------
+##-- create && alter && drop db
+##-- -----------------------------------------------
+create database if not exists  test_db;
+alter database character set = utf8;
+alter database COLLATE  = utf8_bin;	
+drop database test_db;
+
+
+
+##-- ##------------------------------------------------------------------------------------------------------------------------------------##------------------
+##-- read only statements
+##-- ##------------------------------------------------------------------------------------------------------------------------------------##------------------
+##-- select-------------------------------------------------------
+select 1;
+select * from t1;
+
+##-- -----------------------------------------------------------
+##-- show-------------------------------------------------------
+##-- -----------------------------------------------------------
+
+--disable_result_log
+show databases;
+show create database it_quick_sync_read_only;
+
+
+show tables;
+show tables from mysql;
+show create table t1;
+show table status;
+show fields from t1;
+show keys from t2;
+
+show variables like '%thread%';
+show status like '%thread%';
+
+show engines;
+show engine innodb logs;
+show engine innodb status;
+show engine innodb mutex;
+
+show privileges;
+
+
+show processlist;
+
+show master status;
+show slave status;
+show slave hosts;
+
+show grants;
+show grants for repl_test;
+
+show create user repl_test;
+show create database it_quick_sync_read_only;
+show create table t1;
+show create view view1;
+show create procedure sp_test1;
+show create function sf_test1;
+show create trigger trig_test1;
+show create event event_test1;
+
+show procedure status like 'sp_test2';
+show function status like 'sf_test1';
+
+## need debug
+##show procedure code sp_test1;
+##show function code sf_test1;
+
+show charset;
+show character set;
+show collation;
+
+show binary logs;
+show binlog events in 'master-bin.000001';
+##show relaylog events in 'relay-bin.000002';
+show open tables from  it_quick_sync_read_only;
+
+
+show warnings;
+
+show errors;
+
+show engines;
+
+show privileges;
+
+show plugins;
+
+show events;
+
+set profiling = 1;
+show profile all;
+show profiles;
+
+help 'select';
+help 'str_to_date';
+--enable_result_log
+
+##-- -----------------------------------------------
+##-- set
+##-- -----------------------------------------------
+set @test_var = 0;
+##-- need super privilege
+set @gdb = 1;
+
+
+##-- -----------------------------------------------
+##-- change db
+##-- alter db data directory upgrade name 
+##-- -----------------------------------------------
+use it_quick_sync_read_only;
+
+drop database if exists `a-b-c`;
+--error ER_PARSE_ERROR
+ALTER DATABASE `#mysql50#a-b-c` UPGRADE DATA DIRECTORY NAME;
+
+drop database if exists `a-b-c`;
+
+
+##-- -----------------------------------------------
+##-- key cache/load index
+##-- -----------------------------------------------
+##-- root exec
+SET GLOBAL kc_fast.key_buffer_size = 128 * 1024; 
+
+##-- repl_test exec
+cache index tb_test1 ,tb_test2 in kc_fast;
+
+load index into cache t1,t2 IGNORE LEAVES;
+load index into cache tb_test1,tb_test2 IGNORE LEAVES;
+
+
+##-- -----------------------------------------------
+##-- check table
+##-- -----------------------------------------------
+check table t1;
+check table tb_test1;
+
+
+
+##-- -----------------------------------------------
+##-- lock && unlock
+##-- -----------------------------------------------
+lock tables t1 read;
+select * from t1;
+unlock  tables;
+
+
+
+##-- ------------------------------------------------
+##-- flush tables, although produce binlog , permitted 
+##-- in read_only
+##-- ------------------------------------------------
+flush tables;
+
+flush table t1;
+
+flush no_write_to_binlog table t1;
+
+
+##-- ------------------------------------------------
+##-- kill command
+##-- ------------------------------------------------
+
+##mysql -urepl_test -prepl_test
+
+##mysql -urepl_test -prepl_test
+
+##kill 10;
+
+
+
+
+##-- -----------------------------------------------
+##-- start transaction
+##-- rollback and commit, done make errors
+##-- savepoint
+##-- release savepoint
+##-- -----------------------------------------------
+##-- start trans, ok
+start transaction;
+commit;
+
+##-- no trans to commit , dont make error
+rollback;
+commit;
+
+start transaction;
+select * from t1;
+rollback;
+
+start transaction;
+select * from t1;
+commit;
+
+
+
+##-- have trans to commit , dont make error
+start transaction;
+
+##-- 
+
+insert into t1 values(555);
+##set global read_only = on;
+rollback;
+
+##-- make errors && roll back
+start transaction;
+##set global read_only = off;
+insert into t1 values(555);
+##set global read_only = on;
+commit;
+
+
+
+##-- savepoint, dont make error
+start transaction;
+##set global read_only = off;
+insert into t1 values(666);
+##set global read_only = on;
+savepoint sp1;
+##set global read_only = off;
+insert into t1 values(777);
+##set global read_only = on;
+rollback to sp1;
+rollback;
+
+
+##-- releasesavepoint, dont make error
+start transaction;
+##set global read_only = off;
+insert into t1 values(666);
+savepoint sp1;
+##set global read_only = on;
+release savepoint sp1;
+rollback;
+
+
+
+
+
+##-- ------------------------------------------------
+##-- change master, start slave, stop slave
+##-- these commands need root user
+##-- ------------------------------------------------
+##-- login with user
+CHANGE MASTER TO  MASTER_HOST = 'localhost', MASTER_USER = 'repl_test', MASTER_PASSWORD = 'repl_test',MASTER_AUTO_POSITION = 1;
+
+start slave;
+
+stop slave;
+
+
+##-- login with regular user
+reset slave;
+reset slave all;
+
+--disable_result_log
+show slave hosts;
+--disable_result_log
+
+
+
+
+
+
+##-- -----------------------------------------------
+##-- handle table
+##-- checksum table
+##-- -----------------------------------------------
+handler t1 open;
+handler t1 read first;
+handler t1 read next where id>30;
+handler t1 read t1_index1=(11);
+handler t1 close;
+
+handler t2 open;
+handler t2 read `PRIMARY`=(1);
+handler t2 read `PRIMARY` first;
+handler t2 read `PRIMARY` next;
+
+
+checksum table t1;
+
+
+
+
+##-- -----------------------------------------------
+##-- do command
+##-- -----------------------------------------------
+do instr('abc','a');
+do sleep(20);
+
+
+
+##-- -----------------------------------------------
+##-- prepare excute DEALLOCATE
+##-- -----------------------------------------------
+prepare read_stmt from 'select * from t1 limit ?';
+set @var1 = 2;
+execute read_stmt using @var1;
+
+deallocate prepare read_stmt;
+
+
+
+
+##-- -----------------------------------------------
+##-- XA START/END/PREPARE/COMMIT/ROLLBACK
+##-- -----------------------------------------------
+XA START X'6162';
+select * from t1;
+XA END X'6162';
+XA PREPARE X'6162';
+XA COMMIT X'6162';
+
+XA START X'6162';
+select * from t1;
+XA END X'6162';
+XA ROLLBACK X'6162';
+
+
+
+##-- -----------------------------------------------
+##-- create && drop tablespace
+##-- -----------------------------------------------
+create tablespace test1_ibd add datafile 'test1.ibd' 
+FILE_BLOCK_SIZE  = 16k
+engine = innodb;
+
+drop tablespace test1_ibd;
+
+
+
+
+##-- -----------------------------------------------
+##-- get diagnostics
+##-- -----------------------------------------------
+GET DIAGNOSTICS CONDITION 1
+@p1 = RETURNED_SQLSTATE, @p2 = MESSAGE_TEXT;
+
+
+##-- -----------------------------------------------
+##-- expain
+##-- -----------------------------------------------
+explain select * from t1;
+
+
+
+##-- -----------------------------------------------
+##-- create or drop temporary table
+##-- update pfs tables
+##-- -----------------------------------------------
+create temporary table tmp_t1(id int);
+
+insert into tmp_t1 values(1);
+
+update tmp_t1 set id = 2;
+
+delete from tmp_t1;
+
+
+update performance_schema.threads set HISTORY='NO' where thread_id = 48;
+
+##-- error denied
+--error ER_TABLEACCESS_DENIED_ERROR
+delete from performance_schema.threads where thread_id = 48;
+
+
+##-- ##------------------------------------------------------------------------------------------------------------------------------------##------------------
+##-- write statements in forms of DML
+##-- ##------------------------------------------------------------------------------------------------------------------------------------##------------------
+##-- -----------------------------------------------
+##-- update single && update multi
+##-- -----------------------------------------------
+update t1 set id = 11 where id = 1;
+update t1,t2 set t1.id=555 where t1.id = t2.id;
+
+
+##-- -----------------------------------------------
+##-- insert && insert select
+##-- -----------------------------------------------
+insert into t1 values(111);
+insert into t4 select * from t1;
+
+
+
+##-- -----------------------------------------------
+##-- delete && delete multi
+##-- -----------------------------------------------
+delete from t4 where id = 11;
+
+delete from t3,t4 USING t3 inner join t4 on  t3.id = t4.id;
+
+
+##-- -----------------------------------------------
+##-- replace  && replace select
+##-- -----------------------------------------------
+replace into t3 values(4);
+replace into t2 values(3,'5');
+replace into t4 select id from t2;	
+
+
+
+
+
+##-- -----------------------------------------------
+##-- repair && optimize  && analyze table 
+##-- -----------------------------------------------
+repair table t1;
+repair table tb_test1;
+repair no_write_to_binlog table t1;
+repair no_write_to_binlog table tb_test1;
+
+optimize table t1;
+
+analyze table t1;
+
+
+
+##-- -----------------------------------------------
+##-- rename table
+##-- -----------------------------------------------
+rename table t4 to t4_new;
+rename table t4_new to t4;
+
+ 
+
+##-- -----------------------------------------------
+##-- load data
+##-- -----------------------------------------------
+-- error ER_OPTION_PREVENTS_STATEMENT
+select * into outfile '$MYSQLD_DATADIR/t1.csv' from t1;
+-- error ER_OPTION_PREVENTS_STATEMENT
+load data infile '$MYSQLD_DATADIR/t1.csv' into table t4;
+
+
+
+##-- -----------------------------------------------
+##-- lock && unlock
+##-- -----------------------------------------------
+lock tables t1 write;
+insert into t1 values(666);
+unlock  tables;
+
+
+
+
+##-- -----------------------------------------------
+##-- purge && purge before
+##-- -----------------------------------------------
+purge binary logs to 'master-bin.000001';
+flush logs;
+flush logs;
+purge master logs to 'master-bin.000002';
+
+purge binary logs before '2017-09-25 22:10:10';
+
+
+
+##-- -----------------------------------------------
+##-- prepare
+##-- prepare
+##-- -----------------------------------------------
+prepare insert_stmt from 'insert into t1 values(?)';
+set @var1 = 1000;
+execute insert_stmt using @var1;
+
+
+
+##-- -----------------------------------------------
+##-- install
+##-- uninstall
+##-- -----------------------------------------------
+INSTALL PLUGIN test_udf_services SONAME 'test_udf_services.so';
+UNINSTALL PLUGIN test_udf_services; 
+
+##-- -----------------------------------------------
+##-- binlog
+##-- -----------------------------------------------
+BINLOG 'IKjNWQ8BAAAAdwAAAHsAAAABAAQANS43LjE3LWRlYnVnLWxvZwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgqM1ZEzgNAAgAEgAEBAQEEgAAXwAEGggAAAAICAgCAAAACgoKKioAEjQAATwKkAM=';
+
+
+##-- -----------------------------------------------
+##-- explain
+##-- -----------------------------------------------
+set @@SESSION.GTID_NEXT = AUTOMATIC;
+explain insert into t1 values(1);
+
+
+
+##-- -----------------------------------------------
+##-- explain
+##-- -----------------------------------------------
+##shutdown;
+
+
+
+
+##-- ##------------------------------------------------------------------------------------------------------------------------------------##------------------
+##-- write staments in forms of DDL
+##-- ##------------------------------------------------------------------------------------------------------------------------------------##------------------
+##-- -----------------------------------------------
+##-- create && alter && drop db
+##-- -----------------------------------------------
+
+create table test1(id int);
+alter table test1 add column(id2 int ,id3 int);
+drop table test1;
+truncate table t4;
+
+
+create index t1_idx on t1(id);
+drop index t1_idx on t1;
+
+
+
+
+##-- -----------------------------------------------
+##-- create &&  && drop view
+##-- -----------------------------------------------
+create view tmp_view2 as select * from t1;
+drop view if exists tmp_view2;
+
+
+
+
+##-- -----------------------------------------------
+##-- create && drop function
+##-- -----------------------------------------------
+--delimiter //
+create function sf_test2(p_id int) returns int
+DETERMINISTIC
+begin
+  return p_id * p_id;
+end
+//
+--delimiter ;
+
+
+drop function sf_test2;
+
+
+
+--delimiter //
+create procedure sp_test2(p_id int)
+sql security invoker
+begin
+  insert into t1 values(p_id);
+end
+//
+--delimiter ;
+
+call sp_test2(11111);
+
+alter procedure sp_test2 
+language sql;
+
+drop procedure sp_test2;
+
+
+
+
+##-- -----------------------------------------------
+##-- create && drop trigger
+##-- -----------------------------------------------
+set @sum = 0;
+create trigger trig_test2 before insert on t1 for each row 
+set @sum = @sum + new.id;
+insert into t1 values(6666); 
+select @sum;
+
+set global log_bin_trust_function_creators = true; 
+drop trigger if exists  trig_test2;
+
+
+
+
+##-- -----------------------------------------------
+##-- create user && drop user && grant && revorke
+##-- rename user
+##-- -----------------------------------------------
+drop user if exists test_user;
+create user test_user@'%' identified by 'test_user';
+
+grant Replication client, Replication slave, Create, Delete, Drop, Select ON *.* to 'test_user'@'%';
+REVOKE  Replication client ON *.* from 'test_user'@'%';
+
+grant lock tables on *.* to repl_test@'%';
+
+rename user test_user to test_user_new;
+
+##-- not root
+--error ER_REVOKE_GRANTS
+revoke all privileges, grant option from test_user;
+
+##-- root
+revoke all privileges, grant option from test_user_new;
+
+drop user if exists test_user;
+drop user test_user_new
+
+
+
+
+
+##-- -----------------------------------------------
+##-- create server
+##-- -----------------------------------------------
+##-- root: set global GTID_MODE = off;
+CREATE SERVER s
+FOREIGN DATA WRAPPER mysql
+OPTIONS (USER 'repl_test', HOST '127.0.0.1', DATABASE 'test');
+
+ALTER SERVER s OPTIONS (USER 'sally');
+
+drop server s;
+
+
+##-- -----------------------------------------------
+##-- create/drop event
+##-- -----------------------------------------------
+create event event_test2
+on schedule at CURRENT_TIMESTAMP  +  interval 1  minute 
+do
+update t3 set id = id + 20;
+
+alter event event_test1 
+do 
+update t3 set id = id + 30;
+
+drop event if exists event_test2;
+
+
+
+--echo ########################################################################
+--echo # Coverage Test
+--echo ########################################################################
+# Nothing is changed if the new value equals to the original value
+
+# Ack array should be cleaned when disabling semisync master
+
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+SET GLOBAL rpl_semi_sync_master_enabled= OFF;
+
+--let $rpl_connection_name= server_2
+--source include/rpl_connection.inc
+--source include/uninstall_semisync_slave.inc
+
+
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+--let $clients= query_get_value(show status like "Rpl_semi_sync_master_clients", Value, 1)
+while($clients != 0)
+{
+  sleep 10;
+  --let $clients= query_get_value(show status like "Rpl_semi_sync_master_clients", Value, 1)
+}
+
+# Ack array should be freed when uninstalling semisync master
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+--source include/uninstall_semisync_master.inc
+# end
+
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+drop user repl_test@'localhost';
+drop user repl_test@'%';
+drop database it_quick_sync_read_only;
+drop database `#mysql50#a-b-c`;
+
+CALL mtr.add_suppression(".* Timeout waiting for reply of binlog .*");
+CALL mtr.add_suppression(".* Failed to allocate memory for ack_array .*");
+--source include/rpl_end.inc

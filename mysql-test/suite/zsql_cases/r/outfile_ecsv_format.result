@@ -1,0 +1,95 @@
+drop database if exists yxx;
+create database yxx;
+#########################################################################
+#  test case 1: select outfile with enclosed and escaped param
+#########################################################################
+set names utf8mb4;
+create table yxx.tt (id int primary key, name_1 char(127), name_2 varchar(256));
+insert into yxx.tt values(1234, '"ab@cd"', x'03090A22405C5E');
+insert into yxx.tt  values(1235,'ABCD','ABCD');
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test.1"))
+1234	"ab@cd"	\	\
+"@\\^
+1235	ABCD	ABCD
+
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test.2"))
+1234	"\"ab@cd\""	"	
+\"@\\^"
+1235	"ABCD"	"ABCD"
+
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test.3"))
+1234"\"ab@cd\"""	
+\"@\\^"
+1235"ABCD""ABCD"
+
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test.4"))
+1234	"""ab@cd"""	"	
+""@\^"
+1235	"ABCD"	"ABCD"
+
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test.5"))
+1234"""ab@cd""""	
+""@\^"
+1235"ABCD""ABCD"
+
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test.6"))
+1234"""ab@cd"""""	
+""@\^"
+1235"ABCD""ABCD"
+
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test.7"))
+"1234""""ab@cd"""""	
+""@\^"
+"1235""ABCD""ABCD"
+
+ERROR HY000: Wrong usage for gdb_format: field enclosement cannot be empty when `ECSV` format is used
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''csv'' at line 1
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''ecsv'' at line 1
+drop table if exists yxx.tt;
+#########################################################################
+#  test case 2: select outfile for text and blob field type
+#########################################################################
+create table yxx.blobtext (id int primary key, name1 text, name2 blob);
+insert into yxx.blobtext values(1, x'03090A22405C5E', x'03090A22405C5E');
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test.8"))
+1"	
+""@\^""	
+""@\^"
+
+drop table if exists yxx.blobtext;
+#########################################################################
+#  test case 3: select outfile for other charset charactors
+#########################################################################
+CREATE TABLE `yxx`.`onechar` (`id` int NOT NULL, `name` varchar(128) DEFAULT NULL,
+PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+insert into yxx.onechar values(1, 0xF09F9891);
+insert into yxx.onechar values(2, '["ABC"]');
+insert into yxx.onechar values(3, '["GoldenDB创造辉煌"]');
+"modify charactor set now:"
+SET @old_character_set_client= @@character_set_client;
+SET @old_character_set_connection= @@character_set_connection;
+SET @old_character_set_results= @@character_set_results;
+SET character_set_client= 'utf8mb4';
+SET character_set_connection= 'utf8mb4';
+SET character_set_results= 'utf8mb4';
+"continue test..."
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test.9"))
+1"😑"
+2"[[["ABC["]"
+3"[[["GoldenDB创造辉煌["]"
+
+"restore charactor set:"
+SET @@character_set_client= @old_character_set_client;
+SET @@character_set_connection= @old_character_set_connection;
+SET @@character_set_results= @old_character_set_results;
+drop table if exists yxx.onechar;
+#########################################################################
+#  test case 4: select outfile for every ASCII char
+#########################################################################
+create table yxx.asciitest (id int primary key, name1 text) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+insert into yxx.asciitest values(1, x'000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f');
+insert into yxx.asciitest values(2,"中兴通讯在数据库领域具备超过十七年的技术积累，自2002年开始先后自主研发文件数据库、内存数据库、分布式数据库等产品并大规模服务电信领域产品；2014年率先拓展金融行业分布式数据库，该产品完全自主研发并获得100多项相关专利。针对银行OLTP业务，中兴通讯分布式数据库GoldenDB为业务带来传统单机数据库无法提供的计算及扩展能力，提供高 可用、高可靠、资源调度灵活的数据库服务，支持金融行业已有业务升级及创新业务快速部署的需求。中兴通讯GoldenDB分布式数据库 已经在中信银行、江苏省农村信用社联合社、江苏银行、湖南省政府、湖北仙桃市政府等单位成功商用，主要应用场景包括：高并发场 景：针对政府、金融、运营商、互联网业务对数据库的高并发交易的要求，且可以保证数据的事务强一致性。海量数据存储访问场景： 针对现有单机数据库的存储容量和性能限制，提供大容量、可水平平滑扩容的数据库解决方案。");
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test.10"))
+1"
+drop table if exists yxx.asciitest;
+drop database yxx;

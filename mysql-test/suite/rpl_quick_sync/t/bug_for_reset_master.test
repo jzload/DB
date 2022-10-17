@@ -1,0 +1,126 @@
+################################################################################
+# BUG: the rpl_semi_sync_master_wait_sessions will be abnormal after reset master
+#
+# when a trx wait for slave ack in commitTrx, the rpl_semi_sync_master_wait_sessions is 1,
+# the other client reset master and the rpl_semi_sync_master_wait_sessions reset to 0,
+# when the receive the slave ack will not awake the trx wait_cond, then will timeout and
+# the rpl_semi_sync_master_wait_sessions will be (unsigned long)(-1).
+# So we can not reset the rpl_semi_sync_master_wait_sessions in reset master.
+#
+# The test verifies rpl_semi_sync_master_wait_sessions works well.
+################################################################################
+--source include/not_group_replication_plugin.inc
+# only support the binlog-format='row'
+--source include/have_binlog_format_row.inc
+
+create user zyy1@localhost;
+grant all on *.* to zyy1@localhost;
+connect (conzyy1, localhost, zyy1,,);
+
+
+--echo ####################################################################
+--echo # master install plugin
+--echo ####################################################################
+--let $rpl_connection_name= default
+--source include/rpl_connection.inc
+--source include/install_semisync_master.inc
+
+SET GLOBAL rpl_semi_sync_master_enabled = 0;
+set global rpl_semi_sync_master_timeout = 1000;
+
+CREATE TABLE t1(c1 INT);
+create database if not exists abczyy;
+create table abczyy.tb1(a int key, b int);
+
+--echo ###################################################################
+--echo # Test1: semisync with reset master
+--echo ###################################################################
+--let $rpl_connection_name= default
+--source include/rpl_connection.inc
+SET GLOBAL rpl_semi_sync_master_enabled = 0;
+SET GLOBAL rpl_semi_sync_master_quick_sync_enabled = 0;
+SET GLOBAL rpl_semi_sync_master_enabled = 1;
+set global rpl_semi_sync_master_timeout = 3000;
+
+--let $rpl_connection_name= default
+--source include/rpl_connection.inc
+--let $assert_status_name= Rpl_semi_sync_master_wait_sessions
+--let $assert_status_value= 0
+--source include/assert_status.inc
+--send insert into abczyy.tb1(a,b) values(1,1);
+sleep 1;
+
+--let $rpl_connection_name= conzyy1
+--source include/rpl_connection.inc
+--let $assert_status_name= Rpl_semi_sync_master_wait_sessions
+--let $assert_status_value= 1
+--source include/assert_status.inc
+reset master;
+--let $assert_status_name= Rpl_semi_sync_master_wait_sessions
+--let $assert_status_value= 0
+--source include/assert_status.inc
+
+--let $rpl_connection_name= default
+--source include/rpl_connection.inc
+--reap
+--let $assert_status_name= Rpl_semi_sync_master_wait_sessions
+--let $assert_status_value= 0
+--source include/assert_status.inc
+
+
+--echo ###################################################################
+--echo # Test2: quicksync with reset master
+--echo ###################################################################
+SET GLOBAL rpl_semi_sync_master_enabled = 0;
+SET GLOBAL rpl_semi_sync_master_quick_sync_enabled = 1;
+SET GLOBAL rpl_semi_sync_master_enabled = 1;
+set global rpl_semi_sync_master_wait_cond_hwm = '1:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '0:0';
+set global rpl_semi_sync_master_timeout = 3000;
+
+--let $rpl_connection_name= default
+--source include/rpl_connection.inc
+--let $assert_status_name= Rpl_semi_sync_master_wait_sessions
+--let $assert_status_value= 0
+--source include/assert_status.inc
+--send insert into abczyy.tb1(a,b) values(2,2);
+sleep 1;
+
+--let $rpl_connection_name= conzyy1
+--source include/rpl_connection.inc
+--let $assert_status_name= Rpl_semi_sync_master_wait_sessions
+--let $assert_status_value= 1
+--source include/assert_status.inc
+reset master;
+--let $assert_status_name= Rpl_semi_sync_master_wait_sessions
+--let $assert_status_value= 0
+--source include/assert_status.inc
+
+--let $rpl_connection_name= default
+--source include/rpl_connection.inc
+--reap
+--let $assert_status_name= Rpl_semi_sync_master_wait_sessions
+--let $assert_status_value= 0
+--source include/assert_status.inc
+
+
+--echo ###################################################################
+--echo # test end
+--echo ###################################################################
+
+# Ack array should be freed when uninstalling semisync master
+--let $rpl_connection_name= default
+--source include/rpl_connection.inc
+--source include/uninstall_semisync_master.inc
+# end
+
+disconnect conzyy1;
+connection default;
+drop user zyy1@localhost;
+
+--let $rpl_connection_name= default
+--source include/rpl_connection.inc
+drop database if exists abczyy;
+DROP TABLE t1;
+CALL mtr.add_suppression(".* Timeout waiting for reply of binlog .*");
+CALL mtr.add_suppression(".* Failed to allocate memory for ack_array .*");

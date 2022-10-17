@@ -1,0 +1,51 @@
+set global innodb_lock_wait_timeout=1;
+set global lock_wait_timeout=1;
+set parse_mode=2;
+select @@innodb_lock_wait_timeout;
+@@innodb_lock_wait_timeout
+1
+set parse_mode=2;
+###################################################################
+# Test Case 13: single table        alter and then select for update
+###################################################################
+drop procedure if exists myp3;
+create procedure myp3 (in num int)
+begin
+declare x int default 0;
+declare str blob;
+declare i int default 0;
+while i < num do
+set x = 0;
+set str="insert into tx(id) values";
+while x < 5000 do
+set str = concat(str, "(", x, "),");
+set x=x+1;
+end while;
+set @s = concat(str, "(", x, ")");
+prepare stmt from @s;
+execute stmt;
+DEALLOCATE prepare stmt;
+set i=i+1;
+end while;  
+end
+$$
+drop table if exists tx;
+Warnings:
+Note	1051	Unknown table 'test.tx'
+create table tx(id int, name varchar(20) default 'abc');
+call myp3(80);
+alter table tx ALGORITHM=copy, modify name varchar(1034) not null default 'xxx';
+select count(*) from tx;
+count(*)
+400080
+select id from tx where id < 10 for update of id;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+drop procedure if exists myp3;
+drop table if exists tx;
+###################################################################
+# end test case
+###################################################################
+set parse_mode=<session_parse_mode_a>;
+set parse_mode=<session_parse_mode_b>;
+set global innodb_lock_wait_timeout=<initial_timeout>;
+set global lock_wait_timeout=<initial_lock_wait_timeout>;

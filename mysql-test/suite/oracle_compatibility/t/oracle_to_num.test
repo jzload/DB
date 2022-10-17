@@ -1,0 +1,1168 @@
+--echo ---------------------------------------------------------------
+--echo ## Test to_number for oracle  compatibility
+--echo ---------------------------------------------------------------
+set @@sql_mode = STRICT_TRANS_TABLES;
+select @@sql_mode;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_1: test one param value of number
+--echo ---------------------------------------------------------------
+select to_number(123) as result from dual;
+
+select to_number(0) as result from dual;
+
+select to_number(12345678901234567890123456789012345678901234567890123456789012345) as result from dual;
+
+--error ER_TO_NUM_OUT_OF_RANGE
+select to_number(123456789012345678901234567890123456789012345678901234567890123456) as result from dual;
+
+select to_number(-012) as result from dual;
+
+select to_number(-12345678901234567890123456789012345678901234567890123456789012345) as result from dual;
+
+--error ER_TO_NUM_OUT_OF_RANGE
+select to_number(-123456789012345678901234567890123456789012345678901234567890123456) as result from dual;
+
+select to_number(-0) as result from dual;
+
+select to_number(1.1234) as result from dual;
+
+select to_number(1.234567890123456789012345678901) as result from dual; 
+
+--error ER_TO_NUM_OUT_OF_RANGE
+select to_number(1.2345678901234567890123456789012) as result from dual; 
+
+select to_number(12345678901234567890123456789012345.234567890123456789012345678901) as result from dual; 
+
+--error ER_TO_NUM_OUT_OF_RANGE
+select to_number(123456789012345678901234567890123456.234567890123456789012345678901) as result from dual;
+ 
+select to_number(-0.9876) as result from dual; 
+
+--error ER_TO_NUM_OUT_OF_RANGE
+select to_number(-0.1234567890123456789012345678901) as result from dual; 
+
+select to_number(-999999999099999999909999999990999999.12345678901234567890123456789) as result from dual;
+ 
+--error ER_TO_NUM_OUT_OF_RANGE
+select to_number(-9999999990999999999099999999909999999.12345678901234567890123456789) as result from dual; 
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_2: test one param value of function
+--echo ---------------------------------------------------------------
+select to_number(100*1000) as result from dual; 
+
+select to_number(-1234.5678*100) as result from dual; 
+
+select to_number(12345678901234567890123456789012345678901234567890123456789012345*1) as result from dual; 
+
+--error ER_TO_NUM_OUT_OF_RANGE
+select to_number(12345678901234567890123456789012345678901234567890123456789012345*10) as result from dual; 
+
+select to_number(2020/03/24) as result from dual; 
+
+select to_number(2020/0) as result from dual;
+
+select to_number(0/2020) as result from dual;
+
+select to_number(2020+03+24) as result from dual; 
+
+select to_number(+2020) as result from dual; 
+
+select to_number(+0.123+1.456) as result from dual; 
+
+select to_number(1011-2020) as result from dual;
+
+select to_number(0 - 2020) as result from dual;
+
+select to_number( - 2020.78907 - 300.890890 ) as result from dual;
+
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_3: test one param value of string
+--echo ---------------------------------------------------------------
+select to_number('') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('  ') from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('-') from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('+') from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('.') from dual;
+
+select to_number('0') as result from dual;
+
+select to_number('1234') as result from dual;
+
+select to_number('0.1234') as result from dual;
+
+select to_number('-0.1200') as result from dual;
+
+select to_number('+9999.0123') as result from dual;
+
+select to_number('-009.0123') as result from dual;
+
+select to_number('-009.012300') as result from dual;
+
+select to_number('12345678901234567890123456789012345678901234567890123456789012345') as result from dual;
+
+--error ER_TO_NUM_OUT_OF_RANGE
+select to_number('123456789012345678901234567890123456789012345678901234567890123456') as result from dual;
+
+--error ER_TO_NUM_OUT_OF_RANGE
+select to_number('-123456789012345678901234567890123456789012345678901234567890123456') as result from dual;
+
+--error ER_TO_NUM_OUT_OF_RANGE
+select to_number('123456789012345678901234567890123456789012345678901234567890.123456') as result from dual;
+
+select to_number('-1234') as result from dual;
+
+select to_number('+9876') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('9,876') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('9876+') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('9876-') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('<9876>') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('98 76') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('- 9876') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('98.7.6') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('98D76') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number(' 98 76') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('98 76 ') as result from dual;
+
+select to_number('.9876') as result from dual;
+
+select to_number('9876.') as result from dual;
+
+select to_number('    9876    ') as result from dual;
+
+select to_number('+9876') as result from dual;
+
+select to_number('-9876') as result from dual;
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_4: test one param value of nested function
+--echo ---------------------------------------------------------------
+select to_number(to_char(9.876,'9.999')) as result from dual;
+
+select to_number(CAST(1.00 AS CHAR)) as result from dual;
+
+select to_number(to_number(0.123,'9.999')) as result from dual;
+
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_5: test two param value of number
+--echo ---------------------------------------------------------------
+select to_number(0,'9.999') as result from dual;
+
+select to_number(1,'9,999') as result from dual;
+
+select to_number(1234,'9999') as result from dual;
+
+select to_number(12345678901234567890123456789012345678901234567890123456789012345, '99999999999999999999999999999999999999999999999999999999999999999') as result from dual;
+
+--error ER_TO_NUM_OUT_OF_RANGE
+select to_number(123456789012345678901234567890123456789012345678901234567890123456, '999999999999999999999999999999999999999999999999999999999999999999') as result from dual;
+
+select to_number(1.1234, '9.9999') as result from dual;
+
+select to_number(1.234567890123456789012345678901, '9.999999999999999999999999999999') as result from dual; 
+
+--error ER_TO_NUM_OUT_OF_RANGE
+select to_number(1.2345678901234567890123456789012, '9.9999999999999999999999999999999') as result from dual; 
+
+select to_number(12345678901234567890123456789012345.234567890123456789012345678901, '99999999999999999999999999999999999.999999999999999999999999999999') as result from dual; 
+
+--error ER_TO_NUM_OUT_OF_RANGE
+select to_number(123456789012345678901234567890123456.234567890123456789012345678901, '999999999999999999999999999999999999.999999999999999999999999999999') as result from dual; 
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number(1234,'9,999') as result from dual;
+
+--error ER_PARSE_ERROR
+select to_number(,'9') as result from dual;
+
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_6: test two param value of number expr
+--echo ---------------------------------------------------------------
+select to_number(-1.001,'9.999') as result from dual;
+
+select to_number(+1.01,'9.999') as result from dual;
+
+select to_number(1234+1234,'9999') as result from dual;
+
+select to_number(2020/03/24, '99.999999999999999999') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number(2020/03/24, '99.999') as result from dual; 
+
+select to_number(2020/0, '9999') as result from dual;
+
+select to_number(0/2020, '9') as result from dual;
+
+select to_number(2020+03+24, '9999') as result from dual; 
+
+select to_number(+2020, '9999') as result from dual; 
+
+select to_number(+0.123+1.456, '9.999') as result from dual; 
+
+select to_number(1011-2020, '9999') as result from dual;
+
+select to_number(0 - 2020, '9999') as result from dual;
+
+select to_number( - 2020.78907 - 300.890890 ,'9999.999999') as result from dual;
+
+select to_number(-012, '999') as result from dual;
+
+select to_number(-12345678901234567890123456789012345678901234567890123456789012345, '99999999999999999999999999999999999999999999999999999999999999999') as result from dual;
+
+select to_number(-0, '9') as result from dual;
+
+--error ER_TO_NUM_OUT_OF_RANGE
+select to_number(-123456789012345678901234567890123456789012345678901234567890123456, '999999999999999999999999999999999999999999999999999999999999999999') as result from dual;
+
+select to_number(-0.9876, '9.9999') as result from dual;
+
+--error ER_TO_NUM_OUT_OF_RANGE
+select to_number(-0.1234567890123456789012345678901, '9.9999999999999999999999999999999') as result from dual; 
+
+select to_number(-999999999099999999909999999990999999.12345678901234567890123456789, '999999999999999999999999999999999999.99999999999999999999999999999') as result from dual; 
+
+--error ER_TO_NUM_OUT_OF_RANGE
+select to_number(-9999999990999999999099999999909999999.12345678901234567890123456789, '9999999999999999999999999999999999999.99999999999999999999999999999') as result from dual;
+
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_7: test two param value and fmt ","
+--echo ---------------------------------------------------------------
+select to_number('1','9,999') as result from dual;
+
+select to_number('1,','9,999') as result from dual;
+
+select to_number('1,1','9,999') as result from dual;
+
+select to_number('1,001','9,999') as result from dual;
+
+select to_number('                                  1,001','9,999') as result from dual;
+
+select to_number('1.00101','9.999999') as result from dual;
+
+select to_number('1,001','999,999') as result from dual;
+
+select to_number('1,001','9,9999') as result from dual;
+
+select to_number('1.001','999.999') as result from dual;
+
+select to_number('1.001','9.9999') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('	1,001','9,999') as result from dual;
+
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('1,001','9,999 ') as result from dual;
+
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('1,001 ','9,999 ') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('1 ,001','9,999') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('1, 001','9,999') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('1001','9,999') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('01,001','9,999') as result from dual;
+
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('1.001,01','9.999,999') as result from dual;
+
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('1,001.01','9,999D999') as result from dual;
+
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_8: test two param value and fmt "."
+--echo ---------------------------------------------------------------
+select to_number('0','9.999') as result from dual;
+
+select to_number('1','9.999') as result from dual;
+
+select to_number('1.','9.999') as result from dual;
+
+select to_number('1.','9D999') as result from dual;
+
+select to_number('1.1','9.999') as result from dual;
+
+select to_number('10.01','99.99') as result from dual;
+
+select to_number('                       10.01','99.99') as result from dual;
+
+select to_number('10.01','999.99') as result from dual;
+
+select to_number('10.01','99.999') as result from dual;
+
+select to_number('10.01','99D999') as result from dual;
+
+select to_number(' -1.001','9.999') as result from dual;
+
+select to_number('10.','99.') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number(' -1.001 ','999.9999') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('100.1','99.99') as result from dual;
+
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('10.01','99.9.9') as result from dual;
+
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('10.0.1','99.9.9') as result from dual;
+
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('10.0.1','99G9.9') as result from dual;
+
+
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_9: test two param value and fmt "0"
+--echo ---------------------------------------------------------------
+select to_number('01001','09999') as result from dual;
+
+select to_number('11001','09999') as result from dual;
+
+select to_number('                       01001','09999') as result from dual;
+
+select to_number('1001','99999') as result from dual;
+
+select to_number('1001','9990') as result from dual;
+
+select to_number('1001','99990') as result from dual;
+
+select to_number('10.01','99.990') as result from dual;
+
+select to_number('1001','9099') as result from dual;
+
+select to_number('','09abcdefg') as result from dual;
+
+select to_number('','0') as result from dual;
+
+select to_number('','') as result from dual;
+
+select to_number('','9') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('01001','') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('10010','9990') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number(' ','0') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('1','00') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number(' ','09') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number(' ','9') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('1001','09999') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('1001','09990') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('1','09') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('1','09999') as result from dual;
+
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_10: test two param value and fmt "9"
+--echo ---------------------------------------------------------------
+select to_number('','9') as result from dual;
+
+select to_number('01','9999') as result from dual;
+
+select to_number('0000','9999') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number(' ','9') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('00000','9999') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('0.1','9999') as result from dual;
+
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_11: test two param value and fmt "D"
+--echo ---------------------------------------------------------------
+select to_number('12.34','99D99') as result from dual; 
+
+select to_number('1.001','999D999') as result from dual;
+
+select to_number('1.001','9D9999') as result from dual;
+
+select to_number('1','9D9999') as result from dual;
+
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('12.34','99DD99') as result from dual; 
+
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('12.34','9,9D99') as result from dual; 
+
+
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_12: test two param value and fmt "G"
+--echo ---------------------------------------------------------------
+select to_number('1,234','9G999') as result from dual; 
+
+select to_number('1,001','999G999') as result from dual;
+
+select to_number('1,001','9G9999') as result from dual;
+
+select to_number('1','9G999') as result from dual; 
+
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('1','9.99G9') as result from dual; 
+
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('1','9G99.9') as result from dual; 
+
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('1','9,99G9') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('1','999GD9') as result from dual; 
+
+select to_number('1','99G9D9') as result from dual; 
+
+select to_number('123,.1','999GD9') as result from dual; 
+
+select to_number('12,.1','99GD9') as result from dual; 
+
+
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_13: test two param value and fmt "L"
+--echo ---------------------------------------------------------------
+select to_number('$123','L999') as result from dual;
+
+select to_number('123$','999L') as result from dual;
+
+select to_number('12$3','99L9') as result from dual;
+
+select to_number('$1','L9999') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('$1','L9099') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('$1','L9909') as result from dual;
+
+select to_number('$1','L9990') as result from dual;
+
+select to_number('+$','SL999') as result from dual;
+
+select to_number('$','L999') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('$','L099') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('$','L909') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('$','L990') as result from dual;
+
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('$123$','L999L') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('*123','L999') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('1','9099') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('11','9099') as result from dual;
+
+select to_number('111','9099') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('1','9909') as result from dual;
+
+select to_number('11','9909') as result from dual;
+
+select to_number('111','9909') as result from dual;
+
+select to_number('1111','9909') as result from dual;
+
+select to_number('1','9990') as result from dual;
+
+select to_number('11','9990') as result from dual;
+
+select to_number('111','9990') as result from dual;
+
+select to_number('1111','9990') as result from dual;
+
+
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_14: test two param value and fmt "MI"
+--echo ---------------------------------------------------------------
+select to_number('1234-','9999MI') as result from dual;
+
+select to_number('1,001-','99,9999MI') as result from dual;
+
+select to_number('1,001 ','99,9999MI') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('1,001  ','99,9999MI') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('12341','9999MI') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('12341+','9999MI') as result from dual;
+
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_15: test two param value and fmt "PR"
+--echo ---------------------------------------------------------------
+select to_number('<1234>','9999PR') as result from dual;
+
+select to_number('<1,001>','99,9999PR') as result from dual;
+
+select to_char('1001', '9999PR') as result from dual;
+
+select to_number('1,001','99,9999PR') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('1,001 ','99,9999PR') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number(' 1,001 ','9,999PR') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('<$1234','L9999PR') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('<$1234 ','L9999PR') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('<1,001 >','99,9999PR') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('1,001  ','99,9999PR') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number(' 1001 ','9999PR') as result from dual;
+
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_16: test two param value and fmt "S"
+--echo ---------------------------------------------------------------
+select to_number('1234+','9999S') as result from dual;
+
+select to_number('12.34-','99D99S') as result from dual;
+
+select to_number('-1234','s9999') as result from dual;
+
+select to_number('-1234','9999') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('1234','S9999') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('+1234','9999') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('+1234','9999S') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('+1234+','9999S') as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('+','S999') as result from dual;
+
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_17: test two param for others
+--echo ---------------------------------------------------------------
+select to_number('$1001','$9999') as result from dual;
+
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('1','B9999') as result from dual;
+
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('  123.4567','FM999.0090') as result from dual; 
+
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('IV','RN') as result from dual;
+
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('i','rn') as result from dual;
+
+--error ER_TO_NUM_FORMAT_INVALID
+SELECT to_number('1234567890', 'TM9') as result FROM DUAL;
+
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('123','999V9999') as result from dual;
+
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_18: test two param for DML
+--echo ---------------------------------------------------------------
+drop database if exists abczyy_to_num;
+create database abczyy_to_num;
+use abczyy_to_num;
+create table tb1(a int key, b decimal(15,7));
+insert into tb1(a,b) values(1,0);
+insert into tb1(a,b) values(2,0.123456789);
+insert into tb1(a,b) values(3,12345.6789);
+insert into tb1(a,b) values(4,-99999.9999);
+insert into tb1(a,b) values(5,-0);
+insert into tb1(a,b) values(6,-0.001);
+select * from tb1 order by a;
+
+insert into tb1(a,b) values(10, to_number(-0.1));
+select * from tb1 order by a;
+
+insert into tb1(a,b) values(11, to_number('-0.2'));
+select * from tb1 order by a;
+
+insert into tb1(a,b) values(12, to_number(''));
+select * from tb1 order by a;
+
+insert into tb1(a,b) values(13, to_number('',''));
+select * from tb1 order by a;
+
+--error ER_TO_NUM_VALUE_INVALID
+insert into tb1(a,b) values(14, to_number('  '));
+
+insert into tb1(a,b) values(15, NULL);
+select * from tb1 order by a;
+
+insert into tb1(a,b) values(16, to_number('0.123456789012345678901234567890','9.999999999999999999999999999999'));
+select * from tb1 order by a;
+
+insert into tb1(a,b) values(121, to_number(2020/0));
+insert into tb1(a,b) values(122, to_number(NULL));
+insert into tb1(a,b) values(123, to_number(2020/0, '9999'));
+insert into tb1(a,b) values(124, to_number(NULL, '9999'));
+select * from tb1 order by a;
+
+
+delete from tb1 where a = to_number('11','99');
+select * from tb1 order by a;
+
+update tb1 set b=to_number('$123.456','L999.99999') where a=13;
+select * from tb1 order by a;
+
+drop database if exists abczyy_to_num;
+
+
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_19: test two param for lowercase
+--echo ---------------------------------------------------------------
+select to_number('12.34','99D99') as result from dual;
+select to_number('12.34','99d99') as result from dual;
+
+select to_number('1,234','9G999') as result from dual; 
+select to_number('1,234','9g999') as result from dual; 
+
+select to_number('$123','L999') as result from dual;
+select to_number('$123','l999') as result from dual;
+
+select to_number('1234-','9999MI') as result from dual;
+select to_number('1234-','9999mi') as result from dual;
+select to_number('1234-','9999Mi') as result from dual;
+select to_number('1234-','9999mI') as result from dual;
+
+select to_number('<1234>','9999PR') as result from dual;
+select to_number('<1234>','9999pr') as result from dual;
+select to_number('<1234>','9999Pr') as result from dual;
+select to_number('<1234>','9999pR') as result from dual;
+
+select to_number('1234+','9999S') as result from dual;
+select to_number('1234+','9999s') as result from dual;
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_20: test return NULL
+--echo ---------------------------------------------------------------
+select to_number(2020/0) as result from dual;
+
+select to_number('') as result from dual;
+
+select to_number(NULL) as result from dual;
+
+select to_number(2020/0, '9999') as result from dual;
+
+select to_number('','0') as result from dual;
+
+select to_number(NULL,'9') as result from dual;
+
+select to_number('123',2020/0) as result from dual;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('123','') as result from dual;
+
+select to_number('123',NULL) as result from dual;
+
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_21: test all field type
+--echo ---------------------------------------------------------------
+drop database if exists abczyy_to_num;
+create database abczyy_to_num;
+use abczyy_to_num;
+create table tb1(
+a int key,
+type_tiny tinyint,
+type_short smallint,
+type_long int,
+type_long1 bool,
+type_int24 mediumint,
+type_longlong bigint,
+type_float float(10,5),
+type_double double(10,5),
+type_newdecimal decimal(15,5),
+type_varchar varchar(10),
+type_string char(10),
+type_date date,
+type_time time,
+type_datetime datetime,
+type_timestamp timestamp,
+type_year year,
+type_bit bit(8),
+type_enum enum('101','102','103'),
+type_set set('1','2','3'),
+type_tiny_blob tinyblob,
+type_medium_blob mediumblob,
+type_long_blob longblob,
+type_blob blob
+);
+
+insert into tb1 values(1, 123, 1234, 1234567890, true, 1234567, 123456789012345678, 10.00101, 100.12345, 12345.67890, '12345', '1234567', '2020-04-09', '19:59:18', '2020-04-09 19:59:53', '2020-04-09 20:59:53', '1999', b'0101', '101', '1', '1122', '112233', '11223344', '1122334455');
+
+insert into tb1(a) values(2);
+
+select * from tb1;
+
+select to_number(type_tiny) from tb1 where a=1;
+select to_number(type_short) from tb1 where a=1;
+select to_number(type_long) from tb1 where a=1;
+select to_number(type_long1) from tb1 where a=1;
+select to_number(type_int24) from tb1 where a=1;
+select to_number(type_longlong) from tb1 where a=1;
+select to_number(type_float) from tb1 where a=1;
+select to_number(type_double) from tb1 where a=1;
+select to_number(type_newdecimal) from tb1 where a=1;
+select to_number(type_varchar) from tb1 where a=1;
+select to_number(type_string) from tb1 where a=1;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number(type_date) from tb1 where a=1;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number(type_time) from tb1 where a=1;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number(type_datetime) from tb1 where a=1;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number(type_timestamp) from tb1 where a=1;
+
+select to_number(type_year) from tb1 where a=1;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number(type_bit) from tb1 where a=1;
+
+select to_number(type_bit+0) from tb1 where a=1;
+
+select to_number(type_enum) from tb1 where a=1;
+
+select to_number(type_set) from tb1 where a=1;
+
+select to_number(type_tiny_blob) from tb1 where a=1;
+
+select to_number(type_medium_blob) from tb1 where a=1;
+
+select to_number(type_long_blob) from tb1 where a=1;
+
+select to_number(type_blob) from tb1 where a=1;
+
+select to_number(type_tiny) from tb1 where a=2;
+select to_number(type_short) from tb1 where a=2;
+select to_number(type_long) from tb1 where a=2;
+select to_number(type_long1) from tb1 where a=2;
+select to_number(type_int24) from tb1 where a=2;
+select to_number(type_longlong) from tb1 where a=2;
+select to_number(type_float) from tb1 where a=2;
+select to_number(type_double) from tb1 where a=2;
+select to_number(type_newdecimal) from tb1 where a=2;
+select to_number(type_varchar) from tb1 where a=2;
+select to_number(type_string) from tb1 where a=2;
+select to_number(type_date) from tb1 where a=2;
+select to_number(type_time) from tb1 where a=2;
+select to_number(type_datetime) from tb1 where a=2;
+select to_number(type_timestamp) from tb1 where a=2;
+select to_number(type_year) from tb1 where a=2;
+select to_number(type_bit) from tb1 where a=2;
+select to_number(type_bit+0) from tb1 where a=2;
+select to_number(type_enum) from tb1 where a=2;
+select to_number(type_set) from tb1 where a=2;
+select to_number(type_tiny_blob) from tb1 where a=2;
+select to_number(type_medium_blob) from tb1 where a=2;
+select to_number(type_long_blob) from tb1 where a=2;
+select to_number(type_blob) from tb1 where a=2;
+
+select to_number(`type_tiny`) from tb1 where a=2;
+
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('type_tiny') from tb1 where a=2;
+
+drop database if exists abczyy_to_num;
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_22: test sql_mode with ERROR_FOR_DIVISION_BY_ZERO
+--echo ---------------------------------------------------------------
+set @@sql_mode = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO';
+select @@sql_mode;
+
+drop database if exists abczyy_to_num;
+create database abczyy_to_num;
+use abczyy_to_num;
+create table tb1(a int key, b decimal(15,7));
+
+select to_number(2020/0) as result from dual;
+
+select cast(2020/0 as int) as result from dual;
+
+--error ER_DIVISION_BY_ZERO
+insert into tb1(a,b) values(1,to_number(2020/0));
+
+--error ER_DIVISION_BY_ZERO
+insert into tb1(a,b) values(2,cast(2020/0 as int));
+
+select to_number(2020/0, '9999') as result from dual;
+
+--error ER_DIVISION_BY_ZERO
+insert into tb1(a,b) values(3, to_number(2020/0, '9999'));
+
+drop database if exists abczyy_to_num;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_23: (612004588566) test join and order by
+--echo ---------------------------------------------------------------
+
+drop database if exists abczyy_to_num;
+create database abczyy_to_num;
+use abczyy_to_num;
+create table tb1(id_1 int(11), 
+                 float_1 float,
+				 char_1 char(20),
+				 varchar_1 varchar(25),
+				 year_1 year(4),
+				 date_1 date,
+				 timestamp_1 timestamp,
+				 timestamp_2 timestamp(3),
+				 timestamp_3 timestamp(6),
+				 PRIMARY KEY (id_1));
+create table tb3(id_3 int(11), 
+                 float_3 float,
+				 char_3 char(15),
+				 PRIMARY KEY (id_3));
+insert into tb1 (id_1, float_1,char_1,varchar_1,year_1,date_1,timestamp_1,timestamp_2,timestamp_3) values(1, 123.456, '20080508', '19991012121212123456', '1999', '1999-02-05', '1999-02-05 12:15:15', '1999-02-05 12:15:15.456', '1999-02-05 12:15:15.123456');
+insert into tb1 (id_1, float_1,char_1,varchar_1,year_1,date_1,timestamp_1,timestamp_2,timestamp_3) values(2, 123.6789, '20180625.1499', '19991012121212123456', '2020', '2020-02-05', '2020-02-05 08:15:15', '1999-02-05 12:15:15.456', '1999-02-05 12:15:15.123456');
+insert into tb1 (id_1, float_1,char_1,varchar_1,year_1,date_1,timestamp_1,timestamp_2,timestamp_3) values(3, 124.6789, '20180625.13992987', '19991012121212123456', '2020', '2020-02-05', '2020-02-05 08:15:15', '1999-02-05 12:15:15.456', '1999-02-05 12:15:15.123456');
+insert into tb1(id_1) values(888); 
+insert into tb3 values(1, 123.456, '20080508');
+insert into tb3 values(2, 123.6789, '20180625.1299');
+insert into tb3 values(3, 4321.6789, '20200625.1234');
+
+select to_number(char_1)*cast(char_1 as decimal(25,1)) from tb1;
+
+select to_number(char_1) as a from tb1 order by id_1;
+
+select to_number(char_1) as a from tb1 order by a;	
+
+select to_number(char_1) from tb1 join tb3 on id_1=id_3;
+
+select to_number(char_1) from tb1 order by id_1;
+
+select to_number(char_1) from tb1 join tb3 on id_1=id_3 order by id_1;
+
+select cast(char_1 as decimal(20,6)) from tb1 join tb3 on id_1=id_3 order by id_1;
+
+select cast(char_1 as decimal(65,30)) from tb1 join tb3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)+5.123 from tb1 join tb3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)*5.123 from tb1 join tb3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)-5.123 from tb1 join tb3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)/5.123 from tb1 join tb3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)+to_number(char_1) from tb1 join tb3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)*to_number(char_1) from tb1 join tb3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)+cast(char_1 as decimal(20,6)) from tb1 join tb3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)-cast(float_1 as decimal(20,6)) from tb1 join tb3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)*cast(char_1 as decimal(20,6)) from tb1 join tb3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)/cast(float_1 as decimal(20,6)) from tb1 join tb3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)+cast(char_1 as decimal(65,30)) from tb1 join tb3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)-cast(float_1 as decimal(65,30)) from tb1 join tb3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)*cast(char_1 as decimal(65,30)) from tb1 join tb3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)/cast(float_1 as decimal(65,30)) from tb1 join tb3 on id_1=id_3 order by id_1;
+
+select to_number(char_1) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select cast(char_1 as decimal(20,6)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select cast(char_1 as decimal(65,30)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)+5.123 from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)*5.123 from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)-5.123 from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)/5.123 from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)+to_number(char_1) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)*to_number(char_1) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)+cast(char_1 as decimal(20,6)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)-cast(float_1 as decimal(20,6)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)*cast(char_1 as decimal(20,6)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)/cast(float_1 as decimal(20,6)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)+cast(char_1 as decimal(65,30)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)-cast(float_1 as decimal(65,30)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)*cast(char_1 as decimal(65,30)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)/cast(float_1 as decimal(65,30)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)+to_number(char_1) from tb1 join tb3 order by id_1;
+
+select to_number(char_1)*to_number(char_1) from tb1 join tb3 order by id_1;
+
+select to_number(char_1)+cast(char_1 as decimal(20,6)) from tb1 join tb3 order by id_1;
+
+select to_number(char_1)-cast(float_1 as decimal(20,6)) from tb1 join tb3 order by id_1;
+
+select to_number(char_1)*cast(char_1 as decimal(20,6)) from tb1 join tb3 order by id_1;
+
+select to_number(char_1)/cast(float_1 as decimal(20,6)) from tb1 join tb3 order by id_1;
+
+select case 1 when 1 then to_number(char_1) else 2 end  from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(to_number(char_1)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1 desc;
+
+select max(to_number(char_1)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1 desc;
+
+select sum(to_number(char_1)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1 desc;
+
+select min(to_number(char_1)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1 desc;
+
+--echo -------------------------------
+--echo ## Test:  test view item_ref
+create view v1 as select * from tb1;
+create view v3 as select * from tb3;
+
+select to_number(char_1)*cast(char_1 as decimal(25,1)) from v1;
+
+select to_number(char_1) as a from v1 order by id_1;
+
+select to_number(char_1) as a from v1 order by a;	
+
+select to_number(char_1) from v1 join v3 on id_1=id_3;
+
+select to_number(char_1) from v1 order by id_1;
+
+select to_number(char_1) from v1 join v3 on id_1=id_3 order by id_1;
+
+select cast(char_1 as decimal(20,6)) from v1 join v3 on id_1=id_3 order by id_1;
+
+select cast(char_1 as decimal(65,30)) from v1 join v3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)+5.123 from v1 join v3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)*5.123 from v1 join v3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)-5.123 from v1 join v3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)/5.123 from v1 join v3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)+to_number(char_1) from v1 join v3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)*to_number(char_1) from v1 join v3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)+cast(char_1 as decimal(20,6)) from v1 join v3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)-cast(float_1 as decimal(20,6)) from v1 join v3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)*cast(char_1 as decimal(20,6)) from v1 join v3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)/cast(float_1 as decimal(20,6)) from v1 join v3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)+cast(char_1 as decimal(65,30)) from v1 join v3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)-cast(float_1 as decimal(65,30)) from v1 join v3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)*cast(char_1 as decimal(65,30)) from v1 join v3 on id_1=id_3 order by id_1;
+
+select to_number(char_1)/cast(float_1 as decimal(65,30)) from v1 join v3 on id_1=id_3 order by id_1;
+
+select to_number(char_1) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select cast(char_1 as decimal(20,6)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select cast(char_1 as decimal(65,30)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)+5.123 from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)*5.123 from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)-5.123 from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)/5.123 from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)+to_number(char_1) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)*to_number(char_1) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)+cast(char_1 as decimal(20,6)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)-cast(float_1 as decimal(20,6)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)*cast(char_1 as decimal(20,6)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)/cast(float_1 as decimal(20,6)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)+cast(char_1 as decimal(65,30)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)-cast(float_1 as decimal(65,30)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)*cast(char_1 as decimal(65,30)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)/cast(float_1 as decimal(65,30)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(char_1)+to_number(char_1) from v1 join v3 order by id_1;
+
+select to_number(char_1)*to_number(char_1) from v1 join v3 order by id_1;
+
+select to_number(char_1)+cast(char_1 as decimal(20,6)) from v1 join v3 order by id_1;
+
+select to_number(char_1)-cast(float_1 as decimal(20,6)) from v1 join v3 order by id_1;
+
+select to_number(char_1)*cast(char_1 as decimal(20,6)) from v1 join v3 order by id_1;
+
+select to_number(char_1)/cast(float_1 as decimal(20,6)) from v1 join v3 order by id_1;
+
+select case 1 when 1 then to_number(char_1) else 2 end  from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+
+select to_number(to_number(char_1)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1 desc;
+
+select max(to_number(char_1)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1 desc;
+
+select sum(to_number(char_1)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1 desc;
+
+select min(to_number(char_1)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1 desc;
+
+drop database if exists abczyy_to_num;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_24:  test aggregate function
+--echo ---------------------------------------------------------------
+
+select max(to_number('11.11')) as result from dual;
+
+select max(11.11) +1 as result from dual;
+
+select max(to_number('11.11')) +1 as result from dual;
+
+select SUM(to_number('11.11')) as result from dual;
+
+select to_number(sum(11.11)) +1 as result from dual;
+
+select SUM(to_number('11.11')) +1 as result from dual;
+
+--echo ---------------------------------------------------------------
+--echo ## End test to_number function
+--echo ---------------------------------------------------------------

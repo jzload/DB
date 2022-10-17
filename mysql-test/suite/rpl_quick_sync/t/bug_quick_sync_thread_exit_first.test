@@ -1,0 +1,186 @@
+################################################################################
+# bug1: mutli-block has quick_sync sql and non qucik_sync sql.
+# bug2: thd with qucij_sync sql will cause double remove connection.
+#
+################################################################################
+--source include/not_group_replication_plugin.inc
+--source include/have_debug.inc
+
+--let rpl_topology=1->2, 1->3
+--source include/rpl_init.inc
+CREATE TABLE t1(c1 INT);
+--source include/rpl_sync.inc
+
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+--source include/install_semisync_master.inc
+
+CALL mtr.add_suppression(".* Timeout waiting for reply of binlog .*");
+
+--echo ####################################################################
+--echo # Test Case: check the thread_pool_size of threadpool mode
+--echo ####################################################################
+--let $assert_variable_name= thread_pool_size
+--let $assert_variable_value= 24
+--source include/assert_variable.inc
+
+# It is for coverage test to cover the debug code.
+SET GLOBAL rpl_semi_sync_master_enabled = 0;
+set global rpl_semi_sync_master_timeout = 1000;
+
+--echo ###################################################################
+--echo # Test Case: add slave 2 3
+--echo ###################################################################
+--let $rpl_connection_name= server_2
+--source include/rpl_connection.inc
+--source include/install_semisync_slave.inc
+
+--let $rpl_connection_name= server_3
+--source include/rpl_connection.inc
+--source include/install_semisync_slave.inc
+
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+--let $clients= query_get_value(show status like "Rpl_semi_sync_master_clients", Value, 1)
+while($clients != 2)
+{
+  sleep 1;
+  --let $clients= query_get_value(show status like "Rpl_semi_sync_master_clients", Value, 1)
+}
+
+
+SET GLOBAL rpl_semi_sync_master_enabled = 1;
+set global rpl_semi_sync_master_timeout = 1000;
+create database if not exists abczyy1;
+create table if not exists abczyy1.tb1(a int key, b int); 
+
+drop user if exists repl_test;
+create user repl_test@'localhost' identified by 'repl_test';
+GRANT all on *.* TO 'repl_test'@'localhost' ;
+
+connect (conn1,localhost,repl_test,repl_test,abczyy1);
+
+
+--echo ###################################################################
+--echo # Test Case 1: quick_sync_old_thread_sleep 1s
+--echo ###################################################################
+
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+SET GLOBAL debug = 'd,quick_sync_old_thread_sleep';
+
+connection conn1;
+select @@GLOBAL.debug;
+
+insert into abczyy1.tb1(a,b) values(101,101);
+
+select * from abczyy1.tb1 order by a;
+
+
+--echo ###################################################################
+--echo # Test Case 2: quick_sync_killed_connection
+--echo ###################################################################
+
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+SET GLOBAL debug = 'd,quick_sync_killed_connection';
+
+connection conn1;
+select @@GLOBAL.debug;
+
+insert into abczyy1.tb1(a,b) values(102,102);
+
+--error 2013,2006
+select @@GLOBAL.debug;
+
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+SET GLOBAL debug = '';
+select * from abczyy1.tb1 order by a;
+insert into abczyy1.tb1(a,b) values(103,103);
+select * from abczyy1.tb1 order by a;
+
+disconnect conn1;
+
+
+--echo ###################################################################
+--echo # Test Case 3: quick_sync_old_thread_sleep with multi-block
+--echo ###################################################################
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+SET GLOBAL debug = 'd,quick_sync_old_thread_sleep';
+select @@GLOBAL.debug;
+
+--delimiter //
+insert into abczyy1.tb1(a,b) values(201,201);
+drop table if exists abczyy1.tb2;
+create table if not exists abczyy1.tb2(a int);
+insert into abczyy1.tb1(a,b) values(202,202);
+drop table if exists abczyy1.tb3;
+create table if not exists abczyy1.tb3(a int);
+insert into abczyy1.tb1(a,b) values(203,203);
+drop table if exists abczyy1.tb4;
+create table if not exists abczyy1.tb4(a int);
+insert into abczyy1.tb1(a,b) values(204,204);
+drop table if exists abczyy1.tb5;
+create table if not exists abczyy1.tb5(a int);
+//
+--delimiter ;
+
+--delimiter //
+insert into abczyy1.tb1(a,b) values(301,301);
+truncate table abczyy1.tb2;
+create table if not exists abczyy1.tb2(a int);
+insert into abczyy1.tb1(a,b) values(302,302);
+truncate table abczyy1.tb3;
+create table if not exists abczyy1.tb3(a int);
+insert into abczyy1.tb1(a,b) values(303,303);
+truncate table abczyy1.tb4;
+create table if not exists abczyy1.tb4(a int);
+insert into abczyy1.tb1(a,b) values(304,304);
+//
+--delimiter ;
+
+select * from abczyy1.tb1 order by a;
+SET GLOBAL debug = '';
+
+
+--echo ########################################################################
+--echo # Test End
+--echo ########################################################################
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+set global rpl_semi_sync_master_enabled = OFF;
+
+--let $rpl_connection_name= server_2
+--source include/rpl_connection.inc
+--source include/uninstall_semisync_slave.inc
+
+--let $rpl_connection_name= server_3
+--source include/rpl_connection.inc
+--source include/uninstall_semisync_slave.inc
+
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+--let $clients= query_get_value(show status like "Rpl_semi_sync_master_clients", Value, 1)
+while($clients != 0)
+{
+  sleep 1;
+  --let $clients= query_get_value(show status like "Rpl_semi_sync_master_clients", Value, 1)
+}
+
+# Ack array should be freed when uninstalling semisync master
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+--source include/uninstall_semisync_master.inc
+# end
+
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+drop database if exists abczyy1;
+DROP TABLE t1;
+drop user if exists repl_test@'localhost';
+drop user if exists repl_test@'%';
+CALL mtr.add_suppression(".* Timeout waiting for reply of binlog .*");
+CALL mtr.add_suppression(".* Failed to allocate memory for ack_array .*");
+--source include/rpl_end.inc

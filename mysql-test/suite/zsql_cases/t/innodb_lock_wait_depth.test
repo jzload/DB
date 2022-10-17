@@ -1,0 +1,164 @@
+# === Purpose ===
+#
+# This test case will verify the function of innodb lock wait depth
+#
+--source include/not_windows.inc
+
+# Save the initial number of concurrent sessions
+--source include/count_sessions.inc
+
+--disable_warnings
+drop database if exists lw_depth;
+--enable_warnings
+
+# Save the old values of these variables to be restored at the end
+SET @old_transaction_isolation=	 	 @@global.transaction_isolation;
+SET @old_innodb_lock_wait_timeout=	 @@global.innodb_lock_wait_timeout;
+SET @old_lock_wait_timeout=	 		 @@global.lock_wait_timeout;
+
+set GLOBAL transaction_isolation = 	 'READ-COMMITTED';
+SET GLOBAL innodb_lock_wait_timeout= 1;
+SET GLOBAL lock_wait_timeout=	     5;
+
+create database lw_depth;
+use lw_depth;
+
+--disable_warnings
+drop table if exists lock_depth1;
+--enable_warnings
+
+create table lock_depth1(id1 int primary key, id2 int, id3 int,key(id2));
+insert into lock_depth1 values(1,1,1),(2,2,2),(3,3,3),(4,4,4),(5,5,5);
+
+
+
+############# two locks on the same record ##############
+
+connect (con1,localhost,root,,);
+connect (con2,localhost,root,,);
+connect (con3,localhost,root,,);
+connect (con4,localhost,root,,);
+set global innodb_lock_wait_max_depth = 0;
+
+connection con1;
+use lw_depth;
+start transaction;
+update lock_depth1 set id3 = id3 + 1 where id1 = 1;
+
+connection con2;
+use lw_depth;
+start transaction;
+--error 1205
+update lock_depth1 set id3 = id3 + 1 where id1 = 1;
+
+connection con1;
+rollback;
+connection con2;
+rollback;
+
+
+
+set global innodb_lock_wait_max_depth = 1;
+connection con1;
+use lw_depth;
+start transaction;
+update lock_depth1 set id3 = id3 + 1 where id1 = 1;
+
+connection con2;
+use lw_depth;
+start transaction;
+--error ER_TOO_MANY_LOCKS
+update lock_depth1 set id3 = id3 + 1 where id1 = 1;
+
+connection con1;
+rollback;
+connection con2;
+rollback;
+
+
+########################################################################################
+#implicit lock
+########################################################################################
+set global innodb_lock_wait_max_depth = 2;
+SET GLOBAL innodb_lock_wait_timeout= 2;
+
+
+connection con1;
+use lw_depth;
+start transaction;
+insert into lock_depth1 values(6,1,1);
+
+connection con2;
+use lw_depth;
+start transaction;
+insert into lock_depth1 values(7,1,1);
+
+connection con3;
+use lw_depth;
+start transaction;
+send select count(*) from lock_depth1 where id2 = 1 lock in share mode;
+
+connection con4;
+use lw_depth;
+start transaction;
+--error 1205
+select count(*) from lock_depth1 where id2 = 1 lock in share mode;
+rollback;
+
+connection con3;
+--error 1205
+reap;
+rollback;
+
+connection con1;
+rollback;
+connection con2;
+rollback;
+
+
+########################################################################################
+#select for update
+########################################################################################
+set global innodb_lock_wait_max_depth = 2;
+SET GLOBAL innodb_lock_wait_timeout= 1;
+
+connection con1;
+use lw_depth;
+start transaction;
+select * from lock_depth1 where id1 =1 for update;
+
+connection con2;
+use lw_depth;
+start transaction;
+send select * from lock_depth1 where id1 =1 for update;
+
+connection con3;
+use lw_depth;
+start transaction;
+--error ER_TOO_MANY_LOCKS
+select * from lock_depth1 where id1 =1 for update;
+rollback;
+
+connection con2;
+--error 1205
+reap;
+rollback;
+
+
+########################################################################################
+#clear
+########################################################################################
+disconnect con1;
+disconnect con2;
+disconnect con3;
+disconnect con4;
+
+connection default;
+
+SET GLOBAL innodb_lock_wait_max_depth = 0;
+SET GLOBAL innodb_lock_wait_timeout= @old_innodb_lock_wait_timeout;
+SET GLOBAL transaction_isolation=	 @old_transaction_isolation;
+SET GLOBAL lock_wait_timeout=	     @old_lock_wait_timeout;
+
+drop table lock_depth1;
+drop database lw_depth;

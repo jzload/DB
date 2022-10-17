@@ -1,0 +1,22 @@
+Copyright (c) 2021, JINZHUAN Information Technology Co., Ltd. 
+
+GoldenDB DB is a branch of MySQL 8.0 bringing higher performance,
+reliability and more features.
+
+License information can be found in the LICENSE file.
+
+In test packages where this file is renamed README-test, the license
+file is renamed LICENSE-test.
+
+This distribution may include materials developed by third parties.
+For license and attribution notices for these materials,
+please refer to the LICENSE file.
+
+For further information on GoldenDB or additional documentation, visit
+  http://www.goldendbtech.com/
+
+The source code of GoldenDB DB can be obtained through the following email
+  OpenGoldenDB@GoldenDBTech.com
+
+GoldenDB DB is brought to you by the GoldenDB DB team at JINZHUAN.
+

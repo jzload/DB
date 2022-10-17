@@ -1,0 +1,171 @@
+set global innodb_lock_wait_timeout=1;
+set global lock_wait_timeout=1;
+set parse_mode=1;
+select @@innodb_lock_wait_timeout;
+@@innodb_lock_wait_timeout
+1
+create table t(id1 int primary key, name1 char(20), age int);
+insert into t values (1, 'tom', 20),(2, 'jack', 21),(3, 'allen', 19);
+set parse_mode=1;
+###################################################################
+# Test Case 1-1: parse field 
+###################################################################
+select t.* from t where id1 = 1 for update of *;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '*' at line 1
+select t.* from t where id1 = 1 for update of test.t.id;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'id' at line 1
+select t.* from t where id1 = 1 for update of t.id2;
+ERROR HY000: Unresolved table name `t`.`id2` in locking clause.
+select t.* from t for update of age;
+ERROR HY000: Unresolved table name `age` in locking clause.
+select t.* from t where id1 = 1 for update of t.id1;
+ERROR HY000: Unresolved table name `t`.`id1` in locking clause.
+select t.* from t where id1 = 1 for update of test.*;
+ERROR HY000: Unresolved table name `test` in locking clause.
+select id1 from (select id1 from t) tmp for update of tmp;
+ERROR HY000: Table `tmp` appears in multiple locking clauses.
+select t.* from t where id1 = 1 for update of t.*;
+id1	name1	age
+1	tom	20
+select t.* from t where id1 = 1 for update of t;
+id1	name1	age
+1	tom	20
+select t.* from t where id1 = 1 for update of test.t;
+id1	name1	age
+1	tom	20
+select t.* from t where id1 = 1 for update of test.t.*;
+id1	name1	age
+1	tom	20
+select id1 from (select id1 from t for update of t) tmp;
+id1
+1
+2
+3
+###################################################################
+# Test Case 1-2: parse field, alias 
+###################################################################
+create table t2(id int, name varchar(255));
+insert into t2 values (1, 'aaa');
+insert into t2 values (2, 'bbb');
+insert into t2 values (3, 'ccc');
+insert into t2 values (4, 'ddd');
+insert into t2 values (5, 'eee');
+select name as aname from t2 t for update of t;
+aname
+aaa
+bbb
+ccc
+ddd
+eee
+select name as aname from t2 t for update of t2;
+ERROR HY000: Unresolved table name `t2` in locking clause.
+select name as aname from t2 t for update of test.t;
+aname
+aaa
+bbb
+ccc
+ddd
+eee
+select name as aname from t2 t for update of test.t2;
+ERROR HY000: Unresolved table name `test`.`t2` in locking clause.
+select name as aname from t2 t for update of test.t.*;
+aname
+aaa
+bbb
+ccc
+ddd
+eee
+select name as aname from t2 t for update of test.t2.*;
+ERROR HY000: Unresolved table name `test`.`t2` in locking clause.
+drop table t2;
+###################################################################
+# Test Case 3: single table      without where clause     timeout
+###################################################################
+begin;
+select id1 from t for update of test.t;
+id1
+1
+2
+3
+select id1 from t for update of t.*;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+###################################################################
+# Test Case 4: single table        with where           success 
+###################################################################
+begin;
+select id1 from t where id1 = 1 for update of t;
+id1
+1
+select id1 from t where id1 = 2 for update of t;
+id1
+2
+commit;
+###################################################################
+# Test Case 5: single table        with where           timeout 
+###################################################################
+begin;
+select id1 from t where id1 = 1 for update of test.t;
+id1
+1
+select id1 from t where id1 = 1 for update of t;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+###################################################################
+# Test Case 6: single table        with where    delete   timeout 
+###################################################################
+begin;
+select id1 from t where id1 = 1 for update of test.t.*;
+id1
+1
+delete from t where id1 = 1;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+###################################################################
+# Test Case 7: single table        with where    update   timeout 
+###################################################################
+begin;
+select id1 from t where id1 = 1 for update of t;
+id1
+1
+update t set age = 30 where id1 = 1;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+###################################################################
+# Test Case 8: single table        drop              timeout 
+###################################################################
+begin;
+select id1 from t where id1 = 1 for update of t.*;
+id1
+1
+drop table t;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+###################################################################
+# Test Case 9: single table        truncate              timeout 
+###################################################################
+begin;
+select id1 from t where id1 = 1 for update of test.t;
+id1
+1
+truncate table t;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+###################################################################
+# Test Case 10: single table        alter              timeout 
+###################################################################
+begin;
+select id1 from t where id1 = 1 for update of t;
+id1
+1
+alter table t add column sex int;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+###################################################################
+# end test case
+###################################################################
+set parse_mode=<session_parse_mode_a>;
+set parse_mode=<session_parse_mode_b>;
+drop table t;
+set global innodb_lock_wait_timeout=<initial_timeout>;
+set global lock_wait_timeout=<initial_lock_wait_timeout>;

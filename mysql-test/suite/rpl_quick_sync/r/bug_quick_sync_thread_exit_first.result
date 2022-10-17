@@ -1,0 +1,138 @@
+include/rpl_init.inc [topology=1->2, 1->3]
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+CREATE TABLE t1(c1 INT);
+include/rpl_sync.inc
+[connection server_1]
+include/install_semisync_master.inc
+CALL mtr.add_suppression(".* Timeout waiting for reply of binlog .*");
+####################################################################
+# Test Case: check the thread_pool_size of threadpool mode
+####################################################################
+include/assert.inc [ should be 24]
+SET GLOBAL rpl_semi_sync_master_enabled = 0;
+set global rpl_semi_sync_master_timeout = 1000;
+###################################################################
+# Test Case: add slave 2 3
+###################################################################
+[connection server_2]
+include/install_semisync_slave.inc
+[connection server_3]
+include/install_semisync_slave.inc
+[connection server_1]
+SET GLOBAL rpl_semi_sync_master_enabled = 1;
+set global rpl_semi_sync_master_timeout = 1000;
+create database if not exists abczyy1;
+create table if not exists abczyy1.tb1(a int key, b int);
+drop user if exists repl_test;
+Warnings:
+Note	3162	Authorization ID 'repl_test'@'%' does not exist.
+create user repl_test@'localhost' identified by 'repl_test';
+GRANT all on *.* TO 'repl_test'@'localhost' ;
+###################################################################
+# Test Case 1: quick_sync_old_thread_sleep 1s
+###################################################################
+[connection server_1]
+SET GLOBAL debug = 'd,quick_sync_old_thread_sleep';
+select @@GLOBAL.debug;
+@@GLOBAL.debug
+d,quick_sync_old_thread_sleep
+insert into abczyy1.tb1(a,b) values(101,101);
+select * from abczyy1.tb1 order by a;
+a	b
+101	101
+###################################################################
+# Test Case 2: quick_sync_killed_connection
+###################################################################
+[connection server_1]
+SET GLOBAL debug = 'd,quick_sync_killed_connection';
+select @@GLOBAL.debug;
+@@GLOBAL.debug
+d,quick_sync_killed_connection
+insert into abczyy1.tb1(a,b) values(102,102);
+select @@GLOBAL.debug;
+Got one of the listed errors
+[connection server_1]
+SET GLOBAL debug = '';
+select * from abczyy1.tb1 order by a;
+a	b
+101	101
+102	102
+insert into abczyy1.tb1(a,b) values(103,103);
+select * from abczyy1.tb1 order by a;
+a	b
+101	101
+102	102
+103	103
+###################################################################
+# Test Case 3: quick_sync_old_thread_sleep with multi-block
+###################################################################
+[connection server_1]
+SET GLOBAL debug = 'd,quick_sync_old_thread_sleep';
+select @@GLOBAL.debug;
+@@GLOBAL.debug
+d,quick_sync_old_thread_sleep
+insert into abczyy1.tb1(a,b) values(201,201);
+drop table if exists abczyy1.tb2;
+create table if not exists abczyy1.tb2(a int);
+insert into abczyy1.tb1(a,b) values(202,202);
+drop table if exists abczyy1.tb3;
+create table if not exists abczyy1.tb3(a int);
+insert into abczyy1.tb1(a,b) values(203,203);
+drop table if exists abczyy1.tb4;
+create table if not exists abczyy1.tb4(a int);
+insert into abczyy1.tb1(a,b) values(204,204);
+drop table if exists abczyy1.tb5;
+create table if not exists abczyy1.tb5(a int);
+//
+insert into abczyy1.tb1(a,b) values(301,301);
+truncate table abczyy1.tb2;
+create table if not exists abczyy1.tb2(a int);
+insert into abczyy1.tb1(a,b) values(302,302);
+truncate table abczyy1.tb3;
+create table if not exists abczyy1.tb3(a int);
+insert into abczyy1.tb1(a,b) values(303,303);
+truncate table abczyy1.tb4;
+create table if not exists abczyy1.tb4(a int);
+insert into abczyy1.tb1(a,b) values(304,304);
+//
+select * from abczyy1.tb1 order by a;
+a	b
+101	101
+102	102
+103	103
+201	201
+202	202
+203	203
+204	204
+301	301
+302	302
+303	303
+304	304
+SET GLOBAL debug = '';
+########################################################################
+# Test End
+########################################################################
+[connection server_1]
+set global rpl_semi_sync_master_enabled = OFF;
+[connection server_2]
+include/uninstall_semisync_slave.inc
+[connection server_3]
+include/uninstall_semisync_slave.inc
+[connection server_1]
+[connection server_1]
+include/uninstall_semisync_master.inc
+[connection server_1]
+drop database if exists abczyy1;
+DROP TABLE t1;
+drop user if exists repl_test@'localhost';
+drop user if exists repl_test@'%';
+Warnings:
+Note	3162	Authorization ID 'repl_test'@'%' does not exist.
+CALL mtr.add_suppression(".* Timeout waiting for reply of binlog .*");
+CALL mtr.add_suppression(".* Failed to allocate memory for ack_array .*");
+include/rpl_end.inc

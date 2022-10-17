@@ -1,0 +1,1184 @@
+select to_date('10', 'Y') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_timestamp('10', 'Y') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_date('10-11', 'Yyyy-mm--dd') from dual;
+ERROR HY000: convert date/time fail: input value not long enough for date format
+select to_timestamp('10-11', 'Yyyy-mm--dd') from dual;
+ERROR HY000: convert date/time fail: input value not long enough for date format
+select to_date('-2220', 'YYYY') from dual;
+ERROR HY000: convert date/time fail: year must be between 1 and 9999
+select to_timestamp('-2220', 'YYYY') from dual;
+ERROR HY000: convert date/time fail: year must be between 1 and 9999
+select to_date('0', 'MM') from dual;
+ERROR HY000: convert date/time fail: not a valid month
+select to_timestamp('0', 'MM') from dual;
+ERROR HY000: convert date/time fail: not a valid month
+select to_date('10-1-1', 'Yyyy-mmdd') from dual;
+ERROR HY000: convert date/time fail: day of month must be between 1 and last day of month
+select to_timestamp('10-1-1', 'Yyyy-mmdd') from dual;
+ERROR HY000: convert date/time fail: day of month must be between 1 and last day of month
+select to_date('a20', 'Y,YYY') from dual;
+ERROR HY000: invalid value for format 'Y,YYY'
+select to_timestamp('a20', 'Y,YYY') from dual;
+ERROR HY000: invalid value for format 'Y,YYY'
+select to_date('1-10-100','y-mm-ddd') from dual;
+ERROR HY000: convert date/time fail: format code appears twice: MM
+select to_date('1-10-100','y-月-mm-ddd') from dual;
+ERROR HY000: invalid format '月-mm-ddd'
+select to_date('1-10-100','y月mm-ddd') from dual;
+ERROR HY000: invalid format '月mm-ddd'
+select to_date('20200120 ','yyyy-mm-dd') from dual;
+to_date('20200120 ','yyyy-mm-dd')
+2020-01-20 00:00:00
+select to_date('    20200120 ','yyyy-mm-dd') from dual;
+to_date('    20200120 ','yyyy-mm-dd')
+2020-01-20 00:00:00
+select to_date('    2020      01   20 ','yyyy-mm-dd') from dual;
+to_date('    2020      01   20 ','yyyy-mm-dd')
+2020-01-20 00:00:00
+select to_date('    2020 01   20 ','  yyyy -mm -  dd  ') from dual;
+to_date('    2020 01   20 ','  yyyy -mm -  dd  ')
+2020-01-20 00:00:00
+select to_date('   ', '  ') from dual;
+to_date('   ', '  ')
+2020-07-01 00:00:00
+select to_date('', ' ') from dual;
+to_date('', ' ')
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '' for function to_date
+select to_date('', '') from dual;
+to_date('', '')
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '' for function to_date
+select to_timestamp('20200120 ','yyyy-mm-dd') from dual;
+to_timestamp('20200120 ','yyyy-mm-dd')
+2020-01-20 00:00:00.000000
+select to_timestamp('    20200120 ','yyyy-mm-dd') from dual;
+to_timestamp('    20200120 ','yyyy-mm-dd')
+2020-01-20 00:00:00.000000
+select to_timestamp('    2020      01   20 ','yyyy-mm-dd') from dual;
+to_timestamp('    2020      01   20 ','yyyy-mm-dd')
+2020-01-20 00:00:00.000000
+select to_timestamp('    2020 01   20 ','  yyyy -mm -  dd  ') from dual;
+to_timestamp('    2020 01   20 ','  yyyy -mm -  dd  ')
+2020-01-20 00:00:00.000000
+select to_timestamp('   ', '  ') from dual;
+to_timestamp('   ', '  ')
+2020-07-01 00:00:00.000000
+select to_timestamp('', ' ') from dual;
+to_timestamp('', ' ')
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '' for function to_timestamp
+select to_timestamp('', '') from dual;
+to_timestamp('', '')
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '' for function to_timestamp
+select to_date('201   05010', 'yyyymmdd') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_date('2010501', 'yyyymmdd') from dual;
+ERROR HY000: convert date/time fail: not a valid month
+select to_timestamp('201   05010', 'yyyymmdd') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_timestamp('2010501', 'yyyymmdd') from dual;
+ERROR HY000: convert date/time fail: not a valid month
+select to_date('0','ddd') from dual;
+ERROR HY000: convert date/time fail: day of year must be between 1 and 365 (366 for leap year)
+select to_date('1','ddd') from dual;
+to_date('1','ddd')
+2020-01-01 00:00:00
+select to_date('365','ddd') from dual;
+to_date('365','ddd')
+2020-12-30 00:00:00
+select to_date('367','ddd') from dual;
+ERROR HY000: convert date/time fail: day of year must be between 1 and 365 (366 for leap year)
+select to_date('36012','dddYY') from dual;
+to_date('36012','dddYY')
+2012-12-25 00:00:00
+select to_date('36012','ddd-YY') from dual;
+to_date('36012','ddd-YY')
+2012-12-25 00:00:00
+select to_date('3601210','ddd-YY-MM') from dual;
+ERROR HY000: convert date/time fail: format code appears twice: MM
+select to_date('3601210','ddd-YY-DD') from dual;
+ERROR HY000: convert date/time fail: format code appears twice: DD
+select to_date('21-100','yy-ddd') from dual;
+to_date('21-100','yy-ddd')
+2021-04-10 00:00:00
+select to_date('21100','yy-Ddd') from dual;
+to_date('21100','yy-Ddd')
+2021-04-10 00:00:00
+select to_date('20-100','yy-DDD') from dual;
+to_date('20-100','yy-DDD')
+2020-04-09 00:00:00
+select to_date('20100','yy-dDd') from dual;
+to_date('20100','yy-dDd')
+2020-04-09 00:00:00
+select to_date('21100','yy-ddd') from dual;
+to_date('21100','yy-ddd')
+2021-04-10 00:00:00
+select to_date('21100','yyddd') from dual;
+to_date('21100','yyddd')
+2021-04-10 00:00:00
+select to_date('21100','yymmddd') from dual;
+ERROR HY000: convert date/time fail: format code appears twice: MM
+select to_date('21365','yy-ddd') from dual;
+to_date('21365','yy-ddd')
+2021-12-31 00:00:00
+select to_date('21366','yy-ddd') from dual;
+ERROR HY000: convert date/time fail: day of year must be between 1 and 365 (366 for leap year)
+select to_date('21-1','yy-ddd') from dual;
+to_date('21-1','yy-ddd')
+2021-01-01 00:00:00
+select to_date('21--1','yy-ddd') from dual;
+ERROR HY000: convert date/time fail: day of year must be between 1 and 365 (366 for leap year)
+select to_date('21-0','yy-ddd') from dual;
+ERROR HY000: convert date/time fail: day of year must be between 1 and 365 (366 for leap year)
+select to_date('21','ddd') from dual;
+to_date('21','ddd')
+2020-01-21 00:00:00
+select to_date('40','ddd') from dual;
+to_date('40','ddd')
+2020-02-09 00:00:00
+select to_date('211001','yyddddd') from dual;
+ERROR HY000: convert date/time fail: format code appears twice: DD
+select to_date('21-10-01','yy-ddd-dd') from dual;
+ERROR HY000: convert date/time fail: format code appears twice: DD
+select to_date('3-10 14:12:24', 'Yy-DDd HH24:MI:SS') from dual;
+to_date('3-10 14:12:24', 'Yy-DDd HH24:MI:SS')
+2003-01-10 14:12:24
+select to_date('3-10 11:12:24', 'Yy-DDd HH:MI:SS') from dual;
+to_date('3-10 11:12:24', 'Yy-DDd HH:MI:SS')
+2003-01-10 11:12:24
+select to_date('3-10 4:12:24', 'Yy-DDd HH12:MI:SS') from dual;
+to_date('3-10 4:12:24', 'Yy-DDd HH12:MI:SS')
+2003-01-10 04:12:24
+select to_timestamp('21-100','yy-ddd') from dual;
+to_timestamp('21-100','yy-ddd')
+2021-04-10 00:00:00.000000
+select to_timestamp('21100','yy-Ddd') from dual;
+to_timestamp('21100','yy-Ddd')
+2021-04-10 00:00:00.000000
+select to_timestamp('20-100','yy-DDD') from dual;
+to_timestamp('20-100','yy-DDD')
+2020-04-09 00:00:00.000000
+select to_timestamp('20100','yy-dDd') from dual;
+to_timestamp('20100','yy-dDd')
+2020-04-09 00:00:00.000000
+select to_timestamp('21100','yy-ddd') from dual;
+to_timestamp('21100','yy-ddd')
+2021-04-10 00:00:00.000000
+select to_timestamp('21100','yyddd') from dual;
+to_timestamp('21100','yyddd')
+2021-04-10 00:00:00.000000
+select to_timestamp('21100','yymmddd') from dual;
+ERROR HY000: convert date/time fail: format code appears twice: MM
+select to_timestamp('21365','yy-ddd') from dual;
+to_timestamp('21365','yy-ddd')
+2021-12-31 00:00:00.000000
+select to_timestamp('21366','yy-ddd') from dual;
+ERROR HY000: convert date/time fail: day of year must be between 1 and 365 (366 for leap year)
+select to_timestamp('21-1','yy-ddd') from dual;
+to_timestamp('21-1','yy-ddd')
+2021-01-01 00:00:00.000000
+select to_timestamp('21--1','yy-ddd') from dual;
+ERROR HY000: convert date/time fail: day of year must be between 1 and 365 (366 for leap year)
+select to_timestamp('21-0','yy-ddd') from dual;
+ERROR HY000: convert date/time fail: day of year must be between 1 and 365 (366 for leap year)
+select to_timestamp('21','ddd') from dual;
+to_timestamp('21','ddd')
+2020-01-21 00:00:00.000000
+select to_timestamp('40','ddd') from dual;
+to_timestamp('40','ddd')
+2020-02-09 00:00:00.000000
+select to_timestamp('211001','yyddddd') from dual;
+ERROR HY000: convert date/time fail: format code appears twice: DD
+select to_timestamp('21-10-01','yy-ddd-dd') from dual;
+ERROR HY000: convert date/time fail: format code appears twice: DD
+select to_timestamp('3-10 14:12:24', 'Yy-DDd HH24:MI:SS') from dual;
+to_timestamp('3-10 14:12:24', 'Yy-DDd HH24:MI:SS')
+2003-01-10 14:12:24.000000
+select to_timestamp('3-10 11:12:24', 'Yy-DDd HH:MI:SS') from dual;
+to_timestamp('3-10 11:12:24', 'Yy-DDd HH:MI:SS')
+2003-01-10 11:12:24.000000
+select to_timestamp('3-10 4:12:24', 'Yy-DDd HH12:MI:SS') from dual;
+to_timestamp('3-10 4:12:24', 'Yy-DDd HH12:MI:SS')
+2003-01-10 04:12:24.000000
+select to_date('2020-Jan-20','yyyy-Mon-dd') from dual;
+to_date('2020-Jan-20','yyyy-Mon-dd')
+2020-01-20 00:00:00
+select to_date('2020-January-20','yyyy-Month-dd') from dual;
+to_date('2020-January-20','yyyy-Month-dd')
+2020-01-20 00:00:00
+select to_date('2020-January-20','yyyy-Month-dd') from dual;
+to_date('2020-January-20','yyyy-Month-dd')
+2020-01-20 00:00:00
+select to_date('2020-Januaryabcd11455-20','yyyy-Month-dd') from dual;
+ERROR HY000: convert date/time fail: literal does not match format string
+select to_date('2020-January-20','yyyy-Month-dd') from dual;
+to_date('2020-January-20','yyyy-Month-dd')
+2020-01-20 00:00:00
+select to_date('2020-Feb2','yyyy-Monthdd') from dual;
+to_date('2020-Feb2','yyyy-Monthdd')
+2020-02-02 00:00:00
+select to_date('2020-Feb100sdgagdg22uray-20','yyyy-Month-dd') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_date('2020-Febsdgagdg22uray-20','yyyy-Month-dd') from dual;
+ERROR HY000: convert date/time fail: literal does not match format string
+select to_date('Jan','Mon') from dual;
+to_date('Jan','Mon')
+2020-01-01 00:00:00
+select to_date('febu', 'mon') from dual;
+ERROR HY000: convert date/time fail: literal does not match format string
+select to_date('2020-Novemb-20','yyyy-Month-dd') from dual;
+ERROR HY000: convert date/time fail: literal does not match format string
+select to_timestamp('2020-Jan-20','yyyy-Mon-dd') from dual;
+to_timestamp('2020-Jan-20','yyyy-Mon-dd')
+2020-01-20 00:00:00.000000
+select to_timestamp('2020-january-20','yyyy-moNth-dd') from dual;
+to_timestamp('2020-january-20','yyyy-moNth-dd')
+2020-01-20 00:00:00.000000
+select to_timestamp('2020-JanUary-20','yyyy-Month-dd') from dual;
+to_timestamp('2020-JanUary-20','yyyy-Month-dd')
+2020-01-20 00:00:00.000000
+select to_timestamp('2020-Januaryabcd11455-20','yyyy-Month-dd') from dual;
+ERROR HY000: convert date/time fail: literal does not match format string
+select to_timestamp('2020-January-20','yyyy-Month-dd') from dual;
+to_timestamp('2020-January-20','yyyy-Month-dd')
+2020-01-20 00:00:00.000000
+select to_timestamp('2020-Feb2','yyyy-Monthdd') from dual;
+to_timestamp('2020-Feb2','yyyy-Monthdd')
+2020-02-02 00:00:00.000000
+select to_timestamp('2020-Feb100sdgagdg22uray-20','yyyy-Month-dd') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_timestamp('2020-Febsdgagdg22uray-20','yyyy-Month-dd') from dual;
+ERROR HY000: convert date/time fail: literal does not match format string
+select to_timestamp('Jan','Mon') from dual;
+to_timestamp('Jan','Mon')
+2020-01-01 00:00:00.000000
+select to_timestamp('febu', 'mon') from dual;
+ERROR HY000: convert date/time fail: literal does not match format string
+select to_timestamp('2020-Novemb-20','yyyy-Month-dd') from dual;
+ERROR HY000: convert date/time fail: literal does not match format string
+select to_date('0', 'Y') from dual;
+to_date('0', 'Y')
+2020-06-01 00:00:00
+select to_date('0', 'YY') from dual;
+to_date('0', 'YY')
+2000-06-01 00:00:00
+select to_date('0', 'YYY') from dual;
+to_date('0', 'YYY')
+2000-06-01 00:00:00
+select to_timestamp('0', 'Y') from dual;
+to_timestamp('0', 'Y')
+2020-06-01 00:00:00.000000
+select to_timestamp('0', 'YY') from dual;
+to_timestamp('0', 'YY')
+2000-06-01 00:00:00.000000
+select to_timestamp('0', 'YYY') from dual;
+to_timestamp('0', 'YYY')
+2000-06-01 00:00:00.000000
+select to_date('1', 'Y') from dual;
+to_date('1', 'Y')
+2021-06-01 00:00:00
+select to_date('1', 'YY') from dual;
+to_date('1', 'YY')
+2001-06-01 00:00:00
+select to_date('1', 'YYY') from dual;
+to_date('1', 'YYY')
+2001-06-01 00:00:00
+select to_timestamp('1', 'Y') from dual;
+to_timestamp('1', 'Y')
+2021-06-01 00:00:00.000000
+select to_timestamp('1', 'YY') from dual;
+to_timestamp('1', 'YY')
+2001-06-01 00:00:00.000000
+select to_timestamp('1', 'YYY') from dual;
+to_timestamp('1', 'YYY')
+2001-06-01 00:00:00.000000
+select to_date('9', 'Y') from dual;
+to_date('9', 'Y')
+2029-06-01 00:00:00
+select to_date('99', 'YY') from dual;
+to_date('99', 'YY')
+2099-06-01 00:00:00
+select to_date('999', 'YYY') from dual;
+to_date('999', 'YYY')
+2999-06-01 00:00:00
+select to_timestamp('9', 'Y') from dual;
+to_timestamp('9', 'Y')
+2029-06-01 00:00:00.000000
+select to_timestamp('99', 'YY') from dual;
+to_timestamp('99', 'YY')
+2099-06-01 00:00:00.000000
+select to_timestamp('999', 'YYY') from dual;
+to_timestamp('999', 'YYY')
+2999-06-01 00:00:00.000000
+select to_date('10', 'Y') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_date('10000', 'YY') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_date('1000', 'YYY') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_timestamp('10', 'Y') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_timestamp('10000', 'YY') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_timestamp('1000', 'YYY') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_date('100000', 'Y') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_date('100000', 'YY') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_date('100000', 'YYy') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_timestamp('100000', 'Y') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_timestamp('100000', 'YY') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_timestamp('100000', 'YYy') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_date('-1', 'Y') from dual;
+ERROR HY000: convert date/time fail: year must be between 1 and 9999
+select to_date('-1', 'YY') from dual;
+ERROR HY000: convert date/time fail: year must be between 1 and 9999
+select to_date('-1', 'YYY') from dual;
+ERROR HY000: convert date/time fail: year must be between 1 and 9999
+select to_timestamp('-1', 'Y') from dual;
+ERROR HY000: convert date/time fail: year must be between 1 and 9999
+select to_timestamp('-1', 'YY') from dual;
+ERROR HY000: convert date/time fail: year must be between 1 and 9999
+select to_timestamp('-1', 'YYY') from dual;
+ERROR HY000: convert date/time fail: year must be between 1 and 9999
+select to_date(0, 'Y') from dual;
+to_date(0, 'Y')
+2020-06-01 00:00:00
+select to_date(0, 'YY') from dual;
+to_date(0, 'YY')
+2000-06-01 00:00:00
+select to_date(0, 'YYY') from dual;
+to_date(0, 'YYY')
+2000-06-01 00:00:00
+select to_timestamp(0, 'Y') from dual;
+to_timestamp(0, 'Y')
+2020-06-01 00:00:00.000000
+select to_timestamp(0, 'YY') from dual;
+to_timestamp(0, 'YY')
+2000-06-01 00:00:00.000000
+select to_timestamp(0, 'YYY') from dual;
+to_timestamp(0, 'YYY')
+2000-06-01 00:00:00.000000
+select to_date(1, 'Y') from dual;
+to_date(1, 'Y')
+2021-06-01 00:00:00
+select to_date(1, 'YY') from dual;
+to_date(1, 'YY')
+2001-06-01 00:00:00
+select to_date(1, 'YYY') from dual;
+to_date(1, 'YYY')
+2001-06-01 00:00:00
+select to_timestamp(1, 'Y') from dual;
+to_timestamp(1, 'Y')
+2021-06-01 00:00:00.000000
+select to_timestamp(1, 'YY') from dual;
+to_timestamp(1, 'YY')
+2001-06-01 00:00:00.000000
+select to_timestamp(1, 'YYY') from dual;
+to_timestamp(1, 'YYY')
+2001-06-01 00:00:00.000000
+select to_date(9, 'Y') from dual;
+to_date(9, 'Y')
+2029-06-01 00:00:00
+select to_date(99, 'YY') from dual;
+to_date(99, 'YY')
+2099-06-01 00:00:00
+select to_date(999, 'YYY') from dual;
+to_date(999, 'YYY')
+2999-06-01 00:00:00
+select to_timestamp(9, 'Y') from dual;
+to_timestamp(9, 'Y')
+2029-06-01 00:00:00.000000
+select to_timestamp(99, 'YY') from dual;
+to_timestamp(99, 'YY')
+2099-06-01 00:00:00.000000
+select to_timestamp(999, 'YYY') from dual;
+to_timestamp(999, 'YYY')
+2999-06-01 00:00:00.000000
+select to_date(10, 'Y') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_date(10000, 'Yy') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_date(1000, 'YYY') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_timestamp(10, 'Y') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_timestamp(10000, 'YY') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_timestamp(1000, 'YYY') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_date(100000, 'Y') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_date(100000, 'YY') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_date(100000, 'YYy') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_timestamp(100000, 'Y') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_timestamp(100000, 'YY') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_timestamp(100000, 'YYy') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_date(-1, 'Y') from dual;
+ERROR HY000: convert date/time fail: year must be between 1 and 9999
+select to_date(-1, 'YY') from dual;
+ERROR HY000: convert date/time fail: year must be between 1 and 9999
+select to_date(-1, 'YYY') from dual;
+ERROR HY000: convert date/time fail: year must be between 1 and 9999
+select to_timestamp(-1, 'Y') from dual;
+ERROR HY000: convert date/time fail: year must be between 1 and 9999
+select to_timestamp(-1, 'YY') from dual;
+ERROR HY000: convert date/time fail: year must be between 1 and 9999
+select to_timestamp(-1, 'YYY') from dual;
+ERROR HY000: convert date/time fail: year must be between 1 and 9999
+select to_date('0-02-29', 'Y-MM-DD') from dual;
+to_date('0-02-29', 'Y-MM-DD')
+2020-02-29 00:00:00
+select to_date('0-02-29', 'Yy-MM-DD') from dual;
+to_date('0-02-29', 'Yy-MM-DD')
+2000-02-29 00:00:00
+select to_date('00-02-29', 'Yy-MM-DD') from dual;
+to_date('00-02-29', 'Yy-MM-DD')
+2000-02-29 00:00:00
+select to_date('0-02-29', 'YyY-MM-DD') from dual;
+to_date('0-02-29', 'YyY-MM-DD')
+2000-02-29 00:00:00
+select to_date('00-02-29', 'YyY-MM-DD') from dual;
+to_date('00-02-29', 'YyY-MM-DD')
+2000-02-29 00:00:00
+select to_date('000-02-29', 'YyY-MM-DD') from dual;
+to_date('000-02-29', 'YyY-MM-DD')
+2000-02-29 00:00:00
+select to_timestamp('0-02-29', 'Y-MM-DD') from dual;
+to_timestamp('0-02-29', 'Y-MM-DD')
+2020-02-29 00:00:00.000000
+select to_timestamp('0-02-29', 'Yy-MM-DD') from dual;
+to_timestamp('0-02-29', 'Yy-MM-DD')
+2000-02-29 00:00:00.000000
+select to_timestamp('00-02-29', 'Yy-MM-DD') from dual;
+to_timestamp('00-02-29', 'Yy-MM-DD')
+2000-02-29 00:00:00.000000
+select to_timestamp('0-02-29', 'YyY-MM-DD') from dual;
+to_timestamp('0-02-29', 'YyY-MM-DD')
+2000-02-29 00:00:00.000000
+select to_timestamp('00-02-29', 'YyY-MM-DD') from dual;
+to_timestamp('00-02-29', 'YyY-MM-DD')
+2000-02-29 00:00:00.000000
+select to_timestamp('000-02-29', 'YyY-MM-DD') from dual;
+to_timestamp('000-02-29', 'YyY-MM-DD')
+2000-02-29 00:00:00.000000
+select to_date('1-02-29', 'Y-MM-DD') from dual;
+ERROR HY000: convert date/time fail: date not valid for month specified
+select to_date('1-02-29', 'Yy-MM-DD') from dual;
+ERROR HY000: convert date/time fail: date not valid for month specified
+select to_date('1-02-29', 'Yyy-MM-DD') from dual;
+ERROR HY000: convert date/time fail: date not valid for month specified
+select to_timestamp('1-02-29', 'Y-MM-DD') from dual;
+ERROR HY000: convert date/time fail: date not valid for month specified
+select to_timestamp('1-02-29', 'Yy-MM-DD') from dual;
+ERROR HY000: convert date/time fail: date not valid for month specified
+select to_timestamp('1-02-29', 'Yyy-MM-DD') from dual;
+ERROR HY000: convert date/time fail: date not valid for month specified
+select to_date('0-1-1', 'Y-MM-DD') from dual;
+to_date('0-1-1', 'Y-MM-DD')
+2020-01-01 00:00:00
+select to_date('0 1 1', 'Yy MM DD') from dual;
+to_date('0 1 1', 'Yy MM DD')
+2020-01-01 00:00:00
+select to_date('0/1/1', 'Yyy/MM/DD') from dual;
+to_date('0/1/1', 'Yyy/MM/DD')
+2020-01-01 00:00:00
+select to_date('0,01,1', 'Y,MM,DD') from dual;
+to_date('0,01,1', 'Y,MM,DD')
+2020-01-01 00:00:00
+select to_date('0.12.01', 'yY.MM.DD') from dual;
+to_date('0.12.01', 'yY.MM.DD')
+2020-12-01 00:00:00
+select to_date('0;12;01', 'Yyy;MM;DD') from dual;
+to_date('0;12;01', 'Yyy;MM;DD')
+2020-12-01 00:00:00
+select to_date('01201', 'YMMDD') from dual;
+to_date('01201', 'YMMDD')
+2020-12-01 00:00:00
+select to_date('011201', 'YyMMDD') from dual;
+to_date('011201', 'YyMMDD')
+2001-12-01 00:00:00
+select to_date('0111201', 'YyyMMDD') from dual;
+to_date('0111201', 'YyyMMDD')
+2011-12-01 00:00:00
+select to_date('012', 'YDD') from dual;
+to_date('012', 'YDD')
+2020-06-12 00:00:00
+select to_date('0121', 'YyDD') from dual;
+to_date('0121', 'YyDD')
+2001-07-21 00:00:00
+select to_date('0121', 'YyyDD') from dual;
+to_date('0121', 'YyyDD')
+2020-06-01 00:00:00
+select to_date('0821', 'YMMDD') from dual;
+ERROR HY000: convert date/time fail: not a valid month
+select to_date('0_1_1', 'Y_MM_DD') from dual;
+to_date('0_1_1', 'Y_MM_DD')
+2020-01-01 00:00:00
+select to_date('0+1+1', 'Yy+MM+DD') from dual;
+to_date('0+1+1', 'Yy+MM+DD')
+2000-01-01 00:00:00
+select to_date('0?1%1', 'Yyy#MM@DD') from dual;
+to_date('0?1%1', 'Yyy#MM@DD')
+2000-01-01 00:00:00
+select to_date('0??1--1', 'Y#MM@DD') from dual;
+ERROR HY000: invalid value for format 'MM'
+select to_date('0??1--1', 'Yy??MM--DD') from dual;
+to_date('0??1--1', 'Yy??MM--DD')
+2000-01-01 00:00:00
+select to_date('0??1--1', 'Yyy?#MM$-DD') from dual;
+to_date('0??1--1', 'Yyy?#MM$-DD')
+2000-01-01 00:00:00
+select to_date('0??1-1', 'Y?MM-DD') from dual;
+ERROR HY000: invalid value for format 'MM'
+select to_date('0??1-1', 'Yy?MM-DD') from dual;
+ERROR HY000: invalid value for format 'MM'
+select to_date('0??1-1', 'Yyy?MM-DD') from dual;
+ERROR HY000: invalid value for format 'MM'
+select to_date('0??1-1', 'YcMM-DD') from dual;
+ERROR HY000: invalid format 'cMM-DD'
+select to_date('1 12 0', 'MM DD Y') from dual;
+to_date('1 12 0', 'MM DD Y')
+2020-01-12 00:00:00
+select to_date('01 12 0', 'MM DD Yy') from dual;
+to_date('01 12 0', 'MM DD Yy')
+2000-01-12 00:00:00
+select to_date('11 22 0', 'MM DD Yyy') from dual;
+to_date('11 22 0', 'MM DD Yyy')
+2000-11-22 00:00:00
+select to_date('11/02/0', 'MM/DD/Y') from dual;
+to_date('11/02/0', 'MM/DD/Y')
+2020-11-02 00:00:00
+select to_date('11/2/0', 'MM/DD/Yy') from dual;
+to_date('11/2/0', 'MM/DD/Yy')
+2000-11-02 00:00:00
+select to_date('2-11-0', 'MM-DD-yyY') from dual;
+to_date('2-11-0', 'MM-DD-yyY')
+2000-02-11 00:00:00
+select to_date('0.11.2', 'Y.DD.MM') from dual;
+to_date('0.11.2', 'Y.DD.MM')
+2020-02-11 00:00:00
+select to_date('1 am', 'Y p.m.') from dual;
+ERROR HY000: convert date/time fail: the value of format A.M./P.M./a.m./p.m. is wrong
+select to_date('1 am', 'yY p.m.') from dual;
+ERROR HY000: convert date/time fail: the value of format A.M./P.M./a.m./p.m. is wrong
+select to_date('11 am', 'Yyy p.m.') from dual;
+ERROR HY000: convert date/time fail: the value of format A.M./P.M./a.m./p.m. is wrong
+select to_date('1 a.m.', 'Y p.m.') from dual;
+to_date('1 a.m.', 'Y p.m.')
+2021-06-01 00:00:00
+select to_date('11 a.m.', 'yY p.m.') from dual;
+to_date('11 a.m.', 'yY p.m.')
+2011-06-01 00:00:00
+select to_date('111 a.m.', 'yyY p.m.') from dual;
+to_date('111 a.m.', 'yyY p.m.')
+2111-06-01 00:00:00
+select to_date('3-02-10 14:12:24', 'Y-MM-DD HH24:MI:SS') from dual;
+to_date('3-02-10 14:12:24', 'Y-MM-DD HH24:MI:SS')
+2023-02-10 14:12:24
+select to_date('3 02,10 14.12.24', 'Yy MM,DD HH24.MI.SS') from dual;
+to_date('3 02,10 14.12.24', 'Yy MM,DD HH24.MI.SS')
+2003-02-10 14:12:24
+select to_date('3-02-10 14:12:24', 'Yyy-MM-DD HH24:MI:SS') from dual;
+to_date('3-02-10 14:12:24', 'Yyy-MM-DD HH24:MI:SS')
+2003-02-10 14:12:24
+select to_date('3-10 14:12:24', 'Y-DD HH24:MI:SS') from dual;
+to_date('3-10 14:12:24', 'Y-DD HH24:MI:SS')
+2023-06-10 14:12:24
+select to_date('3-10 14:12:24', 'Yy-DD HH24:MI:SS') from dual;
+to_date('3-10 14:12:24', 'Yy-DD HH24:MI:SS')
+2003-06-10 14:12:24
+select to_date('3 10 14:12:24', 'yyY MM HH24:MI:SS') from dual;
+to_date('3 10 14:12:24', 'yyY MM HH24:MI:SS')
+2003-10-01 14:12:24
+select to_date('aa3', 'aaY') from dual;
+ERROR HY000: invalid format 'aaY'
+select to_date('aa33', 'aaYy') from dual;
+ERROR HY000: invalid format 'aaYy'
+select to_date('aa333', 'aaYyy') from dual;
+ERROR HY000: invalid format 'aaYyy'
+select to_date('aa3', '"aa"Y') from dual;
+to_date('aa3', '"aa"Y')
+2023-06-01 00:00:00
+select to_date('aa33', '"aa"Yy') from dual;
+to_date('aa33', '"aa"Yy')
+2033-06-01 00:00:00
+select to_date('aa333', '"aa"Yyy') from dual;
+to_date('aa333', '"aa"Yyy')
+2333-06-01 00:00:00
+select to_date('aa3', '"AA"Y') from dual;
+to_date('aa3', '"AA"Y')
+2023-06-01 00:00:00
+select to_date('aa3', '"AA"Yy') from dual;
+to_date('aa3', '"AA"Yy')
+2023-06-01 00:00:00
+select to_date('aa3', '"AA"Yyy') from dual;
+to_date('aa3', '"AA"Yyy')
+2003-06-01 00:00:00
+select to_date('aa3', '"aaY') from dual;
+ERROR HY000: convert date/time fail: literal does not match format string
+select to_date('', 'Y') from dual;
+to_date('', 'Y')
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '' for function to_date
+select to_date('', 'Yy') from dual;
+to_date('', 'Yy')
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '' for function to_date
+select to_date('', 'Yyy') from dual;
+to_date('', 'Yyy')
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '' for function to_date
+select to_date('2020', 'Y-MM') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_date('2020', 'YY-MM') from dual;
+ERROR HY000: convert date/time fail: not a valid month
+select to_date('2020', 'YYY-MM') from dual;
+ERROR HY000: convert date/time fail: not a valid month
+select to_date('2020-15', 'Y') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_date('2020-15', 'YY') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_date('2020-15', 'Yyy') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_date(NULL, 'Y-MM-DD') from dual;
+to_date(NULL, 'Y-MM-DD')
+NULL
+select to_date(NULL, 'Yy-MM-DD') from dual;
+to_date(NULL, 'Yy-MM-DD')
+NULL
+select to_date(NULL, 'yyY-MM-DD') from dual;
+to_date(NULL, 'yyY-MM-DD')
+NULL
+drop database if exists testdb_to_date;
+create database testdb_to_date;
+use testdb_to_date;
+create table TEST_TBL_1(a varchar(100), b varchar(50));
+insert into TEST_TBL_1 values (NULL, NULL);
+select to_date(TEST_TBL_1.a, 'Y-MM-DD') from TEST_TBL_1;
+to_date(TEST_TBL_1.a, 'Y-MM-DD')
+NULL
+select to_date(TEST_TBL_1.a, 'Yy-MM-DD') from TEST_TBL_1;
+to_date(TEST_TBL_1.a, 'Yy-MM-DD')
+NULL
+select to_date(TEST_TBL_1.a, 'Yyy-MM-DD') from TEST_TBL_1;
+to_date(TEST_TBL_1.a, 'Yyy-MM-DD')
+NULL
+truncate table TEST_TBL_1;
+insert into TEST_TBL_1 values ('2-05-21', 'Y-MM-DD');
+insert into TEST_TBL_1 values ('21-05-21', 'Yy-MM-DD');
+insert into TEST_TBL_1 values ('210-05-21', 'yyY-MM-DD');
+insert into TEST_TBL_1 values (NULL, 'Y-MM-DD');
+insert into TEST_TBL_1 values ('0-05-27', 'yY-MM-DD');
+select to_date(TEST_TBL_1.a, TEST_TBL_1.b) from TEST_TBL_1 order by a limit 1;
+to_date(TEST_TBL_1.a, TEST_TBL_1.b)
+NULL
+select to_date(TEST_TBL_1.a, TEST_TBL_1.b) from TEST_TBL_1 order by a limit 1,1;
+to_date(TEST_TBL_1.a, TEST_TBL_1.b)
+2000-05-27 00:00:00
+select to_date(TEST_TBL_1.a, TEST_TBL_1.b) from TEST_TBL_1 order by a limit 2,1;
+to_date(TEST_TBL_1.a, TEST_TBL_1.b)
+2022-05-21 00:00:00
+select to_date(TEST_TBL_1.a, TEST_TBL_1.b) from TEST_TBL_1 order by a limit 3,1;
+to_date(TEST_TBL_1.a, TEST_TBL_1.b)
+2021-05-21 00:00:00
+select to_date(TEST_TBL_1.a, TEST_TBL_1.b) from TEST_TBL_1 order by a limit 4,1;
+to_date(TEST_TBL_1.a, TEST_TBL_1.b)
+2210-05-21 00:00:00
+truncate table TEST_TBL_1;
+insert into TEST_TBL_1 values ('0-05-21', 'yY-MM-DD');
+insert into TEST_TBL_1 values ('1-05-23', NULL);
+insert into TEST_TBL_1 values ('2-05-27', 'Yyy-MM-DD');
+insert into TEST_TBL_1 values ('2020100', 'YyyyDDd');
+insert into TEST_TBL_1 values ('2021100', 'Yyyy-DDd');
+select to_date(TEST_TBL_1.a, TEST_TBL_1.b) from TEST_TBL_1;
+to_date(TEST_TBL_1.a, TEST_TBL_1.b)
+2000-05-21 00:00:00
+NULL
+2002-05-27 00:00:00
+2020-04-09 00:00:00
+2021-04-10 00:00:00
+drop database testdb_to_date;
+select to_date('0-05-11 13:14:15.1234', 'Y-MM-DD HH24:MI:SS.FF') from dual;
+ERROR HY000: invalid format 'FF'
+select to_date('0-05-11 13:14:15.1234', 'yY-MM-DD HH24:MI:SS.ff') from dual;
+ERROR HY000: invalid format 'ff'
+select to_date('0-05-11 13:14:15.1234', 'Yyy-MM-DD HH24:MI:SS.ff5') from dual;
+ERROR HY000: invalid format 'ff'
+select to_date('11', 'MM Y') from dual;
+ERROR HY000: convert date/time fail: input value not long enough for date format
+select to_date('11', 'MM Yy') from dual;
+ERROR HY000: convert date/time fail: input value not long enough for date format
+select to_date('11', 'MM Yyy') from dual;
+ERROR HY000: convert date/time fail: input value not long enough for date format
+select to_date('2020', 'Y MM') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_date('2020', 'Yyy DD') from dual;
+ERROR HY000: convert date/time fail: day of month must be between 1 and last day of month
+select to_date('11', 'HH24 Yy') from dual;
+ERROR HY000: convert date/time fail: input value not long enough for date format
+select to_date('0-04-10', 'Y-MM-DD Y-MM') from dual;
+ERROR HY000: convert date/time fail: input value not long enough for date format
+select to_date('0-04-10', 'Yy-MM-DD Yyyy-MM') from dual;
+ERROR HY000: convert date/time fail: input value not long enough for date format
+select to_date('0-04-10', 'Y-MM-DD Yyyy-MM') from dual;
+ERROR HY000: convert date/time fail: input value not long enough for date format
+select to_date('0-04-10', 'Y-MM-DD HH:MI:SS') from dual;
+to_date('0-04-10', 'Y-MM-DD HH:MI:SS')
+2020-04-10 00:00:00
+select to_date('0-04-10', 'Yy-MM-DD HH:MI:SS') from dual;
+to_date('0-04-10', 'Yy-MM-DD HH:MI:SS')
+2000-04-10 00:00:00
+select to_date('0-04-10', 'Yyy-MM-DD HH:MI:SS') from dual;
+to_date('0-04-10', 'Yyy-MM-DD HH:MI:SS')
+2000-04-10 00:00:00
+select to_date('0-04-10 10:10:10', 'Y-MM-DD') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_date('0-04-10 10:10:10', 'Yy-MM-DD') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_date('0-04-10 10:10:10', 'Yyy-MM-DD') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_timestamp('0-1-1', 'Y-MM-DD') from dual;
+to_timestamp('0-1-1', 'Y-MM-DD')
+2020-01-01 00:00:00.000000
+select to_timestamp('0 1 1', 'Yy MM DD') from dual;
+to_timestamp('0 1 1', 'Yy MM DD')
+2020-01-01 00:00:00.000000
+select to_timestamp('0/1/1', 'Yyy/MM/DD') from dual;
+to_timestamp('0/1/1', 'Yyy/MM/DD')
+2020-01-01 00:00:00.000000
+select to_timestamp('0,01,1', 'Y,MM,DD') from dual;
+to_timestamp('0,01,1', 'Y,MM,DD')
+2020-01-01 00:00:00.000000
+select to_timestamp('0.12.01', 'yY.MM.DD') from dual;
+to_timestamp('0.12.01', 'yY.MM.DD')
+2020-12-01 00:00:00.000000
+select to_timestamp('0;12;01', 'Yyy;MM;DD') from dual;
+to_timestamp('0;12;01', 'Yyy;MM;DD')
+2020-12-01 00:00:00.000000
+select to_timestamp('01201', 'YMMDD') from dual;
+to_timestamp('01201', 'YMMDD')
+2020-12-01 00:00:00.000000
+select to_timestamp('011201', 'YyMMDD') from dual;
+to_timestamp('011201', 'YyMMDD')
+2001-12-01 00:00:00.000000
+select to_timestamp('0111201', 'YyyMMDD') from dual;
+to_timestamp('0111201', 'YyyMMDD')
+2011-12-01 00:00:00.000000
+select to_timestamp('012', 'YDD') from dual;
+to_timestamp('012', 'YDD')
+2020-06-12 00:00:00.000000
+select to_timestamp('0121', 'YyDD') from dual;
+to_timestamp('0121', 'YyDD')
+2001-07-21 00:00:00.000000
+select to_timestamp('0121', 'YyyDD') from dual;
+to_timestamp('0121', 'YyyDD')
+2020-06-01 00:00:00.000000
+select to_timestamp('0821', 'YMMDD') from dual;
+ERROR HY000: convert date/time fail: not a valid month
+select to_timestamp('0_1_1', 'Y_MM_DD') from dual;
+to_timestamp('0_1_1', 'Y_MM_DD')
+2020-01-01 00:00:00.000000
+select to_timestamp('0+1+1', 'Yy+MM+DD') from dual;
+to_timestamp('0+1+1', 'Yy+MM+DD')
+2000-01-01 00:00:00.000000
+select to_timestamp('0?1%1', 'Yyy#MM@DD') from dual;
+to_timestamp('0?1%1', 'Yyy#MM@DD')
+2000-01-01 00:00:00.000000
+select to_timestamp('0??1--1', 'Y#MM@DD') from dual;
+ERROR HY000: invalid value for format 'MM'
+select to_timestamp('0??1--1', 'Yy??MM--DD') from dual;
+to_timestamp('0??1--1', 'Yy??MM--DD')
+2000-01-01 00:00:00.000000
+select to_timestamp('0??1--1', 'Yyy?#MM$-DD') from dual;
+to_timestamp('0??1--1', 'Yyy?#MM$-DD')
+2000-01-01 00:00:00.000000
+select to_timestamp('0??1-1', 'Y?MM-DD') from dual;
+ERROR HY000: invalid value for format 'MM'
+select to_timestamp('0??1-1', 'Yy?MM-DD') from dual;
+ERROR HY000: invalid value for format 'MM'
+select to_timestamp('0??1-1', 'Yyy?MM-DD') from dual;
+ERROR HY000: invalid value for format 'MM'
+select to_timestamp('0??1-1', 'YcMM-DD') from dual;
+ERROR HY000: invalid format 'cMM-DD'
+select to_timestamp('1 12 0', 'MM DD Y') from dual;
+to_timestamp('1 12 0', 'MM DD Y')
+2020-01-12 00:00:00.000000
+select to_timestamp('01 12 0', 'MM DD Yy') from dual;
+to_timestamp('01 12 0', 'MM DD Yy')
+2000-01-12 00:00:00.000000
+select to_timestamp('11 22 0', 'MM DD Yyy') from dual;
+to_timestamp('11 22 0', 'MM DD Yyy')
+2000-11-22 00:00:00.000000
+select to_timestamp('11/02/0', 'MM/DD/Y') from dual;
+to_timestamp('11/02/0', 'MM/DD/Y')
+2020-11-02 00:00:00.000000
+select to_timestamp('11/2/0', 'MM/DD/Yy') from dual;
+to_timestamp('11/2/0', 'MM/DD/Yy')
+2000-11-02 00:00:00.000000
+select to_timestamp('2-11-0', 'MM-DD-yyY') from dual;
+to_timestamp('2-11-0', 'MM-DD-yyY')
+2000-02-11 00:00:00.000000
+select to_timestamp('0.11.2', 'Y.DD.MM') from dual;
+to_timestamp('0.11.2', 'Y.DD.MM')
+2020-02-11 00:00:00.000000
+select to_timestamp('1 am', 'Y p.m.') from dual;
+ERROR HY000: convert date/time fail: the value of format A.M./P.M./a.m./p.m. is wrong
+select to_timestamp('1 am', 'yY p.m.') from dual;
+ERROR HY000: convert date/time fail: the value of format A.M./P.M./a.m./p.m. is wrong
+select to_timestamp('11 am', 'Yyy p.m.') from dual;
+ERROR HY000: convert date/time fail: the value of format A.M./P.M./a.m./p.m. is wrong
+select to_timestamp('1 a.m.', 'Y p.m.') from dual;
+to_timestamp('1 a.m.', 'Y p.m.')
+2021-06-01 00:00:00.000000
+select to_timestamp('11 a.m.', 'yY p.m.') from dual;
+to_timestamp('11 a.m.', 'yY p.m.')
+2011-06-01 00:00:00.000000
+select to_timestamp('111 a.m.', 'yyY p.m.') from dual;
+to_timestamp('111 a.m.', 'yyY p.m.')
+2111-06-01 00:00:00.000000
+select to_timestamp('3-02-10 14:12:24', 'Y-MM-DD HH24:MI:SS') from dual;
+to_timestamp('3-02-10 14:12:24', 'Y-MM-DD HH24:MI:SS')
+2023-02-10 14:12:24.000000
+select to_timestamp('3 02,10 14.12.24', 'Yy MM,DD HH24.MI.SS') from dual;
+to_timestamp('3 02,10 14.12.24', 'Yy MM,DD HH24.MI.SS')
+2003-02-10 14:12:24.000000
+select to_timestamp('3-02-10 14:12:24', 'Yyy-MM-DD HH24:MI:SS') from dual;
+to_timestamp('3-02-10 14:12:24', 'Yyy-MM-DD HH24:MI:SS')
+2003-02-10 14:12:24.000000
+select to_timestamp('3-10 14:12:24', 'Y-DD HH24:MI:SS') from dual;
+to_timestamp('3-10 14:12:24', 'Y-DD HH24:MI:SS')
+2023-06-10 14:12:24.000000
+select to_timestamp('3-10 14:12:24', 'Yy-DD HH24:MI:SS') from dual;
+to_timestamp('3-10 14:12:24', 'Yy-DD HH24:MI:SS')
+2003-06-10 14:12:24.000000
+select to_timestamp('3 10 14:12:24', 'yyY MM HH24:MI:SS') from dual;
+to_timestamp('3 10 14:12:24', 'yyY MM HH24:MI:SS')
+2003-10-01 14:12:24.000000
+select to_timestamp('aa3', 'aaY') from dual;
+ERROR HY000: invalid format 'aaY'
+select to_timestamp('aa33', 'aaYy') from dual;
+ERROR HY000: invalid format 'aaYy'
+select to_timestamp('aa333', 'aaYyy') from dual;
+ERROR HY000: invalid format 'aaYyy'
+select to_timestamp('aa3', '"aa"Y') from dual;
+to_timestamp('aa3', '"aa"Y')
+2023-06-01 00:00:00.000000
+select to_timestamp('aa33', '"aa"Yy') from dual;
+to_timestamp('aa33', '"aa"Yy')
+2033-06-01 00:00:00.000000
+select to_timestamp('aa333', '"aa"Yyy') from dual;
+to_timestamp('aa333', '"aa"Yyy')
+2333-06-01 00:00:00.000000
+select to_timestamp('aa3', '"AA"Y') from dual;
+to_timestamp('aa3', '"AA"Y')
+2023-06-01 00:00:00.000000
+select to_timestamp('aa3', '"AA"Yy') from dual;
+to_timestamp('aa3', '"AA"Yy')
+2023-06-01 00:00:00.000000
+select to_timestamp('aa3', '"AA"Yyy') from dual;
+to_timestamp('aa3', '"AA"Yyy')
+2003-06-01 00:00:00.000000
+select to_timestamp('aa3', '"aaY') from dual;
+ERROR HY000: convert date/time fail: literal does not match format string
+select to_timestamp('', 'Y') from dual;
+to_timestamp('', 'Y')
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '' for function to_timestamp
+select to_timestamp('', 'Yy') from dual;
+to_timestamp('', 'Yy')
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '' for function to_timestamp
+select to_timestamp('', 'Yyy') from dual;
+to_timestamp('', 'Yyy')
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '' for function to_timestamp
+select to_timestamp('2020', 'Y-MM') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_timestamp('2020', 'YY-MM') from dual;
+ERROR HY000: convert date/time fail: not a valid month
+select to_timestamp('2020', 'YYY-MM') from dual;
+ERROR HY000: convert date/time fail: not a valid month
+select to_timestamp('2020-15', 'Y') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_timestamp('2020-15', 'YY') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_timestamp('2020-15', 'Yyy') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_timestamp(NULL, 'Y-MM-DD') from dual;
+to_timestamp(NULL, 'Y-MM-DD')
+NULL
+select to_timestamp(NULL, 'Yy-MM-DD') from dual;
+to_timestamp(NULL, 'Yy-MM-DD')
+NULL
+select to_timestamp(NULL, 'yyY-MM-DD') from dual;
+to_timestamp(NULL, 'yyY-MM-DD')
+NULL
+drop database if exists testdb_to_timestamp;
+create database testdb_to_timestamp;
+use testdb_to_timestamp;
+create table TEST_TBL_1(a varchar(100), b varchar(50));
+insert into TEST_TBL_1 values (NULL, NULL);
+select to_timestamp(TEST_TBL_1.a, 'Y-MM-DD') from TEST_TBL_1;
+to_timestamp(TEST_TBL_1.a, 'Y-MM-DD')
+NULL
+select to_timestamp(TEST_TBL_1.a, 'Yy-MM-DD') from TEST_TBL_1;
+to_timestamp(TEST_TBL_1.a, 'Yy-MM-DD')
+NULL
+select to_timestamp(TEST_TBL_1.a, 'Yyy-MM-DD') from TEST_TBL_1;
+to_timestamp(TEST_TBL_1.a, 'Yyy-MM-DD')
+NULL
+truncate table TEST_TBL_1;
+insert into TEST_TBL_1 values ('2-05-21', 'Y-MM-DD');
+insert into TEST_TBL_1 values ('21-05-21', 'Yy-MM-DD');
+insert into TEST_TBL_1 values ('210-05-21', 'yyY-MM-DD');
+insert into TEST_TBL_1 values (NULL, 'Y-MM-DD');
+insert into TEST_TBL_1 values ('0-05-27', 'yY-MM-DD');
+select to_timestamp(TEST_TBL_1.a, TEST_TBL_1.b) from TEST_TBL_1 order by a limit 1;
+to_timestamp(TEST_TBL_1.a, TEST_TBL_1.b)
+NULL
+select to_timestamp(TEST_TBL_1.a, TEST_TBL_1.b) from TEST_TBL_1 order by a limit 1,1;
+to_timestamp(TEST_TBL_1.a, TEST_TBL_1.b)
+2000-05-27 00:00:00.000000
+select to_timestamp(TEST_TBL_1.a, TEST_TBL_1.b) from TEST_TBL_1 order by a limit 2,1;
+to_timestamp(TEST_TBL_1.a, TEST_TBL_1.b)
+2022-05-21 00:00:00.000000
+select to_timestamp(TEST_TBL_1.a, TEST_TBL_1.b) from TEST_TBL_1 order by a limit 3,1;
+to_timestamp(TEST_TBL_1.a, TEST_TBL_1.b)
+2021-05-21 00:00:00.000000
+select to_timestamp(TEST_TBL_1.a, TEST_TBL_1.b) from TEST_TBL_1 order by a limit 4,1;
+to_timestamp(TEST_TBL_1.a, TEST_TBL_1.b)
+2210-05-21 00:00:00.000000
+truncate table TEST_TBL_1;
+insert into TEST_TBL_1 values ('0-05-21', 'yY-MM-DD');
+insert into TEST_TBL_1 values ('1-05-23', NULL);
+insert into TEST_TBL_1 values ('2-05-27', 'Yyy-MM-DD');
+insert into TEST_TBL_1 values ('2020100', 'YyyyDDd');
+insert into TEST_TBL_1 values ('2021100', 'Yyyy-DDd');
+select to_timestamp(TEST_TBL_1.a, TEST_TBL_1.b) from TEST_TBL_1;
+to_timestamp(TEST_TBL_1.a, TEST_TBL_1.b)
+2000-05-21 00:00:00.000000
+NULL
+2002-05-27 00:00:00.000000
+2020-04-09 00:00:00.000000
+2021-04-10 00:00:00.000000
+drop database testdb_to_timestamp;
+select to_timestamp('0-05-11 13:14:15.1234', 'Y-MM-DD HH24:MI:SS.FF') from dual;
+to_timestamp('0-05-11 13:14:15.1234', 'Y-MM-DD HH24:MI:SS.FF')
+2020-05-11 13:14:15.123400
+select to_timestamp('0-05-11 13:14:15.1234', 'yY-MM-DD HH24:MI:SS.ff') from dual;
+to_timestamp('0-05-11 13:14:15.1234', 'yY-MM-DD HH24:MI:SS.ff')
+2000-05-11 13:14:15.123400
+select to_timestamp('0-05-11 13:14:15.1234', 'Yyy-MM-DD HH24:MI:SS.ff5') from dual;
+to_timestamp('0-05-11 13:14:15.1234', 'Yyy-MM-DD HH24:MI:SS.ff5')
+2000-05-11 13:14:15.123400
+select to_timestamp('11', 'MM Y') from dual;
+ERROR HY000: convert date/time fail: input value not long enough for date format
+select to_timestamp('11', 'MM Yy') from dual;
+ERROR HY000: convert date/time fail: input value not long enough for date format
+select to_timestamp('11', 'MM Yyy') from dual;
+ERROR HY000: convert date/time fail: input value not long enough for date format
+select to_timestamp('2020', 'Y MM') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_timestamp('2020', 'Yyy DD') from dual;
+ERROR HY000: convert date/time fail: day of month must be between 1 and last day of month
+select to_timestamp('11', 'HH24 Yy') from dual;
+ERROR HY000: convert date/time fail: input value not long enough for date format
+select to_timestamp('0-04-10', 'Y-MM-DD Y-MM') from dual;
+ERROR HY000: convert date/time fail: input value not long enough for date format
+select to_timestamp('0-04-10', 'Yy-MM-DD Yyyy-MM') from dual;
+ERROR HY000: convert date/time fail: input value not long enough for date format
+select to_timestamp('0-04-10', 'Y-MM-DD Yyyy-MM') from dual;
+ERROR HY000: convert date/time fail: input value not long enough for date format
+select to_timestamp('0-04-10', 'Y-MM-DD HH:MI:SS') from dual;
+to_timestamp('0-04-10', 'Y-MM-DD HH:MI:SS')
+2020-04-10 00:00:00.000000
+select to_timestamp('0-04-10', 'Yy-MM-DD HH:MI:SS') from dual;
+to_timestamp('0-04-10', 'Yy-MM-DD HH:MI:SS')
+2000-04-10 00:00:00.000000
+select to_timestamp('0-04-10', 'Yyy-MM-DD HH:MI:SS') from dual;
+to_timestamp('0-04-10', 'Yyy-MM-DD HH:MI:SS')
+2000-04-10 00:00:00.000000
+select to_timestamp('0-04-10 10:10:10', 'Y-MM-DD') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_timestamp('0-04-10 10:10:10', 'Yy-MM-DD') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_timestamp('0-04-10 10:10:10', 'Yyy-MM-DD') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+create database ttt;
+use ttt;
+drop table if exists TEST_TBL_1;
+Warnings:
+Note	1051	Unknown table 'ttt.TEST_TBL_1'
+create table TEST_TBL_1(a varchar(100), b varchar(50));
+drop table if exists TEST_TBL_2;
+Warnings:
+Note	1051	Unknown table 'ttt.TEST_TBL_2'
+create table TEST_TBL_2(a varchar(100));
+drop procedure if exists within;
+create procedure within (in within int, out result int)
+within1:begin
+declare within int default 1;
+while within < 2 do
+set within=within+1;
+select to_date('520-12-14', 'yyy-mm-dd') from dual;
+select to_timestamp('520-12-14', 'yyy-mm-dd') from dual;
+end while;
+set result=within;
+end within1 $$
+set @within=1;
+call within(8, @within);
+to_date('520-12-14', 'yyy-mm-dd')
+2520-12-14 00:00:00
+to_timestamp('520-12-14', 'yyy-mm-dd')
+2520-12-14 00:00:00.000000
+select @within as within;
+within
+2
+drop procedure within;
+drop trigger if exists within;
+Warnings:
+Note	1360	Trigger does not exist
+create trigger within after insert on TEST_TBL_1 for each row begin insert into TEST_TBL_2 select to_timestamp(TEST_TBL_1.a, 'Yyy-MM-DD') from TEST_TBL_1; 
+end $$
+insert into TEST_TBL_1 values ('2-05-21', 'Y-MM-DD');
+select * from TEST_TBL_2;
+a
+2002-05-21 00:00:00.000000
+drop trigger within;
+truncate TEST_TBL_2;
+drop event if exists within;
+Warnings:
+Note	1305	Event within does not exist
+create event if not exists within on schedule every 1 minute on completion preserve do insert into TEST_TBL_2 select to_timestamp(TEST_TBL_1.a, 'Yyy-MM-DD') from TEST_TBL_1;
+alter event within on completion preserve enable;
+alter event within on completion  preserve disable;
+drop event within;
+prepare pron from 'select to_date(?, ?) from dual';
+set @p = '222-10-11';
+set @q = 'yyy-mm-dd';
+execute pron using @p, @q;
+to_date(?, ?)
+2222-10-11 00:00:00
+drop table TEST_TBL_1;
+drop table TEST_TBL_2;
+drop database ttt;
+select to_date('2020+200', 'yyyy-ddd') from dual;
+to_date('2020+200', 'yyyy-ddd')
+2020-07-18 00:00:00
+select to_date('2020-+200', 'yyyy-ddd') from dual;
+to_date('2020-+200', 'yyyy-ddd')
+2020-07-18 00:00:00
+select to_date('2020++200', 'yyyy-ddd') from dual;
+to_date('2020++200', 'yyyy-ddd')
+2020-07-18 00:00:00
+select to_date('2020--200', 'yyyy-ddd') from dual;
+ERROR HY000: convert date/time fail: day of year must be between 1 and 365 (366 for leap year)
+select to_date('91051','yy-ddd') from dual;
+to_date('91051','yy-ddd')
+2091-02-20 00:00:00
+select to_date('12', 'YY') from dual;
+to_date('12', 'YY')
+2012-07-01 00:00:00
+select to_timestamp('123', 'YYMM') from dual;
+to_timestamp('123', 'YYMM')
+2012-03-01 00:00:00.000000
+select to_timestamp('1204', 'YYMM') from dual;
+to_timestamp('1204', 'YYMM')
+2012-04-01 00:00:00.000000
+select to_date('123-12', 'YY-MM') from dual;
+to_date('123-12', 'YY-MM')
+0123-12-01 00:00:00
+select to_timestamp('1234-12', 'YY-MM') from dual;
+to_timestamp('1234-12', 'YY-MM')
+1234-12-01 00:00:00.000000
+select to_date('123', 'YY') from dual;
+to_date('123', 'YY')
+0123-07-01 00:00:00
+select to_date('1204', 'YY') from dual;
+to_date('1204', 'YY')
+1204-07-01 00:00:00
+select to_date('111204', 'MMYY') from dual;
+to_date('111204', 'MMYY')
+1204-11-01 00:00:00
+select to_date('111204', 'MM-YY') from dual;
+to_date('111204', 'MM-YY')
+1204-11-01 00:00:00
+select to_date('11-1204', 'MM-YY') from dual;
+to_date('11-1204', 'MM-YY')
+1204-11-01 00:00:00
+select to_date(' 111204', '     MMYY   ') from dual;
+to_date(' 111204', '     MMYY   ')
+1204-11-01 00:00:00
+select to_date(' 11 -1204   ', '  MM-YY         ') from dual;
+to_date(' 11 -1204   ', '  MM-YY         ')
+1204-11-01 00:00:00
+select to_date('+1', 'YY') from dual;
+to_date('+1', 'YY')
+2001-07-01 00:00:00
+select to_date('+11', 'YY') from dual;
+to_date('+11', 'YY')
+2011-07-01 00:00:00
+select to_date('+111', 'YY') from dual;
+to_date('+111', 'YY')
+0111-07-01 00:00:00
+select to_date('+1204', 'YY') from dual;
+to_date('+1204', 'YY')
+1204-07-01 00:00:00
+select to_date('+1201-+11-+12', 'YY-MM-DD') from dual;
+to_date('+1201-+11-+12', 'YY-MM-DD')
+1201-11-12 00:00:00
+select to_date('0021365','yy-ddd') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_timestamp('021365','yy-ddd') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_date('-1204', 'YY') from dual;
+ERROR HY000: convert date/time fail: year must be between 1 and 9999
+select to_date('1204-01', 'YY中MM') from dual;
+ERROR HY000: invalid format '中MM'
+select to_date('1204-中01', 'YY-"中"MM') from dual;
+to_date('1204-中01', 'YY-"中"MM')
+1204-01-01 00:00:00
+select to_date('1204-中国01', 'YY-"中国"MM') from dual;
+to_date('1204-中国01', 'YY-"中国"MM')
+1204-01-01 00:00:00
+select to_date('1204-中国01', 'YY-"中国 "MM') from dual;
+ERROR HY000: convert date/time fail: literal does not match format string
+select to_date('1204-01', 'YY\nMM') from dual;
+to_date('1204-01', 'YY\nMM')
+1204-01-01 00:00:00
+select to_date('1204-01', 'YY
+MM') from dual;
+to_date('1204-01', 'YY
+MM')
+1204-01-01 00:00:00
+select to_date('1204-01', 'YY\tMM') from dual;
+to_date('1204-01', 'YY\tMM')
+1204-01-01 00:00:00
+select to_date('1204-01', 'YY\rMM') from dual;
+to_date('1204-01', 'YY\rMM')
+1204-01-01 00:00:00

@@ -1,0 +1,46 @@
+include/rpl_init.inc [topology=1->2]
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+include/rpl_default_connections.inc
+include/rpl_reset.inc
+[connection slave]
+SHOW CREATE TABLE t1;
+ERROR 42S02: Table 'test.t1' doesn't exist
+[connection master]
+select @@gtid_mode;
+@@gtid_mode
+ON
+create table t (a bigint primary key, b varchar(100));
+insert into t values (1, 'a'), (2, 'b'),(3, 'c');
+SET SESSION debug="+d,crash_commit_before";
+create table t1 as select * from t;
+ERROR HY000: Lost connection to MySQL server during query
+include/rpl_start_server.inc [server_number=1]
+[connection slave]
+SHOW CREATE TABLE t1;
+ERROR 42S02: Table 'test.t1' doesn't exist
+SET SESSION debug="-d,crash_commit_before";
+# crash_commit_after , salve table sync success
+[connection master]
+SET SESSION debug="+d,crash_commit_after";
+create table t2 as select * from t;
+ERROR HY000: Lost connection to MySQL server during query
+include/rpl_start_server.inc [server_number=1]
+[connection slave]
+SHOW CREATE TABLE t2;
+Table	Create Table
+t2	CREATE TABLE `t2` (
+  `a` bigint(20) NOT NULL,
+  `b` varchar(100) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+[connection master]
+SET SESSION debug="-d,crash_commit_after";
+DROP TABLE t;
+in mysql8 , the t2 can be rollbacked
+[connection slave]
+drop table t2;
+include/rpl_end.inc
+# salve do not have t1
+[connection master]
+in mysql8 t1 can be rollbacked

@@ -1,0 +1,1334 @@
+# === Purpose ===
+#
+# This test case will verify the function of binlog gtid_idx mechanism 
+# 1. CREATE
+# 2. CLOSE
+#
+--source include/not_windows.inc
+
+--source include/have_log_bin.inc
+--source include/not_group_replication_plugin.inc
+--source include/master-slave.inc
+
+#semisync plugine has built in ,we do not need to install it
+
+##### START #####
+--source include/rpl_connection_master.inc
+create database fangpei_test;
+use fangpei_test;
+create table t1 (id int);
+
+
+
+#########################################################
+################# gtid_idx CREATE test ##################
+#########################################################
+
+--echo ##########################################################################
+--echo #CASE 1: start master & slave normally
+--echo ##########################################################################
+
+--source include/rpl_connection_master.inc
+use fangpei_test;
+--disable_warnings
+drop table if exists master_tmp_1_01;
+drop table if exists master_tmp_2_01;
+--enable_warnings
+create table master_tmp_1_01(gtm_gtid_pos varchar(256));
+create table master_tmp_2_01(status_flag int, other1 varchar(256), other2 varchar(256));
+
+--let $cur_master_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+file_exists '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file';
+file_exists '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+echo $cur_master_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx' ignore into table master_tmp_1_01 fields terminated by '^';
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx' ignore into table master_tmp_2_01 fields terminated by '#';
+--enable_query_log
+
+select * from master_tmp_1_01 limit 1;
+select count(*) from master_tmp_1_01;
+
+--let $assert_text = master gtid_idx file flag must be 1
+--let $assert_cond = [select * from master_tmp_2_01 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+drop table master_tmp_1_01;
+drop table master_tmp_2_01;
+
+
+--source include/rpl_connection_slave.inc
+use fangpei_test;
+
+--disable_warnings
+drop table if exists slave_tmp_1_01;
+drop table if exists slave_tmp_2_01;
+--enable_warnings
+create table slave_tmp_1_01(gtm_gtid_pos varchar(256));
+create table slave_tmp_2_01(status_flag int, other1 varchar(256), other2 varchar(256));
+
+--let $cur_slave_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+--let $cur_slave_relaylog_file = query_get_value(SHOW SLAVE STATUS, Relay_Log_File, 1)
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file';
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_relaylog_file';
+--let $file_does_not_exist = $MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_relaylog_file.gtid_idx
+--source include/file_does_not_exist.inc
+echo $cur_slave_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx' ignore into table slave_tmp_1_01 fields terminated by '^';
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx' ignore into table slave_tmp_2_01 fields terminated by '#';
+--enable_query_log
+
+select * from slave_tmp_1_01 limit 1;
+select count(*) from slave_tmp_1_01;
+
+--let $assert_text = slave gtid_idx file flag must be 1
+--let $assert_cond = [select * from slave_tmp_2_01 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+drop table slave_tmp_1_01;
+drop table slave_tmp_2_01;
+
+
+
+--echo ##########################################################################
+--echo #CASE 2 & CASE 3: start master & slave with the binlog file already created
+--echo ##########################################################################
+
+# start master with the binlog file already created
+
+copy_file $MYSQLTEST_VARDIR/my.cnf $MYSQLTEST_VARDIR/mysqld.1/data/master-bin.000002;
+--let $file = $MYSQLTEST_VARDIR/mysqld.1/data/master-bin.000002
+--source include/truncate_file.inc
+
+--let $rpl_server_number=1
+--source include/rpl_restart_server.inc
+
+--source include/rpl_connection_master.inc
+use fangpei_test;
+
+--disable_warnings
+drop table if exists master_tmp_1_03;
+drop table if exists master_tmp_2_03;
+--enable_warnings
+create table master_tmp_1_03(gtm_gtid_pos varchar(256));
+create table master_tmp_2_03(status_flag int, other1 varchar(256), other2 varchar(256));
+
+--let $cur_master_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+file_exists '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file';
+file_exists '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+echo $cur_master_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx' ignore into table master_tmp_1_03 fields terminated by '^';
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx' ignore into table master_tmp_2_03 fields terminated by '#';
+--enable_query_log
+
+select * from master_tmp_1_03 limit 1;
+select count(*) from master_tmp_1_03;
+
+--let $assert_text = master gtid_idx file flag must be 1
+--let $assert_cond = [select * from master_tmp_2_03 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+drop table master_tmp_1_03;
+drop table master_tmp_2_03;
+remove_file '$MYSQLTEST_VARDIR/mysqld.1/data/master-bin.000002';
+
+
+# start slave with the binlog file already created
+
+copy_file $MYSQLTEST_VARDIR/my.cnf $MYSQLTEST_VARDIR/mysqld.2/data/slave-bin.000002;
+--let $file = $MYSQLTEST_VARDIR/mysqld.2/data/slave-bin.000002
+--source include/truncate_file.inc
+
+--let $rpl_server_number=2
+--source include/rpl_restart_server.inc
+
+--source include/rpl_connection_slave.inc
+start slave;
+use fangpei_test;
+
+--disable_warnings
+drop table if exists slave_tmp_1_03;
+drop table if exists slave_tmp_2_03;
+--enable_warnings
+create table slave_tmp_1_03(gtm_gtid_pos varchar(256));
+create table slave_tmp_2_03(status_flag int, other1 varchar(256), other2 varchar(256));
+
+--let $cur_slave_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+--let $cur_slave_relaylog_file = query_get_value(SHOW SLAVE STATUS, Relay_Log_File, 1)
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file';
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_relaylog_file';
+--let $file_does_not_exist = $MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_relaylog_file.gtid_idx
+--source include/file_does_not_exist.inc
+echo $cur_slave_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx' ignore into table slave_tmp_1_03 fields terminated by '^';
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx' ignore into table slave_tmp_2_03 fields terminated by '#';
+--enable_query_log
+
+select * from slave_tmp_1_03 limit 1;
+select count(*) from slave_tmp_1_03;
+
+--let $assert_text = slave gtid_idx file flag must be 1
+--let $assert_cond = [select * from slave_tmp_2_03 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+drop table slave_tmp_1_03;
+drop table slave_tmp_2_03;
+remove_file '$MYSQLTEST_VARDIR/mysqld.2/data/slave-bin.000002';
+
+
+
+--echo ##########################################################################
+--echo #CASE 4 & CASE 5: start master & slave with the gtid_idx file already created
+--echo ##########################################################################
+
+# start master with the gtid_idx file already created
+
+write_file $MYSQLTEST_VARDIR/mysqld.1/data/master-bin.000004.gtid_idx;
+aaaaaaaaaaaaaaaaaabbbccc
+dddddddddddddddeee  fff
+EOF
+
+--let $rpl_server_number=1
+--source include/rpl_restart_server.inc
+
+--source include/rpl_connection_master.inc
+use fangpei_test;
+
+--disable_warnings
+drop table if exists master_tmp_2_05;
+--enable_warnings
+create table master_tmp_2_05(status_flag int, other1 varchar(256), other2 varchar(256));
+
+--let $cur_master_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+file_exists '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file';
+file_exists '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+echo $cur_master_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+
+--disable_query_log
+--disable_warnings
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx' ignore into table master_tmp_2_05 fields terminated by '#';
+--enable_warnings
+--enable_query_log
+
+--let $assert_text = master gtid_idx file flag must be 1
+--let $assert_cond = [select * from master_tmp_2_05 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+drop table master_tmp_2_05;
+
+
+# start slave with the gtid_idx file already created
+
+write_file $MYSQLTEST_VARDIR/mysqld.2/data/slave-bin.000004.gtid_idx;
+aaaaaaaaaaaaaaaaaabbbccc
+dddddddddddddddeee  fff
+EOF
+
+--let $rpl_server_number=2
+--source include/rpl_restart_server.inc
+
+--source include/rpl_connection_slave.inc
+start slave;
+use fangpei_test;
+
+--disable_warnings
+drop table if exists slave_tmp_2_05;
+--enable_warnings
+create table slave_tmp_2_05(status_flag int, other1 varchar(256), other2 varchar(256));
+
+--let $cur_slave_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+--let $cur_slave_relaylog_file = query_get_value(SHOW SLAVE STATUS, Relay_Log_File, 1)
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file';
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_relaylog_file';
+--let $file_does_not_exist = $MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_relaylog_file.gtid_idx
+--source include/file_does_not_exist.inc
+echo $cur_slave_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+
+--disable_query_log
+--disable_warnings
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx' ignore into table slave_tmp_2_05 fields terminated by '#';
+--enable_warnings
+--enable_query_log
+
+--let $assert_text = slave gtid_idx file flag must be 1
+--let $assert_cond = [select * from slave_tmp_2_05 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+drop table slave_tmp_2_05;
+
+
+
+#########################################################
+################# gtid_idx CLOSE test ###################
+#########################################################
+
+--echo ##########################################################################
+--echo #CASE 6: shutdown master & slave without any transaction
+--echo ##########################################################################
+
+--let $rpl_server_number=1
+--source include/rpl_restart_server.inc
+
+--source include/rpl_connection_master.inc
+use fangpei_test;
+
+--disable_warnings
+drop table if exists master_tmp_2_06;
+--enable_warnings
+create table master_tmp_2_06(status_flag int, other1 varchar(256), other2 varchar(256));
+
+--let $cur_master_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+file_exists '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file';
+file_exists '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+echo $cur_master_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx' ignore into table master_tmp_2_06 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = master gtid_idx file flag must be 1
+--let $assert_cond = [select * from master_tmp_2_06 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+truncate table master_tmp_2_06;
+
+
+--let $rpl_server_number=2
+--source include/rpl_restart_server.inc
+
+--source include/rpl_connection_slave.inc
+start slave;
+use fangpei_test;
+
+--disable_warnings
+drop table if exists slave_tmp_2_06;
+--enable_warnings
+create table slave_tmp_2_06(status_flag int, other1 varchar(256), other2 varchar(256));
+
+--let $cur_slave_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+--let $cur_slave_relaylog_file = query_get_value(SHOW SLAVE STATUS, Relay_Log_File, 1)
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file';
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_relaylog_file';
+--let $file_does_not_exist = $MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_relaylog_file.gtid_idx
+--source include/file_does_not_exist.inc
+echo $cur_slave_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx' ignore into table slave_tmp_2_06 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = slave gtid_idx file flag must be 1
+--let $assert_cond = [select * from slave_tmp_2_06 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+truncate table slave_tmp_2_06;
+
+
+--let $rpl_server_number=1
+--source include/rpl_stop_server.inc
+--source include/rpl_start_server.inc
+
+--source include/rpl_connection_master.inc
+echo $cur_master_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx' ignore into table master_tmp_2_06 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = master gtid_idx file flag must be 1
+--let $assert_cond = [select * from master_tmp_2_06 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+drop table master_tmp_2_06;
+
+
+--let $rpl_server_number=2
+--source include/rpl_stop_server.inc
+--source include/rpl_start_server.inc
+
+--source include/rpl_connection_slave.inc
+echo $cur_slave_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx' ignore into table slave_tmp_2_06 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = slave gtid_idx file flag must be 1
+--let $assert_cond = [select * from slave_tmp_2_06 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+drop table slave_tmp_2_06;
+
+start slave;
+
+
+
+--echo ##########################################################################
+--echo #CASE 7: shutdown master & slave after a bit of transactions with gtid hint
+--echo ##########################################################################
+
+--source include/rpl_connection_master.inc
+use fangpei_test;
+/*+GTID=1*/start transaction;
+insert into t1 values (1);
+commit;
+/*+GTID=2*/insert into t1 values (2);
+
+--disable_warnings
+drop table if exists master_tmp_2_07;
+--enable_warnings
+create table master_tmp_2_07(status_flag int, other1 varchar(256), other2 varchar(256));
+
+--let $cur_master_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+file_exists '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file';
+file_exists '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+echo $cur_master_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+
+--disable_query_log
+--disable_warnings
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx' ignore into table master_tmp_2_07 fields terminated by '#';
+--enable_warnings
+--enable_query_log
+
+--let $assert_text = master gtid_idx file flag must be 1
+--let $assert_cond = [select * from master_tmp_2_07 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+truncate table master_tmp_2_07;
+
+
+--source include/rpl_connection_slave.inc
+use fangpei_test;
+
+--disable_warnings
+drop table if exists slave_tmp_2_07;
+--enable_warnings
+create table slave_tmp_2_07(status_flag int, other1 varchar(256), other2 varchar(256));
+
+--let $cur_slave_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+--let $cur_slave_relaylog_file = query_get_value(SHOW SLAVE STATUS, Relay_Log_File, 1)
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file';
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_relaylog_file';
+--let $file_does_not_exist = $MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_relaylog_file.gtid_idx
+--source include/file_does_not_exist.inc
+echo $cur_slave_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx' ignore into table slave_tmp_2_07 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = slave gtid_idx file flag must be 1
+--let $assert_cond = [select * from slave_tmp_2_07 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+truncate table slave_tmp_2_07;
+
+
+--let $rpl_server_number=1
+--source include/rpl_stop_server.inc
+--source include/rpl_start_server.inc
+
+--source include/rpl_connection_master.inc
+echo $cur_master_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+
+--disable_query_log
+--disable_warnings
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx' ignore into table master_tmp_2_07 fields terminated by '#';
+--enable_warnings
+--enable_query_log
+
+--let $assert_text = master gtid_idx file flag must be 1
+--let $assert_cond = [select * from master_tmp_2_07 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+drop table master_tmp_2_07;
+
+
+--let $rpl_server_number=2
+--source include/rpl_stop_server.inc
+--source include/rpl_start_server.inc
+
+--source include/rpl_connection_slave.inc
+echo $cur_slave_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx' ignore into table slave_tmp_2_07 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = slave gtid_idx file flag must be 1
+--let $assert_cond = [select * from slave_tmp_2_07 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+drop table slave_tmp_2_07;
+
+start slave;
+
+
+
+--echo ##########################################################################
+--echo #CASE 8: shutdown master & slave after a bit of transactions without gtid hint
+--echo ##########################################################################
+
+--source include/rpl_connection_master.inc
+use fangpei_test;
+start transaction;
+insert into t1 values (3);
+commit;
+insert into t1 values (4);
+
+--disable_warnings
+drop table if exists master_tmp_2_08;
+--enable_warnings
+create table master_tmp_2_08(status_flag int, other1 varchar(256), other2 varchar(256));
+
+--let $cur_master_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+file_exists '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file';
+file_exists '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+echo $cur_master_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx' ignore into table master_tmp_2_08 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = master gtid_idx file flag must be 1
+--let $assert_cond = [select * from master_tmp_2_08 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+truncate table master_tmp_2_08;
+
+
+--source include/rpl_connection_slave.inc
+use fangpei_test;
+
+--disable_warnings
+drop table if exists slave_tmp_2_08;
+--enable_warnings
+create table slave_tmp_2_08(status_flag int, other1 varchar(256), other2 varchar(256));
+
+--let $cur_slave_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+--let $cur_slave_relaylog_file = query_get_value(SHOW SLAVE STATUS, Relay_Log_File, 1)
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file';
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_relaylog_file';
+--let $file_does_not_exist = $MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_relaylog_file.gtid_idx
+--source include/file_does_not_exist.inc
+echo $cur_slave_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx' ignore into table slave_tmp_2_08 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = slave gtid_idx file flag must be 1
+--let $assert_cond = [select * from slave_tmp_2_08 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+truncate table slave_tmp_2_08;
+
+
+--let $rpl_server_number=1
+--source include/rpl_stop_server.inc
+--source include/rpl_start_server.inc
+
+--source include/rpl_connection_master.inc
+echo $cur_master_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx' ignore into table master_tmp_2_08 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = master gtid_idx file flag must be 1
+--let $assert_cond = [select * from master_tmp_2_08 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+drop table master_tmp_2_08;
+
+
+--let $rpl_server_number=2
+--source include/rpl_stop_server.inc
+--source include/rpl_start_server.inc
+
+--source include/rpl_connection_slave.inc
+echo $cur_slave_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx' ignore into table slave_tmp_2_08 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = slave gtid_idx file flag must be 1
+--let $assert_cond = [select * from slave_tmp_2_08 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+drop table slave_tmp_2_08;
+
+start slave;
+
+
+
+--echo ##########################################################################
+--echo #CASE 9: shutdown master & slave after a bit of transactions with(out) gtid hint
+--echo ##########################################################################
+
+--source include/rpl_connection_master.inc
+use fangpei_test;
+/*+GTID=5*/start transaction;
+insert into t1 values (5);
+commit;
+insert into t1 values (6);
+
+--disable_warnings
+drop table if exists master_tmp_2_09;
+--enable_warnings
+create table master_tmp_2_09(status_flag int, other1 varchar(256), other2 varchar(256));
+
+--let $cur_master_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+file_exists '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file';
+file_exists '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+echo $cur_master_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+
+--disable_query_log
+--disable_warnings
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx' ignore into table master_tmp_2_09 fields terminated by '#';
+--enable_warnings
+--enable_query_log
+
+--let $assert_text = master gtid_idx file flag must be 1
+--let $assert_cond = [select * from master_tmp_2_09 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+truncate table master_tmp_2_09;
+
+
+--source include/rpl_connection_slave.inc
+use fangpei_test;
+
+--disable_warnings
+drop table if exists slave_tmp_2_09;
+--enable_warnings
+create table slave_tmp_2_09(status_flag int, other1 varchar(256), other2 varchar(256));
+
+--let $cur_slave_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+--let $cur_slave_relaylog_file = query_get_value(SHOW SLAVE STATUS, Relay_Log_File, 1)
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file';
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_relaylog_file';
+--let $file_does_not_exist = $MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_relaylog_file.gtid_idx
+--source include/file_does_not_exist.inc
+echo $cur_slave_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx' ignore into table slave_tmp_2_09 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = slave gtid_idx file flag must be 1
+--let $assert_cond = [select * from slave_tmp_2_09 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+truncate table slave_tmp_2_09;
+
+
+--let $rpl_server_number=1
+--source include/rpl_stop_server.inc
+--source include/rpl_start_server.inc
+
+--source include/rpl_connection_master.inc
+echo $cur_master_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+
+--disable_query_log
+--disable_warnings
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx' ignore into table master_tmp_2_09 fields terminated by '#';
+--enable_warnings
+--enable_query_log
+
+--let $assert_text = master gtid_idx file flag must be 1
+--let $assert_cond = [select * from master_tmp_2_09 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+drop table master_tmp_2_09;
+
+
+--let $rpl_server_number=2
+--source include/rpl_stop_server.inc
+--source include/rpl_start_server.inc
+
+--source include/rpl_connection_slave.inc
+echo $cur_slave_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx' ignore into table slave_tmp_2_09 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = slave gtid_idx file flag must be 1
+--let $assert_cond = [select * from slave_tmp_2_09 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+drop table slave_tmp_2_09;
+
+start slave;
+
+
+
+--echo ##########################################################################
+--echo #CASE 10 & CASE 11: shutdown master & slave after master/slave binlog rotate one time
+--echo ##########################################################################
+
+--source include/rpl_connection_slave.inc
+--let $cur_slave_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+
+
+--source include/rpl_connection_master.inc
+use fangpei_test;
+insert into t1 select * from t1 limit 5;
+insert into t1 select * from t1 limit 10;
+insert into t1 select * from t1 limit 20;
+insert into t1 select * from t1 limit 40;
+insert into t1 select * from t1 limit 80;
+insert into t1 select * from t1 limit 100;
+insert into t1 select * from t1 limit 200;
+insert into t1 select * from t1 limit 400;
+/*+GTID=1000*/insert into t1 select * from t1 limit 1000;
+
+--disable_warnings
+drop table if exists master_tmp_2_11;
+--enable_warnings
+create table master_tmp_2_11(status_flag int, other1 varchar(256), other2 varchar(256));
+
+--let $cur_master_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+file_exists '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file';
+file_exists '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+echo $cur_master_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx' ignore into table master_tmp_2_11 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = master gtid_idx file flag must be 1
+--let $assert_cond = [select * from master_tmp_2_11 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+truncate table master_tmp_2_11;
+
+
+--source include/rpl_connection_slave.inc
+use fangpei_test;
+
+--disable_warnings
+drop table if exists slave_tmp_2_11;
+--enable_warnings
+create table slave_tmp_2_11(status_flag int, other1 varchar(256), other2 varchar(256));
+
+--let $old_slave_binlog_file = $cur_slave_binlog_file
+--let $cur_slave_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+while ($old_slave_binlog_file == $cur_slave_binlog_file)
+{
+  --let $cur_slave_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+  --real_sleep 0.5
+}
+
+--let $cur_slave_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+--let $cur_slave_relaylog_file = query_get_value(SHOW SLAVE STATUS, Relay_Log_File, 1)
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file';
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_relaylog_file';
+--let $file_does_not_exist = $MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_relaylog_file.gtid_idx
+--source include/file_does_not_exist.inc
+echo $cur_slave_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx' ignore into table slave_tmp_2_11 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = slave gtid_idx file flag must be 1
+--let $assert_cond = [select * from slave_tmp_2_11 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+truncate table slave_tmp_2_11;
+
+
+--let $rpl_server_number=1
+--source include/rpl_stop_server.inc
+--source include/rpl_start_server.inc
+
+--source include/rpl_connection_master.inc
+echo $cur_master_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx' ignore into table master_tmp_2_11 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = master gtid_idx file flag must be 1
+--let $assert_cond = [select * from master_tmp_2_11 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+drop table master_tmp_2_11;
+
+
+--let $rpl_server_number=2
+--source include/rpl_stop_server.inc
+--source include/rpl_start_server.inc
+
+--source include/rpl_connection_slave.inc
+echo $cur_slave_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx' ignore into table slave_tmp_2_11 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = slave gtid_idx file flag must be 1
+--let $assert_cond = [select * from slave_tmp_2_11 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+drop table slave_tmp_2_11;
+
+start slave;
+
+
+
+--echo ##########################################################################
+--echo #CASE 12 & CASE 13: shutdown master & slave after master/slave binlog rotate several times
+--echo ##########################################################################
+
+--source include/rpl_connection_slave.inc
+--let $cur_slave_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+
+
+--source include/rpl_connection_master.inc
+use fangpei_test;
+/*+GTID=1001*/insert into t1 select * from t1 limit 1000;
+/*+GTID=1002*/insert into t1 select * from t1 limit 1000;
+
+--source include/rpl_connection_slave.inc
+--let $old_slave_binlog_file = $cur_slave_binlog_file
+--let $cur_slave_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+while ($old_slave_binlog_file == $cur_slave_binlog_file)
+{
+  --let $cur_slave_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+  --real_sleep 0.5
+}
+
+--source include/rpl_connection_master.inc
+use fangpei_test;
+/*+GTID=1003*/insert into t1 select * from t1 limit 1000;
+/*+GTID=1004*/insert into t1 select * from t1 limit 1000;
+
+--source include/rpl_connection_slave.inc
+--let $old_slave_binlog_file = $cur_slave_binlog_file
+--let $cur_slave_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+while ($old_slave_binlog_file == $cur_slave_binlog_file)
+{
+  --let $cur_slave_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+  --real_sleep 0.5
+}
+
+--source include/rpl_connection_master.inc
+use fangpei_test;
+/*+GTID=1005*/insert into t1 select * from t1 limit 1000;
+/*+GTID=1006*/insert into t1 select * from t1 limit 1000;
+
+
+--disable_warnings
+drop table if exists master_tmp_2_13;
+--enable_warnings
+create table master_tmp_2_13(status_flag int, other1 varchar(256), other2 varchar(256));
+
+--let $cur_master_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+file_exists '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file';
+file_exists '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+echo $cur_master_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx' ignore into table master_tmp_2_13 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = master gtid_idx file flag must be 1
+--let $assert_cond = [select * from master_tmp_2_13 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+truncate table master_tmp_2_13;
+
+
+--source include/rpl_connection_slave.inc
+use fangpei_test;
+
+--disable_warnings
+drop table if exists slave_tmp_2_13;
+--enable_warnings
+create table slave_tmp_2_13(status_flag int, other1 varchar(256), other2 varchar(256));
+
+--let $old_slave_binlog_file = $cur_slave_binlog_file
+--let $cur_slave_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+while ($old_slave_binlog_file == $cur_slave_binlog_file)
+{
+  --let $cur_slave_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+  --real_sleep 0.5
+}
+
+--let $cur_slave_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+--let $cur_slave_relaylog_file = query_get_value(SHOW SLAVE STATUS, Relay_Log_File, 1)
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file';
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_relaylog_file';
+--let $file_does_not_exist = $MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_relaylog_file.gtid_idx
+--source include/file_does_not_exist.inc
+echo $cur_slave_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx' ignore into table slave_tmp_2_13 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = slave gtid_idx file flag must be 1
+--let $assert_cond = [select * from slave_tmp_2_13 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+truncate table slave_tmp_2_13;
+
+
+--let $rpl_server_number=1
+--source include/rpl_stop_server.inc
+--source include/rpl_start_server.inc
+
+--source include/rpl_connection_master.inc
+echo $cur_master_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx' ignore into table master_tmp_2_13 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = master gtid_idx file flag must be 1
+--let $assert_cond = [select * from master_tmp_2_13 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+drop table master_tmp_2_13;
+
+
+--let $rpl_server_number=2
+--source include/rpl_stop_server.inc
+--source include/rpl_start_server.inc
+
+--source include/rpl_connection_slave.inc
+echo $cur_slave_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx' ignore into table slave_tmp_2_13 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = slave gtid_idx file flag must be 1
+--let $assert_cond = [select * from slave_tmp_2_13 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+drop table slave_tmp_2_13;
+
+start slave;
+
+
+
+--echo ##########################################################################
+--echo #CASE 14 & CASE 15: shutdown master & slave after delete master/slave current binlog file
+--echo ##########################################################################
+
+--source include/rpl_connection_master.inc
+use fangpei_test;
+
+--disable_warnings
+drop table if exists master_tmp_2_15;
+--enable_warnings
+create table master_tmp_2_15(status_flag int, other1 varchar(256), other2 varchar(256));
+
+--let $cur_master_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+move_file $MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file $MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.bak;
+--let $file_does_not_exist = $MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file
+--source include/file_does_not_exist.inc
+file_exists '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+echo $cur_master_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx' ignore into table master_tmp_2_15 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = master gtid_idx file flag must be 1
+--let $assert_cond = [select * from master_tmp_2_15 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+truncate table master_tmp_2_15;
+
+move_file $MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.bak $MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file;
+file_exists '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file';
+
+
+--source include/rpl_connection_slave.inc
+use fangpei_test;
+
+--disable_warnings
+drop table if exists slave_tmp_2_15;
+--enable_warnings
+create table slave_tmp_2_15(status_flag int, other1 varchar(256), other2 varchar(256));
+
+--let $cur_slave_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+--let $cur_slave_relaylog_file = query_get_value(SHOW SLAVE STATUS, Relay_Log_File, 1)
+move_file $MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file $MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.bak;
+--let $file_does_not_exist = $MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file
+--source include/file_does_not_exist.inc
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_relaylog_file';
+--let $file_does_not_exist = $MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_relaylog_file.gtid_idx
+--source include/file_does_not_exist.inc
+echo $cur_slave_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx' ignore into table slave_tmp_2_15 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = slave gtid_idx file flag must be 1
+--let $assert_cond = [select * from slave_tmp_2_15 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+truncate table slave_tmp_2_15;
+
+move_file $MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.bak $MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file;
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file';
+
+
+--let $rpl_server_number=1
+--source include/rpl_stop_server.inc
+--source include/rpl_start_server.inc
+
+--source include/rpl_connection_master.inc
+echo $cur_master_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx' ignore into table master_tmp_2_15 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = master gtid_idx file flag must be 1
+--let $assert_cond = [select * from master_tmp_2_15 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+drop table master_tmp_2_15;
+
+
+--let $rpl_server_number=2
+--source include/rpl_stop_server.inc
+--source include/rpl_start_server.inc
+
+--source include/rpl_connection_slave.inc
+echo $cur_slave_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx' ignore into table slave_tmp_2_15 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = slave gtid_idx file flag must be 1
+--let $assert_cond = [select * from slave_tmp_2_15 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+drop table slave_tmp_2_15;
+
+start slave;
+
+
+
+--echo ##########################################################################
+--echo #CASE 16 & CASE 17: shutdown master & slave after delete master/slave current gtid_idx file
+--echo ##########################################################################
+
+--source include/rpl_connection_master.inc
+use fangpei_test;
+
+--let $cur_master_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+echo $cur_master_binlog_file;
+file_exists '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file';
+remove_file $MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx;
+--let $file_does_not_exist = $MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx
+--source include/file_does_not_exist.inc
+
+
+--source include/rpl_connection_slave.inc
+use fangpei_test;
+
+--let $cur_slave_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+--let $cur_slave_relaylog_file = query_get_value(SHOW SLAVE STATUS, Relay_Log_File, 1)
+echo $cur_slave_binlog_file;
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file';
+remove_file $MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx;
+--let $file_does_not_exist = $MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx
+--source include/file_does_not_exist.inc
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_relaylog_file';
+--let $file_does_not_exist = $MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_relaylog_file.gtid_idx
+--source include/file_does_not_exist.inc
+
+
+--let $rpl_server_number=1
+--source include/rpl_stop_server.inc
+--source include/rpl_start_server.inc
+
+--source include/rpl_connection_master.inc
+echo $cur_master_binlog_file;
+--let $file_does_not_exist = $MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx
+--source include/file_does_not_exist.inc
+
+
+--let $rpl_server_number=2
+--source include/rpl_stop_server.inc
+--source include/rpl_start_server.inc
+
+--source include/rpl_connection_slave.inc
+echo $cur_slave_binlog_file;
+--let $file_does_not_exist = $MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx
+--source include/file_does_not_exist.inc
+
+start slave;
+
+
+
+--echo ##########################################################################
+--echo #CASE 18: shutdown master & slave (master shutdown abnormally)
+--echo ##########################################################################
+
+--source include/rpl_connection_master.inc
+use fangpei_test;
+
+--disable_warnings
+drop table if exists master_tmp_2_18;
+--enable_warnings
+create table master_tmp_2_18(status_flag int, other1 varchar(256), other2 varchar(256));
+
+--let $cur_master_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+file_exists '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file';
+file_exists '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+echo $cur_master_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx' ignore into table master_tmp_2_18 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = master gtid_idx file flag must be 1
+--let $assert_cond = [select * from master_tmp_2_18 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+truncate table master_tmp_2_18;
+
+
+--source include/rpl_connection_slave.inc
+use fangpei_test;
+
+--disable_warnings
+drop table if exists slave_tmp_2_18;
+--enable_warnings
+create table slave_tmp_2_18(status_flag int, other1 varchar(256), other2 varchar(256));
+
+--let $cur_slave_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+--let $cur_slave_relaylog_file = query_get_value(SHOW SLAVE STATUS, Relay_Log_File, 1)
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file';
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_relaylog_file';
+--let $file_does_not_exist = $MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_relaylog_file.gtid_idx
+--source include/file_does_not_exist.inc
+echo $cur_slave_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx' ignore into table slave_tmp_2_18 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = slave gtid_idx file flag must be 1
+--let $assert_cond = [select * from slave_tmp_2_18 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+truncate table slave_tmp_2_18;
+
+
+--source include/rpl_connection_master.inc
+--source include/kill_mysqld.inc
+
+--let $rpl_server_number=1
+--source include/rpl_start_server.inc
+
+--source include/rpl_connection_master.inc
+echo $cur_master_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx' ignore into table master_tmp_2_18 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = master gtid_idx file flag must be 1
+--let $assert_cond = [select * from master_tmp_2_18 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+drop table master_tmp_2_18;
+
+
+--let $rpl_server_number=2
+--source include/rpl_stop_server.inc
+--source include/rpl_start_server.inc
+
+--source include/rpl_connection_slave.inc
+echo $cur_slave_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx' ignore into table slave_tmp_2_18 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = slave gtid_idx file flag must be 1
+--let $assert_cond = [select * from slave_tmp_2_18 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+drop table slave_tmp_2_18;
+
+start slave;
+
+
+
+--echo ##########################################################################
+--echo #CASE 19: shutdown master & slave (slave shutdown abnormally)
+--echo ##########################################################################
+
+--source include/rpl_connection_master.inc
+use fangpei_test;
+
+--disable_warnings
+drop table if exists master_tmp_2_19;
+--enable_warnings
+create table master_tmp_2_19(status_flag int, other1 varchar(256), other2 varchar(256));
+
+--let $cur_master_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+file_exists '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file';
+file_exists '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+echo $cur_master_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx' ignore into table master_tmp_2_19 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = master gtid_idx file flag must be 1
+--let $assert_cond = [select * from master_tmp_2_19 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+truncate table master_tmp_2_19;
+
+
+--source include/rpl_connection_slave.inc
+use fangpei_test;
+
+--disable_warnings
+drop table if exists slave_tmp_2_19;
+--enable_warnings
+create table slave_tmp_2_19(status_flag int, other1 varchar(256), other2 varchar(256));
+
+--let $cur_slave_binlog_file = query_get_value(SHOW MASTER STATUS, File, 1)
+--let $cur_slave_relaylog_file = query_get_value(SHOW SLAVE STATUS, Relay_Log_File, 1)
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file';
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+file_exists '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_relaylog_file';
+--let $file_does_not_exist = $MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_relaylog_file.gtid_idx
+--source include/file_does_not_exist.inc
+echo $cur_slave_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx' ignore into table slave_tmp_2_19 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = slave gtid_idx file flag must be 1
+--let $assert_cond = [select * from slave_tmp_2_19 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+truncate table slave_tmp_2_19;
+
+
+--let $rpl_server_number=1
+--source include/rpl_stop_server.inc
+--source include/rpl_start_server.inc
+
+--source include/rpl_connection_master.inc
+echo $cur_master_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.1/data/$cur_master_binlog_file.gtid_idx' ignore into table master_tmp_2_19 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = master gtid_idx file flag must be 1
+--let $assert_cond = [select * from master_tmp_2_19 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+drop table master_tmp_2_19;
+
+
+--source include/rpl_connection_slave.inc
+--source include/kill_mysqld.inc
+
+--let $rpl_server_number=2
+--source include/rpl_start_server.inc
+
+--source include/rpl_connection_slave.inc
+echo $cur_slave_binlog_file;
+cat_file '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx';
+
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/mysqld.2/data/$cur_slave_binlog_file.gtid_idx' ignore into table slave_tmp_2_19 fields terminated by '#';
+--enable_query_log
+
+--let $assert_text = slave gtid_idx file flag must be 1
+--let $assert_cond = [select * from slave_tmp_2_19 limit 1, status_flag, 1] = 1
+--source include/assert.inc
+
+drop table slave_tmp_2_19;
+
+start slave;
+
+
+##### END #####
+--source include/rpl_connection_master.inc
+drop database fangpei_test;
+
+--source include/rpl_end.inc
+

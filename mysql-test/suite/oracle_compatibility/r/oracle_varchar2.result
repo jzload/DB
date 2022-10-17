@@ -1,0 +1,279 @@
+select @@nls_length_semantics, @@session.nls_length_semantics, @@local.nls_length_semantics, @@global.nls_length_semantics;
+@@nls_length_semantics	@@session.nls_length_semantics	@@local.nls_length_semantics	@@global.nls_length_semantics
+BYTE	BYTE	BYTE	BYTE
+set nls_length_semantics = 0;
+select @@nls_length_semantics, @@session.nls_length_semantics, @@local.nls_length_semantics, @@global.nls_length_semantics;
+@@nls_length_semantics	@@session.nls_length_semantics	@@local.nls_length_semantics	@@global.nls_length_semantics
+BYTE	BYTE	BYTE	BYTE
+set nls_length_semantics = 1;
+select @@nls_length_semantics, @@session.nls_length_semantics, @@local.nls_length_semantics, @@global.nls_length_semantics;
+@@nls_length_semantics	@@session.nls_length_semantics	@@local.nls_length_semantics	@@global.nls_length_semantics
+CHAR	CHAR	CHAR	BYTE
+set nls_length_semantics = 'BYTE';
+select @@nls_length_semantics, @@session.nls_length_semantics, @@local.nls_length_semantics, @@global.nls_length_semantics;
+@@nls_length_semantics	@@session.nls_length_semantics	@@local.nls_length_semantics	@@global.nls_length_semantics
+BYTE	BYTE	BYTE	BYTE
+set nls_length_semantics = 'CHAR';
+select @@nls_length_semantics, @@session.nls_length_semantics, @@local.nls_length_semantics, @@global.nls_length_semantics;
+@@nls_length_semantics	@@session.nls_length_semantics	@@local.nls_length_semantics	@@global.nls_length_semantics
+CHAR	CHAR	CHAR	BYTE
+set nls_length_semantics = -1;
+ERROR 42000: Variable 'nls_length_semantics' can't be set to the value of '-1'
+set nls_length_semantics = 2;
+ERROR 42000: Variable 'nls_length_semantics' can't be set to the value of '2'
+set nls_length_semantics = 'BYTE1';
+ERROR 42000: Variable 'nls_length_semantics' can't be set to the value of 'BYTE1'
+set nls_length_semantics = 'CHAR1';
+ERROR 42000: Variable 'nls_length_semantics' can't be set to the value of 'CHAR1'
+set @@global.nls_length_semantics = 0;
+select @@nls_length_semantics, @@session.nls_length_semantics, @@local.nls_length_semantics, @@global.nls_length_semantics;
+@@nls_length_semantics	@@session.nls_length_semantics	@@local.nls_length_semantics	@@global.nls_length_semantics
+CHAR	CHAR	CHAR	BYTE
+set @@global.nls_length_semantics = 1;
+select @@nls_length_semantics, @@session.nls_length_semantics, @@local.nls_length_semantics, @@global.nls_length_semantics;
+@@nls_length_semantics	@@session.nls_length_semantics	@@local.nls_length_semantics	@@global.nls_length_semantics
+CHAR	CHAR	CHAR	CHAR
+set @@global.nls_length_semantics = 'BYTE';
+select @@nls_length_semantics, @@session.nls_length_semantics, @@local.nls_length_semantics, @@global.nls_length_semantics;
+@@nls_length_semantics	@@session.nls_length_semantics	@@local.nls_length_semantics	@@global.nls_length_semantics
+CHAR	CHAR	CHAR	BYTE
+set @@global.nls_length_semantics = 'CHAR';
+select @@nls_length_semantics, @@session.nls_length_semantics, @@local.nls_length_semantics, @@global.nls_length_semantics;
+@@nls_length_semantics	@@session.nls_length_semantics	@@local.nls_length_semantics	@@global.nls_length_semantics
+CHAR	CHAR	CHAR	CHAR
+set @@global.nls_length_semantics = -1;
+ERROR 42000: Variable 'nls_length_semantics' can't be set to the value of '-1'
+set @@global.nls_length_semantics = 2;
+ERROR 42000: Variable 'nls_length_semantics' can't be set to the value of '2'
+set @@global.nls_length_semantics = 'BYTE1';
+ERROR 42000: Variable 'nls_length_semantics' can't be set to the value of 'BYTE1'
+set @@global.nls_length_semantics = 'CHAR1';
+ERROR 42000: Variable 'nls_length_semantics' can't be set to the value of 'CHAR1'
+DROP DATABASE IF EXISTS test_varchar2;
+CREATE DATABASE test_varchar2;
+USE test_varchar2;
+set @@nls_length_semantics = 'BYTE';
+CREATE TABLE t1(a int primary key, b varchar2(8)) default charset = utf8mb4;
+SHOW CREATE TABLE t1;
+Table	Create Table
+t1	CREATE TABLE `t1` (
+  `a` int(11) NOT NULL,
+  `b` varbinary(8) DEFAULT NULL,
+  PRIMARY KEY (`a`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+INSERT INTO t1(a) VALUES(1);
+INSERT INTO t1 VALUES(2, '');
+INSERT INTO t1 VALUES(3, '12345');
+INSERT INTO t1 VALUES(4, '12345678');
+INSERT INTO t1 VALUES(5, 'abc');
+INSERT INTO t1 VALUES(6, 'abcdefgh');
+INSERT INTO t1 VALUES(7, '中');
+INSERT INTO t1 VALUES(8, '中兴');
+INSERT INTO t1 VALUES(9, '中兴AB');
+SELECT * FROM t1;
+a	b
+1	NULL
+2	
+3	12345
+4	12345678
+5	abc
+6	abcdefgh
+7	中
+8	中兴
+9	中兴AB
+INSERT INTO t1 VALUES(10, '123456789');
+ERROR 22001: Data too long for column 'b' at row 1
+INSERT INTO t1 VALUES(11, 'abcdefghi');
+ERROR 22001: Data too long for column 'b' at row 1
+INSERT INTO t1 VALUES(12, '中兴通');
+ERROR 22001: Data too long for column 'b' at row 1
+set @@nls_length_semantics = 'CHAR';
+CREATE TABLE t2(a int primary key, b varchar2(8)) default charset = utf8mb4;
+SHOW CREATE TABLE t2;
+Table	Create Table
+t2	CREATE TABLE `t2` (
+  `a` int(11) NOT NULL,
+  `b` varchar(8) DEFAULT NULL,
+  PRIMARY KEY (`a`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+INSERT INTO t2(a) VALUES(1);
+INSERT INTO t2 VALUES(2, '');
+INSERT INTO t2 VALUES(3, '12345');
+INSERT INTO t2 VALUES(4, '12345678');
+INSERT INTO t2 VALUES(5, 'abc');
+INSERT INTO t2 VALUES(6, 'abcdefgh');
+INSERT INTO t2 VALUES(7, '中');
+INSERT INTO t2 VALUES(8, '中兴通讯有限责任');
+SELECT * FROM t2;
+a	b
+1	NULL
+2	
+3	12345
+4	12345678
+5	abc
+6	abcdefgh
+7	中
+8	中兴通讯有限责任
+INSERT INTO t2 VALUES(9, '123456789');
+ERROR 22001: Data too long for column 'b' at row 1
+INSERT INTO t2 VALUES(10, 'abcdefghi');
+ERROR 22001: Data too long for column 'b' at row 1
+INSERT INTO t2 VALUES(11, '中兴通讯有限责任公');
+ERROR 22001: Data too long for column 'b' at row 1
+set @@nls_length_semantics = 'CHAR';
+CREATE TABLE t3(a int primary key, b varchar2(8 BYTE)) default charset = utf8mb4;
+SHOW CREATE TABLE t3;
+Table	Create Table
+t3	CREATE TABLE `t3` (
+  `a` int(11) NOT NULL,
+  `b` varbinary(8) DEFAULT NULL,
+  PRIMARY KEY (`a`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+INSERT INTO t3(a) VALUES(1);
+INSERT INTO t3 VALUES(2, '');
+INSERT INTO t3 VALUES(3, '12345');
+INSERT INTO t3 VALUES(4, '12345678');
+INSERT INTO t3 VALUES(5, 'abc');
+INSERT INTO t3 VALUES(6, 'abcdefgh');
+INSERT INTO t3 VALUES(7, '中');
+INSERT INTO t3 VALUES(8, '中兴');
+INSERT INTO t3 VALUES(9, '中兴AB');
+SELECT * FROM t3;
+a	b
+1	NULL
+2	
+3	12345
+4	12345678
+5	abc
+6	abcdefgh
+7	中
+8	中兴
+9	中兴AB
+INSERT INTO t3 VALUES(9, '123456789');
+ERROR 22001: Data too long for column 'b' at row 1
+INSERT INTO t3 VALUES(10, 'abcdefghi');
+ERROR 22001: Data too long for column 'b' at row 1
+INSERT INTO t3 VALUES(11, '中兴通');
+ERROR 22001: Data too long for column 'b' at row 1
+set @@nls_length_semantics = 'BYTE';
+CREATE TABLE t4(a int primary key, b varchar2(8 CHAR)) default charset = utf8mb4;
+SHOW CREATE TABLE t4;
+Table	Create Table
+t4	CREATE TABLE `t4` (
+  `a` int(11) NOT NULL,
+  `b` varchar(8) DEFAULT NULL,
+  PRIMARY KEY (`a`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+INSERT INTO t4(a) VALUES(1);
+INSERT INTO t4 VALUES(2, '');
+INSERT INTO t4 VALUES(3, '12345');
+INSERT INTO t4 VALUES(4, '12345678');
+INSERT INTO t4 VALUES(5, 'abc');
+INSERT INTO t4 VALUES(6, 'abcdefgh');
+INSERT INTO t4 VALUES(7, '中');
+INSERT INTO t4 VALUES(8, '中兴通讯有限责任');
+SELECT * FROM t4;
+a	b
+1	NULL
+2	
+3	12345
+4	12345678
+5	abc
+6	abcdefgh
+7	中
+8	中兴通讯有限责任
+INSERT INTO t4 VALUES(9, '123456789');
+ERROR 22001: Data too long for column 'b' at row 1
+INSERT INTO t4 VALUES(10, 'abcdefghi');
+ERROR 22001: Data too long for column 'b' at row 1
+INSERT INTO t4 VALUES(11, '中兴通讯有限责任公');
+ERROR 22001: Data too long for column 'b' at row 1
+CREATE TABLE t5(a int primary key, b varchar2(8 cha));
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'cha))' at line 1
+CREATE TABLE t5(a int primary key, b varchar2);
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use
+CREATE DATABASE varchar2;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'varchar2' at line 1
+CREATE TABLE varchar2(a int primary key);
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'varchar2(a int primary key)' at line 1
+CREATE VIEW varchar2 AS SELECT a,b from t1;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'varchar2 AS SELECT a,b from t1' at line 1
+set parse_mode=2;
+CREATE PROCEDURE varchar2(a int) SELECT 1;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'varchar2(a int) SELECT 1' at line 1
+CREATE OR REPLACE PROCEDURE tp1(varchar2 IN INT) SELECT 1;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'varchar2 IN INT) SELECT 1' at line 1
+CREATE OR REPLACE PROCEDURE tp1(varchar2 OUT INT) IS
+begin
+ResBuff := 1;
+end //
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'varchar2 OUT INT) IS
+begin
+ResBuff := 1;
+end' at line 1
+create procedure doiterate(in p1 int, out p2 int)
+BEGIN
+varchar2: LOOP
+set p1 = p1 + 1;
+if p1 < 10 then 
+iterate varchar;
+END if;
+leave varchar2;
+END LOOP varchar2;
+set p2=p1;
+END //
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'varchar2: LOOP
+set p1 = p1 + 1;
+if p1 < 10 then 
+iterate varchar;
+END if;
+leave ' at line 3
+CREATE PROCEDURE tp1(p1 in varchar2(64 CHAR), p2 out varchar2)
+AS
+local_var varchar2(64 CHAR);
+BEGIN
+local_var:=p1;
+select local_var into p2 from dual;
+END //
+CALL tp1('中国Chinese',@var2) //
+SELECT @var2 //
+@var2
+中国Chinese
+CREATE PROCEDURE tp2(p1 in varchar2(64 CHAR), p2 out varchar2)
+BEGIN
+DECLARE local_var varchar2(64 CHAR);
+SET local_var = p1;
+SET p2 = local_var;
+END //
+CALL tp2('中国Chinese',@var2) //
+SELECT @var2 //
+@var2
+中国Chinese
+SET @old_log_bin_trust_function_creators= @@global.log_bin_trust_function_creators;
+SET GLOBAL log_bin_trust_function_creators = 1;
+CREATE FUNCTION varchar2(a int) RETURNS INT RETURN a+1;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'varchar2(a int) RETURNS INT RETURN a+1' at line 1
+CREATE FUNCTION func1(a varchar2(64)) RETURNS varchar2(64) RETURN a;
+SELECT func1('中国Chinese');
+func1('中国Chinese')
+中国Chinese
+SET @@global.log_bin_trust_function_creators= @old_log_bin_trust_function_creators;
+CREATE TABLE t_tgr(a int primary key);
+CREATE TRIGGER varchar2 AFTER INSERT ON t_tgr FOR EACH ROW
+SELECT 't_tgr added' INTO @var;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'varchar2 AFTER INSERT ON t_tgr FOR EACH ROW
+SELECT 't_tgr added' INTO @var' at line 1
+CREATE EVENT IF NOT EXISTS varchar2 ON SCHEDULE EVERY 5 SECOND
+ON COMPLETION PRESERVE DO SELECT 1;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'varchar2 ON SCHEDULE EVERY 5 SECOND
+ON COMPLETION PRESERVE DO SELECT 1' at line 1
+SET @varchar2=8;
+SELECT @varchar2;
+@varchar2
+8
+CREATE ROLE varchar2;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'varchar2' at line 1
+set @@global.nls_length_semantics = default;
+set @@nls_length_semantics = default;
+set parse_mode = default;
+DROP DATABASE test_varchar2;

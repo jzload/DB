@@ -1,0 +1,58 @@
+#
+# Test：ZSQL兼容Oracle的 sysdate 函数
+#
+# Syntax:
+#          SYSDATE
+#
+#  注：该函数不需要参数,可以认为sysdate就是sysdate()函数的别名
+
+
+# sysdate 作为关键字，不可以作普通标识符，若需要做标识符，需要加反引号
+# 库名，表名，列名
+--error ER_PARSE_ERROR
+create database sysdate;
+create database `sysdate`;
+
+use `sysdate`;
+--error ER_PARSE_ERROR
+create table  sysdate  (a int);
+--error ER_PARSE_ERROR
+create table `sysdate` (sysdate int);
+create table `sysdate` (`sysdate` int);
+
+# sysdate 函数的输出长度和格式
+--replace_regex /(20..-..-.. ..:..:..)/20XX-XX-XX XX:XX:XX/
+select sysdate;
+
+--replace_regex /(20..-..-.. ..:..:..)/20XX-XX-XX XX:XX:XX/
+select sysdate from dual;
+
+--replace_regex /(20..-..-.. ..:..:..)/20XX-XX-XX XX:XX:XX/
+select sysdate() from dual;
+
+select length(sysdate) from dual;
+select length(sysdate) = length(sysdate()) from dual;
+
+
+# 支持 from子查询
+--replace_regex /(20..-..-.. ..:..:..)/20XX-XX-XX XX:XX:XX/
+select * from (select sysdate from dual) tmp;
+
+create table test (a int);
+insert into test values (1), (2), (3);
+
+# 作为列的别名
+--error ER_PARSE_ERROR
+select a as  sysdate  from test;
+select a as `sysdate` from test;
+
+# 支持 where子句
+select * from test where a != sysdate order by a;
+
+# 支持 order by子句
+select * from test order by sysdate;
+
+# 清理数据
+--error ER_PARSE_ERROR
+drop database sysdate;
+drop database `sysdate`;

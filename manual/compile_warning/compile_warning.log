@@ -1,0 +1,16 @@
+/home/data_sdb/mysql_4442/DB/storage/connect/connect.cc: In function 'int CntCloseTable(PGLOBAL, PTDB, bool, bool)':
+/home/data_sdb/mysql_4442/DB/storage/connect/connect.cc:564:56: warning: argument 'abort' might be clobbered by 'longjmp' or 'vfork' [-Wclobbered]
+ int CntCloseTable(PGLOBAL g, PTDB tdbp, bool nox, bool abort)
+                                                        ^
+/home/data_sdb/mysql_4442/DB/storage/connect/ha_connect.cc: In member function 'bool ha_connect::CheckColumnList(PGLOBAL)':
+/home/data_sdb/mysql_4442/DB/storage/connect/ha_connect.cc:1934:14: warning: variable 'brc' might be clobbered by  longjmp' or 'vfork' [-Wclobbered]
+   bool       brc= false;
+              ^
+/home/data_sdb/mysql_4442/DB/storage/connect/ha_connect.cc: In member function 'virtual const COND* ha_connect::cond_push(const COND*, bool)':
+/home/data_sdb/mysql_4442/DB/storage/connect/ha_connect.cc:3091:47: warning: argument 'cond' might be clobbered by 'longjmp' or 'vfork' [-Wclobbered]
+ const COND *ha_connect::cond_push(const COND *cond, bool other_tbls_ok MY_ATTRIBUTE((unused)))
+                                               ^
+/home/data_sdb/mysql_4442/DB/storage/connect/plgdbutl.cpp: In function 'int ExtractDate(char*, PDTP, int, int*)':
+/home/data_sdb/mysql_4442/DB/storage/connect/plgdbutl.cpp:767:24: warning: dereferencing type-punned pointer will break strict-aliasing rules [-Wstrict-aliasing]
+     if ((n = *(int*)W[i]))
+                        ^

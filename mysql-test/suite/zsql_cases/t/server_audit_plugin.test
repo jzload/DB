@@ -1,0 +1,31 @@
+--echo ##
+--echo ## Test for bug_612004496638, test the server_audit configure.
+--echo ## 
+
+--echo ##
+--echo ## Test 1 install server_audit plugin.
+--echo ## 
+INSTALL PLUGIN server_audit SONAME 'server_audit.so';
+
+--echo ##
+--echo ## Test 2 show all variables.
+--echo ## 
+show variables like 'server_audit%';
+
+--echo ##
+--echo ## Test 3 show all status.
+--echo ## 
+show status like '%audit%';
+
+--echo ##
+--echo ## Test 4 set global var.
+--echo ## 
+set global server_audit_syslog_facility = LOG_SYSLOG;
+show variables like 'server_audit_syslog_facility';
+
+--echo ##
+--echo ## Test 5 uninstall server_audit plugin.
+--echo ## 
+UNINSTALL PLUGIN server_audit;
+
+

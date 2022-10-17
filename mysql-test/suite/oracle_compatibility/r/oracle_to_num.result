@@ -1,0 +1,1811 @@
+---------------------------------------------------------------
+## Test to_number for oracle  compatibility
+---------------------------------------------------------------
+set @@sql_mode = STRICT_TRANS_TABLES;
+Warnings:
+Warning	3135	'NO_ZERO_DATE', 'NO_ZERO_IN_DATE' and 'ERROR_FOR_DIVISION_BY_ZERO' sql modes should be used with strict mode. They will be merged with strict mode in a future release.
+select @@sql_mode;
+@@sql_mode
+STRICT_TRANS_TABLES
+---------------------------------------------------------------
+## Test_1: test one param value of number
+---------------------------------------------------------------
+select to_number(123) as result from dual;
+result
+123
+select to_number(0) as result from dual;
+result
+0
+select to_number(12345678901234567890123456789012345678901234567890123456789012345) as result from dual;
+result
+12345678901234567890123456789012345678901234567890123456789012345
+select to_number(123456789012345678901234567890123456789012345678901234567890123456) as result from dual;
+ERROR HY000: TO_NUMBER value out of range: my_decimal overflow: bigger precision
+select to_number(-012) as result from dual;
+result
+-12
+select to_number(-12345678901234567890123456789012345678901234567890123456789012345) as result from dual;
+result
+-12345678901234567890123456789012345678901234567890123456789012345
+select to_number(-123456789012345678901234567890123456789012345678901234567890123456) as result from dual;
+ERROR HY000: TO_NUMBER value out of range: my_decimal overflow: bigger precision
+select to_number(-0) as result from dual;
+result
+0
+select to_number(1.1234) as result from dual;
+result
+1.1234
+select to_number(1.234567890123456789012345678901) as result from dual;
+result
+1.234567890123456789012345678901
+select to_number(1.2345678901234567890123456789012) as result from dual;
+ERROR HY000: TO_NUMBER value out of range: my_decimal overflow: bigger scale
+select to_number(12345678901234567890123456789012345.234567890123456789012345678901) as result from dual;
+result
+12345678901234567890123456789012345.234567890123456789012345678901
+select to_number(123456789012345678901234567890123456.234567890123456789012345678901) as result from dual;
+ERROR HY000: TO_NUMBER value out of range: my_decimal overflow: bigger precision
+select to_number(-0.9876) as result from dual;
+result
+-0.9876
+select to_number(-0.1234567890123456789012345678901) as result from dual;
+ERROR HY000: TO_NUMBER value out of range: my_decimal overflow: bigger scale
+select to_number(-999999999099999999909999999990999999.12345678901234567890123456789) as result from dual;
+result
+-999999999099999999909999999990999999.12345678901234567890123456789
+select to_number(-9999999990999999999099999999909999999.12345678901234567890123456789) as result from dual;
+ERROR HY000: TO_NUMBER value out of range: my_decimal overflow: bigger precision
+---------------------------------------------------------------
+## Test_2: test one param value of function
+---------------------------------------------------------------
+select to_number(100*1000) as result from dual;
+result
+100000
+select to_number(-1234.5678*100) as result from dual;
+result
+-123456.78
+select to_number(12345678901234567890123456789012345678901234567890123456789012345*1) as result from dual;
+result
+12345678901234567890123456789012345678901234567890123456789012345
+select to_number(12345678901234567890123456789012345678901234567890123456789012345*10) as result from dual;
+ERROR HY000: TO_NUMBER value out of range: my_decimal overflow: bigger precision
+select to_number(2020/03/24) as result from dual;
+result
+28.055555555541666666
+select to_number(2020/0) as result from dual;
+result
+NULL
+select to_number(0/2020) as result from dual;
+result
+0
+select to_number(2020+03+24) as result from dual;
+result
+2047
+select to_number(+2020) as result from dual;
+result
+2020
+select to_number(+0.123+1.456) as result from dual;
+result
+1.579
+select to_number(1011-2020) as result from dual;
+result
+-1009
+select to_number(0 - 2020) as result from dual;
+result
+-2020
+select to_number( - 2020.78907 - 300.890890 ) as result from dual;
+result
+-2321.67996
+---------------------------------------------------------------
+## Test_3: test one param value of string
+---------------------------------------------------------------
+select to_number('') as result from dual;
+result
+NULL
+select to_number('  ') from dual;
+ERROR HY000: TO_NUMBER value invalid: invalid number.
+select to_number('-') from dual;
+ERROR HY000: TO_NUMBER value invalid: invalid number.
+select to_number('+') from dual;
+ERROR HY000: TO_NUMBER value invalid: invalid number.
+select to_number('.') from dual;
+ERROR HY000: TO_NUMBER value invalid: invalid number.
+select to_number('0') as result from dual;
+result
+0
+select to_number('1234') as result from dual;
+result
+1234
+select to_number('0.1234') as result from dual;
+result
+0.1234
+select to_number('-0.1200') as result from dual;
+result
+-0.12
+select to_number('+9999.0123') as result from dual;
+result
+9999.0123
+select to_number('-009.0123') as result from dual;
+result
+-9.0123
+select to_number('-009.012300') as result from dual;
+result
+-9.0123
+select to_number('12345678901234567890123456789012345678901234567890123456789012345') as result from dual;
+result
+12345678901234567890123456789012345678901234567890123456789012345
+select to_number('123456789012345678901234567890123456789012345678901234567890123456') as result from dual;
+ERROR HY000: TO_NUMBER value out of range: my_decimal overflow: bigger precision
+select to_number('-123456789012345678901234567890123456789012345678901234567890123456') as result from dual;
+ERROR HY000: TO_NUMBER value out of range: my_decimal overflow: bigger precision
+select to_number('123456789012345678901234567890123456789012345678901234567890.123456') as result from dual;
+ERROR HY000: TO_NUMBER value out of range: my_decimal overflow: bigger precision
+select to_number('-1234') as result from dual;
+result
+-1234
+select to_number('+9876') as result from dual;
+result
+9876
+select to_number('9,876') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: invalid number.
+select to_number('9876+') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: invalid number.
+select to_number('9876-') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: invalid number.
+select to_number('<9876>') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: invalid number.
+select to_number('98 76') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: invalid number.
+select to_number('- 9876') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: invalid number.
+select to_number('98.7.6') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: invalid number.
+select to_number('98D76') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: invalid number.
+select to_number(' 98 76') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: invalid number.
+select to_number('98 76 ') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: invalid number.
+select to_number('.9876') as result from dual;
+result
+0.9876
+select to_number('9876.') as result from dual;
+result
+9876
+select to_number('    9876    ') as result from dual;
+result
+9876
+select to_number('+9876') as result from dual;
+result
+9876
+select to_number('-9876') as result from dual;
+result
+-9876
+---------------------------------------------------------------
+## Test_4: test one param value of nested function
+---------------------------------------------------------------
+select to_number(to_char(9.876,'9.999')) as result from dual;
+result
+9.876
+select to_number(CAST(1.00 AS CHAR)) as result from dual;
+result
+1
+select to_number(to_number(0.123,'9.999')) as result from dual;
+result
+0.123
+---------------------------------------------------------------
+## Test_5: test two param value of number
+---------------------------------------------------------------
+select to_number(0,'9.999') as result from dual;
+result
+0
+select to_number(1,'9,999') as result from dual;
+result
+1
+select to_number(1234,'9999') as result from dual;
+result
+1234
+select to_number(12345678901234567890123456789012345678901234567890123456789012345, '99999999999999999999999999999999999999999999999999999999999999999') as result from dual;
+result
+12345678901234567890123456789012345678901234567890123456789012345
+select to_number(123456789012345678901234567890123456789012345678901234567890123456, '999999999999999999999999999999999999999999999999999999999999999999') as result from dual;
+ERROR HY000: TO_NUMBER value out of range: my_decimal overflow: bigger precision
+select to_number(1.1234, '9.9999') as result from dual;
+result
+1.1234
+select to_number(1.234567890123456789012345678901, '9.999999999999999999999999999999') as result from dual;
+result
+1.234567890123456789012345678901
+select to_number(1.2345678901234567890123456789012, '9.9999999999999999999999999999999') as result from dual;
+ERROR HY000: TO_NUMBER value out of range: my_decimal overflow: bigger scale
+select to_number(12345678901234567890123456789012345.234567890123456789012345678901, '99999999999999999999999999999999999.999999999999999999999999999999') as result from dual;
+result
+12345678901234567890123456789012345.234567890123456789012345678901
+select to_number(123456789012345678901234567890123456.234567890123456789012345678901, '999999999999999999999999999999999999.999999999999999999999999999999') as result from dual;
+ERROR HY000: TO_NUMBER value out of range: my_decimal overflow: bigger precision
+select to_number(1234,'9,999') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: not match "G" or "," in fmt
+select to_number(,'9') as result from dual;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ','9') as result from dual' at line 1
+---------------------------------------------------------------
+## Test_6: test two param value of number expr
+---------------------------------------------------------------
+select to_number(-1.001,'9.999') as result from dual;
+result
+-1.001
+select to_number(+1.01,'9.999') as result from dual;
+result
+1.01
+select to_number(1234+1234,'9999') as result from dual;
+result
+2468
+select to_number(2020/03/24, '99.999999999999999999') as result from dual;
+result
+28.055555555541666666
+select to_number(2020/03/24, '99.999') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: number not match the format!
+select to_number(2020/0, '9999') as result from dual;
+result
+NULL
+select to_number(0/2020, '9') as result from dual;
+result
+0
+select to_number(2020+03+24, '9999') as result from dual;
+result
+2047
+select to_number(+2020, '9999') as result from dual;
+result
+2020
+select to_number(+0.123+1.456, '9.999') as result from dual;
+result
+1.579
+select to_number(1011-2020, '9999') as result from dual;
+result
+-1009
+select to_number(0 - 2020, '9999') as result from dual;
+result
+-2020
+select to_number( - 2020.78907 - 300.890890 ,'9999.999999') as result from dual;
+result
+-2321.67996
+select to_number(-012, '999') as result from dual;
+result
+-12
+select to_number(-12345678901234567890123456789012345678901234567890123456789012345, '99999999999999999999999999999999999999999999999999999999999999999') as result from dual;
+result
+-12345678901234567890123456789012345678901234567890123456789012345
+select to_number(-0, '9') as result from dual;
+result
+0
+select to_number(-123456789012345678901234567890123456789012345678901234567890123456, '999999999999999999999999999999999999999999999999999999999999999999') as result from dual;
+ERROR HY000: TO_NUMBER value out of range: my_decimal overflow: bigger precision
+select to_number(-0.9876, '9.9999') as result from dual;
+result
+-0.9876
+select to_number(-0.1234567890123456789012345678901, '9.9999999999999999999999999999999') as result from dual;
+ERROR HY000: TO_NUMBER value out of range: my_decimal overflow: bigger scale
+select to_number(-999999999099999999909999999990999999.12345678901234567890123456789, '999999999999999999999999999999999999.99999999999999999999999999999') as result from dual;
+result
+-999999999099999999909999999990999999.12345678901234567890123456789
+select to_number(-9999999990999999999099999999909999999.12345678901234567890123456789, '9999999999999999999999999999999999999.99999999999999999999999999999') as result from dual;
+ERROR HY000: TO_NUMBER value out of range: my_decimal overflow: bigger precision
+---------------------------------------------------------------
+## Test_7: test two param value and fmt ","
+---------------------------------------------------------------
+select to_number('1','9,999') as result from dual;
+result
+1
+select to_number('1,','9,999') as result from dual;
+result
+1
+select to_number('1,1','9,999') as result from dual;
+result
+11
+select to_number('1,001','9,999') as result from dual;
+result
+1001
+select to_number('                                  1,001','9,999') as result from dual;
+result
+1001
+select to_number('1.00101','9.999999') as result from dual;
+result
+1.00101
+select to_number('1,001','999,999') as result from dual;
+result
+1001
+select to_number('1,001','9,9999') as result from dual;
+result
+1001
+select to_number('1.001','999.999') as result from dual;
+result
+1.001
+select to_number('1.001','9.9999') as result from dual;
+result
+1.001
+select to_number('	1,001','9,999') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: number not match the format!
+select to_number('1,001','9,999 ') as result from dual;
+ERROR HY000: TO_NUMBER format invalid: 9,999 
+select to_number('1,001 ','9,999 ') as result from dual;
+ERROR HY000: TO_NUMBER format invalid: 9,999 
+select to_number('1 ,001','9,999') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: not match "G" or "," in fmt
+select to_number('1, 001','9,999') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: number not match the format!
+select to_number('1001','9,999') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: not match "G" or "," in fmt
+select to_number('01,001','9,999') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: not match "G" or "," in fmt
+select to_number('1.001,01','9.999,999') as result from dual;
+ERROR HY000: TO_NUMBER format invalid: "," must be ahead of decimal point.
+select to_number('1,001.01','9,999D999') as result from dual;
+ERROR HY000: TO_NUMBER format invalid: "D" should not use with ","
+---------------------------------------------------------------
+## Test_8: test two param value and fmt "."
+---------------------------------------------------------------
+select to_number('0','9.999') as result from dual;
+result
+0
+select to_number('1','9.999') as result from dual;
+result
+1
+select to_number('1.','9.999') as result from dual;
+result
+1
+select to_number('1.','9D999') as result from dual;
+result
+1
+select to_number('1.1','9.999') as result from dual;
+result
+1.1
+select to_number('10.01','99.99') as result from dual;
+result
+10.01
+select to_number('                       10.01','99.99') as result from dual;
+result
+10.01
+select to_number('10.01','999.99') as result from dual;
+result
+10.01
+select to_number('10.01','99.999') as result from dual;
+result
+10.01
+select to_number('10.01','99D999') as result from dual;
+result
+10.01
+select to_number(' -1.001','9.999') as result from dual;
+result
+-1.001
+select to_number('10.','99.') as result from dual;
+result
+10
+select to_number(' -1.001 ','999.9999') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: error number.
+select to_number('100.1','99.99') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: not match "D" or "." in the format!
+select to_number('10.01','99.9.9') as result from dual;
+ERROR HY000: TO_NUMBER format invalid: repeated decimal character in fmt.
+select to_number('10.0.1','99.9.9') as result from dual;
+ERROR HY000: TO_NUMBER format invalid: repeated decimal character in fmt.
+select to_number('10.0.1','99G9.9') as result from dual;
+ERROR HY000: TO_NUMBER format invalid: "." should not use with "G" in fmt
+---------------------------------------------------------------
+## Test_9: test two param value and fmt "0"
+---------------------------------------------------------------
+select to_number('01001','09999') as result from dual;
+result
+1001
+select to_number('11001','09999') as result from dual;
+result
+11001
+select to_number('                       01001','09999') as result from dual;
+result
+1001
+select to_number('1001','99999') as result from dual;
+result
+1001
+select to_number('1001','9990') as result from dual;
+result
+1001
+select to_number('1001','99990') as result from dual;
+result
+1001
+select to_number('10.01','99.990') as result from dual;
+result
+10.01
+select to_number('1001','9099') as result from dual;
+result
+1001
+select to_number('','09abcdefg') as result from dual;
+result
+NULL
+select to_number('','0') as result from dual;
+result
+NULL
+select to_number('','') as result from dual;
+result
+NULL
+select to_number('','9') as result from dual;
+result
+NULL
+select to_number('01001','') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: error number.
+select to_number('10010','9990') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: error number.
+select to_number(' ','0') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: number not match the format!
+select to_number('1','00') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: number not match the format!
+select to_number(' ','09') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: number not match the format!
+select to_number(' ','9') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: error number.
+select to_number('1001','09999') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: number not match the format!
+select to_number('1001','09990') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: number not match the format!
+select to_number('1','09') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: number not match the format!
+select to_number('1','09999') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: number not match the format!
+---------------------------------------------------------------
+## Test_10: test two param value and fmt "9"
+---------------------------------------------------------------
+select to_number('','9') as result from dual;
+result
+NULL
+select to_number('01','9999') as result from dual;
+result
+1
+select to_number('0000','9999') as result from dual;
+result
+0
+select to_number(' ','9') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: error number.
+select to_number('00000','9999') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: error number.
+select to_number('0.1','9999') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: error number.
+---------------------------------------------------------------
+## Test_11: test two param value and fmt "D"
+---------------------------------------------------------------
+select to_number('12.34','99D99') as result from dual;
+result
+12.34
+select to_number('1.001','999D999') as result from dual;
+result
+1.001
+select to_number('1.001','9D9999') as result from dual;
+result
+1.001
+select to_number('1','9D9999') as result from dual;
+result
+1
+select to_number('12.34','99DD99') as result from dual;
+ERROR HY000: TO_NUMBER format invalid: repeated decimal character in fmt.
+select to_number('12.34','9,9D99') as result from dual;
+ERROR HY000: TO_NUMBER format invalid: "D" should not use with ","
+---------------------------------------------------------------
+## Test_12: test two param value and fmt "G"
+---------------------------------------------------------------
+select to_number('1,234','9G999') as result from dual;
+result
+1234
+select to_number('1,001','999G999') as result from dual;
+result
+1001
+select to_number('1,001','9G9999') as result from dual;
+result
+1001
+select to_number('1','9G999') as result from dual;
+result
+1
+select to_number('1','9.99G9') as result from dual;
+ERROR HY000: TO_NUMBER format invalid: "G" must be ahead of decimal point.
+select to_number('1','9G99.9') as result from dual;
+ERROR HY000: TO_NUMBER format invalid: "." should not use with "G" in fmt
+select to_number('1','9,99G9') as result from dual;
+ERROR HY000: TO_NUMBER format invalid: "G" should not use with ",".
+select to_number('1','999GD9') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: not match "G" or "," in fmt
+select to_number('1','99G9D9') as result from dual;
+result
+1
+select to_number('123,.1','999GD9') as result from dual;
+result
+123.1
+select to_number('12,.1','99GD9') as result from dual;
+result
+12.1
+---------------------------------------------------------------
+## Test_13: test two param value and fmt "L"
+---------------------------------------------------------------
+select to_number('$123','L999') as result from dual;
+result
+123
+select to_number('123$','999L') as result from dual;
+result
+123
+select to_number('12$3','99L9') as result from dual;
+result
+12.3
+select to_number('$1','L9999') as result from dual;
+result
+1
+select to_number('$1','L9099') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: number not match the format!
+select to_number('$1','L9909') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: number not match the format!
+select to_number('$1','L9990') as result from dual;
+result
+1
+select to_number('+$','SL999') as result from dual;
+result
+0
+select to_number('$','L999') as result from dual;
+result
+0
+select to_number('$','L099') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: number not match the format!
+select to_number('$','L909') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: number not match the format!
+select to_number('$','L990') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: number not match the format!
+select to_number('$123$','L999L') as result from dual;
+ERROR HY000: TO_NUMBER format invalid: repeated currency character in fmt.
+select to_number('*123','L999') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: error "L","C" or "U",value
+select to_number('1','9099') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: number not match the format!
+select to_number('11','9099') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: number not match the format!
+select to_number('111','9099') as result from dual;
+result
+111
+select to_number('1','9909') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: number not match the format!
+select to_number('11','9909') as result from dual;
+result
+11
+select to_number('111','9909') as result from dual;
+result
+111
+select to_number('1111','9909') as result from dual;
+result
+1111
+select to_number('1','9990') as result from dual;
+result
+1
+select to_number('11','9990') as result from dual;
+result
+11
+select to_number('111','9990') as result from dual;
+result
+111
+select to_number('1111','9990') as result from dual;
+result
+1111
+---------------------------------------------------------------
+## Test_14: test two param value and fmt "MI"
+---------------------------------------------------------------
+select to_number('1234-','9999MI') as result from dual;
+result
+-1234
+select to_number('1,001-','99,9999MI') as result from dual;
+result
+-1001
+select to_number('1,001 ','99,9999MI') as result from dual;
+result
+1001
+select to_number('1,001  ','99,9999MI') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: error number.
+select to_number('12341','9999MI') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: error "MI" value
+select to_number('12341+','9999MI') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: error "MI" value
+---------------------------------------------------------------
+## Test_15: test two param value and fmt "PR"
+---------------------------------------------------------------
+select to_number('<1234>','9999PR') as result from dual;
+result
+-1234
+select to_number('<1,001>','99,9999PR') as result from dual;
+result
+-1001
+select to_char('1001', '9999PR') as result from dual;
+result
+ 1001
+select to_number('1,001','99,9999PR') as result from dual;
+result
+1001
+select to_number('1,001 ','99,9999PR') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: error "PR" value
+select to_number(' 1,001 ','9,999PR') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: error "PR" value
+select to_number('<$1234','L9999PR') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: error "PR" value
+select to_number('<$1234 ','L9999PR') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: error "PR" value
+select to_number('<1,001 >','99,9999PR') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: error "PR" value
+select to_number('1,001  ','99,9999PR') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: error "PR" value
+select to_number(' 1001 ','9999PR') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: error "PR" value
+---------------------------------------------------------------
+## Test_16: test two param value and fmt "S"
+---------------------------------------------------------------
+select to_number('1234+','9999S') as result from dual;
+result
+1234
+select to_number('12.34-','99D99S') as result from dual;
+result
+-12.34
+select to_number('-1234','s9999') as result from dual;
+result
+-1234
+select to_number('-1234','9999') as result from dual;
+result
+-1234
+select to_number('1234','S9999') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: error "S" value
+select to_number('+1234','9999') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: number not match the format!
+select to_number('+1234','9999S') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: number not match the format!
+select to_number('+1234+','9999S') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: number not match the format!
+select to_number('+','S999') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: number not match the format!
+---------------------------------------------------------------
+## Test_17: test two param for others
+---------------------------------------------------------------
+select to_number('$1001','$9999') as result from dual;
+result
+1001
+select to_number('1','B9999') as result from dual;
+ERROR HY000: TO_NUMBER format invalid: not support "B"
+select to_number('  123.4567','FM999.0090') as result from dual;
+ERROR HY000: TO_NUMBER format invalid: not support "FM"
+select to_number('IV','RN') as result from dual;
+ERROR HY000: TO_NUMBER format invalid: not support "RN"/"rn"
+select to_number('i','rn') as result from dual;
+ERROR HY000: TO_NUMBER format invalid: not support "RN"/"rn"
+SELECT to_number('1234567890', 'TM9') as result FROM DUAL;
+ERROR HY000: TO_NUMBER format invalid: TM9
+select to_number('123','999V9999') as result from dual;
+ERROR HY000: TO_NUMBER format invalid: not support "V"
+---------------------------------------------------------------
+## Test_18: test two param for DML
+---------------------------------------------------------------
+drop database if exists abczyy_to_num;
+Warnings:
+Note	1008	Can't drop database 'abczyy_to_num'; database doesn't exist
+create database abczyy_to_num;
+use abczyy_to_num;
+create table tb1(a int key, b decimal(15,7));
+insert into tb1(a,b) values(1,0);
+insert into tb1(a,b) values(2,0.123456789);
+Warnings:
+Note	1265	Data truncated for column 'b' at row 1
+insert into tb1(a,b) values(3,12345.6789);
+insert into tb1(a,b) values(4,-99999.9999);
+insert into tb1(a,b) values(5,-0);
+insert into tb1(a,b) values(6,-0.001);
+select * from tb1 order by a;
+a	b
+1	0.0000000
+2	0.1234568
+3	12345.6789000
+4	-99999.9999000
+5	0.0000000
+6	-0.0010000
+insert into tb1(a,b) values(10, to_number(-0.1));
+select * from tb1 order by a;
+a	b
+1	0.0000000
+2	0.1234568
+3	12345.6789000
+4	-99999.9999000
+5	0.0000000
+6	-0.0010000
+10	-0.1000000
+insert into tb1(a,b) values(11, to_number('-0.2'));
+select * from tb1 order by a;
+a	b
+1	0.0000000
+2	0.1234568
+3	12345.6789000
+4	-99999.9999000
+5	0.0000000
+6	-0.0010000
+10	-0.1000000
+11	-0.2000000
+insert into tb1(a,b) values(12, to_number(''));
+select * from tb1 order by a;
+a	b
+1	0.0000000
+2	0.1234568
+3	12345.6789000
+4	-99999.9999000
+5	0.0000000
+6	-0.0010000
+10	-0.1000000
+11	-0.2000000
+12	NULL
+insert into tb1(a,b) values(13, to_number('',''));
+select * from tb1 order by a;
+a	b
+1	0.0000000
+2	0.1234568
+3	12345.6789000
+4	-99999.9999000
+5	0.0000000
+6	-0.0010000
+10	-0.1000000
+11	-0.2000000
+12	NULL
+13	NULL
+insert into tb1(a,b) values(14, to_number('  '));
+ERROR HY000: TO_NUMBER value invalid: invalid number.
+insert into tb1(a,b) values(15, NULL);
+select * from tb1 order by a;
+a	b
+1	0.0000000
+2	0.1234568
+3	12345.6789000
+4	-99999.9999000
+5	0.0000000
+6	-0.0010000
+10	-0.1000000
+11	-0.2000000
+12	NULL
+13	NULL
+15	NULL
+insert into tb1(a,b) values(16, to_number('0.123456789012345678901234567890','9.999999999999999999999999999999'));
+Warnings:
+Note	1265	Data truncated for column 'b' at row 1
+select * from tb1 order by a;
+a	b
+1	0.0000000
+2	0.1234568
+3	12345.6789000
+4	-99999.9999000
+5	0.0000000
+6	-0.0010000
+10	-0.1000000
+11	-0.2000000
+12	NULL
+13	NULL
+15	NULL
+16	0.1234568
+insert into tb1(a,b) values(121, to_number(2020/0));
+insert into tb1(a,b) values(122, to_number(NULL));
+insert into tb1(a,b) values(123, to_number(2020/0, '9999'));
+insert into tb1(a,b) values(124, to_number(NULL, '9999'));
+select * from tb1 order by a;
+a	b
+1	0.0000000
+2	0.1234568
+3	12345.6789000
+4	-99999.9999000
+5	0.0000000
+6	-0.0010000
+10	-0.1000000
+11	-0.2000000
+12	NULL
+13	NULL
+15	NULL
+16	0.1234568
+121	NULL
+122	NULL
+123	NULL
+124	NULL
+delete from tb1 where a = to_number('11','99');
+select * from tb1 order by a;
+a	b
+1	0.0000000
+2	0.1234568
+3	12345.6789000
+4	-99999.9999000
+5	0.0000000
+6	-0.0010000
+10	-0.1000000
+12	NULL
+13	NULL
+15	NULL
+16	0.1234568
+121	NULL
+122	NULL
+123	NULL
+124	NULL
+update tb1 set b=to_number('$123.456','L999.99999') where a=13;
+select * from tb1 order by a;
+a	b
+1	0.0000000
+2	0.1234568
+3	12345.6789000
+4	-99999.9999000
+5	0.0000000
+6	-0.0010000
+10	-0.1000000
+12	NULL
+13	123.4560000
+15	NULL
+16	0.1234568
+121	NULL
+122	NULL
+123	NULL
+124	NULL
+drop database if exists abczyy_to_num;
+---------------------------------------------------------------
+## Test_19: test two param for lowercase
+---------------------------------------------------------------
+select to_number('12.34','99D99') as result from dual;
+result
+12.34
+select to_number('12.34','99d99') as result from dual;
+result
+12.34
+select to_number('1,234','9G999') as result from dual;
+result
+1234
+select to_number('1,234','9g999') as result from dual;
+result
+1234
+select to_number('$123','L999') as result from dual;
+result
+123
+select to_number('$123','l999') as result from dual;
+result
+123
+select to_number('1234-','9999MI') as result from dual;
+result
+-1234
+select to_number('1234-','9999mi') as result from dual;
+result
+-1234
+select to_number('1234-','9999Mi') as result from dual;
+result
+-1234
+select to_number('1234-','9999mI') as result from dual;
+result
+-1234
+select to_number('<1234>','9999PR') as result from dual;
+result
+-1234
+select to_number('<1234>','9999pr') as result from dual;
+result
+-1234
+select to_number('<1234>','9999Pr') as result from dual;
+result
+-1234
+select to_number('<1234>','9999pR') as result from dual;
+result
+-1234
+select to_number('1234+','9999S') as result from dual;
+result
+1234
+select to_number('1234+','9999s') as result from dual;
+result
+1234
+---------------------------------------------------------------
+## Test_20: test return NULL
+---------------------------------------------------------------
+select to_number(2020/0) as result from dual;
+result
+NULL
+select to_number('') as result from dual;
+result
+NULL
+select to_number(NULL) as result from dual;
+result
+NULL
+select to_number(2020/0, '9999') as result from dual;
+result
+NULL
+select to_number('','0') as result from dual;
+result
+NULL
+select to_number(NULL,'9') as result from dual;
+result
+NULL
+select to_number('123',2020/0) as result from dual;
+result
+NULL
+select to_number('123','') as result from dual;
+ERROR HY000: TO_NUMBER value invalid: error number.
+select to_number('123',NULL) as result from dual;
+result
+NULL
+---------------------------------------------------------------
+## Test_21: test all field type
+---------------------------------------------------------------
+drop database if exists abczyy_to_num;
+Warnings:
+Note	1008	Can't drop database 'abczyy_to_num'; database doesn't exist
+create database abczyy_to_num;
+use abczyy_to_num;
+create table tb1(
+a int key,
+type_tiny tinyint,
+type_short smallint,
+type_long int,
+type_long1 bool,
+type_int24 mediumint,
+type_longlong bigint,
+type_float float(10,5),
+type_double double(10,5),
+type_newdecimal decimal(15,5),
+type_varchar varchar(10),
+type_string char(10),
+type_date date,
+type_time time,
+type_datetime datetime,
+type_timestamp timestamp,
+type_year year,
+type_bit bit(8),
+type_enum enum('101','102','103'),
+type_set set('1','2','3'),
+type_tiny_blob tinyblob,
+type_medium_blob mediumblob,
+type_long_blob longblob,
+type_blob blob
+);
+Warnings:
+Warning	1681	Specifying number of digits for floating point data types is deprecated and will be removed in a future release.
+Warning	1681	Specifying number of digits for floating point data types is deprecated and will be removed in a future release.
+insert into tb1 values(1, 123, 1234, 1234567890, true, 1234567, 123456789012345678, 10.00101, 100.12345, 12345.67890, '12345', '1234567', '2020-04-09', '19:59:18', '2020-04-09 19:59:53', '2020-04-09 20:59:53', '1999', b'0101', '101', '1', '1122', '112233', '11223344', '1122334455');
+insert into tb1(a) values(2);
+select * from tb1;
+a	type_tiny	type_short	type_long	type_long1	type_int24	type_longlong	type_float	type_double	type_newdecimal	type_varchar	type_string	type_date	type_time	type_datetime	type_timestamp	type_year	type_bit	type_enum	type_set	type_tiny_blob	type_medium_blob	type_long_blob	type_blob
+1	123	1234	1234567890	1	1234567	123456789012345678	10.00101	100.12345	12345.67890	12345	1234567	2020-04-09	19:59:18	2020-04-09 19:59:53	2020-04-09 20:59:53	1999		101	1	1122	112233	11223344	1122334455
+2	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+select to_number(type_tiny) from tb1 where a=1;
+to_number(type_tiny)
+123
+select to_number(type_short) from tb1 where a=1;
+to_number(type_short)
+1234
+select to_number(type_long) from tb1 where a=1;
+to_number(type_long)
+1234567890
+select to_number(type_long1) from tb1 where a=1;
+to_number(type_long1)
+1
+select to_number(type_int24) from tb1 where a=1;
+to_number(type_int24)
+1234567
+select to_number(type_longlong) from tb1 where a=1;
+to_number(type_longlong)
+123456789012345678
+select to_number(type_float) from tb1 where a=1;
+to_number(type_float)
+10.001009941101074
+select to_number(type_double) from tb1 where a=1;
+to_number(type_double)
+100.12345
+select to_number(type_newdecimal) from tb1 where a=1;
+to_number(type_newdecimal)
+12345.6789
+select to_number(type_varchar) from tb1 where a=1;
+to_number(type_varchar)
+12345
+select to_number(type_string) from tb1 where a=1;
+to_number(type_string)
+1234567
+select to_number(type_date) from tb1 where a=1;
+ERROR HY000: TO_NUMBER value invalid: invalid number.
+select to_number(type_time) from tb1 where a=1;
+ERROR HY000: TO_NUMBER value invalid: invalid number.
+select to_number(type_datetime) from tb1 where a=1;
+ERROR HY000: TO_NUMBER value invalid: invalid number.
+select to_number(type_timestamp) from tb1 where a=1;
+ERROR HY000: TO_NUMBER value invalid: invalid number.
+select to_number(type_year) from tb1 where a=1;
+to_number(type_year)
+1999
+select to_number(type_bit) from tb1 where a=1;
+ERROR HY000: TO_NUMBER value invalid: invalid number.
+select to_number(type_bit+0) from tb1 where a=1;
+to_number(type_bit+0)
+5
+select to_number(type_enum) from tb1 where a=1;
+to_number(type_enum)
+1
+select to_number(type_set) from tb1 where a=1;
+to_number(type_set)
+1
+select to_number(type_tiny_blob) from tb1 where a=1;
+to_number(type_tiny_blob)
+1122
+select to_number(type_medium_blob) from tb1 where a=1;
+to_number(type_medium_blob)
+112233
+select to_number(type_long_blob) from tb1 where a=1;
+to_number(type_long_blob)
+11223344
+select to_number(type_blob) from tb1 where a=1;
+to_number(type_blob)
+1122334455
+select to_number(type_tiny) from tb1 where a=2;
+to_number(type_tiny)
+NULL
+select to_number(type_short) from tb1 where a=2;
+to_number(type_short)
+NULL
+select to_number(type_long) from tb1 where a=2;
+to_number(type_long)
+NULL
+select to_number(type_long1) from tb1 where a=2;
+to_number(type_long1)
+NULL
+select to_number(type_int24) from tb1 where a=2;
+to_number(type_int24)
+NULL
+select to_number(type_longlong) from tb1 where a=2;
+to_number(type_longlong)
+NULL
+select to_number(type_float) from tb1 where a=2;
+to_number(type_float)
+NULL
+select to_number(type_double) from tb1 where a=2;
+to_number(type_double)
+NULL
+select to_number(type_newdecimal) from tb1 where a=2;
+to_number(type_newdecimal)
+NULL
+select to_number(type_varchar) from tb1 where a=2;
+to_number(type_varchar)
+NULL
+select to_number(type_string) from tb1 where a=2;
+to_number(type_string)
+NULL
+select to_number(type_date) from tb1 where a=2;
+to_number(type_date)
+NULL
+select to_number(type_time) from tb1 where a=2;
+to_number(type_time)
+NULL
+select to_number(type_datetime) from tb1 where a=2;
+to_number(type_datetime)
+NULL
+select to_number(type_timestamp) from tb1 where a=2;
+to_number(type_timestamp)
+NULL
+select to_number(type_year) from tb1 where a=2;
+to_number(type_year)
+NULL
+select to_number(type_bit) from tb1 where a=2;
+to_number(type_bit)
+NULL
+select to_number(type_bit+0) from tb1 where a=2;
+to_number(type_bit+0)
+NULL
+select to_number(type_enum) from tb1 where a=2;
+to_number(type_enum)
+NULL
+select to_number(type_set) from tb1 where a=2;
+to_number(type_set)
+NULL
+select to_number(type_tiny_blob) from tb1 where a=2;
+to_number(type_tiny_blob)
+NULL
+select to_number(type_medium_blob) from tb1 where a=2;
+to_number(type_medium_blob)
+NULL
+select to_number(type_long_blob) from tb1 where a=2;
+to_number(type_long_blob)
+NULL
+select to_number(type_blob) from tb1 where a=2;
+to_number(type_blob)
+NULL
+select to_number(`type_tiny`) from tb1 where a=2;
+to_number(`type_tiny`)
+NULL
+select to_number('type_tiny') from tb1 where a=2;
+ERROR HY000: TO_NUMBER value invalid: invalid number.
+drop database if exists abczyy_to_num;
+---------------------------------------------------------------
+## Test_22: test sql_mode with ERROR_FOR_DIVISION_BY_ZERO
+---------------------------------------------------------------
+set @@sql_mode = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO';
+Warnings:
+Warning	3135	'NO_ZERO_DATE', 'NO_ZERO_IN_DATE' and 'ERROR_FOR_DIVISION_BY_ZERO' sql modes should be used with strict mode. They will be merged with strict mode in a future release.
+select @@sql_mode;
+@@sql_mode
+STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO
+drop database if exists abczyy_to_num;
+Warnings:
+Note	1008	Can't drop database 'abczyy_to_num'; database doesn't exist
+create database abczyy_to_num;
+use abczyy_to_num;
+create table tb1(a int key, b decimal(15,7));
+select to_number(2020/0) as result from dual;
+result
+NULL
+Warnings:
+Warning	1365	Division by 0
+select cast(2020/0 as int) as result from dual;
+result
+NULL
+Warnings:
+Warning	1365	Division by 0
+insert into tb1(a,b) values(1,to_number(2020/0));
+ERROR 22012: Division by 0
+insert into tb1(a,b) values(2,cast(2020/0 as int));
+ERROR 22012: Division by 0
+select to_number(2020/0, '9999') as result from dual;
+result
+NULL
+Warnings:
+Warning	1365	Division by 0
+insert into tb1(a,b) values(3, to_number(2020/0, '9999'));
+ERROR 22012: Division by 0
+drop database if exists abczyy_to_num;
+---------------------------------------------------------------
+## Test_23: (612004588566) test join and order by
+---------------------------------------------------------------
+drop database if exists abczyy_to_num;
+Warnings:
+Note	1008	Can't drop database 'abczyy_to_num'; database doesn't exist
+create database abczyy_to_num;
+use abczyy_to_num;
+create table tb1(id_1 int(11), 
+float_1 float,
+char_1 char(20),
+varchar_1 varchar(25),
+year_1 year(4),
+date_1 date,
+timestamp_1 timestamp,
+timestamp_2 timestamp(3),
+timestamp_3 timestamp(6),
+PRIMARY KEY (id_1));
+Warnings:
+Warning	1681	Integer display width is deprecated and will be removed in a future release.
+create table tb3(id_3 int(11), 
+float_3 float,
+char_3 char(15),
+PRIMARY KEY (id_3));
+Warnings:
+Warning	1681	Integer display width is deprecated and will be removed in a future release.
+insert into tb1 (id_1, float_1,char_1,varchar_1,year_1,date_1,timestamp_1,timestamp_2,timestamp_3) values(1, 123.456, '20080508', '19991012121212123456', '1999', '1999-02-05', '1999-02-05 12:15:15', '1999-02-05 12:15:15.456', '1999-02-05 12:15:15.123456');
+insert into tb1 (id_1, float_1,char_1,varchar_1,year_1,date_1,timestamp_1,timestamp_2,timestamp_3) values(2, 123.6789, '20180625.1499', '19991012121212123456', '2020', '2020-02-05', '2020-02-05 08:15:15', '1999-02-05 12:15:15.456', '1999-02-05 12:15:15.123456');
+insert into tb1 (id_1, float_1,char_1,varchar_1,year_1,date_1,timestamp_1,timestamp_2,timestamp_3) values(3, 124.6789, '20180625.13992987', '19991012121212123456', '2020', '2020-02-05', '2020-02-05 08:15:15', '1999-02-05 12:15:15.456', '1999-02-05 12:15:15.123456');
+insert into tb1(id_1) values(888);
+insert into tb3 values(1, 123.456, '20080508');
+insert into tb3 values(2, 123.6789, '20180625.1299');
+insert into tb3 values(3, 4321.6789, '20200625.1234');
+select to_number(char_1)*cast(char_1 as decimal(25,1)) from tb1;
+to_number(char_1)*cast(char_1 as decimal(25,1))
+403226801538064
+407257630433763.20249
+407257630232559.746761737
+NULL
+select to_number(char_1) as a from tb1 order by id_1;
+a
+20080508
+20180625.1499
+20180625.13992987
+NULL
+select to_number(char_1) as a from tb1 order by a;
+a
+NULL
+20080508
+20180625.13992987
+20180625.1499
+select to_number(char_1) from tb1 join tb3 on id_1=id_3;
+to_number(char_1)
+20080508
+20180625.1499
+20180625.13992987
+select to_number(char_1) from tb1 order by id_1;
+to_number(char_1)
+20080508
+20180625.1499
+20180625.13992987
+NULL
+select to_number(char_1) from tb1 join tb3 on id_1=id_3 order by id_1;
+to_number(char_1)
+20080508
+20180625.1499
+20180625.13992987
+select cast(char_1 as decimal(20,6)) from tb1 join tb3 on id_1=id_3 order by id_1;
+cast(char_1 as decimal(20,6))
+20080508.000000
+20180625.149900
+20180625.139930
+select cast(char_1 as decimal(65,30)) from tb1 join tb3 on id_1=id_3 order by id_1;
+cast(char_1 as decimal(65,30))
+20080508.000000000000000000000000000000
+20180625.149900000000000000000000000000
+20180625.139929870000000000000000000000
+select to_number(char_1)+5.123 from tb1 join tb3 on id_1=id_3 order by id_1;
+to_number(char_1)+5.123
+20080513.123
+20180630.2729
+20180630.26292987
+select to_number(char_1)*5.123 from tb1 join tb3 on id_1=id_3 order by id_1;
+to_number(char_1)*5.123
+102872442.484
+103385342.6429377
+103385342.59186072401
+select to_number(char_1)-5.123 from tb1 join tb3 on id_1=id_3 order by id_1;
+to_number(char_1)-5.123
+20080502.877
+20180620.0269
+20180620.01692987
+select to_number(char_1)/5.123 from tb1 join tb3 on id_1=id_3 order by id_1;
+to_number(char_1)/5.123
+3919677.532695686
+3939220.212746437634198711
+3939220.210800286941245364
+select to_number(char_1)+to_number(char_1) from tb1 join tb3 on id_1=id_3 order by id_1;
+to_number(char_1)+to_number(char_1)
+40161016
+40361250.2998
+40361250.27985974
+select to_number(char_1)*to_number(char_1) from tb1 join tb3 on id_1=id_3 order by id_1;
+to_number(char_1)*to_number(char_1)
+403226801538064
+407257631440776.39747001
+407257631038369.4851178685182169
+select to_number(char_1)+cast(char_1 as decimal(20,6)) from tb1 join tb3 on id_1=id_3 order by id_1;
+to_number(char_1)+cast(char_1 as decimal(20,6))
+40161016
+40361250.2998
+40361250.27985987
+select to_number(char_1)-cast(float_1 as decimal(20,6)) from tb1 join tb3 on id_1=id_3 order by id_1;
+to_number(char_1)-cast(float_1 as decimal(20,6))
+20080384.543999
+20180501.470998
+20180500.46102787
+select to_number(char_1)*cast(char_1 as decimal(20,6)) from tb1 join tb3 on id_1=id_3 order by id_1;
+to_number(char_1)*cast(char_1 as decimal(20,6))
+403226801538064
+407257631440776.39747001
+407257631038372.1085991367091
+select to_number(char_1)/cast(float_1 as decimal(20,6)) from tb1 join tb3 on id_1=id_3 order by id_1;
+to_number(char_1)/cast(float_1 as decimal(20,6))
+162653.15446269801011941
+163169.504447088315839026
+161860.786518074004212837
+select to_number(char_1)+cast(char_1 as decimal(65,30)) from tb1 join tb3 on id_1=id_3 order by id_1;
+to_number(char_1)+cast(char_1 as decimal(65,30))
+40161016
+40361250.2998
+40361250.27985974
+select to_number(char_1)-cast(float_1 as decimal(65,30)) from tb1 join tb3 on id_1=id_3 order by id_1;
+to_number(char_1)-cast(float_1 as decimal(65,30))
+20080384.54399871826172
+20180501.47099832763672
+20180500.46102819763672
+select to_number(char_1)*cast(char_1 as decimal(65,30)) from tb1 join tb3 on id_1=id_3 order by id_1;
+to_number(char_1)*cast(char_1 as decimal(65,30))
+403226801538064
+407257631440776.39747001
+407257631038369.4851178685182169
+select to_number(char_1)/cast(float_1 as decimal(65,30)) from tb1 join tb3 on id_1=id_3 order by id_1;
+to_number(char_1)/cast(float_1 as decimal(65,30))
+162653.154091508116561166926458417484
+163169.504879339253696565877083794932
+161860.786943418922078417094302836895
+select to_number(char_1) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)
+20080508
+20180625.1499
+20180625.13992987
+select cast(char_1 as decimal(20,6)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+cast(char_1 as decimal(20,6))
+20080508.000000
+20180625.149900
+20180625.139930
+select cast(char_1 as decimal(65,30)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+cast(char_1 as decimal(65,30))
+20080508.000000000000000000000000000000
+20180625.149900000000000000000000000000
+20180625.139929870000000000000000000000
+select to_number(char_1)+5.123 from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)+5.123
+20080513.123
+20180630.2729
+20180630.26292987
+select to_number(char_1)*5.123 from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)*5.123
+102872442.484
+103385342.6429377
+103385342.59186072401
+select to_number(char_1)-5.123 from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)-5.123
+20080502.877
+20180620.0269
+20180620.01692987
+select to_number(char_1)/5.123 from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)/5.123
+3919677.532695686
+3939220.212746437634198711
+3939220.210800286941245364
+select to_number(char_1)+to_number(char_1) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)+to_number(char_1)
+40161016
+40361250.2998
+40361250.27985974
+select to_number(char_1)*to_number(char_1) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)*to_number(char_1)
+403226801538064
+407257631440776.39747001
+407257631038369.4851178685182169
+select to_number(char_1)+cast(char_1 as decimal(20,6)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)+cast(char_1 as decimal(20,6))
+40161016
+40361250.2998
+40361250.27985987
+select to_number(char_1)-cast(float_1 as decimal(20,6)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)-cast(float_1 as decimal(20,6))
+20080384.543999
+20180501.470998
+20180500.46102787
+select to_number(char_1)*cast(char_1 as decimal(20,6)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)*cast(char_1 as decimal(20,6))
+403226801538064
+407257631440776.39747001
+407257631038372.1085991367091
+select to_number(char_1)/cast(float_1 as decimal(20,6)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)/cast(float_1 as decimal(20,6))
+162653.15446269801011941
+163169.504447088315839026
+161860.786518074004212837
+select to_number(char_1)+cast(char_1 as decimal(65,30)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)+cast(char_1 as decimal(65,30))
+40161016
+40361250.2998
+40361250.27985974
+select to_number(char_1)-cast(float_1 as decimal(65,30)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)-cast(float_1 as decimal(65,30))
+20080384.54399871826172
+20180501.47099832763672
+20180500.46102819763672
+select to_number(char_1)*cast(char_1 as decimal(65,30)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)*cast(char_1 as decimal(65,30))
+403226801538064
+407257631440776.39747001
+407257631038369.4851178685182169
+select to_number(char_1)/cast(float_1 as decimal(65,30)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)/cast(float_1 as decimal(65,30))
+162653.154091508116561166926458417484
+163169.504879339253696565877083794932
+161860.786943418922078417094302836895
+select to_number(char_1)+to_number(char_1) from tb1 join tb3 order by id_1;
+to_number(char_1)+to_number(char_1)
+40161016
+40161016
+40161016
+40361250.2998
+40361250.2998
+40361250.2998
+40361250.27985974
+40361250.27985974
+40361250.27985974
+NULL
+NULL
+NULL
+select to_number(char_1)*to_number(char_1) from tb1 join tb3 order by id_1;
+to_number(char_1)*to_number(char_1)
+403226801538064
+403226801538064
+403226801538064
+407257631440776.39747001
+407257631440776.39747001
+407257631440776.39747001
+407257631038369.4851178685182169
+407257631038369.4851178685182169
+407257631038369.4851178685182169
+NULL
+NULL
+NULL
+select to_number(char_1)+cast(char_1 as decimal(20,6)) from tb1 join tb3 order by id_1;
+to_number(char_1)+cast(char_1 as decimal(20,6))
+40161016
+40161016
+40161016
+40361250.2998
+40361250.2998
+40361250.2998
+40361250.27985987
+40361250.27985987
+40361250.27985987
+NULL
+NULL
+NULL
+select to_number(char_1)-cast(float_1 as decimal(20,6)) from tb1 join tb3 order by id_1;
+to_number(char_1)-cast(float_1 as decimal(20,6))
+20080384.543999
+20080384.543999
+20080384.543999
+20180501.470998
+20180501.470998
+20180501.470998
+20180500.46102787
+20180500.46102787
+20180500.46102787
+NULL
+NULL
+NULL
+select to_number(char_1)*cast(char_1 as decimal(20,6)) from tb1 join tb3 order by id_1;
+to_number(char_1)*cast(char_1 as decimal(20,6))
+403226801538064
+403226801538064
+403226801538064
+407257631440776.39747001
+407257631440776.39747001
+407257631440776.39747001
+407257631038372.1085991367091
+407257631038372.1085991367091
+407257631038372.1085991367091
+NULL
+NULL
+NULL
+select to_number(char_1)/cast(float_1 as decimal(20,6)) from tb1 join tb3 order by id_1;
+to_number(char_1)/cast(float_1 as decimal(20,6))
+162653.15446269801011941
+162653.15446269801011941
+162653.15446269801011941
+163169.504447088315839026
+163169.504447088315839026
+163169.504447088315839026
+161860.786518074004212837
+161860.786518074004212837
+161860.786518074004212837
+NULL
+NULL
+NULL
+select case 1 when 1 then to_number(char_1) else 2 end  from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1;
+case 1 when 1 then to_number(char_1) else 2 end
+20080508
+20180625.1499
+20180625.13992987
+select to_number(to_number(char_1)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1 desc;
+to_number(to_number(char_1))
+20180625.13992987
+20180625.1499
+20080508
+select max(to_number(char_1)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1 desc;
+max(to_number(char_1))
+20180625.1499
+select sum(to_number(char_1)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1 desc;
+sum(to_number(char_1))
+60441758.28982987
+select min(to_number(char_1)) from tb1 join tb3 on to_number(id_1)=to_number(id_3) order by id_1 desc;
+min(to_number(char_1))
+20080508
+-------------------------------
+## Test:  test view item_ref
+create view v1 as select * from tb1;
+create view v3 as select * from tb3;
+select to_number(char_1)*cast(char_1 as decimal(25,1)) from v1;
+to_number(char_1)*cast(char_1 as decimal(25,1))
+403226801538064
+407257630433763.20249
+407257630232559.746761737
+NULL
+select to_number(char_1) as a from v1 order by id_1;
+a
+20080508
+20180625.1499
+20180625.13992987
+NULL
+select to_number(char_1) as a from v1 order by a;
+a
+NULL
+20080508
+20180625.13992987
+20180625.1499
+select to_number(char_1) from v1 join v3 on id_1=id_3;
+to_number(char_1)
+20080508
+20180625.1499
+20180625.13992987
+select to_number(char_1) from v1 order by id_1;
+to_number(char_1)
+20080508
+20180625.1499
+20180625.13992987
+NULL
+select to_number(char_1) from v1 join v3 on id_1=id_3 order by id_1;
+to_number(char_1)
+20080508
+20180625.1499
+20180625.13992987
+select cast(char_1 as decimal(20,6)) from v1 join v3 on id_1=id_3 order by id_1;
+cast(char_1 as decimal(20,6))
+20080508.000000
+20180625.149900
+20180625.139930
+select cast(char_1 as decimal(65,30)) from v1 join v3 on id_1=id_3 order by id_1;
+cast(char_1 as decimal(65,30))
+20080508.000000000000000000000000000000
+20180625.149900000000000000000000000000
+20180625.139929870000000000000000000000
+select to_number(char_1)+5.123 from v1 join v3 on id_1=id_3 order by id_1;
+to_number(char_1)+5.123
+20080513.123
+20180630.2729
+20180630.26292987
+select to_number(char_1)*5.123 from v1 join v3 on id_1=id_3 order by id_1;
+to_number(char_1)*5.123
+102872442.484
+103385342.6429377
+103385342.59186072401
+select to_number(char_1)-5.123 from v1 join v3 on id_1=id_3 order by id_1;
+to_number(char_1)-5.123
+20080502.877
+20180620.0269
+20180620.01692987
+select to_number(char_1)/5.123 from v1 join v3 on id_1=id_3 order by id_1;
+to_number(char_1)/5.123
+3919677.532695686
+3939220.212746437634198711
+3939220.210800286941245364
+select to_number(char_1)+to_number(char_1) from v1 join v3 on id_1=id_3 order by id_1;
+to_number(char_1)+to_number(char_1)
+40161016
+40361250.2998
+40361250.27985974
+select to_number(char_1)*to_number(char_1) from v1 join v3 on id_1=id_3 order by id_1;
+to_number(char_1)*to_number(char_1)
+403226801538064
+407257631440776.39747001
+407257631038369.4851178685182169
+select to_number(char_1)+cast(char_1 as decimal(20,6)) from v1 join v3 on id_1=id_3 order by id_1;
+to_number(char_1)+cast(char_1 as decimal(20,6))
+40161016
+40361250.2998
+40361250.27985987
+select to_number(char_1)-cast(float_1 as decimal(20,6)) from v1 join v3 on id_1=id_3 order by id_1;
+to_number(char_1)-cast(float_1 as decimal(20,6))
+20080384.543999
+20180501.470998
+20180500.46102787
+select to_number(char_1)*cast(char_1 as decimal(20,6)) from v1 join v3 on id_1=id_3 order by id_1;
+to_number(char_1)*cast(char_1 as decimal(20,6))
+403226801538064
+407257631440776.39747001
+407257631038372.1085991367091
+select to_number(char_1)/cast(float_1 as decimal(20,6)) from v1 join v3 on id_1=id_3 order by id_1;
+to_number(char_1)/cast(float_1 as decimal(20,6))
+162653.15446269801011941
+163169.504447088315839026
+161860.786518074004212837
+select to_number(char_1)+cast(char_1 as decimal(65,30)) from v1 join v3 on id_1=id_3 order by id_1;
+to_number(char_1)+cast(char_1 as decimal(65,30))
+40161016
+40361250.2998
+40361250.27985974
+select to_number(char_1)-cast(float_1 as decimal(65,30)) from v1 join v3 on id_1=id_3 order by id_1;
+to_number(char_1)-cast(float_1 as decimal(65,30))
+20080384.54399871826172
+20180501.47099832763672
+20180500.46102819763672
+select to_number(char_1)*cast(char_1 as decimal(65,30)) from v1 join v3 on id_1=id_3 order by id_1;
+to_number(char_1)*cast(char_1 as decimal(65,30))
+403226801538064
+407257631440776.39747001
+407257631038369.4851178685182169
+select to_number(char_1)/cast(float_1 as decimal(65,30)) from v1 join v3 on id_1=id_3 order by id_1;
+to_number(char_1)/cast(float_1 as decimal(65,30))
+162653.154091508116561166926458417484
+163169.504879339253696565877083794932
+161860.786943418922078417094302836895
+select to_number(char_1) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)
+20080508
+20180625.1499
+20180625.13992987
+select cast(char_1 as decimal(20,6)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+cast(char_1 as decimal(20,6))
+20080508.000000
+20180625.149900
+20180625.139930
+select cast(char_1 as decimal(65,30)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+cast(char_1 as decimal(65,30))
+20080508.000000000000000000000000000000
+20180625.149900000000000000000000000000
+20180625.139929870000000000000000000000
+select to_number(char_1)+5.123 from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)+5.123
+20080513.123
+20180630.2729
+20180630.26292987
+select to_number(char_1)*5.123 from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)*5.123
+102872442.484
+103385342.6429377
+103385342.59186072401
+select to_number(char_1)-5.123 from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)-5.123
+20080502.877
+20180620.0269
+20180620.01692987
+select to_number(char_1)/5.123 from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)/5.123
+3919677.532695686
+3939220.212746437634198711
+3939220.210800286941245364
+select to_number(char_1)+to_number(char_1) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)+to_number(char_1)
+40161016
+40361250.2998
+40361250.27985974
+select to_number(char_1)*to_number(char_1) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)*to_number(char_1)
+403226801538064
+407257631440776.39747001
+407257631038369.4851178685182169
+select to_number(char_1)+cast(char_1 as decimal(20,6)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)+cast(char_1 as decimal(20,6))
+40161016
+40361250.2998
+40361250.27985987
+select to_number(char_1)-cast(float_1 as decimal(20,6)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)-cast(float_1 as decimal(20,6))
+20080384.543999
+20180501.470998
+20180500.46102787
+select to_number(char_1)*cast(char_1 as decimal(20,6)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)*cast(char_1 as decimal(20,6))
+403226801538064
+407257631440776.39747001
+407257631038372.1085991367091
+select to_number(char_1)/cast(float_1 as decimal(20,6)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)/cast(float_1 as decimal(20,6))
+162653.15446269801011941
+163169.504447088315839026
+161860.786518074004212837
+select to_number(char_1)+cast(char_1 as decimal(65,30)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)+cast(char_1 as decimal(65,30))
+40161016
+40361250.2998
+40361250.27985974
+select to_number(char_1)-cast(float_1 as decimal(65,30)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)-cast(float_1 as decimal(65,30))
+20080384.54399871826172
+20180501.47099832763672
+20180500.46102819763672
+select to_number(char_1)*cast(char_1 as decimal(65,30)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)*cast(char_1 as decimal(65,30))
+403226801538064
+407257631440776.39747001
+407257631038369.4851178685182169
+select to_number(char_1)/cast(float_1 as decimal(65,30)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+to_number(char_1)/cast(float_1 as decimal(65,30))
+162653.154091508116561166926458417484
+163169.504879339253696565877083794932
+161860.786943418922078417094302836895
+select to_number(char_1)+to_number(char_1) from v1 join v3 order by id_1;
+to_number(char_1)+to_number(char_1)
+40161016
+40161016
+40161016
+40361250.2998
+40361250.2998
+40361250.2998
+40361250.27985974
+40361250.27985974
+40361250.27985974
+NULL
+NULL
+NULL
+select to_number(char_1)*to_number(char_1) from v1 join v3 order by id_1;
+to_number(char_1)*to_number(char_1)
+403226801538064
+403226801538064
+403226801538064
+407257631440776.39747001
+407257631440776.39747001
+407257631440776.39747001
+407257631038369.4851178685182169
+407257631038369.4851178685182169
+407257631038369.4851178685182169
+NULL
+NULL
+NULL
+select to_number(char_1)+cast(char_1 as decimal(20,6)) from v1 join v3 order by id_1;
+to_number(char_1)+cast(char_1 as decimal(20,6))
+40161016
+40161016
+40161016
+40361250.2998
+40361250.2998
+40361250.2998
+40361250.27985987
+40361250.27985987
+40361250.27985987
+NULL
+NULL
+NULL
+select to_number(char_1)-cast(float_1 as decimal(20,6)) from v1 join v3 order by id_1;
+to_number(char_1)-cast(float_1 as decimal(20,6))
+20080384.543999
+20080384.543999
+20080384.543999
+20180501.470998
+20180501.470998
+20180501.470998
+20180500.46102787
+20180500.46102787
+20180500.46102787
+NULL
+NULL
+NULL
+select to_number(char_1)*cast(char_1 as decimal(20,6)) from v1 join v3 order by id_1;
+to_number(char_1)*cast(char_1 as decimal(20,6))
+403226801538064
+403226801538064
+403226801538064
+407257631440776.39747001
+407257631440776.39747001
+407257631440776.39747001
+407257631038372.1085991367091
+407257631038372.1085991367091
+407257631038372.1085991367091
+NULL
+NULL
+NULL
+select to_number(char_1)/cast(float_1 as decimal(20,6)) from v1 join v3 order by id_1;
+to_number(char_1)/cast(float_1 as decimal(20,6))
+162653.15446269801011941
+162653.15446269801011941
+162653.15446269801011941
+163169.504447088315839026
+163169.504447088315839026
+163169.504447088315839026
+161860.786518074004212837
+161860.786518074004212837
+161860.786518074004212837
+NULL
+NULL
+NULL
+select case 1 when 1 then to_number(char_1) else 2 end  from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1;
+case 1 when 1 then to_number(char_1) else 2 end
+20080508
+20180625.1499
+20180625.13992987
+select to_number(to_number(char_1)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1 desc;
+to_number(to_number(char_1))
+20180625.13992987
+20180625.1499
+20080508
+select max(to_number(char_1)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1 desc;
+max(to_number(char_1))
+20180625.1499
+select sum(to_number(char_1)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1 desc;
+sum(to_number(char_1))
+60441758.28982987
+select min(to_number(char_1)) from v1 join v3 on to_number(id_1)=to_number(id_3) order by id_1 desc;
+min(to_number(char_1))
+20080508
+drop database if exists abczyy_to_num;
+---------------------------------------------------------------
+## Test_24:  test aggregate function
+---------------------------------------------------------------
+select max(to_number('11.11')) as result from dual;
+result
+11.11
+select max(11.11) +1 as result from dual;
+result
+12.11
+select max(to_number('11.11')) +1 as result from dual;
+result
+12.11
+select SUM(to_number('11.11')) as result from dual;
+result
+11.11
+select to_number(sum(11.11)) +1 as result from dual;
+result
+12.11
+select SUM(to_number('11.11')) +1 as result from dual;
+result
+12.11
+---------------------------------------------------------------
+## End test to_number function
+---------------------------------------------------------------

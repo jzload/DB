@@ -1,0 +1,1230 @@
+--echo #
+--echo # Prepare database
+--echo #
+
+--disable_warnings
+drop database if exists testdb_minus;
+create database testdb_minus;
+use testdb_minus;
+
+--echo #
+--echo # 1. 单表测试，即对一个表上作MINUS操作：
+--echo ## 准备1
+drop table if exists t_user;
+create table t_user(id int, no varchar(10), name varchar(10), age int, level_no int);
+
+insert into t_user(id, no, name, age, level_no) values(1, '00001', 'a', 25, 1);
+insert into t_user(id, no, name, age, level_no) values(2, '00002', 'b', 30, 2);
+insert into t_user(id, no, name, age, level_no) values(3, '00003', 'c', 35, 3);
+insert into t_user(id, no, name, age, level_no) values(4, '00004', 'd', 45, 1);
+insert into t_user(id, no, name, age, level_no) values(5, '00005', 'e', 30, 2);
+insert into t_user(id, no, name, age, level_no) values(6, '00006', 'f', 35, 3);
+insert into t_user(id, no, name, age, level_no) values(7, '00007', 'g', 25, 1);
+insert into t_user(id, no, name, age, level_no) values(8, '00008', 'h', 35, 2);
+insert into t_user(id, no, name, age, level_no) values(9, '00009', 'i', 20, 3);
+insert into t_user(id, no, name, age, level_no) values(10, '00010', 'j', 25, 1);
+insert into t_user(id, no, name, age, level_no) values(1, NULL, 'a', 25, 1);
+
+
+--echo ## 1.1 minus左边是空集
+select id from t_user where id > 10 minus select id from t_user where id > 1;
+
+--echo ## 1.2 minus右边是空集
+select id from t_user where id > 1 minus select level_no from t_user where level_no > 10;
+
+--echo ## minus左右两边是空集
+select id from t_user where id > 10 minus select id from t_user where id < 1;
+
+--echo ## 1.3 minus左边，右边没有交集
+select id from t_user where id<5 minus select id from t_user where id between 6 and 8;
+
+--echo ## 1.4 minus左边，右边有交集
+select id from t_user where id<6 minus select id from t_user where id between 3 and 7;
+
+--echo ## 1.5 minus左边是右边的子集
+select name, age from t_user where age between 30 and 35 minus select name, age from t_user where age < 40;
+
+--echo ## 1.6 minus右边是左边的子集
+select name, age from t_user where age < 40 minus select name, age from t_user where age between 30 and 35;
+
+--echo ## 1.7 minus左边有重复记录
+select level_no from t_user minus select id from t_user where id=1;
+
+--echo ## 1.8 minus右边有重复记录
+select id from t_user where id=1  minus  select level_no from t_user;
+
+--echo ## 1.8 minus左右两边有重复记录
+select id from t_user where id=1  minus  select level_no from t_user;
+
+--echo ## 1.9 多个minus，无括号
+select id from t_user where id<6 minus select id from t_user where id =5 minus select id from t_user where id =4;
+
+--echo ## 1.10 多个minus，有括号
+(select id from t_user where id<6 minus select id from t_user where id =5) minus select id from t_user where id =4;
+
+--echo ## 1.11 多个minus，第二个minus前后有括号
+--error ER_PARSE_ERROR
+select id from t_user where id<6 minus (select id from t_user where id =5 minus select id from t_user where id =4);
+
+--echo ## 1.12 minus在in子句中
+#select * from t_user where id in (select id from t_user where id<6 minus select id from t_user where id between 3 and 7);
+
+--echo ## 1.13 NULL 填充
+select id, no from t_user minus select level_no, NULL from t_user;
+
+--echo ## 1.14 NULL 填充，函数方式，oracle采用的
+select id, no from t_user minus select level_no, to_char(NULL) from t_user;
+
+--echo ## 1.15 测试语法 minus all
+--error ER_PARSE_ERROR
+select id from t_user where id > 10 minus all select id from t_user where id > 1;
+
+--error ER_PARSE_ERROR
+(select id from t_user union select id from t_user) minus all select id from t_user where id > 1;
+
+--error ER_PARSE_ERROR
+select id from t_user where id > 1 minus all (select id from t_user union select id from t_user);
+
+
+--echo # 2. 两个表进行MINUS功能测试
+--echo ## 准备
+drop table if exists t_item;
+create table t_item(id int, no varchar(10));
+insert into t_item values(1, 'a');
+insert into t_item values(1, 'a');
+insert into t_item values(2, 'b');
+insert into t_item values(3, 'c');
+insert into t_item values(4, 'd');
+
+drop table if exists t_item2;
+create table t_item2(c1 int, c2 varchar(10));
+insert into t_item2 values(1, 'a');
+insert into t_item2 values(2, 'b');
+insert into t_item2 values(3, 'dddd');
+
+--echo ## 2.1 minus子句左边带括号
+(select id, no from t_item where id > 0) minus select * from t_item2;
+
+--echo ## 2.2 minus子句右边带括号
+select id, no from t_item where id > 0 minus (select * from t_item2);
+
+--echo ## 2.3 minus子句两边带括号
+(select id, no from t_item where id > 0) minus (select * from t_item2);
+
+--echo ## 2.4 测试minus左边子句中有where
+select id, no from t_item where id > 0 minus select * from t_item2;
+
+
+--echo ## 2.5 测试minus右边子句中有where
+select id, no from t_item minus select * from t_item2 where c2 = 'b';
+
+--echo ## 2.6 select 的in subselect子句中有minus
+select id, no from t_item where id in (select id from t_item minus select c1 from t_item2);
+
+select id, no from t_item where id not in (select id from t_item minus select c1 from t_item2);
+
+--echo ## 2.7 select 的from中有minus
+select * from (select id, no from t_item minus select c1, c2 from t_item2) t;
+
+select * from (select id, no from t_item minus select c1, c2 from t_item2) as t(a, b);
+
+--echo ## 2.8 测试minus子句中有order by
+--error ER_PARSE_ERROR
+select id, no from t_item order by id MINUS select * from t_item2;
+
+--error ER_BAD_FIELD_ERROR
+select id, no from t_item MINUS select * from t_item2 order by c1;
+
+
+--echo ## 2.9 测试minus子句中有Limit. Oracle 中没有limit.
+#--error ER_SYNTAX_ERROR
+--error ER_PARSE_ERROR
+select id, no from t_item limit 2 MINUS select * from t_item2;
+
+select id, no from t_item MINUS select * from t_item2 limit 2;
+
+--echo ## 2.10 minus 子句中有group by 
+select c1 from t_item2 minus select count(*) from t_item group by id;
+
+--echo ## 2.11 outer中有group by
+select count(*) from (select id from t_item minus select count(*) from t_item2) t(a) where t.a >1 group by (t.a);
+
+--echo ## 2.12 minus右边查询中有聚集函数
+select id, no from t_item MINUS select min(c1), NULL from t_item2;
+
+--error ER_PARSE_ERROR
+select id, no from t_item MINUS select min(c1), varchar(NULL) from t_item2;
+
+--echo ## 2.13 minus右边查询中有join
+select id, no from t_item MINUS select id, c2 from t_item iner join t_item2 on id = c1;
+
+
+--echo ## 2.13 minus左边查询中有join
+select id, c2 from t_item iner join t_item2 on id = c1 MINUS select id, no from t_item;
+
+
+--echo ## 2.14 insert select 
+drop table if exists t_result;
+create table t_result(id int, no varchar(10));
+insert into t_result (select id, no from t_item minus select * from t_item2);
+select * from t_result;
+drop table t_result;
+
+
+--echo ## select into
+drop table if exists t_select_into;
+create table t_select_into(id int, no varchar(10));
+
+--error ER_DERIVED_MUST_HAVE_ALIAS
+select * from ((select id, no from t_item) minus select * from t_item2 ) into t_select_into;
+
+--error ER_SP_UNDECLARED_VAR
+(select id from t_item) minus select c1 from t_item2 into var_temp;
+
+
+
+--echo # 3. 三个表相关的MINUS测试
+--echo ## 准备
+drop table if exists t_minus;
+create table t_minus(a int, b varchar(5), c int);
+insert into t_minus values(1, 'a', 1);
+insert into t_minus values(2, 'b', 10);
+insert into t_minus values(3, 'c', 11);
+insert into t_minus values(4, 'd', 100);
+select * from t_minus;
+
+drop table if exists t_minus2;
+create table t_minus2(a2 int, b2 varchar(5), c2 int);
+insert into t_minus2 values(3, 'c', 11);
+insert into t_minus2 values(4, 'd', 12);
+insert into t_minus2 values(5, 'e', 101);
+
+drop table if exists t_minus3;
+create table t_minus3(a int, b varchar(5), c int);
+insert into t_minus3 values(1, 'a', 1);
+insert into t_minus3 values(3, 'c', 11);
+insert into t_minus3 values(5, 'e', 101);
+
+--echo ## 3.1 简单的减去复杂的
+--error ER_PARSE_ERROR
+select * from t_minus minus (select * from t_minus MINUS select * from t_minus2);
+
+--echo ## 3.2 复杂的减去简单的
+(select * from t_minus MINUS select * from t_minus2) MINUS select * from t_minus;
+
+--echo ## 3.3 复杂的减去复杂的
+--error ER_PARSE_ERROR
+(select * from t_minus MINUS select * from t_minus2) MINUS (select * from t_minus MINUS (select * from t_minus where a>=3 MINUS select * from t_minus2));
+
+--echo ## 3.4 多个减法操作
+select * from t_minus MINUS select * from t_minus2 MINUS select * from t_minus3;
+
+(select * from t_minus MINUS select * from t_minus2) MINUS select * from t_minus3;
+
+--error ER_PARSE_ERROR
+select * from t_minus MINUS (select * from t_minus2 MINUS select * from t_minus3);
+
+--echo ## 3.5 MINUS与UNION混用
+select a as col1, b as col2, c as col3 from t_minus MINUS select a2 as col1, b2 as col2, c2 as col3 from t_minus2 UNION select a2 as col1, b2 as col2, c2 as col3 from t_minus2 order by col1, col2, col3;
+
+select a as col1, b as col2, c as col3 from t_minus MINUS select a2 as col1, b2 as col2, c2 as col3 from t_minus2 UNION select a as col1, b as col2, c as col3 from t_minus order by col1, col2, col3;
+
+--error ER_PARSE_ERROR
+select * from t_minus MINUS (select * from t_minus2 UNION select * from t_minus where a<=3);
+
+(select * from t_minus2 UNION select * from t_minus) MINUS (select * from t_minus);
+
+--error ER_PARSE_ERROR
+(select * from t_minus MINUS select * from t_minus2) UNION (select * from t_minus2 MINUS select * from t_minus);
+
+--error ER_PARSE_ERROR
+(select * from t_minus UNION select * from t_minus2) MINUS (select * from t_minus2 UNION select * from t_minus);
+
+--echo ## 3.6 MINUS与UNION ALL 混用
+select * from t_minus MINUS select * from t_minus2 UNION ALL select * from t_minus2;
+
+select * from t_minus MINUS select * from t_minus2 UNION ALL select * from t_minus;
+
+--error ER_PARSE_ERROR
+select * from t_minus MINUS (select * from t_minus2 UNION ALL select * from t_minus where a<=3);
+
+(select * from t_minus2 UNION ALL select * from t_minus) MINUS (select * from t_minus);
+
+(select * from t_minus UNION ALL select * from t_minus2) MINUS (select * from t_minus3);
+
+--error ER_PARSE_ERROR
+(select * from t_minus MINUS select * from t_minus2) UNION ALL (select * from t_minus2 MINUS select * from t_minus);
+
+--error ER_PARSE_ERROR
+(select * from t_minus UNION ALL select * from t_minus2) MINUS (select * from t_minus2 UNION ALL select * from t_minus);
+
+--echo ## 3.7 含有MINUS的select作为子查询
+select * from (select * from t_minus MINUS select * from t_minus2 UNION ALL select * from t_minus) t;
+
+select * from (select * from t_minus MINUS select * from t_minus2 UNION ALL select * from t_minus) t(c1, c2, c3);
+
+
+--echo #
+--echo # 4. 测试类型：
+--echo #
+
+--echo ## 4.1 测试不同种类的列，char与varchar
+drop table if exists t_item_type;
+create table t_item_type(a int, b char(10));
+insert into t_item_type values(1, 'a');
+
+drop table if exists t_item_type2;
+create table t_item_type2(a2 int, b2 varchar(100));
+insert into t_item_type2 values(1, 'a');
+
+select a, b from t_item_type minus select a2, b2 from t_item_type2;
+
+--echo ## 4.2 测试各种类的列，float与decimal
+drop table if exists t_item_type;
+create table t_item_type(a int, b float);
+insert into t_item_type values(1, 10.2);
+
+drop table if exists t_item_type2;
+create table t_item_type2(a2 int, b2 decimal(10, 5));
+insert into t_item_type2 values(1, 10.2);
+
+select * from t_item_type2 minus select * from t_item_type;
+
+
+select * from t_item_type2 union select * from t_item_type;
+
+--echo ## 4.3 测试各种类的列，int与number(10, 5)
+drop table if exists t_item_type;
+create table t_item_type(a int);
+insert into t_item_type values(1);
+insert into t_item_type values(11);
+
+drop table if exists t_item_type2;
+create table t_item_type2(a2 number(10, 5));
+insert into t_item_type2 values(11.0);
+
+select * from t_item_type minus select * from t_item_type2;
+
+select * from t_item_type union select * from t_item_type2;
+
+--echo ## 补充char 与 int
+drop table if exists t_item_type;
+create table t_item_type(a int);
+insert into t_item_type values(1);
+insert into t_item_type values(11);
+
+drop table if exists t_item_type2;
+create table t_item_type2(a2 varchar(10));
+insert into t_item_type2 values(11);
+
+select * from t_item_type minus select * from t_item_type2;
+
+drop table t_item_type;
+drop table t_item_type2;
+
+--echo ## 4.4 测试CLOB
+drop table if exists t_item_type;
+create table t_item_type(a clob);
+insert into t_item_type values('abc');
+insert into t_item_type values('aaa');
+
+drop table if exists t_item_type2;
+create table t_item_type2(a2 clob);
+insert into t_item_type2 values('aaa');
+
+select * from t_item_type minus select * from t_item_type2;
+
+select * from t_item_type union select * from t_item_type2;
+
+--echo ## 4.5 测试BLOB
+drop table if exists t_item_type;
+create table t_item_type(a blob);
+insert into t_item_type values(hex('aaa'));
+
+drop table if exists t_item_type2;
+create table t_item_type2(a2 blob);
+insert into t_item_type2 values(hex('aaa'));
+
+
+select * from t_item_type union select * from t_item_type2;
+
+select * from t_item_type minus select * from t_item_type2;
+
+--echo #
+--echo # 5. 表与常量的MINUS测试
+--echo #
+drop table if exists t_item_type;
+create table t_item_type(a int, b varchar(5), c int);
+insert into t_item_type values(1, 'a', 1);
+insert into t_item_type values(2, 'b', 10);
+insert into t_item_type values(3, 'c', 11);
+insert into t_item_type values(4, 'd', 100);
+insert into t_item_type values(5, NULL, 101);
+
+--echo ## 5.1 常量在后面 
+select a from t_item_type MINUS select 1 from dual;
+
+select a from t_item_type MINUS select 10 from dual;
+
+select a from t_item_type MINUS select NULL from dual;
+
+select b from t_item_type MINUS select NULL from dual;
+
+select b from t_item_type MINUS select to_char(NULL) from dual;
+
+--echo ## 5.2 常量在前面
+select 10 from dual MINUS select a from t_item_type;
+
+select 1 from dual MINUS select a from t_item_type;
+
+select NULL from dual MINUS select a from t_item_type;
+
+--echo ## 5.3 NULL - NULL
+select NULL as col from dual MINUS select NULL from t_item_type;
+
+select NULL as col from dual MINUS select b from t_item_type;
+
+--echo ## 0, ''与NULL
+select 0 as col from dual minus select null from dual;
+select null as col from dual minus select 0 from dual;
+
+select '' as col from dual minus select null from dual;
+select null as col from dual minus select '' from dual;
+select '' as col from dual minus select '' from dual;
+
+--echo ## 浮点数与字符串想减
+select 3.0 as col from dual MINUS select '3' from dual;
+select 3.0 as col from dual MINUS select '3.0' from dual;
+select 3.0 as_col from dual MINUS select '3.00' from dual;
+
+--echo ## 空集
+select 1 as col from dual where 1>2 MINUS select '3' from dual;
+select 3.0 as col from dual MINUS select '3.0' from dual;
+select 3.0 as col from dual MINUS select '3.00' from dual;
+
+
+--echo #
+--echo # 6. 列中有函数
+--echo #
+
+--echo ## 6.1 聚集函数
+drop table if exists t_item_type;
+create table t_item_type(a int, b varchar(5), c int);
+insert into t_item_type values(1, 'a', 1);
+insert into t_item_type values(2, 'b', 10);
+insert into t_item_type values(3, 'c', 11);
+insert into t_item_type values(4, 'd', 100);
+insert into t_item_type values(5, NULL, 101);
+
+select max(a) from t_item_type minus select a from t_item_type;
+
+select a from t_item_type minus select max(a) from t_item_type;
+
+--echo ## 6.2 列中有内置函数
+drop table if exists t_item_type;
+create table t_item_type(a int, b datetime);
+insert into t_item_type values(1, '2020-01-01 11:12:13');
+insert into t_item_type values(2, '2020-02-02 10:12:22');
+
+select b from t_item_type minus select to_date('2020-01-01 11:12:13') from t_item_type;
+
+select a from t_item_type minus select max(a) from t_item_type;
+
+
+--echo #
+--echo # 7. primary, unique 列
+--echo #
+
+--echo ## 7.1 测试primary ：1 minus前面的查询表中有primary
+--echo ## 准备
+drop table if exists t_item_type;
+create table t_item_type(a int primary key, b char(10));
+insert into t_item_type values(1, 'a');
+insert into t_item_type values(2, 'b');
+
+drop table if exists t_item_type2;
+create table t_item_type2(a2 int, b2 varchar(100));
+insert into t_item_type2 values(1, 'a');
+insert into t_item_type2 values(1, 'a');
+
+--echo ## 测试
+select a, b from t_item_type minus select a2, b2 from t_item_type2;
+
+--echo ## 7.2 测试primary ：2 minus后面的查询表中有primary
+--echo ## 准备
+drop table if exists t_item_type;
+create table t_item_type(a int, b char(10));
+insert into t_item_type values(1, 'a');
+insert into t_item_type values(1, 'a');
+insert into t_item_type values(2, 'b');
+
+drop table if exists t_item_type2;
+create table t_item_type2(a2 int primary key, b2 varchar(100));
+insert into t_item_type2 values(1, 'a');
+insert into t_item_type2 values(2, 'c');
+
+--echo ## 测试
+select a, b from t_item_type minus select a2, b2 from t_item_type2;
+
+--echo ## 7.3 测试unique： 1 minus前面的查询表中有unique
+--echo ## 准备
+drop table if exists t_item_type;
+create table t_item_type(a int unique key, b char(10));
+insert into t_item_type values(1, 'a');
+insert into t_item_type values(2, 'b');
+
+drop table if exists t_item_type2;
+create table t_item_type2(a2 int, b2 varchar(100));
+insert into t_item_type2 values(1, 'a');
+insert into t_item_type2 values(1, 'a');
+
+--echo ## 测试
+select a, b from t_item_type minus select a2, b2 from t_item_type2;
+
+--echo ## 7.4 测试unique： 1 minus后面的查询表中有unique
+--echo ## 准备
+drop table if exists t_item_type;
+create table t_item_type(a int , b char(10));
+insert into t_item_type values(1, 'a');
+insert into t_item_type values(1, 'a');
+insert into t_item_type values(2, 'b');
+
+drop table if exists t_item_type2;
+create table t_item_type2(a2 int unique key, b2 varchar(100));
+insert into t_item_type2 values(1, 'a');
+insert into t_item_type2 values(2, 'a');
+
+--echo ## 测试
+select a, b from t_item_type minus select a2, b2 from t_item_type2;
+
+
+--echo #
+--echo # 8. union与view
+--echo #
+
+--echo ## 准备
+drop table if exists t_minus;
+create table t_minus(a int, b varchar(5), c int);
+insert into t_minus values(1, 'a', 1);
+insert into t_minus values(2, 'b', 10);
+insert into t_minus values(3, 'c', 11);
+insert into t_minus values(4, 'd', 100);
+
+drop table if exists t_minus2;
+create table t_minus2(a2 int, b2 varchar(5), c3 int);
+insert into t_minus2 values(3, 'c', 11);
+insert into t_minus2 values(4, 'd', 12);
+insert into t_minus2 values(4, '3', 13);
+insert into t_minus2 values(5, 'e', 101);
+
+--echo ## 测试
+drop view if exists v_minus;
+create view v_minus as select a2, b2 from t_minus2 where a2 < 5;
+select a, b from t_minus minus select * from v_minus;
+
+
+--echo #
+--echo # 9. union与temp table
+--echo #
+
+--echo ## 准备
+drop table if exists t_minus;
+create table t_minus(a int, b varchar(5), c int);
+insert into t_minus values(1, 'a', 1);
+insert into t_minus values(2, 'b', 10);
+insert into t_minus values(3, 'c', 11);
+insert into t_minus values(4, 'd', 100);
+
+drop temporary table if exists t_tmp;
+create temporary table t_tmp(a2 int, b2 varchar(5), c3 int);
+insert into t_tmp values(3, 'c', 11);
+insert into t_tmp values(4, 'd', 12);
+insert into t_tmp values(4, '3', 13);
+insert into t_tmp values(5, 'e', 101);
+
+--echo ## 测试
+select a, b from t_minus minus select a2, b2 from t_tmp;
+
+--echo #
+--echo # 10. 存在多层MINUS
+--echo #
+
+drop table if exists t_minus;
+create table t_minus(a int, b varchar(5), c int);
+insert into t_minus values(1, 'a', 1);
+insert into t_minus values(2, 'b', 10);
+insert into t_minus values(3, 'c', 11);
+insert into t_minus values(4, 'd', 100);
+
+drop table if exists t_minus2;
+create table t_minus2(a2 int, b2 varchar(5), c3 int);
+insert into t_minus2 values(3, 'c', 11);
+insert into t_minus2 values(4, 'd', 12);
+insert into t_minus2 values(4, '3', 13);
+insert into t_minus2 values(5, 'e', 101);
+
+drop table if exists t_in1;
+create table t_in1(c1 int);
+insert into t_in1 values(1);
+insert into t_in1 values(2);
+insert into t_in1 values(3);
+
+drop table if exists t_in2;
+create table t_in2(c2 int);
+insert into t_in2 values(1);
+insert into t_in2 values(4);
+insert into t_in2 values(5);
+
+select a, b from t_minus minus select a2, b2 from t_minus2 where a2 in (select c1 from t_in1 minus select c2 from t_in2 );
+
+
+--echo #
+--echo # 11. 执行计划
+--echo #
+
+drop table if exists t_minus;
+create table t_minus(a int, b varchar(5), c int);
+insert into t_minus values(1, 'a', 1);
+insert into t_minus values(2, 'b', 10);
+insert into t_minus values(3, 'c', 11);
+insert into t_minus values(4, 'd', 100);
+
+drop table if exists t_minus2;
+create table t_minus2(a2 int, b2 varchar(5), c3 int);
+insert into t_minus2 values(3, 'c', 11);
+insert into t_minus2 values(4, 'd', 12);
+insert into t_minus2 values(4, '3', 13);
+insert into t_minus2 values(5, 'e', 101);
+
+explain select * from t_minus MINUS select * from t_minus2;
+explain select * from t_minus UNION select * from t_minus2;
+explain select * from t_minus UNION select * from t_minus2 MINUS select * from t_minus2;
+explain select * from t_minus UNION select * from t_minus2 UNION select * from t_minus2;
+explain select * from t_minus MINUS select * from t_minus2 UNION select * from t_minus2;
+explain select * from t_minus MINUS select * from t_minus2 MINUS select * from t_minus2;
+
+explain FORMAT = tree select * from t_minus MINUS select * from t_minus2;
+explain FORMAT = tree select * from t_minus UNION select * from t_minus2;
+explain FORMAT = tree select * from t_minus UNION select * from t_minus2 MINUS select * from t_minus2;
+explain FORMAT = tree select * from t_minus UNION select * from t_minus2 UNION select * from t_minus2;
+explain FORMAT = tree select * from t_minus MINUS select * from t_minus2 UNION select * from t_minus2;
+explain FORMAT = tree select * from t_minus MINUS select * from t_minus2 MINUS select * from t_minus2;
+
+--echo #
+--echo # 12. 异常处理
+--echo #
+
+--echo ## 12.1 类型不匹配,报错信息：ORA-01790: expression must have same datatype as corresponding expression
+select 'a' from dual MINUS select 3 from dual;
+
+select 'a' from dual union select 3 from dual;
+
+--echo ## 12.2 类型不同，却能减掉
+select '3' from dual MINUS select 3 from dual;
+
+select 3 from dual MINUS select '3' from dual;
+
+
+--echo ## 12.3 数量不匹配，报错信息：ORA-01789: query block has incorrect number of result columns
+--error ER_WRONG_NUMBER_OF_COLUMNS_IN_SELECT
+select 3,5 from dual MINUS select 3 from dual;   
+
+--error ER_WRONG_NUMBER_OF_COLUMNS_IN_SELECT
+select a, c from t_minus MINUS select a2 from t_minus2;
+
+
+--echo #
+--echo # 13. exists clause
+--echo #
+
+--echo # prepare
+drop table if exists t_item;
+create table t_item(id int, no varchar(10));
+insert into t_item values(1, 'a');
+insert into t_item values(1, 'a');
+insert into t_item values(2, 'b');
+insert into t_item values(3, 'c');
+insert into t_item values(4, 'd');
+
+drop table if exists t_item2;
+create table t_item2(c1 int, c2 varchar(10));
+insert into t_item2 values(10, 'a');
+insert into t_item2 values(20, 'b');
+insert into t_item2 values(30, 'c');
+
+drop table if exists t_item3;
+create table t_item3(c1 int, c2 varchar(10));
+insert into t_item3 values(10, 'a');
+insert into t_item3 values(20, 'b');
+
+drop table if exists t_item4;
+create table t_item4(c1 int, c2 varchar(10));
+drop table if exists t_item5;
+create table t_item5(c1 int, c2 varchar(10));
+
+drop table if exists t_item6;
+create table t_item6(c1 int, c2 varchar(10));
+insert into t_item6 values(100, 'xxxx');
+
+--echo # test
+select id from t_item where exists (select 1 from dual minus select 1 from dual);
+
+select id from t_item where exists (select * from t_item2 minus select * from t_item2 where c1 > 0);
+
+select id from t_item where exists (select * from t_item2 minus select * from t_item3);
+
+select id from t_item where exists (select * from t_item3 minus select * from t_item2);
+
+select id from t_item where exists (select t_item2.c1, t_item2.c2 from t_item2 minus select t_item3.c1, t_item3.c2 from t_item3);
+
+select id from t_item where exists (select id from t_item2 minus select id from t_item3);
+
+select id from t_item where exists (select * from t_item3 minus select * from t_item4);
+
+select id from t_item where exists (select * from t_item3 minus select * from t_item6);
+
+select 1 from t_item where exists (select t_item2.c1 from t_item2 minus select t_item3.c1 from t_item3);
+
+select id from t_item where exists (select * from t_item minus select * from t_item2);
+
+select id from t_item where exists (select t1.id from t_item t1 minus select t2.c1 from t_item3 t2);
+
+select id from t_item where exists (select t1.id, t1.no from t_item t1 minus select t2.c1, t2.c2 from t_item3 t2);
+
+select id from t_item where exists (select * from t_item4 minus select 1, 'abcd' from t_item5);
+
+
+--echo #
+--echo # 14. lateral derived table
+--echo #
+
+--error ER_BAD_FIELD_ERROR
+select id, no from t_item, (select * from t_item2 minus select * from t_item3 where t_item3.c1 < t_item.id ) as t_minus ;
+
+select id, no, a, b from t_item, LATERAL (select * from t_item2 minus select * from t_item3 where t_item3.c1 < t_item.id ) as t_minus(a, b) ;
+
+
+--echo #
+--echo # 15. WITH RECURSIVE t(n)
+--echo #
+
+drop table if exists t_item;
+create table t_item(id int, no varchar(10));
+insert into t_item values(1, 'a');
+insert into t_item values(1, 'a');
+insert into t_item values(2, 'b');
+insert into t_item values(3, 'c');
+insert into t_item values(4, 'd');
+
+WITH RECURSIVE t(n) AS (
+  select id from t_item
+  minus
+  SELECT n-1 FROM t WHERE n <= 2
+)
+SELECT sum(n) FROM t;
+
+
+--echo #
+--echo # 16. minus子句放在select item中
+--echo #
+
+--echo # prepare
+drop table if exists t_item;
+create table t_item(id int, no varchar(10));
+insert into t_item values(1, 'a');
+insert into t_item values(1, 'a');
+insert into t_item values(2, 'b');
+insert into t_item values(3, 'c');
+insert into t_item values(4, 'd');
+
+drop table if exists t_item2;
+create table t_item2(c1 int, c2 varchar(10));
+insert into t_item2 values(1, 'a');
+insert into t_item2 values(2, 'b');
+insert into t_item2 values(3, 'dddd');
+
+drop table if exists t_item3;
+create table t_item3(c1 int, c2 varchar(10));
+insert into t_item3 values(1, 'a');
+insert into t_item3 values(2, 'b');
+insert into t_item3 values(3, 'dddd');
+
+--echo # test
+
+select (select 1 from dual minus select 2 from dual) from dual;
+
+--error ER_SUBQUERY_NO_1_ROW
+select (select id from t_item minus select 2 from dual) from dual;
+
+select (select min(id) from t_item minus select 2 from dual) from dual;
+
+select (select min(id) from t_item minus select 1 from dual) from dual;
+
+
+--echo #
+--echo # 17. insert ... select
+--echo #
+
+--echo # prepare
+drop table if exists t_item;
+create table t_item(id int, no varchar(10));
+insert into t_item values(1, 'a');
+insert into t_item values(1, 'a');
+insert into t_item values(2, 'b');
+insert into t_item values(3, 'c');
+insert into t_item values(4, 'd');
+
+drop table if exists t_item2;
+create table t_item2(c1 int, c2 varchar(10));
+insert into t_item2 values(1, 'a');
+insert into t_item2 values(2, 'b');
+insert into t_item2 values(3, 'dddd');
+
+drop table if exists t_item3;
+create table t_item3(c1 int, c2 varchar(10));
+
+--echo # test insert ... select
+insert into t_item3(c1, c2) select * from (select * from t_item minus select * from t_item2 where c1 > 1) as ttt;
+select * from t_item3;
+
+truncate table t_item3;
+insert into t_item3(c1, c2) (select * from t_item minus select * from t_item2 where c1 > 1);
+select * from t_item3;
+
+
+--echo #
+--echo # 18. prepare clause
+--echo #
+
+--echo # prepare table
+drop table if exists t_item;
+create table t_item(id int, no varchar(10));
+insert into t_item values(1, 'a');
+insert into t_item values(1, 'a');
+insert into t_item values(2, 'b');
+insert into t_item values(3, 'c');
+insert into t_item values(4, 'd');
+
+drop table if exists t_item2;
+create table t_item2(c1 int, c2 varchar(10));
+insert into t_item2 values(1, 'a');
+insert into t_item2 values(2, 'b');
+insert into t_item2 values(3, 'dddd');
+
+--echo # test prepare clause
+PREPARE stmt_prepare FROM 'select * from t_item minus select * from t_item2 where c1 > ?';
+SET @a = 1;
+EXECUTE stmt_prepare USING @a;
+DEALLOCATE PREPARE stmt_prepare;
+
+
+--echo #
+--echo # 19. select into
+--echo #
+
+# use prev table
+--error ER_PARSE_ERROR
+select * from (select count(id) into @aa  from t_item minus select c1 from t_item2) as ttt;
+
+--error ER_WRONG_USAGE
+select count(id) into @x1 from t_item minus select * from t_item2;
+
+--error ER_WRONG_USAGE
+select * from t_item2 union select count(id) into @x1 from t_item minus select * from t_item2;
+
+
+--echo #
+--echo # 20. sum()
+--echo #
+
+# use prev table
+select sum(id) from t_item minus select c1 from t_item2;
+
+select id from t_item minus select sum(c1) from t_item2;
+
+select sum(id) from t_item minus select sum(c1) from t_item2;
+
+
+--echo #
+--echo # 21. datetime
+--echo #
+
+select to_date('2020-06-07 10:13:24', 'YYYY-MM-DD HH24:MI:SS') from dual minus select to_date('2020-06-07 10:13:24', 'YYYY-MM-DD HH24:MI:SS') from dual;
+
+select '2020-06-07 10:13:24' from dual minus select to_date('2020-06-07 10:13:24', 'YYYY-MM-DD HH24:MI:SS') from dual;
+
+select 20200607 from dual minus select to_date('2020-06-07', 'YYYY-MM-DD') from dual;
+
+
+--echo #
+--echo # 22. SP
+--echo #
+
+--echo # prepare table for SP test
+drop table if exists t_minus;
+create table t_minus(a int, b varchar(5), c int);
+insert into t_minus values(1, 'a', 1);
+insert into t_minus values(2, 'b', 10);
+
+drop table if exists t_minus2;
+create table t_minus2(a2 int, b2 varchar(5), c2 int);
+insert into t_minus2 values(1, 'a', 1);
+insert into t_minus2 values(3, 'c', 11);
+
+drop table if exists t_minus3;
+create table t_minus3(a3 int, b3 varchar(5), c3 int);
+
+delimiter $$;
+
+create procedure test_minus_in_proc()
+begin
+    select * from t_minus MINUS select * from t_minus2;
+end $$
+
+create procedure test_minus_in_proc2()
+begin
+    declare t int;
+    set t = 0;
+    while t < 4 do
+        select * from t_minus MINUS select * from t_minus2;
+        set t = t+1;
+    end while;
+end $$
+
+delimiter ;$$
+
+--echo # test minus in sp
+call test_minus_in_proc();
+
+--echo # test minus in sp several times
+call test_minus_in_proc2();
+
+drop procedure test_minus_in_proc;
+drop procedure test_minus_in_proc2;
+
+
+--echo #
+--echo # 23. trigger
+--echo #
+# use prev table
+delimiter $$;
+create trigger after_insert after insert on t_minus for each row
+begin
+  insert into t_minus2 values (new.a, new.b, new.c);
+  
+  insert into t_minus3 (select * from t_minus minus select * from t_minus2);
+end $$
+delimiter ;$$
+
+select * from t_minus3;
+
+insert into t_minus values(5, '5b', 6);
+
+select * from t_minus3;
+
+
+
+--echo #
+--echo # 24. count(*), count(col)
+--echo #
+drop table if exists t_minus;
+create table t_minus(a int, b varchar(5), c int);
+insert into t_minus values(1, 'a', 1);
+insert into t_minus values(2, 'b', 10);
+insert into t_minus values(2, 'b', 11);
+
+select count(*) from t_minus minus select 2 from dual;
+
+select 2 from t_minus minus select count(*) from t_minus;
+
+select 2 from t_minus minus select count(a) from t_minus;
+
+select 3 from t_minus minus select count(a) from t_minus;
+
+select 2 from t_minus minus select count(distinct a) from t_minus;
+
+select 3 from t_minus minus select count(distinct a) from t_minus;
+
+
+--echo #
+--echo # 25. 多个minus作等价转换
+--echo #
+
+drop table if exists t_minus;
+create table t_minus(a int, b varchar(5), c int);
+insert into t_minus values(1, 'a', 1);
+insert into t_minus values(2, 'b', 10);
+
+drop table if exists t_minus2;
+create table t_minus2(a2 int, b2 varchar(5), c2 int);
+insert into t_minus2 values(1, 'a', 1);
+insert into t_minus2 values(3, 'c', 11);
+
+drop table if exists t_minus3;
+create table t_minus3(a3 int, b3 varchar(5), c3 int);
+insert into t_minus3 values(1, 'a', 1);
+
+--echo # 看是否等价select * from t_minus minus (select * from t_minus2 minus select * from t_minus3)
+select * from t_minus minus (select * from (select * from t_minus2 minus select * from t_minus3) as vv);
+
+
+--echo #
+--echo # 26. 多个MINUS/UNION, 对末尾多个UNION的 limit 优化
+--echo #
+
+--echo # preparation for limit optimization
+drop table if exists t_item;
+create table t_item(c1 int, c2 varchar(10));
+insert into t_item values(1, 'a');
+insert into t_item values(2, 'b');
+insert into t_item values(3, 'c');
+insert into t_item values(4, 'd');
+
+drop table if exists t_item2;
+create table t_item2(c1 int, c2 varchar(10));
+insert into t_item2 values(1, 'a');
+insert into t_item2 values(1, 'a');
+insert into t_item2 values(3, 'c');
+
+drop table if exists t_item3;
+create table t_item3(c1 int, c2 varchar(10));
+insert into t_item3 values(1, 'a');
+insert into t_item3 values(2, 'b');
+insert into t_item3 values(2, 'b');
+
+drop table if exists t_item4;
+create table t_item4(c1 int, c2 varchar(10));
+insert into t_item4 values(4, 'd');
+
+drop table if exists t_item5;
+create table t_item5(c1 int, c2 varchar(10));
+insert into t_item5 values(3, 'c');
+
+--echo # limit at outer
+(select c1 from t_item order by 1 limit 4) minus select c1 from t_item2 order by 1 limit 2;
+
+(select c1 from t_item order by 1 limit 4) minus select c1 from t_item2 order by 1 limit 1;
+
+(select c1 from t_item order by 1 limit 4) minus select c1 from t_item2 order by 1;
+
+select c1 from t_item minus select c1 from t_item2 limit 2;
+
+select c1 from t_item2 minus select c1 from t_item3 union select c1 from t_item4 union select c1 from t_item5 limit 2;
+
+--echo # in subselect 1
+select c1, c2 from t_item where c1 in (select c1 from t_item2 minus select c1 from t_item3 union select c1 from t_item4);
+
+--echo # in subselect 2, with full names
+select c1, c2 from t_item where c1 in (select t_item2.c1 from t_item2 minus select t_item3.c1 from t_item3 union select t_item4.c1 from t_item4);
+
+--echo # in subselect 3 
+select c1, c2 from t_item where c1 in (select c1 from t_item2 minus select c1 from t_item3 union select c1 from t_item4 union select c1 from t_item5);
+
+--echo # in subselect 4, has union all
+select c1, c2 from t_item where c1 in (select c1 from t_item2 minus select c1 from t_item3 union all select c1 from t_item4 union all select c1 from t_item5);
+
+--echo # in subselect 5, has union all in the middle
+select c1, c2 from t_item where c1 in (select c1 from t_item2 minus select c1 from t_item3 union all select c1 from t_item4 minus select c1 from t_item5);
+
+--echo # order by and limit, test 1
+select * from t_item minus select * from t_item2 union all select * from t_item3 order by c1 limit 2;
+
+--echo # order by and limit, test 2
+select * from t_item minus select * from t_item2 union all select * from t_item3 order by c1 limit 3;
+
+--echo # order by and limit, test 3
+select * from t_item minus select * from t_item2 union select * from t_item3 order by c1 limit 3;
+
+
+--echo #
+--echo # 27. connect by
+--echo #
+
+--echo # preparation
+
+drop table if exists nums;
+create table nums (pid int primary key, ppid int);
+insert into nums values (1, 0);
+insert into nums values (2, 0);
+insert into nums values (3, 2);
+insert into nums values (4, 2);
+insert into nums values (5, 2);
+insert into nums values (6, 1);
+insert into nums values (7, 1);
+insert into nums values (8, 2);
+insert into nums values (9, 6);
+insert into nums values (10,6);
+
+drop table if exists tab1;
+create table tab1 (c1 int, c2 int);
+insert into tab1 values (66, 66);
+insert into tab1 values (99, 99);
+ 
+--echo # test
+select * from nums MINUS select * from nums start with pid = 1 connect by nums.ppid = prior nums.pid;
+
+select * from nums start with pid = 1 connect by nums.ppid = prior nums.pid MINUS select * from nums;
+
+
+--echo #
+--echo # 28. 超过16列的表进行MINUS
+--echo #
+
+--echo # 准备100列的表
+drop table if exists test_large_field_table1;
+drop table if exists test_large_field_table2;
+
+create table test_large_field_table1 (a0000000 int, a0000001 int, a0000002 int, a0000003 int, a0000004 int, a0000005 int, a0000006 int, a0000007 int, a0000008 int, a0000009 int, a0000010 int, a0000011 int, a0000012 int, a0000013 int, a0000014 int, a0000015 int, a0000016 int, a0000017 int, a0000018 int, a0000019 int, a0000020 int, a0000021 int, a0000022 int, a0000023 int, a0000024 int, a0000025 int, a0000026 int, a0000027 int, a0000028 int, a0000029 int, a0000030 int, a0000031 int, a0000032 int, a0000033 int, a0000034 int, a0000035 int, a0000036 int, a0000037 int, a0000038 int, a0000039 int, a0000040 int, a0000041 int, a0000042 int, a0000043 int, a0000044 int, a0000045 int, a0000046 int, a0000047 int, a0000048 int, a0000049 int, a0000050 int, a0000051 int, a0000052 int, a0000053 int, a0000054 int, a0000055 int, a0000056 int, a0000057 int, a0000058 int, a0000059 int, a0000060 int, a0000061 int, a0000062 int, a0000063 int, a0000064 int, a0000065 int, a0000066 int, a0000067 int, a0000068 int, a0000069 int, a0000070 int, a0000071 int, a0000072 int, a0000073 int, a0000074 int, a0000075 int, a0000076 int, a0000077 int, a0000078 int, a0000079 int, a0000080 int, a0000081 int, a0000082 int, a0000083 int, a0000084 int, a0000085 int, a0000086 int, a0000087 int, a0000088 int, a0000089 int, a0000090 int, a0000091 int, a0000092 int, a0000093 int, a0000094 int, a0000095 int, a0000096 int, a0000097 int, a0000098 int, a0000099 int);
+create table test_large_field_table2 (a0000000 int, a0000001 int, a0000002 int, a0000003 int, a0000004 int, a0000005 int, a0000006 int, a0000007 int, a0000008 int, a0000009 int, a0000010 int, a0000011 int, a0000012 int, a0000013 int, a0000014 int, a0000015 int, a0000016 int, a0000017 int, a0000018 int, a0000019 int, a0000020 int, a0000021 int, a0000022 int, a0000023 int, a0000024 int, a0000025 int, a0000026 int, a0000027 int, a0000028 int, a0000029 int, a0000030 int, a0000031 int, a0000032 int, a0000033 int, a0000034 int, a0000035 int, a0000036 int, a0000037 int, a0000038 int, a0000039 int, a0000040 int, a0000041 int, a0000042 int, a0000043 int, a0000044 int, a0000045 int, a0000046 int, a0000047 int, a0000048 int, a0000049 int, a0000050 int, a0000051 int, a0000052 int, a0000053 int, a0000054 int, a0000055 int, a0000056 int, a0000057 int, a0000058 int, a0000059 int, a0000060 int, a0000061 int, a0000062 int, a0000063 int, a0000064 int, a0000065 int, a0000066 int, a0000067 int, a0000068 int, a0000069 int, a0000070 int, a0000071 int, a0000072 int, a0000073 int, a0000074 int, a0000075 int, a0000076 int, a0000077 int, a0000078 int, a0000079 int, a0000080 int, a0000081 int, a0000082 int, a0000083 int, a0000084 int, a0000085 int, a0000086 int, a0000087 int, a0000088 int, a0000089 int, a0000090 int, a0000091 int, a0000092 int, a0000093 int, a0000094 int, a0000095 int, a0000096 int, a0000097 int, a0000098 int, a0000099 int);
+
+--echo # 相同的长记录相减
+insert into test_large_field_table1 values(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+insert into test_large_field_table2 values(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+select count(1) from (select * from test_large_field_table1 minus select * from test_large_field_table2 ) v;
+
+--echo # 长记录的前面部分相同
+truncate table test_large_field_table1;
+truncate table test_large_field_table2;
+
+insert into test_large_field_table1 values(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+insert into test_large_field_table2 values(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2);
+select count(1) from (select * from test_large_field_table1 minus select * from test_large_field_table2 ) v;
+
+
+--echo # 长记录的前面部分不相同(第二个字段不同)
+truncate table test_large_field_table1;
+truncate table test_large_field_table2;
+
+insert into test_large_field_table1 values(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+insert into test_large_field_table2 values(1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+select count(1) from (select * from test_large_field_table1 minus select * from test_large_field_table2 ) v;
+
+
+--echo #
+--echo # 29. 对很长的CLOB进行MINUS
+--echo #
+
+--echo #
+create table test_clob1(a int, b clob);
+create table test_clob2(a int, b clob);
+
+--echo # 两记录相同
+insert into test_clob1 values(1, repeat('abcdefg', 700000));
+insert into test_clob2 values(1, repeat('abcdefg', 700000));
+
+select count(1) from (select * from test_clob1 minus select * from test_clob2) v;
+
+--echo # 两记录只有最后一个字符不同
+truncate table test_clob1;
+truncate table test_clob2;
+
+insert into test_clob1 values(1, CONCAT(repeat('abcdefg', 700000), '1'));
+insert into test_clob2 values(1, CONCAT(repeat('abcdefg', 700000), '2'));
+
+select count(1) from (select * from test_clob1 minus select * from test_clob2) v;
+
+--echo # 两记录只有第二个字符不同
+truncate table test_clob1;
+truncate table test_clob2;
+
+insert into test_clob1 values(1, CONCAT('11', repeat('abcdefg', 700000)));
+insert into test_clob2 values(1, CONCAT('12', repeat('abcdefg', 700000)));
+
+select count(1) from (select * from test_clob1 minus select * from test_clob2) v;
+
+
+--echo #
+--echo # 30. 非迭代器
+--echo #
+
+drop table if exists t_item;
+create table t_item(c1 int, c2 varchar(10), c3 int, c4 varchar(10));
+insert into t_item values(1, 'a', 1, 'a');
+insert into t_item values(2, 'b', 2, 'b');
+insert into t_item values(3, 'c', NULL, NULL);
+insert into t_item values(4, 'd', 5, 'e');
+
+drop table if exists t_item2;
+create table t_item2(c1 int, c2 varchar(10));
+insert into t_item2 values(1, 'a');
+insert into t_item2 values(1, 'a');
+insert into t_item2 values(3, 'c');
+
+drop table if exists t_item3;
+create table t_item3(c1 int, c2 varchar(10));
+insert into t_item3 values(1, 'a');
+insert into t_item3 values(2, 'b');
+insert into t_item3 values(2, 'b');
+
+select * from t_item minus select * from t_item2 left join t_item3 on t_item2.c1 = t_item3.c1;
+select * from t_item2 left join t_item3 on t_item2.c1 = t_item3.c1 minus select * from t_item;
+
+
+--echo #
+--echo # 31. with rollup
+--echo #
+
+drop table if exists t_item;
+create table t_item(c1 int, c2 varchar(10), c3 int, c4 varchar(10));
+insert into t_item values(1, 'a', 1, 'a');
+insert into t_item values(2, 'b', 2, 'b');
+insert into t_item values(3, 'c', NULL, NULL);
+insert into t_item values(4, 'd', 5, 'e');
+
+drop table if exists t_item2;
+create table t_item2(c1 int, c2 varchar(10));
+insert into t_item2 values(1, 'a');
+insert into t_item2 values(1, 'a');
+insert into t_item2 values(3, 'c');
+
+drop table if exists t_item3;
+create table t_item3(c1 int, c2 varchar(10));
+insert into t_item3 values(1, 'a');
+insert into t_item3 values(2, 'b');
+insert into t_item3 values(2, 'b');
+
+drop table if exists t_rollup;
+create table t_rollup(id int, id2 int);
+insert into t_rollup values(11, 11), (12, 12), (13, 13);
+
+drop table if exists t_rollup2;
+create table t_rollup2(id int, sum_value int, avg_value decimal(10, 5));
+insert into t_rollup2 values(11, 11, 11.0);
+insert into t_rollup2 values(12, 13, 14.0);
+
+select * from t_rollup2 minus select id, sum(id2), avg(id2) from t_rollup group by id with rollup Union select t_item2.c1, t_item2.c2, NULL from t_item2 left join t_item3 on t_item2.c1 = t_item3.c1;
+
+select id, sum(id2), avg(id2) from t_rollup group by id with rollup minus select t_item2.c1 * 11, t_item2.c1 *11, 11.0 from t_item2 left join t_item3 on t_item2.c1 = t_item3.c1;
+
+
+
+--echo #
+--echo # 32. table with virtual column
+--echo #
+drop table if exists t_with_virtual;
+CREATE TABLE t_with_virtual
+(
+    num int,
+    num2 int,
+    total NUMBER(10,2) GENERATED ALWAYS AS (num*12 + num2)
+);
+insert into t_with_virtual(num, num2) values(1,2);
+insert into t_with_virtual(num, num2) values(3,1);
+
+drop table if exists t_table2;
+CREATE TABLE t_table2( c1 int, c2 int, c3 number(10,2));
+insert into t_table2 values(1, 2, 14.00);
+insert into t_table2 values(2, 3, 15.00);
+
+select * from t_table2 minus select * from t_with_virtual;
+select * from t_with_virtual minus select * from t_table2;
+
+
+
+--echo #
+--echo # clean up
+--echo #
+
+--enable_warnings
+drop database if exists testdb_minus;
+

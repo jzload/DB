@@ -1,0 +1,369 @@
+#
+# This file provides testcases for Oracle truncate subpartition/partition gramma.
+# Particularly testing about replication.
+#
+
+--let $use_gtids= 1
+--let $rpl_gtid_utils= 1
+--let $rpl_topology= 1->2
+--source include/rpl_init.inc
+--source include/have_log_bin.inc
+--source include/rpl_default_connections.inc
+--source include/rpl_reset.inc
+
+--source include/rpl_connection_master.inc
+--source include/rpl_connection_slave.inc
+
+
+--source include/rpl_connection_master.inc
+create database yxx;
+use yxx;
+set names utf8mb4;
+
+--source include/rpl_connection_slave.inc
+use yxx;
+
+# execute commands on master
+--source include/rpl_connection_master.inc
+
+--echo ############################## RANGE PARTITION, HASH SUBPARTITION ###############################
+
+CREATE TABLE t1 (id INT, purchased DATE)
+    PARTITION BY RANGE( YEAR(purchased) )
+    SUBPARTITION BY HASH( TO_DAYS(purchased) )
+    SUBPARTITIONS 2 (
+        PARTITION p0 VALUES LESS THAN (2000),
+        PARTITION p1 VALUES LESS THAN (2020),
+        PARTITION p2 VALUES LESS THAN MAXVALUE
+    );
+
+--delimiter /
+create procedure filldata()
+begin
+  delete from t1;
+  insert into t1 values (1, '1994-10-24'), (2, '1999-10-25'), (3, '2005-10-24'), (4, '2015-10-25'), (5, '2020-10-24'), (6, '2021-10-24');
+end;
+/
+
+create procedure checkdata()
+begin
+  select "Start checking data ..." from dual;
+  select * from t1 partition (p0sp0);
+  select * from t1 partition (p0sp1);
+  select * from t1 partition (p1sp0);
+  select * from t1 partition (p1sp1);
+  select * from t1 partition (p2sp0);
+  select * from t1 partition (p2sp1);
+  select "End checking data ..." from dual;
+end;
+/
+
+--delimiter ;
+
+
+--echo #########################################################################
+--echo # test-1 mysql_mode, no specified names of subpartition
+--echo #########################################################################
+
+set @@parse_mode = 1;
+call filldata();
+call checkdata();
+
+--echo # do truncate partition to a non-existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition p3;
+
+--echo # do truncate partition to a non-existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition p0sp2;
+
+--echo # do truncate partition to an existed partition
+
+call filldata();
+alter table t1 truncate partition p0;
+
+--source include/rpl_sync.inc
+--source include/rpl_connection_slave.inc
+call checkdata();
+--source include/rpl_connection_master.inc
+
+--echo # do truncate partition to an existed subpartition
+call filldata();
+alter table t1 truncate partition p1sp0;
+
+--source include/rpl_sync.inc
+--source include/rpl_connection_slave.inc
+call checkdata();
+--source include/rpl_connection_master.inc
+
+
+--echo # do truncate subpartition to a non-existed partition
+call filldata();
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p8;
+
+--echo # do truncate subpartition to a non-existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p0sp2;
+
+--echo # do truncate subpartition to an existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p0;
+
+--echo # do truncate subpartition to an existed subpartition
+
+call filldata();
+alter table t1 truncate subpartition p0sp1;
+
+--source include/rpl_sync.inc
+--source include/rpl_connection_slave.inc
+call checkdata();
+--source include/rpl_connection_master.inc
+
+
+--echo #########################################################################
+--echo # test-2 oracle_mode, no specified names of subpartition
+--echo #########################################################################
+
+set @@parse_mode = 2;
+
+call filldata();
+call checkdata();
+
+--echo # do truncate partition to a non-existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition p3;
+
+--echo # do truncate partition to a non-existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition p0sp2;
+
+--echo # do truncate partition to an existed partition
+
+call filldata();
+alter table t1 truncate partition p0;
+
+--source include/rpl_sync.inc
+--source include/rpl_connection_slave.inc
+call checkdata();
+--source include/rpl_connection_master.inc
+
+--echo # do truncate partition to an existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition p1sp0;
+
+
+--echo # do truncate subpartition to a non-existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p8;
+
+--echo # do truncate subpartition to a non-existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p0sp2;
+
+--echo # do truncate subpartition to an existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p0;
+
+--echo # do truncate subpartition to an existed subpartition
+
+call filldata();
+alter table t1 truncate subpartition p0sp1;
+
+--source include/rpl_sync.inc
+--source include/rpl_connection_slave.inc
+call checkdata();
+--source include/rpl_connection_master.inc
+
+
+#######################################################
+## with specified names of subpartition
+########################################################
+drop table if exists t1;
+drop procedure if exists filldata;
+drop procedure if exists checkdata;
+
+CREATE TABLE t1 (id INT, purchased DATE)
+    PARTITION BY RANGE( YEAR(purchased) )
+    SUBPARTITION BY HASH( TO_DAYS(purchased) ) (
+        PARTITION p0 VALUES LESS THAN (2000) (
+          SUBPARTITION s0,
+          SUBPARTITION s1
+        ),
+        PARTITION p1 VALUES LESS THAN (2020) (
+          SUBPARTITION s2,
+          SUBPARTITION s3
+        ),
+        PARTITION p2 VALUES LESS THAN MAXVALUE (
+          SUBPARTITION s4,
+          SUBPARTITION s5
+        )
+    );
+
+--delimiter /
+create procedure filldata()
+begin
+  delete from t1;
+  insert into t1 values (1, '1994-10-24'), (2, '1999-10-25'), (3, '2005-10-24'), (4, '2015-10-25'), (5, '2020-10-24'), (6, '2021-10-24');
+end;
+/
+
+create procedure checkdata()
+begin
+  select "Start checking data ..." from dual;
+  select * from t1 partition (s0);
+  select * from t1 partition (s1);
+  select * from t1 partition (s2);
+  select * from t1 partition (s3);
+  select * from t1 partition (s4);
+  select * from t1 partition (s5);
+  select "End checking data ..." from dual;
+end;
+/
+
+--delimiter ;
+
+
+
+
+--echo #########################################################################
+--echo # test-3 mysql_mode, with specified names of subpartition
+--echo #########################################################################
+
+set @@parse_mode = 1;
+call filldata();
+call checkdata();
+
+--echo # do truncate partition to a non-existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition p3;
+
+--echo # do truncate partition to a non-existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition p0sp0;
+
+--echo # do truncate partition to an existed partition
+
+call filldata();
+alter table t1 truncate partition p0;
+
+--source include/rpl_sync.inc
+--source include/rpl_connection_slave.inc
+call checkdata();
+--source include/rpl_connection_master.inc
+
+--echo # do truncate partition to an existed subpartition
+
+call filldata();
+alter table t1 truncate partition s2;
+
+--source include/rpl_sync.inc
+--source include/rpl_connection_slave.inc
+call checkdata();
+--source include/rpl_connection_master.inc
+
+
+--echo # do truncate subpartition to a non-existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p8;
+
+--echo # do truncate subpartition to a non-existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p0sp1;
+
+--echo # do truncate subpartition to an existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p0;
+
+--echo # do truncate subpartition to an existed subpartition
+
+call filldata();
+alter table t1 truncate subpartition s2;
+
+--source include/rpl_sync.inc
+--source include/rpl_connection_slave.inc
+call checkdata();
+--source include/rpl_connection_master.inc
+
+
+--echo #########################################################################
+--echo # test-4 oracle_mode, with specified names of subpartition
+--echo #########################################################################
+
+set @@parse_mode = 2;
+call filldata();
+call checkdata();
+
+--echo # do truncate partition to a non-existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition p3;
+
+--echo # do truncate partition to a non-existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition p0sp1;
+
+--echo # do truncate partition to an existed partition
+
+call filldata();
+alter table t1 truncate partition p0;
+
+--source include/rpl_sync.inc
+--source include/rpl_connection_slave.inc
+call checkdata();
+--source include/rpl_connection_master.inc
+
+--echo # do truncate partition to an existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition s5;
+
+
+--echo # do truncate subpartition to a non-existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p8;
+
+--echo # do truncate subpartition to a non-existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p0sp0;
+
+--echo # do truncate subpartition to an existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p0;
+
+--echo # do truncate subpartition to an existed subpartition
+
+call filldata();
+alter table t1 truncate subpartition s5;
+
+--source include/rpl_sync.inc
+--source include/rpl_connection_slave.inc
+call checkdata();
+--source include/rpl_connection_master.inc
+
+
+--echo # restore ...
+drop database yxx;
+--source include/rpl_sync.inc
+--source include/rpl_end.inc
+

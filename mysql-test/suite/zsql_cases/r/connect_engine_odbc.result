@@ -1,0 +1,173 @@
+install plugin connect soname 'ha_connect.so';
+select * from information_schema.ENGINES order by engine;
+ENGINE	SUPPORT	COMMENT	TRANSACTIONS	XA	SAVEPOINTS
+ARCHIVE	YES	Archive storage engine	NO	NO	NO
+BLACKHOLE	YES	/dev/null storage engine (anything you write to it disappears)	NO	NO	NO
+CONNECT	YES	Management of External Data (SQL/MED), including many file formats	NO	NO	NO
+CSV	YES	CSV storage engine	NO	NO	NO
+FEDERATED	NO	Federated MySQL storage engine	NULL	NULL	NULL
+InnoDB	DEFAULT	Supports transactions, row-level locking, and foreign keys	YES	YES	YES
+MEMORY	YES	Hash based, stored in memory, useful for temporary tables	NO	NO	NO
+MRG_MYISAM	YES	Collection of identical MyISAM tables	NO	NO	NO
+MyISAM	YES	MyISAM storage engine	NO	NO	NO
+PERFORMANCE_SCHEMA	YES	Performance Schema	NO	NO	NO
+create database if not exists test_connect_engine;
+use test_connect_engine;
+drop table if exists CrashTable;
+drop table if exists runSQL;
+drop table if exists ora_pet;
+create table CrashTable
+( 
+a int primary key,
+name varchar (20)
+) engine=connect;
+ERROR HY000: The options is empty
+create table CrashTable
+(
+a int primary key,
+name varchar (20)
+) ;
+alter table CrashTable engine=connect;
+ERROR HY000: The options is empty
+create table runSQL
+(
+command varchar(128) flag=0, 
+number int(5) flag=1,
+message varchar(255) flag=2
+)
+engine=connect table_type=odbc
+Connection='DSN=mysrc'
+option_list='Execsrc=1';
+show create table runSQL;
+Table	Create Table
+runSQL	CREATE TABLE `runSQL` (
+  `command` varchar(128) FLAG=0 DEFAULT NULL,
+  `number` int(5) FLAG=1 DEFAULT NULL,
+  `message` varchar(255) FLAG=2 DEFAULT NULL
+) ENGINE=CONNECT DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+  option_list='Execsrc=1'
+  table_type=odbc
+  CONNECTION='DSN=mysrc'
+select * from runSQL where command = 'drop table pet';
+select * from runSQL where command =
+'create table pet
+  ( 
+    name VARCHAR(20) , 
+    species VARCHAR(20),
+    age INT, 
+    birth DATE
+  )';
+command	number	message
+create table pet
+  ( 
+    name VARCHAR(20) , 
+    species VARCHAR(20),
+    age INT, 
+    birth DATE
+  )	-1	Affected rows
+create table ora_pet
+( 
+name VARCHAR(20) , 
+species VARCHAR(20),
+age INT, 
+birth DATE
+)
+engine=CONNECT 
+table_type=ODBC 
+tabname='pet' 
+Connection='DSN=mysrc';
+show create table ora_pet;
+Table	Create Table
+ora_pet	CREATE TABLE `ora_pet` (
+  `name` varchar(20) DEFAULT NULL,
+  `species` varchar(20) DEFAULT NULL,
+  `age` int(11) DEFAULT NULL,
+  `birth` date DEFAULT NULL
+) ENGINE=CONNECT DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+  tabname='pet'
+  table_type=ODBC
+  CONNECTION='DSN=mysrc'
+insert into ora_pet values ('Puff','bird', 1, date'1999-03-30');
+insert into ora_pet values ('Fluffy','cat', 2 , date'1993-02-04');
+insert into ora_pet values ('Fang','dog', 3 , date'1980-08-27');
+insert into ora_pet values ('Claws','cat', 3,  date'1994-03-17');
+insert into ora_pet values ('Buffy', 'dog', 3,  date'1989-05-13');
+insert into ora_pet values ('Diane', 'cat', 3, date'1995-07-29');
+insert into ora_pet values ('Slim', 'snake', 1, date'1985-01-29');
+insert into ora_pet values ('Whistler', 'bird', 1, date'1997-12-09');
+select * from ora_pet order by name;
+name	species	age	birth
+Buffy	dog	3	1989-05-13
+Claws	cat	3	1994-03-17
+Diane	cat	3	1995-07-29
+Fang	dog	3	1980-08-27
+Fluffy	cat	2	1993-02-04
+Puff	bird	1	1999-03-30
+Slim	snake	1	1985-01-29
+Whistler	bird	1	1997-12-09
+select count(*) from ora_pet;
+count(*)
+8
+delete from ora_pet where name='Puff';
+update ora_pet set age=2 where name='Fang';
+select * from ora_pet order by name;
+name	species	age	birth
+Buffy	dog	3	1989-05-13
+Claws	cat	3	1994-03-17
+Diane	cat	3	1995-07-29
+Fang	dog	2	1980-08-27
+Fluffy	cat	2	1993-02-04
+Slim	snake	1	1985-01-29
+Whistler	bird	1	1997-12-09
+start transaction;
+delete from ora_pet where name='Claws';
+Warnings:
+Note	1	pet: 1 affected rows
+update ora_pet set age =9 where name='Fang';
+Warnings:
+Note	1	pet: 1 affected rows
+select * from ora_pet order by name;
+name	species	age	birth
+Buffy	dog	3	1989-05-13
+Diane	cat	3	1995-07-29
+Fang	dog	9	1980-08-27
+Fluffy	cat	2	1993-02-04
+Slim	snake	1	1985-01-29
+Whistler	bird	1	1997-12-09
+commit;
+select * from ora_pet order by name;
+name	species	age	birth
+Buffy	dog	3	1989-05-13
+Diane	cat	3	1995-07-29
+Fang	dog	9	1980-08-27
+Fluffy	cat	2	1993-02-04
+Slim	snake	1	1985-01-29
+Whistler	bird	1	1997-12-09
+start transaction;
+delete from ora_pet where name='Diane';
+Warnings:
+Note	1	pet: 1 affected rows
+update ora_pet set age =7 where name='Fang';
+Warnings:
+Note	1	pet: 1 affected rows
+select * from ora_pet order by name;
+name	species	age	birth
+Buffy	dog	3	1989-05-13
+Fang	dog	7	1980-08-27
+Fluffy	cat	2	1993-02-04
+Slim	snake	1	1985-01-29
+Whistler	bird	1	1997-12-09
+rollback;
+select * from ora_pet order by name;
+name	species	age	birth
+Buffy	dog	3	1989-05-13
+Fang	dog	7	1980-08-27
+Fluffy	cat	2	1993-02-04
+Slim	snake	1	1985-01-29
+Whistler	bird	1	1997-12-09
+select * from runSQL where command = 'drop table pet';
+drop table if exists runSQL;
+drop table if exists ora_pet;
+drop table if exists CrashTable;
+drop database if exists test_connect_engine;
+uninstall plugin connect;

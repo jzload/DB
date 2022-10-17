@@ -1,0 +1,190 @@
+--source include/restart_mysqld.inc
+
+#
+# Test that transaction data is correctly "visualized" in
+# INFORMATION_SCHEMA.INNODB_TRX
+#
+
+
+--echo ##
+--echo ## prepare
+--echo ##
+Drop database if exists abczyy_test;
+Create database abczyy_test;
+Create table abczyy_test.tb1(a int key, b int);
+Create table abczyy_test.tb2(a int key, b int);
+Insert into abczyy_test.tb2(a,b) values(1,1),(2,2),(3,3),(4,4),(5,5),(6,6),(7,7),(8,8),(9,9);
+set global autocommit=1;
+sleep 1;
+
+-- source include/count_sessions.inc
+
+-- connect (con_trx,localhost,root,,)
+-- connect (con_verify_innodb_trx,localhost,root,,)
+
+
+--echo ##
+--echo ## Test 1.1 TSN ERROR AND GTID ok
+--echo ##
+-- connection con_trx
+/*+TSN:mycase-001*/ /*+GTID=123*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+
+-- connection con_verify_innodb_trx
+select TRX_SERIAL_NUM,TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+
+-- connection con_trx
+rollback;
+sleep 0.2;
+
+
+--echo ##
+--echo ## Test 1.2 TSN OK AND GTID ERROR
+--echo ##
+-- connection con_trx
+/*+TSN=mycase-001*/ /*-GTID=123*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+
+-- connection con_verify_innodb_trx
+select TRX_SERIAL_NUM,TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+
+-- connection con_trx
+rollback;
+sleep 0.2;
+
+
+--echo ##
+--echo ## Test 1.3 TSN OK AND GTID ok
+--echo ##
+-- connection con_trx
+/*+TSN=mycase-001*/ /*+GTID=123*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+
+-- connection con_verify_innodb_trx
+select TRX_SERIAL_NUM,TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+
+-- connection con_trx
+rollback;
+sleep 0.2;
+
+
+--echo ##
+--echo ## Test 1.4 GTID OK AND TSN ok
+--echo ##
+-- connection con_trx
+/*+GTID=1234*//*+TSN=mycase-0001*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+
+-- connection con_verify_innodb_trx
+select TRX_SERIAL_NUM,TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+
+-- connection con_trx
+rollback;
+sleep 0.2;
+
+
+--echo ##
+--echo ## Test 1.5 GTID AND TSN IN the one special comment
+--echo ##
+-- connection con_trx
+/*+GTID=1234 +TSN=mycase-0001*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+
+-- connection con_verify_innodb_trx
+select TRX_SERIAL_NUM,TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+
+-- connection con_trx
+rollback;
+sleep 0.2;
+
+
+--echo ##
+--echo ## Test 1.6 the first two sql has the special comment
+--echo ##
+-- connection con_trx
+/*+GTID=123456*/Start transaction;
+/*+TSN=mycase-00001*/Insert into abczyy_test.tb1(a,b) values(1,1);
+
+-- connection con_verify_innodb_trx
+select TRX_SERIAL_NUM,TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+
+-- connection con_trx
+rollback;
+sleep 0.2;
+
+
+--echo ##
+--echo ## Test 1.7 reset after trx commit
+--echo ##
+-- connection con_trx
+Start transaction;
+/*+TSN=mycase-000001*/select * from abczyy_test.tb1;
+/*+GTID=1234567*/Insert into abczyy_test.tb1(a,b) values(301,301);
+
+-- connection con_verify_innodb_trx
+select TRX_SERIAL_NUM,TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+sleep 0.2;
+
+-- connection con_trx
+commit;
+Start transaction;
+Insert into abczyy_test.tb1(a,b) values(302,302);
+
+-- connection con_verify_innodb_trx
+select TRX_SERIAL_NUM,TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+
+-- connection con_trx
+commit;
+sleep 0.2;
+
+
+--echo ##
+--echo ## Test 1.8 utf-8 in special comment
+--echo ##
+-- connection con_trx
+/*+TSN=事务流水号-00001*/Start transaction;
+/*+GTID=事务GTID-12345*/Insert into abczyy_test.tb1(a,b) values(1,1);
+
+-- connection con_verify_innodb_trx
+select hex(TRX_SERIAL_NUM),hex(TRX_GTM_GTID) FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+
+-- connection con_trx
+rollback;
+sleep 0.2;
+
+
+--echo ##
+--echo ## Test 1.9 special char in special comment
+--echo ##
+-- connection con_trx
+Start transaction;
+/*+TSN=$``~!@$%^&*()_+-=$*//*+GTID=?{}[]|:'"',./<>?*/select * from abczyy_test.tb1;
+
+-- connection con_verify_innodb_trx
+select TRX_SERIAL_NUM,TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+
+-- connection con_trx
+rollback;
+sleep 0.2;
+
+
+--echo ##
+--echo ## Test 1.10 show create table
+--echo ##
+-- connection default
+Show create table information_schema.innodb_trx;
+Desc information_schema.innodb_trx;
+
+
+
+--echo ##
+--echo ## clear
+--echo ##
+-- connection default
+
+-- disconnect con_trx
+-- disconnect con_verify_innodb_trx
+
+Drop database if exists abczyy_test;
+
+-- source include/wait_until_count_sessions.inc

@@ -1,0 +1,69 @@
+create database test_copy;
+use test_copy;
+CREATE TABLE `ttt` (   
+`c1` varchar(100) COLLATE utf8mb4_bin NOT NULL,   
+`DA` varchar(30) COLLATE utf8mb4_bin NOT NULL,   
+`IN1` varchar(300) COLLATE utf8mb4_bin NOT NULL,   
+`IV` varchar(300) COLLATE utf8mb4_bin NOT NULL,   
+`RT_key` varchar(26) COLLATE utf8mb4_bin DEFAULT NULL,   
+`FN` varchar(30) COLLATE utf8mb4_bin NOT NULL,   
+`AV` varchar(1000) COLLATE utf8mb4_bin DEFAULT NULL,   
+`NL` varchar(1000) COLLATE utf8mb4_bin DEFAULT NULL,   
+PRIMARY KEY (`c1`,`DA`,`IN1`,`IV`,`FN`),   
+KEY `csa` (`RT_key`) ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+CREATE TABLE `ttt1` (   
+`c1` varchar(100) COLLATE utf8mb4_bin NOT NULL,   
+`DA` varchar(30) COLLATE utf8mb4_bin NOT NULL,   
+`IN1` varchar(300) COLLATE utf8mb4_bin NOT NULL,   
+`IV` varchar(300) COLLATE utf8mb4_bin NOT NULL,   
+`RT_key` varchar(26) COLLATE utf8mb4_bin NOT NULL,   
+`FN` varchar(30) COLLATE utf8mb4_bin NOT NULL,   
+`AV` varchar(1000) COLLATE utf8mb4_bin DEFAULT NULL,   
+`NL` varchar(1000) COLLATE utf8mb4_bin DEFAULT NULL,   
+PRIMARY KEY (`c1`,`DA`,`IN1`,`IV`,`FN`),   
+KEY `csa` (`RT_key`) ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+copy table from ttt1 to ttt;
+ERROR HY000: Copy table failed: table field def is different.
+show create table test_copy.ttt1;
+Table	Create Table
+ttt1	CREATE TABLE `ttt1` (
+  `c1` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `DA` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `IN1` varchar(300) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `IV` varchar(300) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `RT_key` varchar(26) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `FN` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `AV` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  `NL` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  PRIMARY KEY (`c1`,`DA`,`IN1`,`IV`,`FN`),
+  KEY `csa` (`RT_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+show create table test_copy.ttt;
+Table	Create Table
+ttt	CREATE TABLE `ttt` (
+  `c1` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `DA` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `IN1` varchar(300) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `IV` varchar(300) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `RT_key` varchar(26) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  `FN` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `AV` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  `NL` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  PRIMARY KEY (`c1`,`DA`,`IN1`,`IV`,`FN`),
+  KEY `csa` (`RT_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+show create table test_copy.ttt;
+Table	Create Table
+ttt	CREATE TABLE `ttt` (
+  `c1` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `DA` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `IN1` varchar(300) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `IV` varchar(300) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `RT_key` varchar(26) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  `FN` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `AV` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  `NL` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  PRIMARY KEY (`c1`,`DA`,`IN1`,`IV`,`FN`),
+  KEY `csa` (`RT_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+drop database test_copy;

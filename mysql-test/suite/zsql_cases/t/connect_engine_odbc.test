@@ -1,0 +1,104 @@
+install plugin connect soname 'ha_connect.so';
+if (!`SELECT count(*) FROM information_schema.engines WHERE
+        (support = 'YES' OR support = 'DEFAULT') AND
+        engine = 'connect'`)
+{
+    skip Need CONNECT engine;
+}
+select * from information_schema.ENGINES order by engine;
+
+create database if not exists test_connect_engine;
+use test_connect_engine;
+--disable_warnings
+drop table if exists CrashTable;
+drop table if exists runSQL;
+drop table if exists ora_pet;
+--error 1105
+create table CrashTable
+( 
+  a int primary key,
+ name varchar (20)
+) engine=connect;
+
+create table CrashTable
+(
+ a int primary key,
+ name varchar (20)
+) ;
+--error 1105
+alter table CrashTable engine=connect;  
+--disable_warnings
+create table runSQL
+(
+  command varchar(128) flag=0, 
+  number int(5) flag=1,
+  message varchar(255) flag=2
+ )
+engine=connect table_type=odbc
+Connection='DSN=mysrc'
+option_list='Execsrc=1';
+show create table runSQL;
+--disable_result_log
+select * from runSQL where command = 'drop table pet';
+--enable_result_log
+select * from runSQL where command =
+'create table pet
+  ( 
+    name VARCHAR(20) , 
+    species VARCHAR(20),
+    age INT, 
+    birth DATE
+  )';
+
+create table ora_pet
+( 
+  name VARCHAR(20) , 
+  species VARCHAR(20),
+  age INT, 
+  birth DATE
+)
+engine=CONNECT 
+table_type=ODBC 
+tabname='pet' 
+Connection='DSN=mysrc';
+show create table ora_pet;
+
+insert into ora_pet values ('Puff','bird', 1, date'1999-03-30');
+insert into ora_pet values ('Fluffy','cat', 2 , date'1993-02-04');
+insert into ora_pet values ('Fang','dog', 3 , date'1980-08-27');
+insert into ora_pet values ('Claws','cat', 3,  date'1994-03-17');
+insert into ora_pet values ('Buffy', 'dog', 3,  date'1989-05-13');
+insert into ora_pet values ('Diane', 'cat', 3, date'1995-07-29');
+insert into ora_pet values ('Slim', 'snake', 1, date'1985-01-29');
+insert into ora_pet values ('Whistler', 'bird', 1, date'1997-12-09');
+
+select * from ora_pet order by name;
+select count(*) from ora_pet;
+--disable_warnings
+delete from ora_pet where name='Puff';
+update ora_pet set age=2 where name='Fang';
+--enable_warnings
+select * from ora_pet order by name;
+start transaction;
+delete from ora_pet where name='Claws';
+update ora_pet set age =9 where name='Fang';
+select * from ora_pet order by name;
+commit;
+select * from ora_pet order by name;
+start transaction;
+delete from ora_pet where name='Diane';
+update ora_pet set age =7 where name='Fang';
+select * from ora_pet order by name;
+rollback;
+select * from ora_pet order by name;
+--disable_result_log
+select * from runSQL where command = 'drop table pet';
+--enable_result_log
+drop table if exists runSQL;
+drop table if exists ora_pet;
+--disable_warnings
+drop table if exists CrashTable;
+--enable_warnings
+drop database if exists test_connect_engine;
+uninstall plugin connect;
+

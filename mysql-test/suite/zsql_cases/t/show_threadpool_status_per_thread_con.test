@@ -1,0 +1,9 @@
+##########################################################
+# test cases for "show threadpool status" in config 
+##########################################################
+
+--source include/not_windows.inc
+
+SELECT @@GLOBAL.thread_handling;
+show threadpool status;
+show status like '%threadpool%';

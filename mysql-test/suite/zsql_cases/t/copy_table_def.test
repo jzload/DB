@@ -1,0 +1,486 @@
+# copy table test 
+#
+
+drop database if exists copy_db;
+create database copy_db;
+use copy_db;
+#########################
+--echo test copy int 
+###############################
+create table t_int (
+id int key ,
+id2 int(10)
+);
+create table t_int2 (
+id int key ,
+id2 int(9)
+);
+
+copy table from t_int to t_int2;
+
+###############################
+--echo test copy TINYINT 
+###############################
+create table t_TINYINT (
+id int key ,
+id2 TINYINT
+);
+create table t_TINYINT2 (
+id int key ,
+id2 TINYINT
+);
+copy table from t_TINYINT to t_TINYINT2;
+
+create table t_TINYINT3 (
+id int key ,
+id2 TINYINT(3)
+);
+create table t_TINYINT4 (
+id int key ,
+id2 TINYINT(4)
+);
+copy table from t_TINYINT4 to t_TINYINT3;
+--error ER_COPY_TABLE_FAILED
+copy table from t_int to t_TINYINT3;
+
+###############################
+--echo test copy MEDIUMINT 
+###############################
+drop table t_int;
+create table t_int (
+id int key ,
+id2 int(10)
+);
+create table t_MEDIUMINT (
+id int key ,
+id2 MEDIUMINT(3)
+);
+--error ER_COPY_TABLE_FAILED
+copy table from t_int to t_MEDIUMINT;
+
+###############################
+--echo test copy BIGINT 
+###############################
+create table t_BIGINT (
+id int key ,
+id2 BIGINT(3)
+);
+
+create table t_BIGINT2 (
+id int key ,
+id2 BIGINT(5)
+);
+copy table from t_BIGINT to t_BIGINT2;
+
+###############################
+--echo test copy decimal  different accuracy
+###############################
+create table t_decimal (
+id int key ,
+id2 decimal(10,5)
+);
+
+create table t_decimal2 (
+id int key ,
+id2 decimal(10,4)
+);
+--error ER_COPY_TABLE_FAILED
+copy table from t_decimal to t_decimal2;
+
+--error ER_COPY_TABLE_FAILED
+copy table from t_decimal2 to t_decimal;
+
+###############################
+--echo test copy decimal(x) and decimal(x,y) 
+###############################
+
+create table t_decimal3 (
+id int key ,
+id2 decimal(10,0)
+);
+
+create table t_decimal4 (
+id int key ,
+id2 decimal(10)
+);
+
+copy table from t_decimal3 to t_decimal4;
+
+drop table t_decimal2 ;
+create table t_decimal2 (
+id int key ,
+id2 decimal(10,4)
+);
+--error ER_COPY_TABLE_FAILED
+copy table from t_decimal3 to t_decimal2;
+
+###############################
+--echo test copy decimal(x) test different x
+###############################
+
+create table t_decimal5(
+id int key ,
+id2 decimal(9)
+);
+--error ER_COPY_TABLE_FAILED
+copy table from t_decimal4 to t_decimal5;
+
+--error ER_COPY_TABLE_FAILED
+copy table from t_decimal5 to t_decimal4;
+###############################
+--echo test copy decimal(x) and NUMERIC(x) 
+###############################
+
+create table t_decimal6( id int key , id2 NUMERIC(9) );
+copy table from t_decimal6 to t_decimal5;
+
+###############################
+--echo test float
+#A precision from 0 to 23 results in a 4-byte single-precision FLOAT column.
+#A precision from 24 to 53 results in an 8-byte double-precision DOUBLE column.
+###############################
+create table float1(
+id int key ,
+id2 float(9)
+);
+
+
+create table float2(
+id int key ,
+id2 float(10)
+);
+
+create table float3(
+id int key ,
+id2 float(25)
+);
+
+create table float_4(
+id int key ,
+id2 float(10,3)
+);
+
+create table float5(
+id int key ,
+id2 float(10,4)
+);
+
+copy table from float1 to float2;
+--error ER_COPY_TABLE_FAILED
+copy table from float1 to float3;
+
+###############################
+--echo test copy float(x) and float(x,y) 
+###############################
+--error ER_COPY_TABLE_FAILED
+copy table from float5 to float_4;
+
+###############################
+--echo test double
+###############################
+create table double1(
+id int key,
+id2 double);
+
+create table double2(
+id int key,
+id2 double(10,3));
+
+create table double3(
+id int key,
+id2 double(10,4));
+
+--error ER_COPY_TABLE_FAILED
+copy table from double1 to double2;
+--error ER_COPY_TABLE_FAILED
+copy table from double2 to double3;
+
+###############################
+--echo test bit
+###############################
+create table bit1(
+id int key,
+id2 bit(1));
+
+create table bit2(
+id int key,
+id2 bit(8));
+
+create table bit3(
+id int key,
+id2 bit(9));
+
+insert into bit2 values (1,15);
+copy table from bit2 to bit1;
+select hex(id2) from bit1;
+--error ER_COPY_TABLE_FAILED
+copy table from bit3 to bit1;
+
+###############################
+--echo test time
+###############################
+create table time1(
+id int key ,
+t1 time);
+
+create table time2(
+id int key ,
+t1 time(0));
+
+create table time3(
+id int key ,
+t1 time(1));
+
+copy table from time1 to time2;
+
+--error ER_COPY_TABLE_FAILED
+copy table from time1 to time3;
+
+create table date1(
+id int key ,
+t1 date);
+
+--error ER_COPY_TABLE_FAILED
+copy table from date1 to time1;
+
+###############################
+--echo test datetime
+###############################
+create table datetime1(
+id int key ,
+t1 datetime);
+
+create table datetime2(
+id int key ,
+t1 datetime(0));
+
+create table datetime3(
+id int key ,
+t1 datetime(1));
+copy table from datetime1 to datetime2;
+--error ER_COPY_TABLE_FAILED
+copy table from datetime1 to datetime3;
+--error ER_COPY_TABLE_FAILED
+copy table from datetime1 to time1;
+
+###############################
+--echo test timestamp
+###############################
+
+create table timestamp1(
+id int key ,
+t1 timestamp);
+
+create table timestamp2(
+id int key ,
+t1 timestamp(0));
+
+create table timestamp3(
+id int key ,
+t1 timestamp(1));
+
+copy table from timestamp1 to timestamp2;
+--error ER_COPY_TABLE_FAILED
+copy table from timestamp1 to timestamp3;
+--error ER_COPY_TABLE_FAILED
+copy table from timestamp1 to time1;
+
+###############################
+--echo test year
+###############################
+create table year1(
+id int key,
+t1 year);
+--error ER_COPY_TABLE_FAILED
+copy table from year1 to time1;
+--error ER_COPY_TABLE_FAILED
+copy table from year1 to t_int;
+
+--echo char 
+create table t_char (
+id int key ,
+id2 char(10)
+);
+
+create table t_char2 (
+id int key ,
+id2 char(11)
+);
+
+--error ER_COPY_TABLE_FAILED
+copy table from t_char2 to t_char;
+
+###############################
+--echo test varchar
+###############################
+create table t_varchar (
+id int key ,
+id2 varchar(10)
+);
+
+create table t_varchar2 (
+id int key ,
+id2 varchar(15)
+);
+
+--error ER_COPY_TABLE_FAILED
+copy table from t_varchar2 to t_varchar;
+--error ER_COPY_TABLE_FAILED
+copy table from t_char to t_varchar;
+
+###############################
+--echo test binary
+###############################
+create table t_binary (
+id int key ,
+id2 binary(10)
+);
+
+create table t_binary1 (
+id int key ,
+id2 binary(11)
+);
+
+--error ER_COPY_TABLE_FAILED
+copy table from t_binary to t_binary1;
+
+###############################
+--echo test varbinary
+###############################
+create table t_varbinary (
+id int key ,
+id2 varbinary(10)
+);
+
+create table t_varbinary1 (
+id int key ,
+id2 varbinary(11)
+);
+
+--error ER_COPY_TABLE_FAILED
+copy table from t_varbinary to t_varbinary1;
+
+###############################
+--echo test blob
+###############################
+create table  tinyblob1(
+id int key,
+t tinyblob);
+
+create table  blob1(
+id int key,
+t blob);
+
+create table  mediumblob1(
+id int key,
+t mediumblob);
+
+create table  longblob1(
+id int key,
+t longblob);
+
+--error ER_COPY_TABLE_FAILED
+copy table from tinyblob1 to blob1;
+--error ER_COPY_TABLE_FAILED
+copy table from blob1 to mediumblob1;
+--error ER_COPY_TABLE_FAILED
+copy table from mediumblob1 to longblob1;
+
+###############################
+--echo test text
+###############################
+
+ create table  tinytext1(
+id int key,
+t tinytext);
+
+create table  text1(
+id int key,
+t text);
+
+create table  mediumtext1(
+id int key,
+t mediumtext);
+
+create table  longtext1(
+id int key,
+t longtext);
+
+--error ER_COPY_TABLE_FAILED
+copy table from tinytext1 to text1;
+--error ER_COPY_TABLE_FAILED
+copy table from text1 to mediumtext1;
+--error ER_COPY_TABLE_FAILED
+copy table from mediumtext1 to longtext1;
+
+--error ER_COPY_TABLE_FAILED
+copy table from tinytext1 to tinyblob1;
+--error ER_COPY_TABLE_FAILED
+copy table from text1 to blob1;
+
+###############################
+--echo test enum
+###############################
+CREATE TABLE shirts1 (
+    name VARCHAR(40),
+    size ENUM('x-small', 'small', 'medium', 'large', 'x-large')
+);
+
+CREATE TABLE shirts2 (
+    name VARCHAR(40),
+    size ENUM('x-small', 'small', 'medium', 'large', 'x-large','x-x-large')
+);
+--error ER_COPY_TABLE_FAILED
+copy table from shirts2 to shirts1;
+
+###############################
+--echo test SET
+###############################
+CREATE TABLE set1 (id int key,col SET('a', 'b', 'c', 'd'));
+CREATE TABLE set2 (id int key,col SET('a', 'b', 'c', 'd','e'));
+
+--error ER_COPY_TABLE_FAILED
+copy table from set1 to set2;
+
+###############################
+--echo test CHARSET
+###############################
+create table t1(
+id int key)CHARSET = utf8mb4;
+
+create table t2(
+id int key)CHARSET = gbk;
+
+copy table from t1 to t2;
+
+create table t3 (
+id int key,
+id2 char(10))CHARSET = utf8mb4;
+
+create table t4 (
+id int key,
+id2 char(10))CHARSET = gbk;
+
+--error ER_COPY_TABLE_FAILED
+copy table from t3 to t4;
+create table t5 (
+id int key,
+id2 char(10)CHARSET utf8mb4)CHARSET = utf8mb4;
+
+create table t6 (
+id int key,
+id2 char(10)CHARSET gbk)CHARSET = utf8mb4;
+
+--error ER_COPY_TABLE_FAILED
+copy table from t5 to t6;
+###############################
+--echo test COLLATE
+###############################
+create table t7 (
+id int key,
+id2 char(10))COLLATE = utf8mb4_bin;
+
+--error ER_COPY_TABLE_FAILED
+copy table from t7 to t3;
+
+drop database copy_db;

@@ -1,0 +1,245 @@
+--source include/not_group_replication_plugin.inc
+source include/have_semisync_plugin.inc;
+source include/master-slave.inc;
+# only support the binlog-format='row'
+--source include/have_binlog_format_row.inc
+
+let $engine_type= InnoDB;
+
+# Suppress warnings that might be generated during the test
+disable_query_log;
+connection master;
+call mtr.add_suppression("Timeout waiting for reply of binlog");
+call mtr.add_suppression("Semi-sync master .* waiting for slave reply");
+call mtr.add_suppression("Read semi-sync reply");
+call mtr.add_suppression("Unsafe statement written to the binary log using statement format since BINLOG_FORMAT = STATEMENT.");
+call mtr.add_suppression(".*Got an error reading communication packets.*");
+connection slave;
+call mtr.add_suppression("Master server does not support semi-sync");
+call mtr.add_suppression("Semi-sync slave .* reply");
+call mtr.add_suppression("Slave SQL.*Request to stop slave SQL Thread received while applying a group that has non-transactional changes; waiting for completion of the group");
+enable_query_log;
+
+connection master;
+disable_query_log;
+let $value = query_get_value(show variables like 'rpl_semi_sync_master_enabled', Value, 1);
+if ($value == 'OFF')
+{
+    set sql_log_bin=0;
+    SET GLOBAL rpl_semi_sync_master_enabled = 1;
+    set sql_log_bin=1;
+}
+enable_query_log;
+
+--source include/assert_semisync_master_status_on.inc
+
+SET GLOBAL rpl_semi_sync_master_wait_cond_hwm = '1:0';
+SET GLOBAL rpl_semi_sync_master_wait_cond_lwm = '1:0';
+#
+# active_groups = 0
+# test for quick_sync status with enabled=1 & wait_no_slave=1
+#
+--let $assert_variable_name= Rpl_semi_sync_master_wait_no_slave
+--let $assert_variable_value= 1
+--source include/assert_variable.inc
+--let $assert_status_name= Rpl_semi_sync_master_current_wait_groups
+--let $assert_status_value= 1
+--source include/assert_status.inc
+--let $assert_status_name= Rpl_semi_sync_master_err_flag
+--let $assert_status_value= 0
+--source include/assert_status.inc
+--let $group1_unactive = 0:GROUP_UNACTIVE
+--let $group1_status= [show status like "Rpl_semi_sync_master_group1_status", Value, 1]
+--let assert_cond= "$group1_status" like "$group1_unactive"
+--let assert_text= Rpl_semi_sync_master_group1_status should be 0:GROUP_UNACTIVE
+--source include/assert.inc
+--let $assert_status_name= Rpl_semi_sync_master_active_groups
+--let $assert_status_value= 0
+--source include/assert_status.inc
+#
+# test for wait until timeout and set the error
+#
+create database abczyy;
+--let $assert_status_name= Rpl_semi_sync_master_current_wait_groups
+--let $assert_status_value= 1
+--source include/assert_status.inc
+--let $assert_status_name= Rpl_semi_sync_master_err_flag
+--let $assert_status_value= 1
+--source include/assert_status.inc
+--let $group1_unactive = 0:GROUP_UNACTIVE
+--let $group1_status= [show status like "Rpl_semi_sync_master_group1_status", Value, 1]
+--let assert_cond= "$group1_status" like "$group1_unactive"
+--let assert_text= Rpl_semi_sync_master_group1_status should be 0:GROUP_UNACTIVE
+--source include/assert.inc
+#
+# test for set wait_no_slave=1 & reset the error
+#
+set global rpl_semi_sync_master_wait_no_slave = 0;
+set global rpl_semi_sync_master_wait_no_slave = 1;
+--let $assert_status_name= Rpl_semi_sync_master_current_wait_groups
+--let $assert_status_value= 1
+--source include/assert_status.inc
+--let $assert_status_name= Rpl_semi_sync_master_err_flag
+--let $assert_status_value= 0
+--source include/assert_status.inc
+#
+# test for quick_sync status with enabled=1 & wait_no_slave=0
+#
+set global rpl_semi_sync_master_wait_no_slave = 0;
+--let $assert_variable_name= Rpl_semi_sync_master_wait_no_slave
+--let $assert_variable_value= 0
+--source include/assert_variable.inc
+--let $assert_status_name= Rpl_semi_sync_master_current_wait_groups
+--let $assert_status_value= 1
+--source include/assert_status.inc
+--let $assert_status_name= Rpl_semi_sync_master_err_flag
+--let $assert_status_value= 1
+--source include/assert_status.inc
+drop database abczyy;
+#
+# test for quick_sync status with enabled=0
+#
+SET GLOBAL rpl_semi_sync_master_enabled = 0;
+--source include/assert_semisync_master_status_off.inc
+--let $assert_status_name= Rpl_semi_sync_master_current_wait_groups
+--let $assert_status_value= 0
+--source include/assert_status.inc
+--let $assert_status_name= Rpl_semi_sync_master_err_flag
+--let $assert_status_value= 0
+--source include/assert_status.inc
+
+connection slave;
+source include/stop_slave.inc;
+
+disable_query_log;
+let $value= query_get_value(show variables like 'rpl_semi_sync_slave_enabled', Value, 1);
+if ($value == 'OFF')
+{
+    set sql_log_bin=0;
+    SET GLOBAL rpl_semi_sync_slave_enabled = 1;
+    set sql_log_bin=1;
+}
+enable_query_log;
+
+source include/start_slave.inc;
+let $id=`select @@server_id`;
+
+connection master;
+
+let $group_end = :1;
+let $group_value = $id$group_end;
+eval set global rpl_semi_sync_master_group1 = '$group_value';
+#
+# active_groups = 1 & wait_group_count=1
+# test for quick_sync status with enabled=0 $active_groups=1
+#
+--let $assert_status_name= Rpl_semi_sync_master_current_wait_groups
+--let $assert_status_value= 0
+--source include/assert_status.inc
+--let $assert_status_name= Rpl_semi_sync_master_err_flag
+--let $assert_status_value= 0
+--source include/assert_status.inc
+--let $assert_status_name= Rpl_semi_sync_master_active_groups
+--let $assert_status_value= 1
+--source include/assert_status.inc
+--let $group1_active = 1:GROUP_ACTIVE
+--let $group1_status= [show status like "Rpl_semi_sync_master_group1_status", Value, 1]
+--let assert_cond= "$group1_status" like "$group1_active"
+--let assert_text= Rpl_semi_sync_master_group1_status should be 1:GROUP_ACTIVE
+--source include/assert.inc
+#
+# test for quick_sync status with enabled=1
+#
+SET GLOBAL rpl_semi_sync_master_enabled = 1;
+--source include/assert_semisync_master_status_on.inc
+--let $assert_status_name= Rpl_semi_sync_master_current_wait_groups
+--let $assert_status_value= 1
+--source include/assert_status.inc
+--let $assert_status_name= Rpl_semi_sync_master_err_flag
+--let $assert_status_value= 0
+--source include/assert_status.inc
+--let $assert_status_name= Rpl_semi_sync_master_active_groups
+--let $assert_status_value= 1
+--source include/assert_status.inc
+--let $group1_active = 1:GROUP_ACTIVE
+--let $group1_status= [show status like "Rpl_semi_sync_master_group1_status", Value, 1]
+--let assert_cond= "$group1_status" like "$group1_active"
+--let assert_text= Rpl_semi_sync_master_group1_status should be 1:GROUP_ACTIVE
+--source include/assert.inc
+#
+# active_groups = 1 & wait_group_count=2
+# test for quick_sync status with enabled=1 $ wait_no_slave=0
+#
+SET GLOBAL rpl_semi_sync_master_wait_cond_hwm = '2:0';
+--let $assert_status_name= Rpl_semi_sync_master_current_wait_groups
+--let $assert_status_value= 1
+--source include/assert_status.inc
+--let $assert_status_name= Rpl_semi_sync_master_err_flag
+--let $assert_status_value= 2
+--source include/assert_status.inc
+--let $assert_status_name= Rpl_semi_sync_master_active_groups
+--let $assert_status_value= 1
+--source include/assert_status.inc
+--let $group1_active = 1:GROUP_ACTIVE
+--let $group1_status= [show status like "Rpl_semi_sync_master_group1_status", Value, 1]
+--let assert_cond= "$group1_status" like "$group1_active"
+--let assert_text= Rpl_semi_sync_master_group1_status should be 1:GROUP_ACTIVE
+--source include/assert.inc
+--let $group2_active = 0:GROUP_UNACTIVE
+--let $group2_status= [show status like "Rpl_semi_sync_master_group2_status", Value, 1]
+--let assert_cond= "$group2_status" like "$group2_active"
+--let assert_text= Rpl_semi_sync_master_group2_status should be 0:GROUP_UNACTIVE
+--source include/assert.inc
+#
+# test for quick_sync status with enabled=1 $ wait_no_slave=1
+#
+SET GLOBAL rpl_semi_sync_master_wait_no_slave = 1;
+--let $assert_status_name= Rpl_semi_sync_master_current_wait_groups
+--let $assert_status_value= 2
+--source include/assert_status.inc
+--let $assert_status_name= Rpl_semi_sync_master_err_flag
+--let $assert_status_value= 0
+--source include/assert_status.inc
+--let $assert_status_name= Rpl_semi_sync_master_active_groups
+--let $assert_status_value= 1
+--source include/assert_status.inc
+
+
+#
+# quick sync mode
+#
+replace_result $engine_type ENGINE_TYPE;
+eval CREATE TABLE t1 (i INT NOT NULL AUTO_INCREMENT PRIMARY KEY, f varchar(8)) ENGINE=$engine_type;
+INSERT INTO t1 (f) VALUES ('a'),('a'),('a'),('a'),('a');
+--disable_warnings
+INSERT INTO t1 SELECT i+5, f FROM t1;
+INSERT INTO t1 SELECT i+10, f FROM t1;
+DROP TABLE t1;
+sleep 10;
+
+
+#
+# Clean up
+#
+connection slave;
+source include/stop_slave.inc;
+
+disable_warnings;
+set global rpl_semi_sync_slave_enabled = OFF;
+
+connection master;
+--let $active_groups_0= query_get_value(SHOW STATUS LIKE 'Rpl_semi_sync_master_active_groups', Value, 1)
+while ($active_groups_0)
+{
+  sleep 10;
+  --let $active_groups_0= query_get_value(SHOW STATUS LIKE 'Rpl_semi_sync_master_active_groups', Value, 1)
+}
+set global rpl_semi_sync_master_enabled = OFF;
+set global rpl_semi_sync_master_group1 = NULL;
+set global rpl_semi_sync_master_wait_cond_lwm = NULL;
+set global rpl_semi_sync_master_wait_cond_hwm = NULL;
+enable_warnings;
+
+connection master;
+# --source include/sync_slave_sql_with_master.inc
+# --source include/rpl_end.inc

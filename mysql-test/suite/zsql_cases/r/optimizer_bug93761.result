@@ -1,0 +1,221 @@
+#
+# BUG#93761 - optimize table will cause the slave MTS deadlock
+#
+# init
+drop database if exists abc_test;
+Warnings:
+Note	1008	Can't drop database 'abc_test'; database doesn't exist
+create database abc_test;
+use abc_test;
+create table tb1(a int key, b char(10), c varchar(20));
+create table tb2(a int key, b char(10), c varchar(20));
+create table tb3(a int key, b char(10), c varchar(20));
+create table tb4(a int key, b char(10), c varchar(20))engine=myisam;
+create table tb5(a int key, b char(10), c varchar(20))engine=myisam;
+create table tb6(a int key, b char(10), c varchar(20))engine=myisam;
+create procedure abc_test.load(count int unsigned)
+begin
+set @c=0;
+start transaction;
+while @c <count DO
+INSERT INTO tb1 select @c,repeat(char(97+rand()*26),8),repeat(char(97+rand()*26),15);
+INSERT INTO tb2 select @c,repeat(char(97+rand()*26),8),repeat(char(97+rand()*26),15);
+INSERT INTO tb3 select @c,repeat(char(97+rand()*26),8),repeat(char(97+rand()*26),15);
+INSERT INTO tb4 select @c,repeat(char(97+rand()*26),8),repeat(char(97+rand()*26),15);
+INSERT INTO tb5 select @c,repeat(char(97+rand()*26),8),repeat(char(97+rand()*26),15);
+INSERT INTO tb6 select @c,repeat(char(97+rand()*26),8),repeat(char(97+rand()*26),15);
+set @c=@c+1;
+end while;
+commit;
+end;//
+call abc_test.load(1000);
+# test for innodb table
+optimize table tb1;
+Table	Op	Msg_type	Msg_text
+abc_test.tb1	optimize	note	Table does not support optimize, doing recreate + analyze instead
+abc_test.tb1	optimize	status	OK
+optimize table tb2, tb3;
+Table	Op	Msg_type	Msg_text
+abc_test.tb2	optimize	note	Table does not support optimize, doing recreate + analyze instead
+abc_test.tb2	optimize	status	OK
+abc_test.tb3	optimize	note	Table does not support optimize, doing recreate + analyze instead
+abc_test.tb3	optimize	status	OK
+optimize NO_WRITE_TO_BINLOG table tb2, tb3;
+Table	Op	Msg_type	Msg_text
+abc_test.tb2	optimize	note	Table does not support optimize, doing recreate + analyze instead
+abc_test.tb2	optimize	status	OK
+abc_test.tb3	optimize	note	Table does not support optimize, doing recreate + analyze instead
+abc_test.tb3	optimize	status	OK
+optimize LOCAL table tb2, tb3;
+Table	Op	Msg_type	Msg_text
+abc_test.tb2	optimize	note	Table does not support optimize, doing recreate + analyze instead
+abc_test.tb2	optimize	status	OK
+abc_test.tb3	optimize	note	Table does not support optimize, doing recreate + analyze instead
+abc_test.tb3	optimize	status	OK
+analyze table tb1;
+Table	Op	Msg_type	Msg_text
+abc_test.tb1	analyze	status	OK
+analyze table tb2, tb3;
+Table	Op	Msg_type	Msg_text
+abc_test.tb2	analyze	status	OK
+abc_test.tb3	analyze	status	OK
+analyze NO_WRITE_TO_BINLOG table tb2, tb3;
+Table	Op	Msg_type	Msg_text
+abc_test.tb2	analyze	status	OK
+abc_test.tb3	analyze	status	OK
+analyze LOCAL table tb2, tb3;
+Table	Op	Msg_type	Msg_text
+abc_test.tb2	analyze	status	OK
+abc_test.tb3	analyze	status	OK
+check table tb1;
+Table	Op	Msg_type	Msg_text
+abc_test.tb1	check	status	OK
+check table tb2, tb3;
+Table	Op	Msg_type	Msg_text
+abc_test.tb2	check	status	OK
+abc_test.tb3	check	status	OK
+check table tb2, tb3 FOR UPGRADE;
+Table	Op	Msg_type	Msg_text
+abc_test.tb2	check	status	OK
+abc_test.tb3	check	status	OK
+check table tb2, tb3 QUICK;
+Table	Op	Msg_type	Msg_text
+abc_test.tb2	check	status	OK
+abc_test.tb3	check	status	OK
+check table tb2, tb3 FAST;
+Table	Op	Msg_type	Msg_text
+abc_test.tb2	check	status	OK
+abc_test.tb3	check	status	OK
+check table tb2, tb3 MEDIUM;
+Table	Op	Msg_type	Msg_text
+abc_test.tb2	check	status	OK
+abc_test.tb3	check	status	OK
+check table tb2, tb3 EXTENDED;
+Table	Op	Msg_type	Msg_text
+abc_test.tb2	check	status	OK
+abc_test.tb3	check	status	OK
+check table tb2, tb3 CHANGED;
+Table	Op	Msg_type	Msg_text
+abc_test.tb2	check	status	OK
+abc_test.tb3	check	status	OK
+repair table tb1;
+Table	Op	Msg_type	Msg_text
+abc_test.tb1	repair	note	The storage engine for the table doesn't support repair
+repair table tb2, tb3;
+Table	Op	Msg_type	Msg_text
+abc_test.tb2	repair	note	The storage engine for the table doesn't support repair
+abc_test.tb3	repair	note	The storage engine for the table doesn't support repair
+repair NO_WRITE_TO_BINLOG table tb2, tb3;
+Table	Op	Msg_type	Msg_text
+abc_test.tb2	repair	note	The storage engine for the table doesn't support repair
+abc_test.tb3	repair	note	The storage engine for the table doesn't support repair
+repair LOCAL table tb2, tb3;
+Table	Op	Msg_type	Msg_text
+abc_test.tb2	repair	note	The storage engine for the table doesn't support repair
+abc_test.tb3	repair	note	The storage engine for the table doesn't support repair
+repair table tb2, tb3 QUICK;
+Table	Op	Msg_type	Msg_text
+abc_test.tb2	repair	note	The storage engine for the table doesn't support repair
+abc_test.tb3	repair	note	The storage engine for the table doesn't support repair
+repair table tb2, tb3 EXTENDED;
+Table	Op	Msg_type	Msg_text
+abc_test.tb2	repair	note	The storage engine for the table doesn't support repair
+abc_test.tb3	repair	note	The storage engine for the table doesn't support repair
+repair table tb2, tb3 USE_FRM;
+Table	Op	Msg_type	Msg_text
+abc_test.tb2	repair	note	The storage engine for the table doesn't support repair
+abc_test.tb3	repair	note	The storage engine for the table doesn't support repair
+# test for myisam table
+optimize table tb4;
+Table	Op	Msg_type	Msg_text
+abc_test.tb4	optimize	status	OK
+optimize table tb5, tb6;
+Table	Op	Msg_type	Msg_text
+abc_test.tb5	optimize	status	OK
+abc_test.tb6	optimize	status	OK
+optimize NO_WRITE_TO_BINLOG table tb5, tb6;
+Table	Op	Msg_type	Msg_text
+abc_test.tb5	optimize	status	Table is already up to date
+abc_test.tb6	optimize	status	Table is already up to date
+optimize LOCAL table tb5, tb6;
+Table	Op	Msg_type	Msg_text
+abc_test.tb5	optimize	status	Table is already up to date
+abc_test.tb6	optimize	status	Table is already up to date
+analyze table tb4;
+Table	Op	Msg_type	Msg_text
+abc_test.tb4	analyze	status	Table is already up to date
+analyze table tb5, tb6;
+Table	Op	Msg_type	Msg_text
+abc_test.tb5	analyze	status	Table is already up to date
+abc_test.tb6	analyze	status	Table is already up to date
+analyze NO_WRITE_TO_BINLOG table tb5, tb6;
+Table	Op	Msg_type	Msg_text
+abc_test.tb5	analyze	status	Table is already up to date
+abc_test.tb6	analyze	status	Table is already up to date
+analyze LOCAL table tb5, tb6;
+Table	Op	Msg_type	Msg_text
+abc_test.tb5	analyze	status	Table is already up to date
+abc_test.tb6	analyze	status	Table is already up to date
+check table tb4;
+Table	Op	Msg_type	Msg_text
+abc_test.tb4	check	status	OK
+check table tb5, tb6;
+Table	Op	Msg_type	Msg_text
+abc_test.tb5	check	status	OK
+abc_test.tb6	check	status	OK
+check table tb5, tb6 FOR UPGRADE;
+Table	Op	Msg_type	Msg_text
+abc_test.tb5	check	status	OK
+abc_test.tb6	check	status	OK
+check table tb5, tb6 QUICK;
+Table	Op	Msg_type	Msg_text
+abc_test.tb5	check	status	OK
+abc_test.tb6	check	status	OK
+check table tb5, tb6 FAST;
+Table	Op	Msg_type	Msg_text
+abc_test.tb5	check	status	Table is already up to date
+abc_test.tb6	check	status	Table is already up to date
+check table tb5, tb6 MEDIUM;
+Table	Op	Msg_type	Msg_text
+abc_test.tb5	check	status	OK
+abc_test.tb6	check	status	OK
+check table tb5, tb6 EXTENDED;
+Table	Op	Msg_type	Msg_text
+abc_test.tb5	check	status	OK
+abc_test.tb6	check	status	OK
+check table tb5, tb6 CHANGED;
+Table	Op	Msg_type	Msg_text
+abc_test.tb5	check	status	Table is already up to date
+abc_test.tb6	check	status	Table is already up to date
+repair table tb4;
+Table	Op	Msg_type	Msg_text
+abc_test.tb4	repair	status	OK
+repair table tb5, tb6;
+Table	Op	Msg_type	Msg_text
+abc_test.tb5	repair	status	OK
+abc_test.tb6	repair	status	OK
+repair NO_WRITE_TO_BINLOG table tb5, tb6;
+Table	Op	Msg_type	Msg_text
+abc_test.tb5	repair	status	OK
+abc_test.tb6	repair	status	OK
+repair LOCAL table tb5, tb6;
+Table	Op	Msg_type	Msg_text
+abc_test.tb5	repair	status	OK
+abc_test.tb6	repair	status	OK
+repair table tb5, tb6 QUICK;
+Table	Op	Msg_type	Msg_text
+abc_test.tb5	repair	status	OK
+abc_test.tb6	repair	status	OK
+repair table tb5, tb6 EXTENDED;
+Table	Op	Msg_type	Msg_text
+abc_test.tb5	repair	status	OK
+abc_test.tb6	repair	status	OK
+repair table tb5, tb6 USE_FRM;
+Table	Op	Msg_type	Msg_text
+abc_test.tb5	repair	warning	Number of rows changed from 0 to 1000
+abc_test.tb5	repair	status	OK
+abc_test.tb6	repair	warning	Number of rows changed from 0 to 1000
+abc_test.tb6	repair	status	OK
+# clear
+drop procedure if exists abc_test.load;
+drop database if exists abc_test;

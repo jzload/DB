@@ -1,0 +1,39 @@
+#
+# Test fixes for alias field resolve error in merged derived table
+# in prepared statement.
+#
+
+create schema test1;
+use test1;
+create table t1 (a int,b int,c int);
+insert into t1 values(1,2,3),(2,3,1),(3,1,2);
+create table t5 (a int, b int);
+insert into t5 values(1,1),(2,4),(4,2),(3,3);
+
+# 1. simple select as
+select a from (select a, b as c from t1 order by c)dt;
+select a from (select a, b as d from t1 order by d)dt;
+prepare stmt1 from 'select a from (select a, b as c from t1 order by c)dt';
+execute stmt1;
+prepare stmt2 from 'select a from (select a, b as d from t1 order by d)dt';
+execute stmt2;
+
+# 2. select func() as
+select a from (select a, abs(b) as d from t1 order by c)dt;
+select a from (select a, abs(b) as d from t1 order by d)dt;
+prepare stmt3 from 'select a from (select a, abs(b) as d from t1 order by c)dt';
+execute stmt3;
+prepare stmt4 from 'select a from (select a, abs(b) as d from t1 order by d)dt';
+execute stmt4;
+
+# 3. multi level derived table
+select a from (select a from (select a, abs(b-a) as d from t1 order by d)dt)dt;
+prepare stmt5 from 'select a from (select a from (select a, abs(b-a) as d from t1 order by d)dt)dt';
+execute stmt5;
+select a,e from (select t1.a,dt.a e from t1,(select a, abs(b-a) as d from t5 order by d)dt order by t1.a)dt;
+prepare stmt6 from 'select a,e from (select t1.a,dt.a e from t1,(select a, abs(b-a) as d from t5 order by d)dt order by t1.a)dt';
+execute stmt6;
+
+# 清理测试数据
+DROP DATABASE IF EXISTS test1;
+# end of test

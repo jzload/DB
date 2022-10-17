@@ -1,0 +1,553 @@
+#########################################################
+# prepare
+#########################################################
+show variables like 'transaction_isolation';
+Variable_name	Value
+transaction_isolation	REPEATABLE-READ
+set global transaction_isolation = 'READ-COMMITTED';
+drop database if exists abczyy_lock;
+create database abczyy_lock;
+create table abczyy_lock.tb_wait_log(a int key auto_increment, lock_wait_string varchar(3000)) charset=latin1;
+truncate table abczyy_lock.tb_wait_log;
+#########################################################
+# testcase 1  lock wait with key
+#########################################################
+create table abczyy_lock.tb1(a int key, b int);
+insert into abczyy_lock.tb1(a,b) values(1,1),(2,2),(3,3),(4,4);
+start transaction;
+select * from abczyy_lock.tb1 where a=2 for update;
+a	b
+2	2
+set session innodb_lock_wait_timeout=1;
+start transaction;
+select * from abczyy_lock.tb1 where a=2 for update;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+rollback;
+rollback;
+truncate table abczyy_lock.tb_wait_log;
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+2 and lock_wait_string like '%req_sql:[select * from abczyy_lock.tb1 where a=2 for update],';
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+3 and lock_wait_string like '%blk_key_data:[2]';
+count(*)
+1
+drop table if exists abczyy_lock.tb1;
+#########################################################
+# testcase 2  lock wait with multi-key
+#########################################################
+create table abczyy_lock.tb1(a int, b int, primary key(a,b));
+insert into abczyy_lock.tb1(a,b) values(1,1),(2,2),(3,3),(4,4);
+start transaction;
+select * from abczyy_lock.tb1 where a=2 for update;
+a	b
+2	2
+set session innodb_lock_wait_timeout=1;
+start transaction;
+select * from abczyy_lock.tb1 where a=2 for update;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+rollback;
+rollback;
+truncate table abczyy_lock.tb_wait_log;
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+5 and lock_wait_string like '%req_sql:[select * from abczyy_lock.tb1 where a=2 for update],';
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+6 and lock_wait_string like '%blk_key_data:[2, 2]';
+count(*)
+1
+drop table if exists abczyy_lock.tb1;
+#########################################################
+# testcase 3  lock wait with unique key
+#########################################################
+create table abczyy_lock.tb1(a int, b int, unique index(a));
+insert into abczyy_lock.tb1(a,b) values(1,1),(2,2),(3,3),(4,4);
+start transaction;
+select * from abczyy_lock.tb1 where a=2 for update;
+a	b
+2	2
+set session innodb_lock_wait_timeout=1;
+start transaction;
+select * from abczyy_lock.tb1 where a=2 for update;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+rollback;
+rollback;
+truncate table abczyy_lock.tb_wait_log;
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+8 and lock_wait_string like '%req_sql:[select * from abczyy_lock.tb1 where a=2 for update],';
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+9 and lock_wait_string like '%blk_key_data:[2]';
+count(*)
+1
+drop table if exists abczyy_lock.tb1;
+#########################################################
+# testcase 4  lock wait with multi-unique key
+#########################################################
+create table abczyy_lock.tb1(a int, b int, unique index(a,b));
+insert into abczyy_lock.tb1(a,b) values(1,1),(2,2),(3,3),(4,4);
+start transaction;
+select * from abczyy_lock.tb1 where a=2 for update;
+a	b
+2	2
+set session innodb_lock_wait_timeout=1;
+start transaction;
+select * from abczyy_lock.tb1 where a=2 for update;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+rollback;
+rollback;
+truncate table abczyy_lock.tb_wait_log;
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+11 and lock_wait_string like '%req_sql:[select * from abczyy_lock.tb1 where a=2 for update],';
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+12 and lock_wait_string like '%blk_key_data:[2, 2]';
+count(*)
+1
+drop table if exists abczyy_lock.tb1;
+#########################################################
+# testcase 5  lock wait with index
+#########################################################
+create table abczyy_lock.tb1(a int key, b int, index(b));
+insert into abczyy_lock.tb1(a,b) values(1,1),(2,2),(3,3),(4,4);
+start transaction;
+select * from abczyy_lock.tb1 where b=2 for update;
+a	b
+2	2
+set session innodb_lock_wait_timeout=1;
+start transaction;
+select * from abczyy_lock.tb1 where b=2 for update;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+rollback;
+rollback;
+truncate table abczyy_lock.tb_wait_log;
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+14 and lock_wait_string like '%req_sql:[select * from abczyy_lock.tb1 where b=2 for update],';
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+15 and lock_wait_string like '%blk_key_data:[2, 2]';
+count(*)
+1
+drop table if exists abczyy_lock.tb1;
+#########################################################
+# testcase 6  lock wait with multi-index
+#########################################################
+create table abczyy_lock.tb1(a int key, b int, c int, index(b,c));
+insert into abczyy_lock.tb1(a,b,c) values(1,1,1),(2,2,2),(3,3,3),(4,4,4);
+start transaction;
+select * from abczyy_lock.tb1 where b=2 for update;
+a	b	c
+2	2	2
+set session innodb_lock_wait_timeout=1;
+start transaction;
+select * from abczyy_lock.tb1 where b=2 for update;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+rollback;
+rollback;
+truncate table abczyy_lock.tb_wait_log;
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+17 and lock_wait_string like '%req_sql:[select * from abczyy_lock.tb1 where b=2 for update],';
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+18 and lock_wait_string like '%blk_key_data:[2, 2, 2]';
+count(*)
+1
+drop table if exists abczyy_lock.tb1;
+#########################################################
+# testcase 7  lock wait with no index
+#########################################################
+create table abczyy_lock.tb1(a int, b int, c int);
+insert into abczyy_lock.tb1(a,b,c) values(1,1,1),(2,2,2),(3,3,3),(4,4,4);
+start transaction;
+select * from abczyy_lock.tb1 where b=2 for update;
+a	b	c
+2	2	2
+set session innodb_lock_wait_timeout=1;
+start transaction;
+select * from abczyy_lock.tb1 where b=2 for update;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+rollback;
+rollback;
+truncate table abczyy_lock.tb_wait_log;
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+20 and lock_wait_string like '%req_sql:[select * from abczyy_lock.tb1 where b=2 for update],';
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+21 and lock_wait_string like '%blk_key_data:[0x000000%';
+count(*)
+1
+drop table if exists abczyy_lock.tb1;
+#########################################################
+# testcase 8  lock wait with spatial index
+#########################################################
+CREATE TABLE abczyy_lock.tb1 (
+a int key,
+`path` varchar(512) NOT NULL,
+`box` geometry NOT NULL,
+index (`path`),
+SPATIAL KEY `box` (`box`)
+);
+Warnings:
+Warning	3674	The spatial index on column 'box' will not be used by the query optimizer since the column does not have an SRID attribute. Consider adding an SRID attribute to the column.
+insert into abczyy_lock.tb1(a,path,box) values(1, '/home/data_sdb/mysql_4441/DB/my_build', ST_GeomFromText('Polygon((116.18866 39.791107, 116.124115 39.791107, 116.18866 39.833679, 116.124115 39.833679, 116.18866 39.791107))'));
+insert into abczyy_lock.tb1(a,path,box) values(2, '/home/data_sdb/mysql_4441/DB/my_build_1', ST_GeomFromText('Polygon((116.18867 39.791107, 116.124115 39.791107, 116.18867 39.833679, 116.124115 39.833679, 116.18867 39.791107))'));
+insert into abczyy_lock.tb1(a,path,box) values(3, '/home/data_sdb/mysql_4441/DB/my_build_2', ST_GeomFromText('Polygon((116.18868 39.791107, 116.124115 39.791107, 116.18868 39.833679, 116.124115 39.833679, 116.18868 39.791107))'));
+start transaction;
+select path from abczyy_lock.tb1 where MBRContains(st_geomfromtext('polygon((116.18867 39.791107, 116.124115 39.791107, 116.18867 39.833679, 116.124115 39.833679, 116.18867 39.791107))'),box) order by path DESC for update;
+path
+/home/data_sdb/mysql_4441/DB/my_build_1
+/home/data_sdb/mysql_4441/DB/my_build
+set session innodb_lock_wait_timeout=1;
+start transaction;
+select path from abczyy_lock.tb1 where MBRContains(st_geomfromtext('polygon((116.18867 39.791107, 116.124115 39.791107, 116.18867 39.833679, 116.124115 39.833679, 116.18867 39.791107))'),box) for update;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+rollback;
+rollback;
+truncate table abczyy_lock.tb_wait_log;
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+23 and lock_wait_string like "%req_sql:[select path from abczyy_lock.tb1 where MBRContains(st_geomfromtext('polygon((116.18867 39.791107, 116.124115 39.791107, 116.18867 39.833679, 116.124115 39.833679, 116.18867 39.791107))'),box) for update],";
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+24 and lock_wait_string like '%blk_key_data:[0x5B7C0A80F1075D4020EF552B130C5D407E5182FE42E54340552E54FEB5EA4340, 2]';
+count(*)
+0
+drop table if exists abczyy_lock.tb1;
+#########################################################
+# testcase 9  lock wait with fulltext index
+#########################################################
+CREATE TABLE abczyy_lock.tb1 (
+i int(10) unsigned not null primary key,
+a varchar(7000) not null,
+FULLTEXT KEY (a)
+);
+Warnings:
+Warning	1681	Integer display width is deprecated and will be removed in a future release.
+insert into abczyy_lock.tb1(i,a) values(1,'fdahjflh');
+insert into abczyy_lock.tb1(i,a) values(2,'dhafj;hdua');
+insert into abczyy_lock.tb1(i,a) values(3,'bhrelawkbe,');
+start transaction;
+select a from abczyy_lock.tb1 where a like 'fda%' for update;
+a
+fdahjflh
+set session innodb_lock_wait_timeout=1;
+start transaction;
+select a from abczyy_lock.tb1 where a like 'fd%' for update;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+rollback;
+rollback;
+truncate table abczyy_lock.tb_wait_log;
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+26 and lock_wait_string like "%req_sql:[select a from abczyy_lock.tb1 where a like 'fd%' for update],";
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+27 and lock_wait_string like '%blk_key_data:[1]';
+count(*)
+1
+drop table if exists abczyy_lock.tb1;
+#########################################################
+# testcase 10  lock wait with maxlen TSN/GTID/SQL/KET_DATA
+#########################################################
+create table abczyy_lock.tb1(a int, b varchar(256), c varchar(1024), index(b));
+insert into abczyy_lock.tb1(a,b,c) values(1,'1','1'),(2,'2','2'),(3,'3','3'),(4,'4','4');
+insert into abczyy_lock.tb1(a,b,c) values(5,'123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,12345678901234567890123456789012345678','m');
+/*+TSN=AA123456789012345678901234567890*/start transaction;
+/*+GTID=aa123456789012345678901234567890*/select b from abczyy_lock.tb1 where b='123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,12345678901234567890123456789012345678' for update;
+b
+123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,12345678901234567890123456789012345678
+set session innodb_lock_wait_timeout=1;
+/*+TSN=BB123456789012345678901234567890*/start transaction;
+/*+GTID=bb123456789012345678901234567890*//*commentcommentcomme:123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,*/update abczyy_lock.tb1 set c='123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890,1' where b='123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,12345678901234567890123456789012345678';
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+rollback;
+rollback;
+truncate table abczyy_lock.tb_wait_log;
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+28 and lock_wait_string like "%||||BB123456789012345678901234567890||||%";
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+29 and lock_wait_string like "%req_trx_seq:BB123456789012345678901234567890%";
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+29 and lock_wait_string like "%req_gtm_gtid:bb123456789012345678901234567890%";
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+29 and lock_wait_string like "%req_sql:[/*+GTID=bb123456789012345678901234567890*//*commentcommentcomme:123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,*/update abczyy_lock.tb1 set c='123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890,1' where b='123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,12345678901234567890123456789012345678'],";
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+30 and lock_wait_string like "%blk_trx_seq:AA123456789012345678901234567890%";
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+30 and lock_wait_string like "%blk_gtm_gtid:aa123456789012345678901234567890%";
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+30 and lock_wait_string like "%blk_key_data:['123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,12345678901234567890123456789012345678', 0x000000%";
+count(*)
+1
+drop table if exists abczyy_lock.tb1;
+#########################################################
+# testcase 11  lock wait > maxlen TSN/GTID/SQL/KET_DATA
+#########################################################
+create table abczyy_lock.tb1(a int, b varchar(256), c varchar(1024), index(b));
+insert into abczyy_lock.tb1(a,b,c) values(1,'1','1'),(2,'2','2'),(3,'3','3'),(4,'4','4');
+insert into abczyy_lock.tb1(a,b,c) values(5,'123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789','m');
+/*+TSN=AAA123456789012345678901234567890*/start transaction;
+/*+GTID=aaa123456789012345678901234567890*/select b from abczyy_lock.tb1 where b='123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789' for update;
+b
+123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789
+set session innodb_lock_wait_timeout=1;
+/*+TSN=BBB123456789012345678901234567890*/start transaction;
+/*+GTID=bbb123456789012345678901234567890*//*commentcommentcomme:123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,*/update abczyy_lock.tb1 set c='123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890,1' where b='123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789';
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+rollback;
+rollback;
+truncate table abczyy_lock.tb_wait_log;
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+31 and lock_wait_string like "%||||BBB123456789012345678901234567890||||%";
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+32 and lock_wait_string like "%req_trx_seq:BBB12345678901234567890123456789%";
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+32 and lock_wait_string like "%req_gtm_gtid:bbb12345678901234567890123456789%";
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+32 and lock_wait_string like "%req_sql:[/*+GTID=bbb123456789012345678901234567890*//*commentcommentcomme:123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,*/update abczyy_lock.tb1 set c='123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890,1' where b='123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,12345678901234567890123456789012345678],";
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+33 and lock_wait_string like "%blk_trx_seq:AAA12345678901234567890123456789%";
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+33 and lock_wait_string like "%blk_gtm_gtid:aaa12345678901234567890123456789%";
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+33 and lock_wait_string like "%blk_key_data:['123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789,123456789012345678901234567890123456789', 0x000000%";
+count(*)
+1
+drop table if exists abczyy_lock.tb1;
+#########################################################
+# testcase 12  lock wait for select lock in share mode
+#########################################################
+create table abczyy_lock.tb1(a int, b int, c int);
+insert into abczyy_lock.tb1(a,b,c) values(1,1,1),(2,2,2),(3,3,3),(4,4,4);
+start transaction;
+update abczyy_lock.tb1 set c=22 where b=2;
+set session innodb_lock_wait_timeout=1;
+start transaction;
+select * from abczyy_lock.tb1 where b=2 lock in share mode;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+rollback;
+rollback;
+truncate table abczyy_lock.tb_wait_log;
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+35 and lock_wait_string like '%req_sql:[select * from abczyy_lock.tb1 where b=2 lock in share mode],';
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+36 and lock_wait_string like '%blk_key_data:[0x000000%';
+count(*)
+1
+drop table if exists abczyy_lock.tb1;
+#########################################################
+# testcase 13  lock wait for update
+#########################################################
+create table abczyy_lock.tb1(a int key, b int, c int);
+insert into abczyy_lock.tb1(a,b,c) values(1,1,1),(2,2,2),(3,3,3),(4,4,4);
+start transaction;
+select * from abczyy_lock.tb1 where b=2 lock in share mode;
+a	b	c
+2	2	2
+set session innodb_lock_wait_timeout=1;
+start transaction;
+update abczyy_lock.tb1 set c=22 where b=2;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+rollback;
+rollback;
+truncate table abczyy_lock.tb_wait_log;
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+38 and lock_wait_string like '%req_sql:[update abczyy_lock.tb1 set c=22 where b=2],';
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+39 and lock_wait_string like '%blk_key_data:[2]';
+count(*)
+1
+drop table if exists abczyy_lock.tb1;
+#########################################################
+# testcase 14  lock wait for insert
+#########################################################
+create table abczyy_lock.tb1(a int key, b int, c int);
+insert into abczyy_lock.tb1(a,b,c) values(1,1,1),(2,2,2),(3,3,3),(4,4,4);
+start transaction;
+delete from abczyy_lock.tb1 where b=3;
+set session innodb_lock_wait_timeout=1;
+start transaction;
+insert into abczyy_lock.tb1(a,b,c) values(3,3,33);
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+rollback;
+rollback;
+truncate table abczyy_lock.tb_wait_log;
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+41 and lock_wait_string like '%req_sql:[insert into abczyy_lock.tb1(a,b,c) values(3,3,33)],';
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+42 and lock_wait_string like '%blk_key_data:[3]';
+count(*)
+1
+drop table if exists abczyy_lock.tb1;
+#########################################################
+# testcase 15  lock wait for delete
+#########################################################
+create table abczyy_lock.tb1(a int key, b int, c int);
+insert into abczyy_lock.tb1(a,b,c) values(1,1,1),(2,2,2),(3,3,3),(4,4,4);
+start transaction;
+select * from abczyy_lock.tb1 where c=3 lock in share mode;
+a	b	c
+3	3	3
+set session innodb_lock_wait_timeout=1;
+start transaction;
+delete from abczyy_lock.tb1 where b=3;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+rollback;
+rollback;
+truncate table abczyy_lock.tb_wait_log;
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+44 and lock_wait_string like '%req_sql:[delete from abczyy_lock.tb1 where b=3],';
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+45 and lock_wait_string like '%blk_key_data:[3]';
+count(*)
+1
+drop table if exists abczyy_lock.tb1;
+#########################################################
+# testcase 16  lock wait for multi-rec lock
+#########################################################
+create table abczyy_lock.tb1(a int key, b int, c int);
+insert into abczyy_lock.tb1(a,b,c) values(1,1,1),(2,2,2),(3,3,3),(4,4,4);
+start transaction;
+select * from abczyy_lock.tb1 where a<4 lock in share mode;
+a	b	c
+1	1	1
+2	2	2
+3	3	3
+set session innodb_lock_wait_timeout=1;
+start transaction;
+select * from abczyy_lock.tb1 where a=2 for update;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+rollback;
+rollback;
+truncate table abczyy_lock.tb_wait_log;
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+47 and lock_wait_string like '%req_sql:[select * from abczyy_lock.tb1 where a=2 for update],';
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+48 and lock_wait_string like '%blk_key_data:[2]';
+count(*)
+1
+drop table if exists abczyy_lock.tb1;
+#########################################################
+# testcase 17  lock wait for gap lock
+#########################################################
+set session transaction_isolation = 'REPEATABLE-READ';
+create table abczyy_lock.tb1(a int, b int, c int, index(a));
+insert into abczyy_lock.tb1(a,b,c) values(10,10,10),(20,20,20),(30,30,30),(40,40,40);
+start transaction;
+update abczyy_lock.tb1 set b=21 where a=20;
+set session transaction_isolation = 'REPEATABLE-READ';
+set session innodb_lock_wait_timeout=1;
+start transaction;
+insert into abczyy_lock.tb1(a,b,c) values(11,11,11),(12,12,12);
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+rollback;
+set session transaction_isolation = 'READ-COMMITTED';
+rollback;
+set session transaction_isolation = 'READ-COMMITTED';
+truncate table abczyy_lock.tb_wait_log;
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+50 and lock_wait_string like '%req_sql:[insert into abczyy_lock.tb1(a,b,c) values(11,11,11),(12,12,12)],';
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+51 and lock_wait_string like '%blk_key_data:[20, 0x000000%';
+count(*)
+1
+drop table if exists abczyy_lock.tb1;
+#########################################################
+# testcase 17  lock wait for recursion lock
+#########################################################
+create table abczyy_lock.tb1(a int key, b int, c int);
+insert into abczyy_lock.tb1(a,b,c) values(1,1,1),(2,2,2),(3,3,3),(4,4,4);
+start transaction;
+select * from abczyy_lock.tb1 where a=1 or a=2 for update;
+a	b	c
+1	1	1
+2	2	2
+set session innodb_lock_wait_timeout=3;
+start transaction;
+select * from abczyy_lock.tb1 where a=3 for update;
+a	b	c
+3	3	3
+select * from abczyy_lock.tb1 where a=2 for update;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+set session innodb_lock_wait_timeout=3;
+start transaction;
+select * from abczyy_lock.tb1 where a=3 for update;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+rollback;
+rollback;
+rollback;
+truncate table abczyy_lock.tb_wait_log;
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+53 and lock_wait_string like '%req_sql:[select * from abczyy_lock.tb1 where a=2 for update],';
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+54 and lock_wait_string like '%blk_key_data:[2]';
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+56 and lock_wait_string like '%req_sql:[select * from abczyy_lock.tb1 where a=3 for update],';
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+57 and lock_wait_string like '%blk_key_data:[3]';
+count(*)
+1
+drop table if exists abczyy_lock.tb1;
+#########################################################
+# testcase 18  lock wait for two locks
+#########################################################
+create table abczyy_lock.tb1(a int key, b int, c int);
+insert into abczyy_lock.tb1(a,b,c) values(1,1,1),(2,2,2),(3,3,3),(4,4,4);
+start transaction;
+select * from abczyy_lock.tb1 where a=2 lock in share mode;
+a	b	c
+2	2	2
+start transaction;
+select * from abczyy_lock.tb1 where a=2 lock in share mode;
+a	b	c
+2	2	2
+set session innodb_lock_wait_timeout=3;
+start transaction;
+select * from abczyy_lock.tb1 where a=2 for update;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+rollback;
+rollback;
+rollback;
+truncate table abczyy_lock.tb_wait_log;
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+59 and lock_wait_string like '%req_sql:[select * from abczyy_lock.tb1 where a=2 for update],';
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+60 and lock_wait_string like '%blk_key_data:[2],';
+count(*)
+1
+select count(*) from abczyy_lock.tb_wait_log where a=@lock_count+61 and lock_wait_string like '%blk_key_data:[2]';
+count(*)
+1
+drop table if exists abczyy_lock.tb1;
+#########################################################
+# testcase 19  test configure innodb_lock_wait_collect_time
+#########################################################
+show variables like 'innodb_lock_wait_collect_time';
+Variable_name	Value
+innodb_lock_wait_collect_time	500
+set global innodb_lock_wait_collect_time = 1999;
+show variables like 'innodb_lock_wait_collect_time';
+Variable_name	Value
+innodb_lock_wait_collect_time	1999
+set global innodb_lock_wait_collect_time = 2000;
+show variables like 'innodb_lock_wait_collect_time';
+Variable_name	Value
+innodb_lock_wait_collect_time	2000
+set global innodb_lock_wait_collect_time = 2001;
+Warnings:
+Warning	1292	Truncated incorrect innodb_lock_wait_collect_time value: '2001'
+show variables like 'innodb_lock_wait_collect_time';
+Variable_name	Value
+innodb_lock_wait_collect_time	2000
+set session innodb_lock_wait_collect_time = 2000;
+ERROR HY000: Variable 'innodb_lock_wait_collect_time' is a GLOBAL variable and should be set with SET GLOBAL
+set global innodb_lock_wait_collect_time = 500;
+show variables like 'innodb_lock_wait_collect_time';
+Variable_name	Value
+innodb_lock_wait_collect_time	500
+#########################################################
+# end
+#########################################################
+set global transaction_isolation = 'REPEATABLE-READ';
+drop database abczyy_lock;

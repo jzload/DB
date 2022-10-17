@@ -1,0 +1,778 @@
+#
+# Test: TO_TIMESTAMP()
+#
+# Syntax:
+#    TO_TIMESTAMP(date_string, format_string)
+#
+
+--echo #
+--echo # 1. test YYYY
+--echo #
+
+## 1.1 测试大写YYYY
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-04-\3/
+select to_timestamp('2020', 'YYYY') from dual;
+
+## 1.2 测试小写yyyy
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-04-\3/
+select to_timestamp('2020', 'yyyy') from dual;
+
+## 1.3 测试大小写混合
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-04-\3/
+select to_timestamp('2020', 'yYyY') from dual;
+
+## 1.4 测试较小的年的值
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-04-\3/
+select to_timestamp('220', 'YYYY') from dual;
+
+## 1.5 测试较大的年的值（超出DB上Timestamp的时间范围）
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-04-\3/
+select to_timestamp('9820', 'YYYY') from dual;
+
+## 1.6 测试有月日、时分秒，而没有年
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-\3/
+select to_timestamp('10-3 13:04:33', 'MM-DD HH24:MI:SS') from dual;
+
+--echo #
+--echo # 2. test Y,YYY
+--echo #
+
+## 2.1 测试 Y,YYY
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-04-\3/
+select to_timestamp('2,020', 'Y,YYY') from dual;
+
+## 2.2 测试小写y,yyy
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-04-\3/
+select to_timestamp('2,020', 'y,yyy') from dual;
+
+## 2.3 测试 Y,YYY 字符串中没有','
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-04-\3/
+select to_timestamp('2020', 'Y,YYY') from dual;
+
+## 2.4 测试 Y,YYY 字符串中','位置不对
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-04-\3/
+select to_timestamp('20,20', 'Y,YYY') from dual;
+
+## 2.5
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-04-\3/
+select to_timestamp('20', 'Y,YYY') from dual;
+
+## 2.6
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-04-\3/
+select to_timestamp('  20', 'Y,YYY') from dual;
+
+## 2.7
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-04-\3/
+select to_timestamp('22,0', 'Y,YYY') from dual;
+
+## 2.8
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-04-\3/
+select to_timestamp('2,20', 'Y,YYY') from dual;
+
+## 2.9
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-04-\3/
+select to_timestamp('2,2,0', 'Y,YYY') from dual;
+
+## 2.10
+--error ER_INVALID_VALUE_FOR_FORMAT
+select to_timestamp('a20', 'Y,YYY') from dual;
+
+## 2.11
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('222,01', 'Y,YYY') from dual;
+
+## 2.12
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('222,0', 'yyyy') from dual;
+
+## 2.13
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('-2220', 'YYYY') from dual;
+
+## 2.14
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('2220 12', 'YYYY') from dual;
+
+## 2.15
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('-2220', 'YYYY') from dual;
+
+--echo #
+--echo # 3. test MM
+--echo #
+
+## 3.1
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-01/
+select to_timestamp('2', 'MM') from dual;
+
+## 3.2
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-01/
+select to_timestamp('12', 'MM') from dual;
+
+## 3.3
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-01/
+select to_timestamp('02', 'MM') from dual;
+
+## 3.4
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('0', 'MM') from dual;
+
+## 3.5
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-01/
+select to_timestamp('12', 'MM') from dual;
+
+## 3.6
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('13', 'MM') from dual;
+
+
+## 3.7
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-01/
+select to_timestamp('1', 'mm') from dual;
+
+## 3.8
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-01/
+select to_timestamp('1', 'mM') from dual;
+
+## 3.9
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-01/
+select to_timestamp('1', 'Mm') from dual;
+
+--echo #
+--echo # 4. test DD
+--echo #
+
+
+## 4.1
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-\3/
+select to_timestamp('2', 'DD') from dual;
+
+## 4.2
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('0', 'DD') from dual;
+
+## 4.3
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-\3/
+select to_timestamp('12', 'DD') from dual;
+
+## 4.4
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-\3/
+select to_timestamp('02', 'DD') from dual;
+
+## 4.5
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('35', 'DD') from dual;
+
+## 4.6
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('04-31', 'MM-DD') from dual;
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-\3/
+select to_timestamp('05-31', 'MM-DD') from dual;
+
+## 4.7
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-\3/
+select to_timestamp('04-30', 'MM-DD') from dual;
+
+## 4.8
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('2-30', 'MM-DD') from dual;
+
+## 4.9
+select to_timestamp('2020-2-29', 'YYYY-MM-DD') from dual;
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('2019-2-29', 'YYYY-MM-DD') from dual;
+
+## 4.10
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-\3/
+select to_timestamp('1', 'dd') from dual;
+
+## 4.11
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-\3/
+select to_timestamp('11', 'dd') from dual;
+
+## 4.11
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-\3/
+select to_timestamp('11', 'Dd') from dual;
+
+--echo #
+--echo # 5. test YYYY-MM-DD interval
+--echo #
+
+
+## 5.1
+select to_timestamp('2020-1-1', 'YYYY-MM-DD') from dual;
+
+## 5.2
+select to_timestamp('2020 1 1', 'YYYY MM DD') from dual;
+
+## 5.3
+select to_timestamp('2020/1/1', 'YYYY/MM/DD') from dual;
+
+## 5.4
+select to_timestamp('2020,01,1', 'YYYY,MM,DD') from dual;
+
+## 5.5
+select to_timestamp('2020.12.01', 'YYYY.MM.DD') from dual;
+
+## 5.6
+select to_timestamp('2020;12;01', 'YYYY;MM;DD') from dual;
+
+## 5.7
+select to_timestamp('20201201', 'YYYYMMDD') from dual;
+
+## 5.8
+select to_timestamp('2020121', 'YYYYMMDD') from dual;
+
+## 5.9
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('2020821', 'YYYYMMDD') from dual;
+
+## 5.10
+select to_timestamp('2020_1_1', 'YYYY_MM_DD') from dual;
+
+## 5.11
+select to_timestamp('2020+1+1', 'YYYY+MM+DD') from dual;
+
+## 5.12
+select to_timestamp('2020?1%1', 'YYYY#MM@DD') from dual;
+
+## 5.13
+--error ER_INVALID_VALUE_FOR_FORMAT
+select to_timestamp('2020??1--1', 'YYYY#MM@DD') from dual;
+
+## 5.14
+select to_timestamp('2020??1--1', 'YYYY??MM--DD') from dual;
+
+## 5.15
+select to_timestamp('2020??1--1', 'YYYY?#MM$-DD') from dual;
+
+## 5.16
+--error ER_INVALID_VALUE_FOR_FORMAT
+select to_timestamp('2020??1-1', 'YYYY?MM-DD') from dual;
+
+## 5.17
+--error ER_INVALID_FORMAT
+select to_timestamp('2020??1-1', 'YYYYcMM-DD') from dual;
+
+--echo #
+--echo # 6. test YYYY-MM-DD order
+--echo #
+
+## 6.1
+select to_timestamp('1 12 2020', 'MM DD YYYY') from dual;
+
+## 6.2
+select to_timestamp('01 12 2020', 'MM DD YYYY') from dual;
+
+## 6.3
+select to_timestamp('11 22 2020', 'MM DD YYYY') from dual;
+
+## 6.5
+select to_timestamp('11/02/2020', 'MM/DD/YYYY') from dual;
+
+## 6.6
+select to_timestamp('11/2/2020', 'MM/DD/YYYY') from dual;
+
+## 6.7
+select to_timestamp('2-11-2020', 'MM-DD-YYYY') from dual;
+
+## 6.8
+select to_timestamp('2020.11.2', 'YYYY.DD.MM') from dual;
+
+--echo #
+--echo # 7. test hour
+--echo #
+
+## 7.1
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('11', 'HH') from dual;
+
+## 7.2
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('8', 'HH') from dual;
+
+## 7.3
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('08', 'HH') from dual;
+
+## 7.4
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('07', 'hh') from dual;
+
+## 7.5
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('11', 'HH') from dual;
+
+## 7.6
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('8', 'HH') from dual;
+
+## 7.7
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('0', 'HH') from dual;
+
+## 7.8
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('1', 'HH') from dual;
+
+## 7.9
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('01', 'HH') from dual;
+
+## 7.10
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('12', 'HH') from dual;
+
+## 7.11
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('13', 'HH') from dual;
+
+## 7.12
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('10', 'hH12') from dual;
+
+## 7.13
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('0', 'HH24') from dual;
+
+## 7.14
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('3', 'HH24') from dual;
+
+## 7.15
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('09', 'HH24') from dual;
+
+## 7.16
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('14', 'HH24') from dual;
+
+## 7.17
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('0', 'HH24') from dual;
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('24', 'HH24') from dual;
+
+## 7.18
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('23', 'HH24') from dual;
+
+## 7.19
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('20', 'hh24') from dual;
+
+## 7.20
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('17', 'hH24') from dual;
+
+## 7.20
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('12 am', 'HH am') from dual;
+
+## 7.20
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('12 pm', 'HH am') from dual;
+
+--echo #
+--echo # 8. test minute
+--echo #
+
+## 8.1 只有分钟，一位
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('7', 'MI') from dual;
+
+## 8.2 只有分钟，一位，以0开头
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('07', 'MI') from dual;
+
+## 8.3 只有分钟，两位
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('43', 'MI') from dual;
+
+## 8.4 只有分钟，三位
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('143', 'MI') from dual;
+
+## 8.5 只有分钟，测试范围
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('0', 'MI') from dual;
+
+## 8.6 只有分钟，测试范围
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('60', 'MI') from dual;
+
+## 8.7 只有分钟，测试小写
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('13', 'mi') from dual;
+
+## 8.8 只有分钟，测试大小写
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('53', 'Mi') from dual;
+
+--echo #
+--echo # 9. test second
+--echo #
+
+## 9.1 秒数，二位
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('53', 'SS') from dual;
+
+## 9.2 秒数，一位
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('3', 'SS') from dual;
+
+## 9.3 秒数，一位，前面补0
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('03', 'SS') from dual;
+
+## 9.4 只有秒数，测试范围，最小值
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('0', 'SS') from dual;
+
+## 9.5 只有秒数，测试范围，是否能为最大值60
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('60', 'SS') from dual;
+
+## 9.6 秒数，测试小写
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('35', 'ss') from dual;
+
+## 9.7 秒数，测试大小写混合
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('35', 'sS') from dual;
+
+
+--echo #
+--echo # 10 test time include hour,minute,second part
+--echo #
+
+## 10.1 时分秒都是1位
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('1:3:1', 'HH:MI:SS') from dual;
+
+## 10.2 时分秒都是1位，以0补为两位
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('01:03:01', 'HH:MI:SS') from dual;
+
+## 10.3 时分秒都是2位
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('11:43:56', 'HH:MI:SS') from dual;
+
+## 10.4 时分秒都是0
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('0:0:0', 'HH:MI:SS') from dual;
+
+## 10.5 时分秒都是0，小时为24小时制
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('0:0:0', 'HH24:MI:SS') from dual;
+
+## 10.6 测试，字符中没有间隔符，格式串中有
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('101112', 'HH24:MI:SS') from dual;
+
+## 10.7 测试，字符中没有间隔符，格式串中也没有
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('101112', 'HH24MISS') from dual;
+
+## 10.8 测试报错顺序，先报小时
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('24:60:60', 'HH24:MI:SS') from dual;
+
+## 10.9 测试报错顺序，先报分钟
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('60:0:60', 'MI:HH:SS') from dual;
+
+## 10.10 测试报错顺序，先报秒数
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('60:0:60', 'SS:HH:MI') from dual;
+
+## 10.11 测试关键字两次出现
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('12:13:60', 'SS:ss:MI') from dual;
+
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('12:12:60', 'SS:ss:MI') from dual;
+
+## 10.12 测试先检测哪个
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('12:13:60:12', 'MI:SS:ss:MI') from dual;
+
+## 10.13 测试先检测哪个，先报分钟60不对还是先报SS出现多次
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('60:12:13', 'MI:SS:ss') from dual;
+
+--echo #
+--echo # 11 test am pm
+--echo #
+
+## 11.1 测试只有AM，字符串大写
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('AM', 'AM') from dual;
+
+## 11.2 测试只有AM，字符串小写
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('am', 'AM') from dual;
+
+## 11.3 测试只有AM，大写字符串不匹配
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('A.M.', 'AM') from dual;
+
+## 11.4 测试只有AM，小写字符串不匹配2
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('p.m.', 'AM') from dual;
+
+## 11.5 测试只有AM，字符串为pm
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('pm', 'AM') from dual;
+
+## 11.6 测试只有AM，字符串为am
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('am', 'AM') from dual;
+
+## 11.7 测试只有A.M.，字符串为'pm'
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('pm', 'A.M.') from dual;
+
+## 11.8 测试只有A.M.，字符串为'p.m.'
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('p.m.', 'A.M.') from dual;
+
+## 11.9 测试只有A.M.，字符串不能匹配
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('c.c.', 'A.M.') from dual;
+
+
+--echo #
+--echo # 12 test time & am pm
+--echo #
+
+## 12.1 HH与AM，字符串是am
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('11:12:30 am', 'HH:MI:SS AM') from dual;
+
+## 12.2 HH与AM，字符串是am
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('11:12:30 pm', 'HH:MI:SS AM') from dual;
+
+## 12.2 HH与A.M.，字符串是a.m.
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('11:12:30 a.m.', 'HH:MI:SS A.M.') from dual;
+
+## 12.3 HH与A.M.，字符串是p.m.
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('11:12:30 p.m.', 'HH:MI:SS A.M.') from dual;
+
+## 12.4 HH与PM，字符串是am
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('11:12:30 am', 'HH:MI:SS PM') from dual;
+
+## 12.5 HH与P.M.，字符串是a.m.
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('11:12:30 a.m.', 'HH:MI:SS P.M.') from dual;
+
+## 12.6 HH与P.M.，字符串是am
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('11:12:30 am', 'HH:MI:SS P.M.') from dual;
+
+## 12.7 大写的格式匹配大写的字符串
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('11:12:30 A.M.', 'HH:MI:SS A.M.') from dual;
+
+## 12.8 大写的格式匹配小写的字符串
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('11:12:30 p.m.', 'HH:MI:SS A.M.') from dual;
+
+## 12.9 大写的格式匹配小写的字符串
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('11:12:30 a.m.', 'HH:MI:SS P.M.') from dual;
+
+## 12.10 大小写混合的p.m.
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('11:12:30 a.m.', 'HH:MI:SS p.M.') from dual;
+
+## 12.11 HH12与AM，小时出错
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('13:12:30 am', 'HH12:MI:SS AM') from dual;
+
+## 12.12 HH24与AM，出错。 小时小于12
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('11:12:30 am', 'HH24:MI:SS AM') from dual;
+
+## 12.12 HH24与AM，出错。 小时大于12
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('13:12:30 am', 'HH24:MI:SS AM') from dual;
+
+# 12.13 HH24与PM，出错
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('13:12:30 pm', 'HH24:MI:SS PM') from dual;
+
+## 12.14 先有AM，后有 HH24
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('am 13:12:30', 'AM HH24:MI:SS') from dual;
+
+## 12.15 AM格式重复
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('am pm 10:12:30', 'AM AM HH12:MI:SS') from dual;
+
+## 12.16 AM,PM格式重复
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('am pm 10:12:30', 'AM PM HH12:MI:SS') from dual;
+
+## 12.17 格式中有HH24，无AM，PM
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('10:12:30', 'HH24:MI:SS') from dual;
+
+## 12.18  没有时分秒，只有a.m.
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('2020 am', 'YYYY p.m.') from dual;
+
+## 12.19 没有时分秒，只有a.m.
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-04-01/
+select to_timestamp('2020 a.m.', 'YYYY p.m.') from dual;
+
+
+--echo #
+--echo # 13 test time & am pm
+--echo #
+
+## 13.1 测试年中用间隔符'-'，时间的间隔符用':'
+select to_timestamp('2020-02-10 14:12:24', 'YYYY-MM-DD HH24:MI:SS') from dual;
+
+## 13.2 测试年中用其它间隔符' '， ',' 等
+select to_timestamp('2020 02,10 14.12.24', 'YYYY MM,DD HH24.MI.SS') from dual;
+
+## 13.3 测试年中用非官方公布的间隔符
+select to_timestamp('2020-02-10 14:12:24', 'YYYY-MM-DD HH24:MI:SS') from dual;
+
+## 13.4 没有月份
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-04-\3/
+select to_timestamp('2020-10 14:12:24', 'YYYY-DD HH24:MI:SS') from dual;
+
+## 13.5 没有天信息
+select to_timestamp('2020 10 14:12:24', 'YYYY MM HH24:MI:SS') from dual;
+
+--echo #
+--echo # 14 test format chars
+--echo #
+
+## 14.1 测试没有用引号起来的多个个字母
+--error ER_INVALID_FORMAT 
+select to_timestamp('aa2020', 'aaYYYY') from dual;
+
+## 14.2 测试用引号引起来的多个字母
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-04-01/
+select to_timestamp('aa2020', '"aa"YYYY') from dual;
+
+## 14.3 测试用引号引起来的多个字母，格式中的与字符串中的大小写不一致
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-04-01/
+select to_timestamp('aa2020', '"AA"YYYY') from dual;
+
+## 14.4 测试用引号引起来的多个字母，引号不完整
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('aa2020', '"aaYYYY') from dual;
+
+
+--echo #
+--echo # 15 test format chars
+--echo #
+
+# 15. 测试字符串与格式串
+## 15.1 测试format为空串：
+select to_timestamp('2020', '') from dual;
+select to_timestamp('', '') from dual;
+select to_timestamp('   ', '') from dual;
+
+# 15.2 测试format为空格串：
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('2020', ' ') from dual;
+
+select to_timestamp('', ' ') from dual;
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-07-\3/
+select to_timestamp(' ', ' ') from dual;
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-07-\3/
+select to_timestamp('   ', '  ') from dual;
+select to_timestamp('', 'YYYY') from dual;
+
+## 测试字符串与格式不一致：字符串较短
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('2020', 'YYYY-MM') from dual;
+
+## 测试字符串与格式不一致：字符串较长
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('2020-15', 'YYYY') from dual;
+
+# 15.3 测试只有一个参数时：
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('2020') from dual;
+
+select to_timestamp('2020-2-3 11:15:34') from dual;
+
+# 15.4 测试一个参数：
+select to_timestamp('2020-2-3') from dual;
+
+--echo #
+--echo # 16 test FF
+--echo #
+
+## 16.1 测试单纯的大写FF
+select TO_TIMESTAMP('0001-04-08 18:49:10.123','YYYY-MM-DD HH24:MI:SS.FF') from dual;
+
+## 16.2 测试单纯的小写ff
+select TO_TIMESTAMP('0001-04-08 18:49:10.123','YYYY-MM-DD HH24:MI:SS.ff') from dual;
+
+##16.3 测试FF[1..9]
+select TO_TIMESTAMP('0001-04-08 18:49:10.1','YYYY-MM-DD HH24:MI:SS.FF1') from dual;
+select TO_TIMESTAMP('0001-04-08 18:49:10.12','YYYY-MM-DD HH24:MI:SS.FF2') from dual;
+select TO_TIMESTAMP('0001-04-08 18:49:10.123','YYYY-MM-DD HH24:MI:SS.FF3') from dual;
+select TO_TIMESTAMP('0001-04-08 18:49:10.1234','YYYY-MM-DD HH24:MI:SS.FF4') from dual;
+select TO_TIMESTAMP('0001-04-08 18:49:10.12345','YYYY-MM-DD HH24:MI:SS.FF5') from dual;
+select TO_TIMESTAMP('0001-04-08 18:49:10.123456','YYYY-MM-DD HH24:MI:SS.FF6') from dual;
+select TO_TIMESTAMP('0001-04-08 18:49:10.1234567','YYYY-MM-DD HH24:MI:SS.FF7') from dual;
+select TO_TIMESTAMP('0001-04-08 18:49:10.12345678','YYYY-MM-DD HH24:MI:SS.FF8') from dual;
+select TO_TIMESTAMP('0001-04-08 18:49:10.123456789','YYYY-MM-DD HH24:MI:SS.FF9') from dual;
+
+##16.4 测试ff[1..9]
+select TO_TIMESTAMP('0001-04-08 18:49:10.1','YYYY-MM-DD HH24:MI:SS.ff1') from dual;
+select TO_TIMESTAMP('0001-04-08 18:49:10.12','YYYY-MM-DD HH24:MI:SS.ff2') from dual;
+select TO_TIMESTAMP('0001-04-08 18:49:10.123','YYYY-MM-DD HH24:MI:SS.ff3') from dual;
+select TO_TIMESTAMP('0001-04-08 18:49:10.1234','YYYY-MM-DD HH24:MI:SS.ff4') from dual;
+select TO_TIMESTAMP('0001-04-08 18:49:10.12345','YYYY-MM-DD HH24:MI:SS.ff5') from dual;
+select TO_TIMESTAMP('0001-04-08 18:49:10.123456','YYYY-MM-DD HH24:MI:SS.ff6') from dual;
+select TO_TIMESTAMP('0001-04-08 18:49:10.1234567','YYYY-MM-DD HH24:MI:SS.ff7') from dual;
+select TO_TIMESTAMP('0001-04-08 18:49:10.12345678','YYYY-MM-DD HH24:MI:SS.ff8') from dual;
+select TO_TIMESTAMP('0001-04-08 18:49:10.123456789','YYYY-MM-DD HH24:MI:SS.ff9') from dual;
+
+##16.4 测试FF数值串长度小于format串
+select TO_TIMESTAMP('0001-04-08 18:49:10.1234','YYYY-MM-DD HH24:MI:SS.ff9') from dual;
+
+##16.5 测试FF数值串长度大于format串
+--error ER_CONVERT_DATETIME_FAIL
+select TO_TIMESTAMP('0001-04-08 18:49:10.123456789','YYYY-MM-DD HH24:MI:SS.ff3') from dual;
+
+##16.6 测试FF数值串中为空值
+select TO_TIMESTAMP('0001-04-08 18:49:10','YYYY-MM-DD HH24:MI:SS.ff9') from dual;
+
+##17.7 测试FF后面为0
+--error ER_INVALID_FORMAT
+select TO_TIMESTAMP('2020-4-20 14:27:30','YYYY-MM-DD HH:MI:SS.FF0') from dual;
+--error ER_INVALID_FORMAT
+select TO_TIMESTAMP('2020-4-20 14:27:30.','YYYY-MM-DD HH:MI:SS.FF0') from dual;
+--error ER_INVALID_FORMAT
+select TO_TIMESTAMP('2020-4-20 14:27:30.123','YYYY-MM-DD HH:MI:SS.FF0') from dual;
+
+##17.8 测试FF放前面
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('123 10','FF SS') from DUAL;
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('10 123','SS FF') from DUAL;
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('12020','FF1YYYY') from dual;
+
+##17.9 测试FF后面为两位数（报错）
+--error ER_INVALID_FORMAT
+select to_timestamp('123','FF12') from dual;
+
+##17.10 测试FF小数部分以0开头
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-04-01/
+select to_timestamp('10.001','SS.FF3');
+

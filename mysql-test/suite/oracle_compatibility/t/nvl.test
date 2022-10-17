@@ -1,0 +1,107 @@
+#
+# Test：ZSQL兼容Oracle的 NVL() 函数
+#
+# Syntax:
+#    NVL(expr1, expr2)
+#
+
+# 创建测试数据库和测试表，并构造测试数据
+drop database if exists test_nvl_db;
+create database test_nvl_db;
+use test_nvl_db;
+drop table if exists test_nvl_db.test_nvl;
+create table if not exists test_nvl_db.test_nvl
+(
+  id         int not null primary key,
+  id1        decimal(3, 2),
+  id2        int,
+  varchar1   varchar(80),
+  timestamp1 timestamp,
+  enum1      enum('enum_str'),
+  set1       set('set_str'),
+  blob1      blob
+);
+
+start transaction;
+insert into test_nvl (id, id1, id2, varchar1, timestamp1,enum1, set1, blob1) values
+(1, 1.11, 1, '语文', '2020-04-17 10:35:59', 'enum_str', 'set_str', 5),
+(2, 2.22, 2, '数学', '2020-04-17 10:35:59', 'enum_str', 'set_str', 5),
+(3, 3.33, 3, '几何', '2020-04-17 10:35:59', 'enum_str', 'set_str', 5),
+(5, 5.55, 5, '英语', '2020-04-17 10:35:59', 'enum_str', 'set_str', 5),
+(6,6.01, 200, '数学', '2020-04-17 10:35:59', 'enum_str', 'set_str', 5);
+insert into test_nvl (id, id2, varchar1) values (4, 4, null);
+commit;
+
+# 语法错误
+--error 1054
+select nvl from dual;
+--error 1582
+select nvl() from dual;
+--error 1582
+select nvl(1) from dual;
+--error 1064
+select nvl(1,) from dual;
+--error 1064
+select nvl(1,2,) from dual;
+--error 1582
+select nvl(1,2,3) from dual;
+
+# NULL和空字符串('')
+select nvl(NULL, 1) from dual;
+select nvl(NULL, 'X') from dual;
+select nvl(NULL, NULL) from dual;
+select nvl('', 1) from dual;
+select nvl('', 'X') from dual;
+select nvl('', '') from dual;
+
+# 数据类型
+select id1,id2,nvl(timestamp1,id2) from test_nvl order by id;
+select id1,id2,nvl(enum1,id2) from test_nvl order by id;
+select id1,id2,nvl(set1,id2) from test_nvl order by id;
+select id1,id2,nvl(blob1,id2) from test_nvl order by id;
+
+# 特殊字符
+select nvl('~!@#$%^&*()', 2) from dual;
+select nvl(NULL, '~!@#$%^&*()') from dual;
+
+# 支持列
+select id1,id2,nvl(id1,id2) from test_nvl order by id;
+select id1,varchar1,nvl(id1,varchar1) from test_nvl order by id;
+select id1,varchar1,nvl(varchar1,id1) from test_nvl order by id;
+
+#支持表达式
+select id1,id2,nvl((id1-2*id2),id2*id1) from test_nvl order by id;
+select id1,id2,nvl(abs(id1-2*id2),id2*id1) as nvl_result from test_nvl order by id;
+
+#支持函数， 或者函数嵌套
+select id1,id2,nvl(length(id1),abs(id2)) from test_nvl order by id;
+select id1,id2,abs(nvl(id1,id2)) from test_nvl order by id;
+
+# 支持子查询
+select id1,id2 from (select id,id1,id2,nvl(id1,id2) from test_nvl) tmp order by id;
+select id1,id2,nvl_result from (select id,id1,id2,nvl(id1,id2) as nvl_result from test_nvl) tmp order by id;
+select id1,id2 from (select *,nvl(id1,id2),id as nvl_result from test_nvl) tmp order by id;
+select id1,id2 from (select id,id1,id2,nvl(length(id1),abs(id2)) from test_nvl order by id) tmp order by id;
+select id1,id2 from (select id,id1,id2,abs(nvl(-id1,id2)) from test_nvl order by id) tmp order by id;
+select id1,id2 from (select id,id1,id2,nvl((id1-2*id2),id2*id1) from test_nvl order by id)tmp order by id;
+select id1,id2 from (select id,id1,id2,nvl(abs(id1-2*id2),id2*id1) as nvl_result from test_nvl order by id)tmp order by id;
+
+# where 表达式
+select id1,id2 from test_nvl where id in (select nvl(id1,id2) from test_nvl) order by id;
+select id1,id2 from test_nvl where id in (select nvl(id1,id2) as nvl_result from test_nvl) order by id;
+--error 1241
+select id1,id2 from test_nvl where id in (select id1,id2,nvl(length(id1),abs(id2)) from test_nvl) order by id;
+select id1,id2 from test_nvl where id in (select abs(nvl(-id1,id2)) from test_nvl) order by id;
+select id1,id2 from test_nvl where id in (select -nvl((id1-2*id2),id2*id1) from test_nvl) order by id;
+select id1,id2 from test_nvl where id in (select nvl(abs(id1-2*id2),id2*id1) from test_nvl) order by id;
+select id1,id2 from test_nvl where id = nvl(id1,id2) order by id;
+select id1,id2 from test_nvl where id = nvl(length(id1),abs(id2)) order by id;
+select id1,id2 from test_nvl where id = abs(nvl(-id1,id2)) order by id;
+select id1,id2 from test_nvl where id = nvl(-(id1-2*id2),id2*id1) order by id;
+select id1,id2 from test_nvl where id = abs(nvl((id1-2*id2),id2*id1)) order by id;
+
+
+# 清理测试数据
+drop database if exists test_nvl_db;
+
+# End of ZSQL 兼容Oracle的 NVL() 函数 tests

@@ -1,0 +1,43 @@
+##########################################################
+# create database table
+##########################################################
+drop database if exists linpin_sfu;
+create database linpin_sfu;
+use linpin_sfu;
+CREATE TABLE `t_orderby` (
+`id1` int(11) NOT NULL,
+`id2` int(11) NOT NULL,
+`id3` varchar(64) COLLATE utf8_bin NOT NULL,
+`id4` int(11) DEFAULT NULL,
+`id5` int(11) DEFAULT NULL,
+`id6` varchar(64) COLLATE utf8_bin DEFAULT NULL,
+PRIMARY KEY (`id1`,`id2`,`id3`),
+KEY `id4` (`id4`,`id5`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+load data infile '../../std_data/t_orderby.csv' into table t_orderby FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' 
+LINES TERMINATED BY '\n';
+set session debug="d,compare_end_range";
+select * from t_orderby where id1>1 and id1<23;
+select * from t_orderby where id1 = 1 for update;
+id1	id2	id3	id4	id5	id6
+1	300	abc1	1	101	xyzbhdfwejfwefgdhdskjghfsdddwfgh301
+1	300	abc15001	1001	1101	xyzbhdfwejfwefgdhdskjghfsdddwfgh15301
+1	300	abc30001	2001	2101	xyzbhdfwejfwefgdhdskjghfsdddwfgh30301
+1	300	abc45001	3001	3101	xyzbhdfwejfwefgdhdskjghfsdddwfgh45301
+1	300	abc60001	4001	4101	xyzbhdfwejfwefgdhdskjghfsdddwfgh60301
+1	300	abc75001	5001	5101	xyzbhdfwejfwefgdhdskjghfsdddwfgh75301
+1	300	abc90001	6001	6101	xyzbhdfwejfwefgdhdskjghfsdddwfgh90301
+1	1300	abc10001	3001	767	xyzbhdfwejfwefgdhdskjghfsdddwfgh10301
+1	1300	abc25001	4001	1767	xyzbhdfwejfwefgdhdskjghfsdddwfgh25301
+1	1300	abc40001	5001	2767	xyzbhdfwejfwefgdhdskjghfsdddwfgh40301
+1	1300	abc55001	6001	3767	xyzbhdfwejfwefgdhdskjghfsdddwfgh55301
+1	1300	abc70001	1	4767	xyzbhdfwejfwefgdhdskjghfsdddwfgh70301
+1	1300	abc85001	1001	5767	xyzbhdfwejfwefgdhdskjghfsdddwfgh85301
+1	2300	abc20001	6001	1434	xyzbhdfwejfwefgdhdskjghfsdddwfgh20301
+1	2300	abc35001	1	2434	xyzbhdfwejfwefgdhdskjghfsdddwfgh35301
+1	2300	abc50001	1001	3434	xyzbhdfwejfwefgdhdskjghfsdddwfgh50301
+1	2300	abc5001	5001	434	xyzbhdfwejfwefgdhdskjghfsdddwfgh5301
+1	2300	abc65001	2001	4434	xyzbhdfwejfwefgdhdskjghfsdddwfgh65301
+1	2300	abc80001	3001	5434	xyzbhdfwejfwefgdhdskjghfsdddwfgh80301
+1	2300	abc95001	4001	6434	xyzbhdfwejfwefgdhdskjghfsdddwfgh95301
+drop database if exists linpin_sfu;

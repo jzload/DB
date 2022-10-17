@@ -1,0 +1,424 @@
+include/rpl_init.inc [topology=1->2]
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+include/rpl_sync.inc
+[connection server_1]
+include/install_semisync_master.inc
+####################################################################
+# Test Case: check the thread_pool_size of threadpool mode
+####################################################################
+include/assert.inc [ should be 4]
+SET GLOBAL rpl_semi_sync_master_enabled = 0;
+set global rpl_semi_sync_master_timeout = 1000;
+###################################################################
+# Test Case: add slave 2
+###################################################################
+[connection server_2]
+include/install_semisync_slave.inc
+[connection server_1]
+###################################################################
+# the base config and status for quick sync
+###################################################################
+set global rpl_semi_sync_master_wait_cond_hwm = '2:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '2:0';
+set global rpl_semi_sync_master_group1 = '2,3:1';
+set global rpl_semi_sync_master_group2 = '1,4:1';
+set global rpl_semi_sync_master_wait_no_slave = OFF;
+set global rpl_semi_sync_master_enabled = ON;
+include/assert.inc [Rpl_semi_sync_master_active_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_current_stat_master_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_current_wait_groups should be 2]
+include/assert.inc [Rpl_semi_sync_master_err_flag should be 1]
+include/assert.inc [Rpl_semi_sync_master_group1_status should be 1:GROUP_ACTIVE]
+include/assert.inc [Rpl_semi_sync_master_group2_status should be 0:GROUP_UNACTIVE]
+###################################################################
+# test master_case_root.sql
+###################################################################
+[connection server_1]
+drop user if exists repl_test@'localhost';
+Warnings:
+Note	3162	Authorization ID 'repl_test'@'localhost' does not exist.
+drop user if exists repl_test@'%';
+Warnings:
+Note	3162	Authorization ID 'repl_test'@'%' does not exist.
+create user repl_test@'localhost' identified by 'repl_test';
+create user repl_test@'%' identified by 'repl_test';
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, RELOAD, LOCK TABLES, REPLICATION SLAVE, REPLICATION CLIENT, 
+CREATE ROUTINE, ALTER ROUTINE, CREATE TABLESPACE,ALTER,create temporary tables on *.* TO 'repl_test'@'localhost' ;
+GRANT Process on *.* TO 'repl_test'@'localhost' ;
+GRANT File on *.* TO 'repl_test'@'localhost' ;
+GRANT Show view on *.* TO 'repl_test'@'localhost' ;
+GRANT Trigger  on *.* TO 'repl_test'@'localhost' ;
+GRANT event  on *.* TO 'repl_test'@'localhost' ;
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, RELOAD, LOCK TABLES, REPLICATION SLAVE, REPLICATION CLIENT, 
+CREATE ROUTINE, ALTER ROUTINE, CREATE TABLESPACE,ALTER,create temporary tables on *.* TO 'repl_test'@'%' ;
+drop database if exists it_quick_sync_read_only;
+Warnings:
+Note	1008	Can't drop database 'it_quick_sync_read_only'; database doesn't exist
+create database it_quick_sync_read_only;
+drop database if exists `#mysql50#a-b-c`;
+Warnings:
+Note	1008	Can't drop database '#mysql50#a-b-c'; database doesn't exist
+create database `#mysql50#a-b-c`;
+use it_quick_sync_read_only;
+drop table if exists t1;
+Warnings:
+Note	1051	Unknown table 'it_quick_sync_read_only.t1'
+drop table if exists t2;
+Warnings:
+Note	1051	Unknown table 'it_quick_sync_read_only.t2'
+drop table if exists t3;
+Warnings:
+Note	1051	Unknown table 'it_quick_sync_read_only.t3'
+drop table if exists t4;
+Warnings:
+Note	1051	Unknown table 'it_quick_sync_read_only.t4'
+create table t1(id int);
+create index t1_index1 on t1(id);
+create table t2(id int primary key, name varchar(10));
+create table t3(id int);
+create table t4(id int);
+create table tb_test1(id int) engine = myisam;
+create table tb_test2(id int) engine = myisam;
+create view view1 as select t2.name from t1 join t2 where t1.id = t2.id;
+create temporary table tmp1(id int, name varchar(20));
+insert into t1 values(1),(2),(3);
+insert into t2 values(1,'1'),(2,'2'),(3,'3');
+insert into t3 values(4),(5),(6);
+insert into t4 values(7),(8),(9);
+insert into tmp1 values(10,'x'),(11,'y'),(12,'z');
+create procedure sp_test1(p_id int)
+begin
+insert into t1 values(p_id);
+end
+//
+call sp_test1(222);
+create function sf_test1(p_id int) returns int
+DETERMINISTIC
+begin
+return p_id * p_id;
+end
+//
+select sf_test1(222);
+sf_test1(222)
+49284
+set @sum = 0;
+create trigger trig_test1 before insert on t1 for each row 
+set @sum = @sum + new.id;
+insert into t1 values(333);
+select @sum;
+@sum
+333
+create event event_test1
+on schedule at CURRENT_TIMESTAMP  +  interval 1  minute 
+do
+update t3 set id = id + 20;
+create database if not exists  test_db;
+alter database character set = utf8;
+Warnings:
+Warning	3719	'utf8' is currently an alias for the character set UTF8MB3, but will be an alias for UTF8MB4 in a future release. Please consider using UTF8MB4 in order to be unambiguous.
+alter database COLLATE  = utf8_bin;
+Warnings:
+Warning	3778	'utf8_bin' is a collation of the deprecated character set UTF8MB3. Please consider using UTF8MB4 with an appropriate collation instead.
+drop database test_db;
+select 1;
+1
+1
+select * from t1;
+id
+1
+2
+3
+222
+333
+show databases;
+show create database it_quick_sync_read_only;
+show tables;
+show tables from mysql;
+show create table t1;
+show table status;
+show fields from t1;
+show keys from t2;
+show variables like '%thread%';
+show status like '%thread%';
+show engines;
+show engine innodb logs;
+show engine innodb status;
+show engine innodb mutex;
+show privileges;
+show processlist;
+show master status;
+show slave status;
+show slave hosts;
+show grants;
+show grants for repl_test;
+show create user repl_test;
+show create database it_quick_sync_read_only;
+show create table t1;
+show create view view1;
+show create procedure sp_test1;
+show create function sf_test1;
+show create trigger trig_test1;
+show create event event_test1;
+show procedure status like 'sp_test2';
+show function status like 'sf_test1';
+show charset;
+show character set;
+show collation;
+show binary logs;
+show binlog events in 'master-bin.000001';
+show open tables from  it_quick_sync_read_only;
+show warnings;
+show errors;
+show engines;
+show privileges;
+show plugins;
+show events;
+set profiling = 1;
+show profile all;
+show profiles;
+help 'select';
+help 'str_to_date';
+set @test_var = 0;
+set @gdb = 1;
+use it_quick_sync_read_only;
+drop database if exists `a-b-c`;
+Warnings:
+Note	1008	Can't drop database 'a-b-c'; database doesn't exist
+ALTER DATABASE `#mysql50#a-b-c` UPGRADE DATA DIRECTORY NAME;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'UPGRADE DATA DIRECTORY NAME' at line 1
+drop database if exists `a-b-c`;
+Warnings:
+Note	1008	Can't drop database 'a-b-c'; database doesn't exist
+SET GLOBAL kc_fast.key_buffer_size = 128 * 1024;
+Warnings:
+Warning	1287	kc_fast.key_buffer_size syntax is deprecated and will be removed in a future release
+cache index tb_test1 ,tb_test2 in kc_fast;
+Table	Op	Msg_type	Msg_text
+it_quick_sync_read_only.tb_test1	assign_to_keycache	status	OK
+it_quick_sync_read_only.tb_test2	assign_to_keycache	status	OK
+load index into cache t1,t2 IGNORE LEAVES;
+Table	Op	Msg_type	Msg_text
+it_quick_sync_read_only.t1	preload_keys	note	The storage engine for the table doesn't support preload_keys
+it_quick_sync_read_only.t2	preload_keys	note	The storage engine for the table doesn't support preload_keys
+load index into cache tb_test1,tb_test2 IGNORE LEAVES;
+Table	Op	Msg_type	Msg_text
+it_quick_sync_read_only.tb_test1	preload_keys	status	OK
+it_quick_sync_read_only.tb_test2	preload_keys	status	OK
+check table t1;
+Table	Op	Msg_type	Msg_text
+it_quick_sync_read_only.t1	check	status	OK
+check table tb_test1;
+Table	Op	Msg_type	Msg_text
+it_quick_sync_read_only.tb_test1	check	status	OK
+lock tables t1 read;
+select * from t1;
+id
+1
+2
+3
+222
+333
+unlock  tables;
+flush tables;
+flush table t1;
+flush no_write_to_binlog table t1;
+start transaction;
+commit;
+rollback;
+commit;
+start transaction;
+select * from t1;
+id
+1
+2
+3
+222
+333
+rollback;
+start transaction;
+select * from t1;
+id
+1
+2
+3
+222
+333
+commit;
+start transaction;
+insert into t1 values(555);
+rollback;
+start transaction;
+insert into t1 values(555);
+commit;
+start transaction;
+insert into t1 values(666);
+savepoint sp1;
+insert into t1 values(777);
+rollback to sp1;
+rollback;
+start transaction;
+insert into t1 values(666);
+savepoint sp1;
+release savepoint sp1;
+rollback;
+CHANGE MASTER TO  MASTER_HOST = 'localhost', MASTER_USER = 'repl_test', MASTER_PASSWORD = 'repl_test',MASTER_AUTO_POSITION = 1;
+Warnings:
+Note	1759	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	1760	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+start slave;
+stop slave;
+reset slave;
+reset slave all;
+show slave hosts;
+handler t1 open;
+handler t1 read first;
+handler t1 read next where id>30;
+handler t1 read t1_index1=(11);
+handler t1 close;
+handler t2 open;
+handler t2 read `PRIMARY`=(1);
+handler t2 read `PRIMARY` first;
+handler t2 read `PRIMARY` next;
+checksum table t1;
+do instr('abc','a');
+do sleep(20);
+prepare read_stmt from 'select * from t1 limit ?';
+set @var1 = 2;
+execute read_stmt using @var1;
+deallocate prepare read_stmt;
+XA START X'6162';
+select * from t1;
+XA END X'6162';
+XA PREPARE X'6162';
+XA COMMIT X'6162';
+XA START X'6162';
+select * from t1;
+XA END X'6162';
+XA ROLLBACK X'6162';
+create tablespace test1_ibd add datafile 'test1.ibd' 
+FILE_BLOCK_SIZE  = 16k
+engine = innodb;
+drop tablespace test1_ibd;
+GET DIAGNOSTICS CONDITION 1
+@p1 = RETURNED_SQLSTATE, @p2 = MESSAGE_TEXT;
+explain select * from t1;
+create temporary table tmp_t1(id int);
+insert into tmp_t1 values(1);
+update tmp_t1 set id = 2;
+delete from tmp_t1;
+update performance_schema.threads set HISTORY='NO' where thread_id = 48;
+delete from performance_schema.threads where thread_id = 48;
+update t1 set id = 11 where id = 1;
+update t1,t2 set t1.id=555 where t1.id = t2.id;
+insert into t1 values(111);
+insert into t4 select * from t1;
+delete from t4 where id = 11;
+delete from t3,t4 USING t3 inner join t4 on  t3.id = t4.id;
+replace into t3 values(4);
+replace into t2 values(3,'5');
+replace into t4 select id from t2;
+repair table t1;
+repair table tb_test1;
+repair no_write_to_binlog table t1;
+repair no_write_to_binlog table tb_test1;
+optimize table t1;
+analyze table t1;
+rename table t4 to t4_new;
+rename table t4_new to t4;
+select * into outfile '$MYSQLD_DATADIR/t1.csv' from t1;
+load data infile '$MYSQLD_DATADIR/t1.csv' into table t4;
+lock tables t1 write;
+insert into t1 values(666);
+unlock  tables;
+purge binary logs to 'master-bin.000001';
+flush logs;
+flush logs;
+purge master logs to 'master-bin.000002';
+purge binary logs before '2017-09-25 22:10:10';
+prepare insert_stmt from 'insert into t1 values(?)';
+set @var1 = 1000;
+execute insert_stmt using @var1;
+INSTALL PLUGIN test_udf_services SONAME 'test_udf_services.so';
+UNINSTALL PLUGIN test_udf_services;
+BINLOG 'IKjNWQ8BAAAAdwAAAHsAAAABAAQANS43LjE3LWRlYnVnLWxvZwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgqM1ZEzgNAAgAEgAEBAQEEgAAXwAEGggAAAAICAgCAAAACgoKKioAEjQAATwKkAM=';
+set @@SESSION.GTID_NEXT = AUTOMATIC;
+explain insert into t1 values(1);
+create table test1(id int);
+alter table test1 add column(id2 int ,id3 int);
+drop table test1;
+truncate table t4;
+create index t1_idx on t1(id);
+drop index t1_idx on t1;
+create view tmp_view2 as select * from t1;
+drop view if exists tmp_view2;
+create function sf_test2(p_id int) returns int
+DETERMINISTIC
+begin
+return p_id * p_id;
+end
+//
+drop function sf_test2;
+create procedure sp_test2(p_id int)
+sql security invoker
+begin
+insert into t1 values(p_id);
+end
+//
+call sp_test2(11111);
+alter procedure sp_test2 
+language sql;
+drop procedure sp_test2;
+set @sum = 0;
+create trigger trig_test2 before insert on t1 for each row 
+set @sum = @sum + new.id;
+insert into t1 values(6666);
+select @sum;
+set global log_bin_trust_function_creators = true;
+drop trigger if exists  trig_test2;
+drop user if exists test_user;
+create user test_user@'%' identified by 'test_user';
+grant Replication client, Replication slave, Create, Delete, Drop, Select ON *.* to 'test_user'@'%';
+REVOKE  Replication client ON *.* from 'test_user'@'%';
+grant lock tables on *.* to repl_test@'%';
+rename user test_user to test_user_new;
+revoke all privileges, grant option from test_user;
+revoke all privileges, grant option from test_user_new;
+drop user if exists test_user;
+drop user test_user_new
+##-- -----------------------------------------------
+##-- create server
+##-- -----------------------------------------------
+##-- root: set global GTID_MODE = off;
+CREATE SERVER s
+FOREIGN DATA WRAPPER mysql
+OPTIONS (USER 'repl_test', HOST '127.0.0.1', DATABASE 'test');
+ALTER SERVER s OPTIONS (USER 'sally');
+drop server s;
+create event event_test2
+on schedule at CURRENT_TIMESTAMP  +  interval 1  minute 
+do
+update t3 set id = id + 20;
+alter event event_test1 
+do 
+update t3 set id = id + 30;
+drop event if exists event_test2;
+########################################################################
+# Coverage Test
+########################################################################
+[connection server_1]
+SET GLOBAL rpl_semi_sync_master_enabled= OFF;
+[connection server_2]
+include/uninstall_semisync_slave.inc
+[connection server_1]
+[connection server_1]
+include/uninstall_semisync_master.inc
+[connection server_1]
+drop user repl_test@'localhost';
+drop user repl_test@'%';
+drop database it_quick_sync_read_only;
+drop database `#mysql50#a-b-c`;
+CALL mtr.add_suppression(".* Timeout waiting for reply of binlog .*");
+CALL mtr.add_suppression(".* Failed to allocate memory for ack_array .*");
+include/rpl_end.inc

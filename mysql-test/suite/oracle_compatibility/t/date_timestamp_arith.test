@@ -1,0 +1,581 @@
+#--------------------------------------------------------------------------
+# to_date + item (not field_item)
+#--------------------------------------------------------------------------
+
+#
+# to_date return NULL, other item is not NULL
+#
+select to_date('', 'yyyy-mm-dd') + 1 from dual;
+select 1 + to_date('', 'yyyy-mm-dd') from dual;
+select 1 + to_date('', 'yyyy-mm-dd') + 1 from dual;
+select 1 + to_date(NULL, 'yyyy-mm-dd') + 1 from dual;
+select 1 + to_date(' ', NULL) + 1 from dual;
+select (-1) + to_date('','yyyy-mm-dd') + (-1) from dual;
+
+#
+# to_date return not NULL, other item is NULL
+#
+select to_date('2020-01-20','yyyy-mm-dd') + NULL from dual;
+select NULL + to_date('2020-01-20','yyyy-mm-dd') from dual;
+select NULL + to_date('2020-01-20','yyyy-mm-dd') + '1234' from dual;
+select NULL + to_date('2020-01-20','yyyy-mm-dd') + 'abcd' from dual;
+select NULL + to_date('2020-01-20','yyyy-mm-dd') + '-12345678910111212134' from dual;
+
+#
+# to_date return NULL, other item is also NULL
+#
+select to_date('','yyyy-mm-dd') + NULL from dual;
+select to_date(NULL,'yyyy-mm-dd') + NULL from dual;
+select NULL + to_date(' ', NULL) + 1 from dual;
+select NULL + to_date('','yyyy-mm-dd') from dual;
+select NULL + to_date('','yyyy-mm-dd') + NULL from dual;
+
+#
+# to_date return not NULL, other item is not NULL neither and is not negative
+#
+select to_date('2020-01-20','yyyy-mm-dd') + 0 from dual;
+select to_date('2020-01-20','yyyy-mm-dd') + 1 from dual;
+select to_date('2020-01-20','yyyy-mm-dd') + 1.123 from dual;
+select to_date('2020-01-20','yyyy-mm-dd') + '1' from dual;
+select to_date('2020-01-20','yyyy-mm-dd') + '1.123' from dual;
+select 0 + to_date('2020-01-20','yyyy-mm-dd') + 1 from dual;
+select 1.23 + to_date('2020-01-20','yyyy-mm-dd') + 1.123 from dual;
+select '12' + to_date('2020-01-20','yyyy-mm-dd') + '1' from dual;
+select '1.23456' + to_date('2020-01-20','yyyy-mm-dd') + '1.123' from dual;
+
+#
+# return 9999-12-31 00:00:00
+#
+select '2914615' + to_date('2020-01-20','yyyy-mm-dd') from dual;
+
+#
+# return 9999-12-31 23:59:59
+#
+select '2914615.999994' + to_date('2020-01-20','yyyy-mm-dd') from dual;
+
+#
+# return Warning | 1441 | Datetime function: datetime field overflow
+#
+select '2914616' + to_date('2020-01-20','yyyy-mm-dd') from dual;
+select '2914615.999995' + to_date('2020-01-20','yyyy-mm-dd') from dual;
+
+#
+# to_date return not NULL, other item is negative
+#
+select to_date('2020-01-20','yyyy-mm-dd') + -1 from dual;
+select to_date('2020-01-20','yyyy-mm-dd') + -1.12345678910111213 from dual;
+select to_date('2020-01-20','yyyy-mm-dd') + '-1' from dual;
+select to_date('2020-01-20','yyyy-mm-dd') + '-1.12345678910111213' from dual;
+select -1 + to_date('2020-01-20','yyyy-mm-dd') + -11 from dual;
+select -1.23 + to_date('2020-01-20','yyyy-mm-dd') + -1.123 from dual;
+select '-12' + to_date('2020-01-20','yyyy-mm-dd') + '-1' from dual;
+select -737809 + to_date('2020-01-20','yyyy-mm-dd') from dual;
+select '-12345678910111213.23456' + to_date('2020-01-20','yyyy-mm-dd') + '-1.123' from dual;
+
+#--------------------------------------------------------------------------
+# to_date + field
+#--------------------------------------------------------------------------
+create database ttt;
+use ttt;
+
+drop table if exists t;
+create table t (field_fl float, 
+                field_int int,
+                field_str varchar2(20),
+                field_dc decimal(10,5),
+                field_tm time,
+                field_dt date,
+                field_dttm datetime,
+                filed_tmst timestamp);
+
+insert into t values (2.3, 10, '1.256', 2365.25416, '10:12:30', '2012-12-12', 
+    '2012-12-12 10:12:30', '2012-12-12 10:12:30');
+
+insert into t values (NULL, 654122321, '1.256', 2365.25416, '10:12:30', '2012-12-12', 
+    '2012-12-12 10:12:30', '2012-12-12 10:12:30');
+
+insert into t values (-2.3, NULL, '-1.256', -2365.25416, '10:12:30', '2012-12-12', 
+    '2012-12-12 10:12:30', '2012-12-12 10:12:30');
+
+insert into t values (2.3, 10, NULL, 2365.25416, '10:12:30', '2012-12-12', 
+    '2012-12-12 10:12:30', '2012-12-12 10:12:30');
+
+insert into t values (2.3, 10, '-1.256', NULL, '10:12:30', '2012-12-12', 
+    '2012-12-12 10:12:30', '2012-12-12 10:12:30');
+
+insert into t values (2.3, 10, '1.256', -2365.25416, NULL, '2012-12-12', 
+    '2012-12-12 10:12:30', '2012-12-12 10:12:30');
+
+insert into t values (2.3, 10, '1.256', 2365.25416, '10:12:30', NULL, 
+    '2012-12-12 10:12:30', '2012-12-12 10:12:30');
+
+insert into t values (-2.3, 10, '1.256', 2365.25416, '10:12:30', '2012-12-12', 
+    NULL, '2012-12-12 10:12:30');
+
+insert into t values (2.3, 10, '1.256', -2365.25416, '10:12:30', '2012-12-12', 
+    '2012-12-12 10:12:30', NULL);
+
+# NULL plus everything eq NULL.
+select to_date('','yyyy-mm-dd') + field_fl from t;
+select to_date('','yyyy-mm-dd') + field_int from t;
+select to_date('','yyyy-mm-dd') + field_str from t;
+select to_date('','yyyy-mm-dd') + field_dc from t;
+select to_date('','yyyy-mm-dd') + field_tm from t;
+select to_date('','yyyy-mm-dd') + field_dt from t;
+select to_date('','yyyy-mm-dd') + field_dttm from t;
+select to_date('','yyyy-mm-dd') + filed_tmst from t;
+
+select to_date('2020-01-20','yyyy-mm-dd') + field_fl from t;
+select to_date('2020-01-20','yyyy-mm-dd') + field_int from t;
+select to_date('2020-01-20','yyyy-mm-dd') + field_str from t;
+select to_date('2020-01-20','yyyy-mm-dd') + field_dc from t;
+select to_date('2020-01-20','yyyy-mm-dd') + field_tm from t;
+select to_date('2020-01-20','yyyy-mm-dd') + field_dt from t;
+select to_date('2020-01-20','yyyy-mm-dd') + field_dttm from t;
+select to_date('2020-01-20','yyyy-mm-dd') + filed_tmst from t;
+
+insert into t values (2.3, 10, '1.256', -2365.25416, '10:12:30', '2012-12-12', 
+    to_timestamp('2012-12-10 10:12:30','yyyy-mm-dd hh:mi:ss') + 2, 
+    to_date('2012-12-10 10:12:30','yyyy-mm-dd hh:mi:ss') + 2);
+select * from t where filed_tmst = to_date('2012-12-10 10:12:30','yyyy-mm-dd hh:mi:ss') + 2;
+update t set field_dttm = to_date('2012-12-10 10:12:30','yyyy-mm-dd hh:mi:ss') + '2.231' 
+    where filed_tmst = to_date('2012-12-10 10:12:30','yyyy-mm-dd hh:mi:ss') + 2;
+delete from t where filed_tmst = to_date('2012-12-10 10:12:30','yyyy-mm-dd hh:mi:ss') + 2;
+select * from (select to_date('2020-01-20' , 'yyyy-mm-dd') from  t) as alias_t;
+select * from t;
+
+#--------------------------------------------------------------------------
+# to_date + func
+#--------------------------------------------------------------------------
+-- error ER_DISALLOWED_OPERATION
+select to_date('2020-01-20','yyyy-mm-dd') + to_date('2020-01-20','yyyy-mm-dd') from dual;
+
+-- error ER_DISALLOWED_OPERATION
+select to_date('2020-01-20','yyyy-mm-dd') + to_timestamp('2020-01-20','yyyy-mm-dd') from dual;
+
+-- error ER_DISALLOWED_OPERATION
+select to_timestamp('2020-01-20','yyyy-mm-dd') + to_date('2020-01-20','yyyy-mm-dd') from dual;
+
+-- error ER_DISALLOWED_OPERATION
+select to_timestamp('2020-01-20','yyyy-mm-dd') + to_timestamp('2020-01-20','yyyy-mm-dd') from dual;
+
+select to_date(to_date('2020-07-01 01:00:00', 'yyyy-mm-dd hh:mi:ss'), 'yyyy-mm-dd hh:mi:ss') from dual;
+select to_date(to_date('2020-07-01 01:00:00', 'yyyy-mm-dd hh:mi:ss') + 1, 'yyyy-mm-dd hh:mi:ss') from dual;
+select to_date('1.23' + to_date('2020-07-01 01:00:00', 'yyyy-mm-dd hh:mi:ss') + 1, 'yyyy-mm-dd hh:mi:ss') from dual;
+select to_date('2020-01-20','yyyy-mm-dd') + to_char(123.56) from dual;
+select to_date('2020-01-20','yyyy-mm-dd') + substr('789.635243', 1, 8) from dual;
+
+### The results of following tests are not datetime. 
+##############################################################################################################
+# Item_func_floor
+select floor(to_date('2020-01-20','yyyy-mm-dd')) from dual;
+select floor(to_date('2020-01-20','yyyy-mm-dd') + 10000) from dual;
+select floor(1.23 + to_date('2020-01-20','yyyy-mm-dd') + '0.645') from dual;
+
+# Item_func_round
+select round(to_date('2020-01-20','yyyy-mm-dd')) from dual;
+select round(to_date('2020-01-20','yyyy-mm-dd') + '3.4589') from dual;
+select round(-1.7896 + to_date('2020-01-20','yyyy-mm-dd') + '3.4589') from dual;
+
+# Item_func_ceiling
+select ceil(to_date('2020-01-20','yyyy-mm-dd') + 1) from dual;
+
+# Item_func_minus
+select to_date('2020-01-20','yyyy-mm-dd') - 1 from dual;
+
+# Item_func_mul
+select to_timestamp('2020-01-20','yyyy-mm-dd') * 100 from t;
+
+# Item_func_div
+select to_timestamp('2020-01-20','yyyy-mm-dd') / to_date('2019-01-20','yyyy-mm-dd') from dual;
+
+# Item_func_mod
+select to_timestamp('2020-01-20','yyyy-mm-dd') % to_date('2019-01-20','yyyy-mm-dd') from dual;
+
+# Item_func_neg
+select -to_date('2020-01-20','yyyy-mm-dd') + 1 from dual;
+
+# Item_func_abs
+select abs(to_date('2020-01-20','yyyy-mm-dd') + 1) from dual;
+
+# to_char
+select to_char(SYSTIMESTAMP, 'yyyy-mm-dd hh24:mi:ss.ff3') + 1 from dual;
+##############################################################################################################
+
+# procedure  triger  event  prepare
+##############################################################################################################
+
+
+drop table if exists TEST_TBL_1;
+create table TEST_TBL_1(a varchar(100), b varchar(50));
+drop table if exists TEST_TBL_2;
+create table TEST_TBL_2(a varchar(100));
+
+#### 1 procedure
+
+delimiter $$;
+drop procedure if exists TO_DATE;
+create procedure TO_DATE (in TO_DATE int, out result int)
+TO_DATE1:begin
+declare TO_DATE int default 1;
+
+while TO_DATE < 2 do
+set TO_DATE=TO_DATE+1;
+select to_date('520-12-14', 'yyy-mm-dd') + 1 from dual;
+select '1.2356' + to_timestamp('520-12-14', 'yyy-mm-dd') from dual;
+end while;
+
+set result=TO_DATE;
+end TO_DATE1 $$
+delimiter ;$$
+
+set @TO_DATE=1;
+
+call TO_DATE(8, @TO_DATE);
+
+select @TO_DATE as TO_DATE;
+
+drop procedure TO_DATE;
+
+
+#### 2 triger
+drop trigger if exists TO_DATE; 
+
+delimiter $$;
+create trigger TO_DATE after insert on TEST_TBL_1 for each row begin insert into TEST_TBL_2 
+    select to_timestamp(TEST_TBL_1.a, 'Yyy-MM-DD') + '2356' from TEST_TBL_1; 
+end $$
+delimiter ;$$
+
+insert into TEST_TBL_1 values ('2-05-21', 'Y-MM-DD');
+select * from TEST_TBL_2;
+
+drop trigger TO_DATE;
+
+#### 3 event
+
+truncate TEST_TBL_2;
+
+drop event if exists TO_DATE; 
+
+create event if not exists TO_DATE on schedule every 1 minute on completion preserve do 
+    insert into TEST_TBL_2 select '23.6985' + to_timestamp(TEST_TBL_1.a, 'Yyy-MM-DD') from TEST_TBL_1;
+
+alter event TO_DATE on completion preserve enable; 
+
+alter event TO_DATE on completion  preserve disable;
+
+drop event TO_DATE; 
+
+
+#### 4 prepare
+
+prepare pron from 'select to_date(?, ?) + 2.36985 from dual';
+set @p = '222-10-11';
+set @q = 'yyy-mm-dd';
+ 
+execute pron using @p, @q;
+
+drop table TEST_TBL_1;
+drop table TEST_TBL_2;
+
+drop database ttt;
+##############################################################################################################
+
+
+
+
+##--------------------------------------------------------------------------
+## to_timestamp - item (not field_item)
+##--------------------------------------------------------------------------
+#
+##
+## to_timestamp return NULL, other item is not NULL
+##
+#select to_timestamp('', 'yyyy-mm-dd') - 1 from dual;
+#-- error ER_DISALLOWED_OPERATION
+#select 1 - to_timestamp('', 'yyyy-mm-dd') from dual;
+#-- error ER_DISALLOWED_OPERATION
+#select 1 - to_timestamp('', 'yyyy-mm-dd') - 1 from dual;
+#-- error ER_DISALLOWED_OPERATION
+#select 1 - to_timestamp(NULL, 'yyyy-mm-dd') - 1 from dual;
+#-- error ER_DISALLOWED_OPERATION
+#select 1 - to_timestamp(' ', NULL) - 1 from dual;
+#-- error ER_DISALLOWED_OPERATION
+#select (-1) - to_timestamp('','yyyy-mm-dd') - (-1) from dual;
+#
+##
+## to_timestamp return not NULL, other item is NULL
+##
+#select to_timestamp('2020-01-20','yyyy-mm-dd') - NULL from dual;
+#select NULL - to_timestamp('2020-01-20','yyyy-mm-dd') from dual;
+#select NULL - to_timestamp('2020-01-20','yyyy-mm-dd') - '1234' from dual;
+#select NULL - to_timestamp('2020-01-20','yyyy-mm-dd') - 'abcd' from dual;
+#select NULL - to_timestamp('2020-01-20','yyyy-mm-dd') - '-12345678910111212134' from dual;
+#
+##
+## to_timestamp return NULL, other item is also NULL
+##
+#select to_timestamp('','yyyy-mm-dd') - NULL from dual;
+#select to_timestamp(NULL,'yyyy-mm-dd') - NULL from dual;
+#select NULL - to_timestamp(' ', NULL) - 1 from dual;
+#select NULL - to_timestamp('','yyyy-mm-dd') from dual;
+#select NULL - to_timestamp('','yyyy-mm-dd') - NULL from dual;
+#
+##
+## to_timestamp return not NULL, other item is not NULL neither and is not negative
+##
+#select to_timestamp('2020-01-20','yyyy-mm-dd') - 0 from dual;
+#select to_timestamp('2020-01-20','yyyy-mm-dd') - 1 from dual;
+#select to_timestamp('2020-01-20','yyyy-mm-dd') - 1.123 from dual;
+#select to_timestamp('2020-01-20','yyyy-mm-dd') - '1' from dual;
+#select to_timestamp('2020-01-20','yyyy-mm-dd') - '1.123' from dual;
+#-- error ER_DISALLOWED_OPERATION
+#select 0 - to_timestamp('2020-01-20','yyyy-mm-dd') - 1 from dual;
+#-- error ER_DISALLOWED_OPERATION
+#select 1.23 - to_timestamp('2020-01-20','yyyy-mm-dd') - 1.123 from dual;
+#-- error ER_DISALLOWED_OPERATION
+#select '12' - to_timestamp('2020-01-20','yyyy-mm-dd') - '1' from dual;
+#-- error ER_DISALLOWED_OPERATION
+#select '1.23456' - to_timestamp('2020-01-20','yyyy-mm-dd') - '1.123' from dual;
+#
+##
+## to_timestamp return not NULL, other item is negative
+##
+#select to_timestamp('2020-01-20','yyyy-mm-dd') - -1 from dual;
+#select to_timestamp('2020-01-20','yyyy-mm-dd') - -1.12345678910111213 from dual;
+#select to_timestamp('2020-01-20','yyyy-mm-dd') - '-1' from dual;
+#select to_timestamp('2020-01-20','yyyy-mm-dd') - '-1.12345678910111213' from dual;
+#select to_timestamp('2020-01-20','yyyy-mm-dd') - -1 + 2 + -2 + 2.3 - -1.63 + 6.3 - '45.639' from dual;
+#-- error ER_DISALLOWED_OPERATION
+#select -1 - to_timestamp('2020-01-20','yyyy-mm-dd') - -11 from dual;
+#-- error ER_DISALLOWED_OPERATION
+#select -1.23 - to_timestamp('2020-01-20','yyyy-mm-dd') - -1.123 from dual;
+#-- error ER_DISALLOWED_OPERATION
+#select '-12' - to_timestamp('2020-01-20','yyyy-mm-dd') - '-1' from dual;
+#-- error ER_DISALLOWED_OPERATION
+#select -737809 - to_timestamp('2020-01-20','yyyy-mm-dd') from dual;
+#-- error ER_DISALLOWED_OPERATION
+#select '-12345678910111213.23456' - to_timestamp('2020-01-20','yyyy-mm-dd') - '-1.123' from dual;
+#
+##--------------------------------------------------------------------------
+## to_timestamp - field
+##--------------------------------------------------------------------------
+#create database ttt;
+#use ttt;
+#
+#drop table if exists t;
+#create table t (field_fl float, 
+#                field_int int,
+#                field_str varchar2(20),
+#                field_dc decimal(10,5),
+#                field_tm time,
+#                field_dt date,
+#                field_dttm datetime,
+#                filed_tmst timestamp);
+#
+#insert into t values (2.3, 10, '1.256', 2365.25416, '10:12:30', '2012-12-12', 
+#    '2012-12-12 10:12:30', '2012-12-12 10:12:30');
+#
+#insert into t values (NULL, 654122321, '1.256', 2365.25416, '10:12:30', '2012-12-12', 
+#    '2012-12-12 10:12:30', '2012-12-12 10:12:30');
+#
+#insert into t values (-2.3, NULL, '-1.256', -2365.25416, '10:12:30', '2012-12-12', 
+#    '2012-12-12 10:12:30', '2012-12-12 10:12:30');
+#
+#insert into t values (2.3, 10, NULL, 2365.25416, '10:12:30', '2012-12-12', 
+#    '2012-12-12 10:12:30', '2012-12-12 10:12:30');
+#
+#insert into t values (2.3, 10, '-1.256', NULL, '10:12:30', '2012-12-12', 
+#    '2012-12-12 10:12:30', '2012-12-12 10:12:30');
+#
+#insert into t values (2.3, 10, '1.256', -2365.25416, NULL, '2012-12-12', 
+#    '2012-12-12 10:12:30', '2012-12-12 10:12:30');
+#
+#insert into t values (2.3, 10, '1.256', 2365.25416, '10:12:30', NULL, 
+#    '2012-12-12 10:12:30', '2012-12-12 10:12:30');
+#
+#insert into t values (-2.3, 10, '1.256', 2365.25416, '10:12:30', '2012-12-12', 
+#    NULL, '2012-12-12 10:12:30');
+#
+#insert into t values (2.3, 10, '1.256', -2365.25416, '10:12:30', '2012-12-12', 
+#    '2012-12-12 10:12:30', NULL);
+#
+## NULL plus everything eq NULL.
+#select to_timestamp('','yyyy-mm-dd') - field_fl from t;
+#select to_timestamp('','yyyy-mm-dd') - field_int from t;
+#select to_timestamp('','yyyy-mm-dd') - field_str from t;
+#select to_timestamp('','yyyy-mm-dd') - field_dc from t;
+#select to_timestamp('','yyyy-mm-dd') - field_tm from t;
+#select to_timestamp('','yyyy-mm-dd') - field_dt from t;
+#select to_timestamp('','yyyy-mm-dd') - field_dttm from t;
+#select to_timestamp('','yyyy-mm-dd') - filed_tmst from t;
+#
+#select to_timestamp('2020-01-20','yyyy-mm-dd') - field_fl from t;
+#select to_timestamp('2020-01-20','yyyy-mm-dd') - field_int from t;
+#select to_timestamp('2020-01-20','yyyy-mm-dd') - field_str from t;
+#select to_timestamp('2020-01-20','yyyy-mm-dd') - field_dc from t;
+#select to_timestamp('2020-01-20','yyyy-mm-dd') - field_dc + field_str - field_int + field_fl from t;
+#select to_timestamp('2020-01-20','yyyy-mm-dd') - field_tm from t;
+#select to_timestamp('2020-01-20','yyyy-mm-dd') - field_dt from t;
+#select to_timestamp('2020-01-20','yyyy-mm-dd') - field_dttm from t;
+#select to_timestamp('2020-01-20','yyyy-mm-dd') - filed_tmst from t;
+#
+#insert into t values (2.3, 10, '1.256', -2365.25416, '10:12:30', '2012-12-12', 
+#    to_timestamp('2012-12-10 10:12:30','yyyy-mm-dd hh:mi:ss') - 2, 
+#    to_timestamp('2012-12-10 10:12:30','yyyy-mm-dd hh:mi:ss') - 2);
+#select * from t where filed_tmst = to_timestamp('2012-12-10 10:12:30','yyyy-mm-dd hh:mi:ss') - 2;
+#update t set field_dttm = to_timestamp('2012-12-10 10:12:30','yyyy-mm-dd hh:mi:ss') - '2.231' 
+#    where filed_tmst = to_timestamp('2012-12-10 10:12:30','yyyy-mm-dd hh:mi:ss') - 2;
+#delete from t where filed_tmst = to_timestamp('2012-12-10 10:12:30','yyyy-mm-dd hh:mi:ss') - 2;
+#select * from (select to_timestamp('2020-01-20' , 'yyyy-mm-dd') from  t) as alias_t;
+#select * from t;
+#
+##--------------------------------------------------------------------------
+## to_timestamp and func
+##--------------------------------------------------------------------------
+#select to_timestamp(to_timestamp('2020-07-01 01:00:00', 'yyyy-mm-dd hh:mi:ss'), 'yyyy-mm-dd hh:mi:ss:ff6') from dual;
+#select to_timestamp(to_timestamp('2020-07-01 01:00:00', 'yyyy-mm-dd hh:mi:ss') - 1, 'yyyy-mm-dd hh:mi:ss:ff6') from dual;
+#-- error ER_DISALLOWED_OPERATION
+#select to_timestamp('1.23' - to_timestamp('2020-07-01 01:00:00', 'yyyy-mm-dd hh:mi:ss') - 1, 'yyyy-mm-dd hh:mi:ss') from dual;
+#select to_timestamp('2020-01-20','yyyy-mm-dd') - to_char(123.56) from dual;
+#select to_timestamp('2020-01-20','yyyy-mm-dd') - substr('789.635243', 1, 8) from dual;
+#
+#### The results of following tests are not datetime. 
+###############################################################################################################
+## Item_func_floor
+#select floor(to_timestamp('2020-01-20','yyyy-mm-dd')) from dual;
+#select floor(to_timestamp('2020-01-20','yyyy-mm-dd') - 10000) from dual;
+#-- error ER_DISALLOWED_OPERATION
+#select floor(1.23 - to_timestamp('2020-01-20','yyyy-mm-dd') - '0.645') from dual;
+#
+## Item_func_round
+#select round(to_timestamp('2020-01-20','yyyy-mm-dd')) from dual;
+#select round(to_timestamp('2020-01-20','yyyy-mm-dd') - '3.4589') from dual;
+#-- error ER_DISALLOWED_OPERATION
+#select round(-1.7896 - to_timestamp('2020-01-20','yyyy-mm-dd') - '3.4589') from dual;
+#
+## Item_func_ceiling
+#select ceil(to_timestamp('2020-01-20','yyyy-mm-dd') - 1) from dual;
+#
+## Item_func_minus
+#select to_timestamp('2020-01-20','yyyy-mm-dd') - 1 from dual;
+#-- error ER_DISALLOWED_OPERATION
+#select 100 - to_timestamp('2020-01-20','yyyy-mm-dd') from dual;
+#
+## Item_func_mul
+#select to_timestamp('2020-01-20','yyyy-mm-dd') * 100 from t;
+#
+## Item_func_div
+#select to_timestamp('2020-01-20','yyyy-mm-dd') / to_timestamp('2019-01-20','yyyy-mm-dd') from dual;
+#
+## Item_func_mod
+#select to_timestamp('2020-01-20','yyyy-mm-dd') % to_timestamp('2019-01-20','yyyy-mm-dd') from dual;
+#
+## Item_func_neg
+#select -to_timestamp('2020-01-20','yyyy-mm-dd') - 1 from dual;
+#
+## Item_func_abs
+#select abs(to_timestamp('2020-01-20','yyyy-mm-dd') - 1) from dual;
+#
+## to_char
+#select to_char(to_timestamp('2020-07-25 12:12:12.123', 'yyyy-mm-dd hh24:mi:ss.ff3') + 1) from dual;
+###############################################################################################################
+#
+## procedure  triger  event  prepare
+###############################################################################################################
+#
+#
+#drop table if exists TEST_TBL_1;
+#create table TEST_TBL_1(a varchar(100), b varchar(50));
+#drop table if exists TEST_TBL_2;
+#create table TEST_TBL_2(a varchar(100));
+#
+##### 1 procedure
+#
+#delimiter $$;
+#drop procedure if exists TO_TIMESTAMP;
+#create procedure TO_TIMESTAMP (in TO_TIMESTAMP int, out result int)
+#TO_DATE1:begin
+#declare TO_TIMESTAMP int default 1;
+#
+#while TO_TIMESTAMP < 4 do
+#set TO_TIMESTAMP=TO_TIMESTAMP+1;
+#select to_timestamp('520-12-14', 'yyy-mm-dd') - 1 from dual;
+#select '1.2356' + to_timestamp('520-12-14', 'yyy-mm-dd') - '12' from dual;
+#end while;
+#
+#set result=TO_TIMESTAMP;
+#end TO_DATE1 $$
+#delimiter ;$$
+#
+#set @TO_TIMESTAMP=1;
+#
+#call TO_TIMESTAMP(8, @TO_TIMESTAMP);
+#
+#select @TO_TIMESTAMP as TO_TIMESTAMP;
+#
+#drop procedure TO_TIMESTAMP;
+#
+#
+##### 2 triger
+#drop trigger if exists TO_TIMESTAMP; 
+#
+#delimiter $$;
+#create trigger TO_TIMESTAMP after insert on TEST_TBL_1 for each row begin insert into TEST_TBL_2 
+#    select to_timestamp(TEST_TBL_1.a, 'Yyy-MM-DD') - '2356' from TEST_TBL_1; 
+#end $$
+#delimiter ;$$
+#
+#insert into TEST_TBL_1 values ('2-05-21', 'Y-MM-DD');
+#select * from TEST_TBL_2;
+#
+#drop trigger TO_TIMESTAMP;
+#
+##### 3 event
+#
+#truncate TEST_TBL_2;
+#
+#drop event if exists TO_TIMESTAMP; 
+#
+#create event if not exists TO_TIMESTAMP on schedule every 1 minute on completion preserve do 
+#    insert into TEST_TBL_2 select to_timestamp(TEST_TBL_1.a, 'Yyy-MM-DD') - '23.6985' from TEST_TBL_1;
+#
+#alter event TO_TIMESTAMP on completion preserve enable; 
+#
+#alter event TO_TIMESTAMP on completion  preserve disable;
+#
+#drop event TO_TIMESTAMP; 
+#
+#
+##### 4 prepare
+#
+#prepare pron from 'select to_timestamp(?, ?) - 2.36985 from dual';
+#set @p = '222-10-11';
+#set @q = 'yyy-mm-dd';
+# 
+#execute pron using @p, @q;
+#
+#drop table TEST_TBL_1;
+#drop table TEST_TBL_2;
+#
+#drop database ttt;
+###############################################################################################################
+#
+###############################################################################################################
+# datetime diff
+# notice: the mysql result of 'to_timestamp - to_timestamp/to_date or to_date - to_timestamp' is different
+#         from oracle arithmetic but is same as 'to_date - to_date'
+#
+#select to_timestamp('2020-12-20','yyyy-mm-dd') - to_date('0001-01-1','yyyy-mm-dd') from dual;
+#select to_date('2020-12-20','yyyy-mm-dd') - to_date('0001-01-1','yyyy-mm-dd') from dual;
+#select to_date('2020-12-20','yyyy-mm-dd') - to_timestamp('0001-01-1','yyyy-mm-dd') from dual;
+#select to_timestamp('9999-01-20','yyyy-mm-dd') - to_timestamp('0001-01-20','yyyy-mm-dd') from dual;
+#select to_timestamp('2020-01-20','yyyy-mm-dd') - to_date('3009-12-3','yyyy-mm-dd') from dual;
+#select to_date('2020-01-20','yyyy-mm-dd') - to_date('3009-12-3','yyyy-mm-dd') from dual;
+#
+#select to_timestamp('9999-01-20 1:1:08.123456','yyyy-mm-dd hh:mi:ss:ff6') - to_date('2019-01-20','yyyy-mm-dd') from dual;
+#select to_timestamp('0001-01-20','yyyy-mm-dd') - to_timestamp('9999-01-20 1:1:08','yyyy-mm-dd hh:mi:ss') from dual;
+#select to_date('0001-01-20','yyyy-mm-dd') - to_date('9999-01-20 1:1:08','yyyy-mm-dd hh:mi:ss') from dual;
+#select to_timestamp('2020-01-20 1:1:59','yyyy-mm-dd hh:mi:ss') - to_date('9999-01-20 23:58:41','yyyy-mm-dd hh24:mi:ss') from dual;
+##############################################################################################################

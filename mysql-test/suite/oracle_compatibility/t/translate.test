@@ -1,0 +1,122 @@
+#
+# Test：ZSQL兼容Oracle的translate函数
+#
+# Syntax:
+#    TRANSLATE(expr, from_string, to_string)
+#
+
+# from_string 和 to_string 长度相同：from_string 中无相同字符
+SELECT TRANSLATE('MAPT-SSSL-PAET', 'AMST', 'BDFL') FROM DUAL;
+# from_string 和 to_string 长度相同： from_string 中有相同的字符
+SELECT TRANSLATE('MAPT-SSSL-PAET', 'AMTT', 'BDFL') FROM DUAL;
+
+# from_string 比 to_string 长：from_string中无相同字符
+SELECT TRANSLATE('MAPT-SSSL-PAQE', 'AMSTEQ', 'BDFL') FROM DUAL;
+# from_string 比 to_string 长：from_string 中有相同的字符
+SELECT TRANSLATE('MAPT-SSSL-PAQE', 'AMSSTEQ', 'BDFL') FROM DUAL;
+
+# from_string 比 to_string 短：from_string中无相同字符
+SELECT TRANSLATE('MAPT-SSSL-PAQE', 'AMS', 'BDFLK') FROM DUAL;
+# from_string 比 to_string 短：from_string 中有相同的字符
+SELECT TRANSLATE('MAPT-SSSL-PAQE', 'MMS', 'BDFLK') FROM DUAL;
+
+# 包含转义字符（oracle中单引号(')是转义字符，mysql中反斜线(\)是转义字符）
+SELECT TRANSLATE('SQL*Plus User\'s Guide', ' *\'', '___') FROM DUAL;
+SELECT TRANSLATE('`~!@#$%^&*', '`~!@#$%^&*', '__________') FROM DUAL;
+SELECT TRANSLATE('`~!@#$%^&*', '`~!@#$%^&*', '$$$$$$$$$$') FROM DUAL;
+
+# from_string 中字符匹配是区分大小的
+SELECT TRANSLATE('MAPT-SaSL-PAQE', 'AMaT', 'BDFL') FROM DUAL;
+
+# from_string包含两个相同的字符，第一在to_string中有对应映射，第二个无对应映射
+SELECT TRANSLATE(453563535354, '565', 'xy') FROM DUAL;
+
+# 验证多字节安全
+SELECT TRANSLATE('我是中国人,我爱中国', '中国', 'China') FROM DUAL;
+SELECT TRANSLATE('I am Chinese, I love China', 'China', '中国') FROM DUAL;
+SELECT translate('aにbほfんa', 'aに', 'ごれ') FROM DUAL;
+
+# 函数参数若可以隐式转换为字符串，mysql就转换为字符串处理，
+# 函数参数若不能隐式转换为字符串，mysql就报错处理
+SELECT TRANSLATE(34567, 567, 890) FROM DUAL;
+--error 1054
+SELECT TRANSLATE(34567x, 567, 890) FROM DUAL;
+--error 1054
+SELECT TRANSLATE(34567, 567x, 890) FROM DUAL;
+--error 1054
+SELECT TRANSLATE(34567, 567, 89x) FROM DUAL;
+
+# 参数支持表达式
+SELECT TRANSLATE(34567+456, 300+50, 800+88) FROM DUAL;
+
+# 参数支持函数
+SELECT TRANSLATE(repeat('35', 2), 350, 878) FROM DUAL;
+SELECT TRANSLATE(concat('35', 35), repeat('35', 1), 87) FROM DUAL;
+SELECT TRANSLATE(concat('35', 35), repeat('35', 1), upper('ab')) FROM DUAL;
+
+# 参数支持列
+CREATE DATABASE db_test;
+CREATE TABLE db_test.t1 (expr_col varchar(10), from_string varchar(10), to_string varchar(10));
+INSERT INTO db_test.t1 VALUES ('abcedfg', 'ef', '89');
+INSERT INTO db_test.t1 VALUES ('', 'ef', '89');
+INSERT INTO db_test.t1 VALUES (NULL, 'ef', '89');
+SELECT TRANSLATE(expr_col, from_string, to_string) FROM db_test.t1;
+DROP DATABASE db_test;
+
+# expr为int/float/blob类型
+SELECT TRANSLATE(-453563535354, '56', 'xy') FROM DUAL;
+SELECT TRANSLATE(453563535354, '56', 'xy') FROM DUAL;
+SELECT TRANSLATE(-453563535354.566756, '56', '98') FROM DUAL;
+SELECT BIN(18), TRANSLATE(BIN(18),'10', '01') FROM DUAL;
+
+# 空字符串('')和NULL的问题：oracle数据库将空字符串解释为NULL; 而mysql中空字符串和NULL不同。
+# 本次语法兼容translate函数按照mysql规范来：区分空字符串和NULL：
+# expr/from_strign/to_string任何一个为NULL，mysql执行结果应为 NULL
+# expr/from_strign/to_string任何一个为空字符串('')，mysql执行结果应为空字符串('')
+SELECT TRANSLATE(NULL, 'X', 'y') FROM DUAL;
+SELECT TRANSLATE('ABC', NULL, 'y') FROM DUAL;
+SELECT TRANSLATE('ABC', 'X', NULL) FROM DUAL;
+SELECT TRANSLATE('', 'X', 'y') FROM DUAL;
+SELECT TRANSLATE('ABC', '', 'y') FROM DUAL;
+SELECT TRANSLATE('ABC', 'B', '') FROM DUAL;
+
+# 函数参数个数不匹配
+--error ER_WRONG_PARAMCOUNT_TO_NATIVE_FCT
+SELECT TRANSLATE(453563535354, 'dd') FROM DUAL;
+
+# 函数语法不对
+--error ER_PARSE_ERROR
+SELECT TRANSLATE(4535,) FROM DUAL;
+--error ER_PARSE_ERROR
+SELECT TRANSLATE(4535, '56',) FROM DUAL;
+
+#边界测试:参数长度过长
+SET @tmp_max_allowed_packet=@@global.max_allowed_packet;
+SET @tmp_net_buffer_length=@@global.net_buffer_length;
+
+CREATE DATABASE a;
+CREATE TABLE a.t (str varchar(5000));
+INSERT INTO a.t VALUES(repeat('ab',1000));
+
+connect (con1,localhost,root,,);
+connection con1;
+SET global net_buffer_length=1024;
+SET global max_allowed_packet=1024;
+SELECT @@net_buffer_length, @@max_allowed_packet;
+connection default;
+disconnect con1;
+
+connect (con2,localhost,root,,);
+connection con2;
+SELECT @@net_buffer_length, @@max_allowed_packet;
+
+SELECT TRANSLATE(str,'ab','Xz') FROM a.t;
+
+connection default;
+disconnect con2;
+
+SET global max_allowed_packet=@tmp_max_allowed_packet;
+SET global net_buffer_length=@tmp_net_buffer_length;
+DROP DATABASE a;
+
+# End of ZSQL 兼容Oracle的translate函数 tests

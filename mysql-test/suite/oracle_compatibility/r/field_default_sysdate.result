@@ -1,0 +1,53 @@
+drop database if exists DEFAULT_SYSDATE;
+Warnings:
+Note	1008	Can't drop database 'DEFAULT_SYSDATE'; database doesn't exist
+create database DEFAULT_SYSDATE;
+use DEFAULT_SYSDATE;
+drop table if exists sd_t1;
+Warnings:
+Note	1051	Unknown table 'DEFAULT_SYSDATE.sd_t1'
+create table sd_t1 (id int, dt datetime default sysdate);
+insert into sd_t1 (id) values (1);
+insert into sd_t1 (id) values (2);
+insert into sd_t1 (id, dt) values (3, '2020-08-01 12:00:00');
+select dt from sd_t1;
+dt
+2020-08-05 12:13:14
+2020-08-05 12:13:14
+2020-08-05 12:13:14
+create table sd_t1_1 (id int, dt datetime(3) default sysdate);
+ERROR 42000: Invalid default value for 'dt'
+create table sd_t1_1 (id int, dt datetime default sysdate(3));
+ERROR 42000: Invalid default value for 'dt'
+create table sd_t1_1 (id int, dt datetime default sysdate(3));
+ERROR 42000: Invalid default value for 'dt'
+drop table if exists sd_t2;
+Warnings:
+Note	1051	Unknown table 'DEFAULT_SYSDATE.sd_t2'
+create table sd_t2 (id int, dt timestamp default sysdate);
+insert into sd_t2 (id) values (1);
+insert into sd_t2 (id) values (2);
+insert into sd_t2 (id, dt) values (3, '2020-08-01 12:00:00');
+insert into sd_t2 (id, dt) values (4, '2020-08-01 12:00:00.123456');
+select dt from sd_t2;
+dt
+2020-08-05 12:13:14
+2020-08-05 12:13:14
+2020-08-05 12:13:14
+2020-08-05 12:13:14
+create table sd_t2_1 (id int, dt timestamp(3) default sysdate(3));
+insert into sd_t2_1 (id) values (1);
+insert into sd_t2_1 (id) values (2);
+insert into sd_t2_1 (id, dt) values (3, '2020-08-01 12:00:00');
+insert into sd_t2_1 (id, dt) values (4, '2020-08-01 12:00:00.123456');
+select dt from sd_t2_1;
+dt
+2020-08-05 12:13:14.123
+2020-08-05 12:13:14.123
+2020-08-05 12:13:14.123
+2020-08-05 12:13:14.123
+create table sd_t2_2 (id int, dt timestamp(3) default sysdate);
+ERROR 42000: Invalid default value for 'dt'
+create table sd_t2_2 (id int, dt timestamp default sysdate(3));
+ERROR 42000: Invalid default value for 'dt'
+drop database DEFAULT_SYSDATE;

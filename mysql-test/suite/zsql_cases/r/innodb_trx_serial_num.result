@@ -1,0 +1,239 @@
+# restart
+##
+## prepare
+##
+Drop database if exists abczyy_test;
+Warnings:
+Note	1008	Can't drop database 'abczyy_test'; database doesn't exist
+Create database abczyy_test;
+Create table abczyy_test.tb1(a int key, b int);
+Create table abczyy_test.tb2(a int key, b int);
+Insert into abczyy_test.tb2(a,b) values(1,1),(2,2),(3,3),(4,4),(5,5),(6,6),(7,7),(8,8),(9,9);
+set global autocommit=1;
+##
+## Test 1.1 [comment format error] match char + error
+##
+/*TSN=mycase-000001*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(11,11);
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_SERIAL_NUM
+NULL
+rollback;
+##
+## Test 1.2 [comment format error] match TSN error
+##
+/*+tsn=mycase-000001*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_SERIAL_NUM
+NULL
+rollback;
+##
+## Test 1.3 [comment format error] match char = error
+##
+/*+TSN:mycase-000001*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_SERIAL_NUM
+NULL
+rollback;
+##
+## Test 1.4 [comment format error] match long comment > MAX_TSN_LEN(32)
+##
+/*+TSN=mycase01234567890123456789-000001*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_SERIAL_NUM
+mycase01234567890123456789-000001
+rollback;
+##
+## Test 1.5 [comment format error] match empty comment
+##
+/*+TSN=*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_SERIAL_NUM
+NULL
+rollback;
+##
+## Test 1.6 [comment format error] match only space comment
+##
+/*+TSN=    */Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_SERIAL_NUM
+    
+rollback;
+##
+## Test 2.1 no special TSN comment
+##
+Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_SERIAL_NUM
+NULL
+rollback;
+##
+## Test 2.2 transaction comment
+##
+/*+TSN=mycase-000001*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_SERIAL_NUM
+mycase-000001
+rollback;
+##
+## Test 2.3 transaction comment with max len(MAX_TSN_LEN)
+##
+/*+TSN=mycase-0123456789012345678901234*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_SERIAL_NUM
+mycase-0123456789012345678901234
+rollback;
+##
+## Test 2.4 STATEMENT comment
+##
+Start transaction;
+/*+TSN=mycase-000001*/Insert into abczyy_test.tb1(a,b) values(1,1);
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_SERIAL_NUM
+mycase-000001
+/*+TSN=mycase-000002*/Insert into abczyy_test.tb1(a,b) values(2,2);
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_SERIAL_NUM
+mycase-000002
+rollback;
+##
+## Test 2.5 mutli special comments
+##
+/*+TSN=mycase-000001*/Start transaction;
+/*+TSN=mycase-000002*/Insert into abczyy_test.tb1(a,b) values(1,1);
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_SERIAL_NUM
+mycase-000002
+rollback;
+##
+## Test 2.6 comment in the middle of sql
+##
+Start/*+TSN=mycase-000001*/ transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_SERIAL_NUM
+mycase-000001
+rollback;
+##
+## Test 2.7 comment in the end of sql
+##
+Start transaction/*+TSN=mycase-000001*/ ;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_SERIAL_NUM
+mycase-000001
+rollback;
+##
+## Test 2.8 start transaction commit the last trx
+##
+/*+TSN=mycase-000001*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(101,101);
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_SERIAL_NUM
+mycase-000001
+/*+TSN=mycase-000002*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(102,102);
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_SERIAL_NUM
+mycase-000002
+commit;
+##
+## Test 2.9 DDL commit the last trx
+##
+/*+TSN=mycase-000003*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(103,103);
+/*+TSN=mycase-000004*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(104,104);
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_SERIAL_NUM
+mycase-000004
+mycase-000003
+/*+TSN=mycase-000005*/alter table abczyy_test.tb1 engine=innodb;
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_SERIAL_NUM
+mycase-000004
+commit;
+##
+## Test 2.10 auto_commit sql
+##
+/*+TSN=mycase-000001*/Start transaction;
+Update abczyy_test.tb2 set b = 11 where a=1;
+/*+TSN=mycase-000002*/Update abczyy_test.tb2 set b = 12 where a=1;
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_SERIAL_NUM
+mycase-000002
+mycase-000001
+commit;
+##
+## Test 2.11 show create table
+##
+Show create table information_schema.innodb_trx;
+Table	Create Table
+INNODB_TRX	CREATE TEMPORARY TABLE `INNODB_TRX` (
+  `trx_id` varchar(18) NOT NULL DEFAULT '',
+  `trx_state` varchar(13) NOT NULL DEFAULT '',
+  `trx_started` datetime NOT NULL DEFAULT '0000-00-00 00:00:00',
+  `trx_requested_lock_id` varchar(105) DEFAULT NULL,
+  `trx_wait_started` datetime DEFAULT NULL,
+  `trx_weight` bigint(21) unsigned NOT NULL DEFAULT '0',
+  `trx_mysql_thread_id` bigint(21) unsigned NOT NULL DEFAULT '0',
+  `trx_query` varchar(1024) DEFAULT NULL,
+  `trx_operation_state` varchar(64) DEFAULT NULL,
+  `trx_tables_in_use` bigint(21) unsigned NOT NULL DEFAULT '0',
+  `trx_tables_locked` bigint(21) unsigned NOT NULL DEFAULT '0',
+  `trx_lock_structs` bigint(21) unsigned NOT NULL DEFAULT '0',
+  `trx_lock_memory_bytes` bigint(21) unsigned NOT NULL DEFAULT '0',
+  `trx_rows_locked` bigint(21) unsigned NOT NULL DEFAULT '0',
+  `trx_rows_modified` bigint(21) unsigned NOT NULL DEFAULT '0',
+  `trx_concurrency_tickets` bigint(21) unsigned NOT NULL DEFAULT '0',
+  `trx_isolation_level` varchar(16) NOT NULL DEFAULT '',
+  `trx_unique_checks` int(1) NOT NULL DEFAULT '0',
+  `trx_foreign_key_checks` int(1) NOT NULL DEFAULT '0',
+  `trx_last_foreign_key_error` varchar(256) DEFAULT NULL,
+  `trx_adaptive_hash_latched` int(1) NOT NULL DEFAULT '0',
+  `trx_adaptive_hash_timeout` bigint(21) unsigned NOT NULL DEFAULT '0',
+  `trx_is_read_only` int(1) NOT NULL DEFAULT '0',
+  `trx_autocommit_non_locking` int(1) NOT NULL DEFAULT '0',
+  `trx_serial_num` varchar(64) DEFAULT NULL,
+  `trx_gtm_gtid` varchar(32) DEFAULT NULL
+) ENGINE=MEMORY DEFAULT CHARSET=utf8
+Desc information_schema.innodb_trx;
+Field	Type	Null	Key	Default	Extra
+trx_id	varchar(18)	NO			
+trx_state	varchar(13)	NO			
+trx_started	datetime	NO			
+trx_requested_lock_id	varchar(105)	YES			
+trx_wait_started	datetime	YES			
+trx_weight	bigint(21) unsigned	NO			
+trx_mysql_thread_id	bigint(21) unsigned	NO			
+trx_query	varchar(1024)	YES			
+trx_operation_state	varchar(64)	YES			
+trx_tables_in_use	bigint(21) unsigned	NO			
+trx_tables_locked	bigint(21) unsigned	NO			
+trx_lock_structs	bigint(21) unsigned	NO			
+trx_lock_memory_bytes	bigint(21) unsigned	NO			
+trx_rows_locked	bigint(21) unsigned	NO			
+trx_rows_modified	bigint(21) unsigned	NO			
+trx_concurrency_tickets	bigint(21) unsigned	NO			
+trx_isolation_level	varchar(16)	NO			
+trx_unique_checks	int(1)	NO			
+trx_foreign_key_checks	int(1)	NO			
+trx_last_foreign_key_error	varchar(256)	YES			
+trx_adaptive_hash_latched	int(1)	NO			
+trx_adaptive_hash_timeout	bigint(21) unsigned	NO			
+trx_is_read_only	int(1)	NO			
+trx_autocommit_non_locking	int(1)	NO			
+trx_serial_num	varchar(64)	YES			
+trx_gtm_gtid	varchar(32)	YES			
+##
+## clear
+##
+Drop database if exists abczyy_test;

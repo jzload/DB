@@ -1,0 +1,113 @@
+drop database if exists yxx;
+create database yxx;
+create table yxx.mytest (id int primary key);
+"remember old lock_wait_timeout"
+SET @old_lock_wait_timeout = @@global.lock_wait_timeout;
+"set lock_wait_timeout as 5 second"
+SEt @@global.lock_wait_timeout = 5;
+"start test..."
+#########################################################################
+#  test case 1: DML operations in one session will work normaly
+#########################################################################
+set @@session.lock_wait_timeout = 0;
+insert into yxx.mytest values (1), (2);
+update yxx.mytest set id = id + 5;
+select * from yxx.mytest;
+id
+6
+7
+delete from yxx.mytest;
+insert into yxx.mytest values (11), (22);
+update yxx.mytest set id = id + 5;
+select * from yxx.mytest;
+id
+16
+27
+delete from yxx.mytest;
+#########################################################################
+#  test case 2: DML operations in different sessions will work normaly
+#########################################################################
+begin;
+insert into yxx.mytest values (10);
+commit;
+set @@session.lock_wait_timeout = 0;
+SET AUTOCOMMIT = 1;
+BEGIN;
+insert into yxx.mytest values (1), (2);
+commit;
+set @@session.lock_wait_timeout = 0;
+SET AUTOCOMMIT = 1;
+BEGIN;
+insert into yxx.mytest values (11), (22);
+commit;
+update yxx.mytest set id = id + 5 where id < 10;
+select * from yxx.mytest where id < 10;
+id
+6
+7
+update yxx.mytest set id = id + 5 where id > 10;
+select * from yxx.mytest where id > 10;
+id
+16
+27
+delete from yxx.mytest where id < 10;
+delete from yxx.mytest where id > 10;
+commit;
+commit;
+delete from yxx.mytest;
+commit;
+#########################################################################
+#  test case 3: without other transaction, DDL will work normaly
+#########################################################################
+set AUTOCOMMIT = 1;
+set @@session.lock_wait_timeout = 0;
+truncate table yxx.mytest;
+create database newdb;
+create table newdb.test (id int, name varchar(64), age int);
+alter table newdb.test drop column age;
+alter table newdb.test add column (age int);
+insert into newdb.test values (1000, "ABC", 10);
+insert into newdb.test values (1001, "DEF", 11);
+alter table newdb.test add index `age_index` (age);
+select * from newdb.test;
+id	name	age
+1000	ABC	10
+1001	DEF	11
+drop index `age_index` on newdb.test;
+drop table newdb.test;
+drop database newdb;
+#########################################################################
+#  test case 4: with DML in other session, DDL will fail directly
+#########################################################################
+set AUTOCOMMIT = 1;
+begin;
+insert into yxx.mytest values (1);
+set @@session.lock_wait_timeout = 0;
+select NOW() into @t1;
+alter table yxx.mytest add column `name` varchar(64);
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+select NOW() into @t2;
+select timestampdiff(second, @t1, @t2)  <= 1;
+timestampdiff(second, @t1, @t2)  <= 1
+1
+select NOW() into @t1;
+lock table yxx.mytest write;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+select NOW() into @t2;
+select timestampdiff(second, @t1, @t2)  <= 1;
+timestampdiff(second, @t1, @t2)  <= 1
+1
+select NOW() into @t1;
+truncate table yxx.mytest;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+select NOW() into @t2;
+select timestampdiff(second, @t1, @t2)  <= 1;
+timestampdiff(second, @t1, @t2)  <= 1
+1
+insert into yxx.mytest values (2);
+delete from yxx.mytest where id = 2;
+commit;
+rollback;
+"====================restore variables===================="
+SET @@global.lock_wait_timeout = @old_lock_wait_timeout;
+drop database if exists yxx;

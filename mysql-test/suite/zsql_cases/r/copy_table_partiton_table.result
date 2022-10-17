@@ -1,0 +1,1405 @@
+include/master-slave.inc
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+[connection master]
+[connection slave]
+include/stop_slave.inc
+include/start_slave.inc
+[connection master]
+#########################################################
+#CASE 1:normal test - range partition 
+#########################################################
+drop database if exists test_db;
+create database if not exists test_db;
+use test_db;
+CREATE TABLE tb1 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+partition BY RANGE (store_id) (
+partition p0 VALUES LESS THAN (10),
+partition p1 VALUES LESS THAN (20),
+partition p2 VALUES LESS THAN (30),
+partition p3 VALUES LESS THAN MAXVALUE
+);
+CREATE TABLE tb2 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+partition BY RANGE (store_id) (
+partition p0 VALUES LESS THAN (10),
+partition p1 VALUES LESS THAN (20),
+partition p2 VALUES LESS THAN (30),
+partition p3 VALUES LESS THAN MAXVALUE
+);
+insert into tb1 values(1,1);
+insert into tb1 values(2,2);
+insert into tb1 values(11,11);
+insert into tb1 values(21,21);
+insert into tb1 values(31,31);
+copy table from tb1 to tb2;
+select * from tb1 for update;
+id	store_id
+1	1
+2	2
+11	11
+21	21
+31	31
+select * from tb2 for update;
+id	store_id
+1	1
+2	2
+11	11
+21	21
+31	31
+select * from tb1 partition (p0) for update ;
+id	store_id
+1	1
+2	2
+select * from tb1 partition (p1) for update ;
+id	store_id
+11	11
+select * from tb1 partition (p2) for update ;
+id	store_id
+21	21
+select * from tb1 partition (p3) for update ;
+id	store_id
+31	31
+select * from tb2 partition (p0) for update ;
+id	store_id
+1	1
+2	2
+select * from tb2 partition (p1) for update ;
+id	store_id
+11	11
+select * from tb2 partition (p2) for update ;
+id	store_id
+21	21
+select * from tb2 partition (p3) for update ;
+id	store_id
+31	31
+[connection slave]
+use test_db;
+select * from tb1 for update;
+id	store_id
+1	1
+2	2
+11	11
+21	21
+31	31
+select * from tb2 for update;
+id	store_id
+1	1
+2	2
+11	11
+21	21
+31	31
+select * from tb1 partition (p0) for update ;
+id	store_id
+1	1
+2	2
+select * from tb1 partition (p1) for update ;
+id	store_id
+11	11
+select * from tb1 partition (p2) for update ;
+id	store_id
+21	21
+select * from tb1 partition (p3) for update ;
+id	store_id
+31	31
+select * from tb2 partition (p0) for update ;
+id	store_id
+1	1
+2	2
+select * from tb2 partition (p1) for update ;
+id	store_id
+11	11
+select * from tb2 partition (p2) for update ;
+id	store_id
+21	21
+select * from tb2 partition (p3) for update ;
+id	store_id
+31	31
+#########################################################
+#CASE 2:normal test - hash partition 
+#########################################################
+drop database if exists test_db;
+create database if not exists test_db;
+use test_db;
+CREATE TABLE tb1 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+partition BY HASH (store_id)
+partitions 4;
+CREATE TABLE tb2 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+partition BY HASH (store_id)
+partitions 4;
+insert into tb1 values(1,1);
+insert into tb1 values(2,2);
+insert into tb1 values(11,11);
+insert into tb1 values(21,21);
+insert into tb1 values(31,31);
+copy table from tb1 to tb2;
+select * from tb1 for update;
+id	store_id
+1	1
+21	21
+2	2
+11	11
+31	31
+select * from tb2 for update;
+id	store_id
+1	1
+21	21
+2	2
+11	11
+31	31
+select * from tb1 partition (p0) for update ;
+id	store_id
+select * from tb1 partition (p1) for update ;
+id	store_id
+1	1
+21	21
+select * from tb1 partition (p2) for update ;
+id	store_id
+2	2
+select * from tb1 partition (p3) for update ;
+id	store_id
+11	11
+31	31
+select * from tb2 partition (p0) for update ;
+id	store_id
+select * from tb2 partition (p1) for update ;
+id	store_id
+1	1
+21	21
+select * from tb2 partition (p2) for update ;
+id	store_id
+2	2
+select * from tb2 partition (p3) for update ;
+id	store_id
+11	11
+31	31
+[connection slave]
+use test_db;
+select * from tb1 for update;
+id	store_id
+1	1
+21	21
+2	2
+11	11
+31	31
+select * from tb2 for update;
+id	store_id
+1	1
+21	21
+2	2
+11	11
+31	31
+select * from tb1 partition (p0) for update ;
+id	store_id
+select * from tb1 partition (p1) for update ;
+id	store_id
+1	1
+21	21
+select * from tb1 partition (p2) for update ;
+id	store_id
+2	2
+select * from tb1 partition (p3) for update ;
+id	store_id
+11	11
+31	31
+select * from tb2 partition (p0) for update ;
+id	store_id
+select * from tb2 partition (p1) for update ;
+id	store_id
+1	1
+21	21
+select * from tb2 partition (p2) for update ;
+id	store_id
+2	2
+select * from tb2 partition (p3) for update ;
+id	store_id
+11	11
+31	31
+#########################################################
+#CASE 3:normal test - key partition 
+#########################################################
+drop database if exists test_db;
+create database if not exists test_db;
+use test_db;
+CREATE TABLE tb1 (
+id INT NOT NULL PRIMARY KEY,
+store_id INT NOT NULL
+)
+partition by key (id)
+partitions 4;
+CREATE TABLE tb2 (
+id INT NOT NULL PRIMARY KEY,
+store_id INT NOT NULL
+)
+partition by key (id)
+partitions 4;
+insert into tb1 values(1,1);
+insert into tb1 values(2,2);
+insert into tb1 values(11,11);
+insert into tb1 values(21,21);
+insert into tb1 values(31,31);
+copy table from tb1 to tb2;
+select * from tb1 for update;
+id	store_id
+1	1
+21	21
+11	11
+31	31
+2	2
+select * from tb2 for update;
+id	store_id
+1	1
+21	21
+11	11
+31	31
+2	2
+select * from tb1 partition (p0) for update ;
+id	store_id
+1	1
+21	21
+select * from tb1 partition (p1) for update ;
+id	store_id
+select * from tb1 partition (p2) for update ;
+id	store_id
+11	11
+31	31
+select * from tb1 partition (p3) for update ;
+id	store_id
+2	2
+select * from tb2 partition (p0) for update ;
+id	store_id
+1	1
+21	21
+select * from tb2 partition (p1) for update ;
+id	store_id
+select * from tb2 partition (p2) for update ;
+id	store_id
+11	11
+31	31
+select * from tb2 partition (p3) for update ;
+id	store_id
+2	2
+[connection slave]
+use test_db;
+select * from tb1 for update;
+id	store_id
+1	1
+21	21
+11	11
+31	31
+2	2
+select * from tb2 for update;
+id	store_id
+1	1
+21	21
+11	11
+31	31
+2	2
+select * from tb1 partition (p0) for update ;
+id	store_id
+1	1
+21	21
+select * from tb1 partition (p1) for update ;
+id	store_id
+select * from tb1 partition (p2) for update ;
+id	store_id
+11	11
+31	31
+select * from tb1 partition (p3) for update ;
+id	store_id
+2	2
+select * from tb2 partition (p0) for update ;
+id	store_id
+1	1
+21	21
+select * from tb2 partition (p1) for update ;
+id	store_id
+select * from tb2 partition (p2) for update ;
+id	store_id
+11	11
+31	31
+select * from tb2 partition (p3) for update ;
+id	store_id
+2	2
+#########################################################
+#CASE 4:normal test - list partition 
+#########################################################
+drop database if exists test_db;
+create database if not exists test_db;
+use test_db;
+CREATE TABLE tb1 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+PARTITION BY LIST(store_id) (
+PARTITION p0 VALUES IN (1,5,6),
+PARTITION p1 VALUES IN (2,7,8),
+PARTITION p2 VALUES IN (3,9,10),
+PARTITION p3 VALUES IN (4,11,12)
+);
+CREATE TABLE tb2 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+PARTITION BY LIST(store_id) (
+PARTITION p0 VALUES IN (1,5,6),
+PARTITION p1 VALUES IN (2,7,8),
+PARTITION p2 VALUES IN (3,9,10),
+PARTITION p3 VALUES IN (4,11,12)
+);
+insert into tb1 values(1,1),(2,2),(3,3),(4,4);
+insert into tb1 values(5,5),(6,6),(7,7),(8,8);
+insert into tb1 values(9,9);
+copy table from tb1 to tb2;
+select * from tb1 for update;
+id	store_id
+1	1
+5	5
+6	6
+2	2
+7	7
+8	8
+3	3
+9	9
+4	4
+select * from tb2 for update;
+id	store_id
+1	1
+5	5
+6	6
+2	2
+7	7
+8	8
+3	3
+9	9
+4	4
+select * from tb1 partition (p0) for update ;
+id	store_id
+1	1
+5	5
+6	6
+select * from tb1 partition (p1) for update ;
+id	store_id
+2	2
+7	7
+8	8
+select * from tb1 partition (p2) for update ;
+id	store_id
+3	3
+9	9
+select * from tb1 partition (p3) for update ;
+id	store_id
+4	4
+select * from tb2 partition (p0) for update ;
+id	store_id
+1	1
+5	5
+6	6
+select * from tb2 partition (p1) for update ;
+id	store_id
+2	2
+7	7
+8	8
+select * from tb2 partition (p2) for update ;
+id	store_id
+3	3
+9	9
+select * from tb2 partition (p3) for update ;
+id	store_id
+4	4
+[connection slave]
+use test_db;
+select * from tb1 for update;
+id	store_id
+1	1
+5	5
+6	6
+2	2
+7	7
+8	8
+3	3
+9	9
+4	4
+select * from tb2 for update;
+id	store_id
+1	1
+5	5
+6	6
+2	2
+7	7
+8	8
+3	3
+9	9
+4	4
+select * from tb1 partition (p0) for update ;
+id	store_id
+1	1
+5	5
+6	6
+select * from tb1 partition (p1) for update ;
+id	store_id
+2	2
+7	7
+8	8
+select * from tb1 partition (p2) for update ;
+id	store_id
+3	3
+9	9
+select * from tb1 partition (p3) for update ;
+id	store_id
+4	4
+select * from tb2 partition (p0) for update ;
+id	store_id
+1	1
+5	5
+6	6
+select * from tb2 partition (p1) for update ;
+id	store_id
+2	2
+7	7
+8	8
+select * from tb2 partition (p2) for update ;
+id	store_id
+3	3
+9	9
+select * from tb2 partition (p3) for update ;
+id	store_id
+4	4
+#########################################################
+#CASE 5: abnormal test - one of the table has partition while another has not
+#########################################################
+#########################################################
+#CASE 5.1 : A has partition while B  has not
+#########################################################
+drop database if exists test_db;
+create database if not exists test_db;
+use test_db;
+CREATE TABLE tb1 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+partition by key (id)
+partitions 2;
+CREATE TABLE tb2 (
+id INT NOT NULL,
+store_id INT NOT NULL
+);
+insert into tb1 values(1,1);
+insert into tb1 values(2,2);
+insert into tb1 values(7,7);
+copy table from tb1 to tb2;
+ERROR HY000: Copy table failed: one table is partition, another is not.
+select * from tb1 for update;
+id	store_id
+1	1
+7	7
+2	2
+select * from tb2 for update;
+id	store_id
+select * from tb1 partition (p0) for update ;
+id	store_id
+1	1
+7	7
+select * from tb1 partition (p1) for update ;
+id	store_id
+2	2
+[connection slave]
+use test_db;
+select * from tb1 for update;
+id	store_id
+1	1
+7	7
+2	2
+select * from tb2 for update;
+id	store_id
+select * from tb1 partition (p0) for update ;
+id	store_id
+1	1
+7	7
+select * from tb1 partition (p1) for update ;
+id	store_id
+2	2
+#########################################################
+#CASE 5.2 : B has partition while A  has not
+#########################################################
+drop database if exists test_db;
+create database if not exists test_db;
+use test_db;
+CREATE TABLE tb1 (
+id INT NOT NULL,
+store_id INT NOT NULL
+);
+CREATE TABLE tb2 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+partition by key (id)
+partitions 2;
+insert into tb1 values(1,1);
+insert into tb1 values(2,2);
+insert into tb1 values(7,7);
+copy table from tb1 to tb2;
+ERROR HY000: Copy table failed: one table is partition, another is not.
+select * from tb1 for update;
+id	store_id
+1	1
+2	2
+7	7
+select * from tb2 for update;
+id	store_id
+select * from tb2 partition (p0) for update ;
+id	store_id
+select * from tb2 partition (p1) for update ;
+id	store_id
+[connection slave]
+use test_db;
+select * from tb1 for update;
+id	store_id
+1	1
+2	2
+7	7
+select * from tb2 for update;
+id	store_id
+select * from tb2 partition (p0) for update ;
+id	store_id
+select * from tb2 partition (p1) for update ;
+id	store_id
+#########################################################
+#CASE 6: abnormal test - A and B have diff partition table number
+#########################################################
+#########################################################
+#CASE 6.1: abnormal test - (range patition)A and B have diff partition table number
+#########################################################
+drop database if exists test_db;
+create database if not exists test_db;
+use test_db;
+CREATE TABLE tb1 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+partition BY RANGE (store_id) (
+partition p0 VALUES LESS THAN (6),
+partition p1 VALUES LESS THAN (12),
+partition p2 VALUES LESS THAN MAXVALUE
+);
+CREATE TABLE tb2 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+partition BY RANGE (store_id) (
+partition p0 VALUES LESS THAN (6),
+partition p1 VALUES LESS THAN MAXVALUE
+);
+insert into tb1 values(1,1);
+insert into tb1 values(2,2);
+insert into tb1 values(7,7);
+insert into tb1 values(13,13);
+copy table from tb1 to tb2;
+ERROR HY000: Copy table failed: partitons between two tables are not consistency.
+select * from tb1 for update;
+id	store_id
+1	1
+2	2
+7	7
+13	13
+select * from tb2 for update;
+id	store_id
+select * from tb1 partition (p0) for update ;
+id	store_id
+1	1
+2	2
+select * from tb1 partition (p1) for update ;
+id	store_id
+7	7
+select * from tb1 partition (p2) for update ;
+id	store_id
+13	13
+select * from tb2 partition (p0) for update ;
+id	store_id
+select * from tb2 partition (p1) for update ;
+id	store_id
+[connection slave]
+use test_db;
+select * from tb1 for update;
+id	store_id
+1	1
+2	2
+7	7
+13	13
+select * from tb2 for update;
+id	store_id
+select * from tb1 partition (p0) for update ;
+id	store_id
+1	1
+2	2
+select * from tb1 partition (p1) for update ;
+id	store_id
+7	7
+select * from tb1 partition (p2) for update ;
+id	store_id
+13	13
+select * from tb2 partition (p0) for update ;
+id	store_id
+select * from tb2 partition (p1) for update ;
+id	store_id
+#########################################################
+#CASE 6.2: abnormal test - (key patition)A and B have diff partition table number
+#########################################################
+drop database if exists test_db;
+create database if not exists test_db;
+use test_db;
+CREATE TABLE tb1 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+partition by key (id)
+partitions 2;
+CREATE TABLE tb2 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+partition by key (id)
+partitions 3;
+insert into tb1 values(1,1);
+insert into tb1 values(2,2);
+insert into tb1 values(7,7);
+copy table from tb1 to tb2;
+ERROR HY000: Copy table failed: partitons between two tables are not consistency.
+select * from tb1 for update;
+id	store_id
+1	1
+7	7
+2	2
+select * from tb2 for update;
+id	store_id
+select * from tb1 partition (p0) for update ;
+id	store_id
+1	1
+7	7
+select * from tb1 partition (p1) for update ;
+id	store_id
+2	2
+select * from tb2 partition (p0) for update ;
+id	store_id
+select * from tb2 partition (p1) for update ;
+id	store_id
+select * from tb2 partition (p2) for update ;
+id	store_id
+[connection slave]
+use test_db;
+select * from tb1 for update;
+id	store_id
+1	1
+7	7
+2	2
+select * from tb2 for update;
+id	store_id
+select * from tb1 partition (p0) for update ;
+id	store_id
+1	1
+7	7
+select * from tb1 partition (p1) for update ;
+id	store_id
+2	2
+select * from tb2 partition (p0) for update ;
+id	store_id
+select * from tb2 partition (p1) for update ;
+id	store_id
+select * from tb2 partition (p2) for update ;
+id	store_id
+#########################################################
+#CASE 6.3: abnormal test - (hash patition)A and B have diff partition table number
+#########################################################
+drop database if exists test_db;
+create database if not exists test_db;
+use test_db;
+CREATE TABLE tb1 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+partition by hash (id)
+partitions 2;
+CREATE TABLE tb2 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+partition by hash (id)
+partitions 3;
+insert into tb1 values(1,1);
+insert into tb1 values(2,2);
+insert into tb1 values(7,7);
+copy table from tb1 to tb2;
+ERROR HY000: Copy table failed: partitons between two tables are not consistency.
+select * from tb1 for update;
+id	store_id
+2	2
+1	1
+7	7
+select * from tb2 for update;
+id	store_id
+select * from tb1 partition (p0) for update ;
+id	store_id
+2	2
+select * from tb1 partition (p1) for update ;
+id	store_id
+1	1
+7	7
+select * from tb2 partition (p0) for update ;
+id	store_id
+select * from tb2 partition (p1) for update ;
+id	store_id
+select * from tb2 partition (p2) for update ;
+id	store_id
+[connection slave]
+use test_db;
+select * from tb1 for update;
+id	store_id
+2	2
+1	1
+7	7
+select * from tb2 for update;
+id	store_id
+select * from tb1 partition (p0) for update ;
+id	store_id
+2	2
+select * from tb1 partition (p1) for update ;
+id	store_id
+1	1
+7	7
+select * from tb2 partition (p0) for update ;
+id	store_id
+select * from tb2 partition (p1) for update ;
+id	store_id
+select * from tb2 partition (p2) for update ;
+id	store_id
+#########################################################
+#CASE 6.4: abnormal test - (list patition)A and B have diff partition table number
+#########################################################
+drop database if exists test_db;
+create database if not exists test_db;
+use test_db;
+CREATE TABLE tb1 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+PARTITION BY LIST(store_id) (
+PARTITION p0 VALUES IN (1,5,6),
+PARTITION p1 VALUES IN (2,7,8),
+PARTITION p2 VALUES IN (3,9,10),
+PARTITION p3 VALUES IN (4,11,12)
+);
+CREATE TABLE tb2 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+PARTITION BY LIST(store_id) (
+PARTITION p0 VALUES IN (1,5,6),
+PARTITION p1 VALUES IN (2,7,8),
+PARTITION p2 VALUES IN (3,9,10)
+);
+insert into tb1 values(1,1),(2,2),(3,3),(4,4);
+insert into tb1 values(5,5),(6,6),(7,7),(8,8);
+insert into tb1 values(9,9);
+copy table from tb1 to tb2;
+ERROR HY000: Copy table failed: partitons between two tables are not consistency.
+select * from tb1 for update;
+id	store_id
+1	1
+5	5
+6	6
+2	2
+7	7
+8	8
+3	3
+9	9
+4	4
+select * from tb2 for update;
+id	store_id
+select * from tb1 partition (p0) for update ;
+id	store_id
+1	1
+5	5
+6	6
+select * from tb1 partition (p1) for update ;
+id	store_id
+2	2
+7	7
+8	8
+select * from tb1 partition (p2) for update ;
+id	store_id
+3	3
+9	9
+select * from tb1 partition (p3) for update ;
+id	store_id
+4	4
+select * from tb2 partition (p0) for update ;
+id	store_id
+select * from tb2 partition (p1) for update ;
+id	store_id
+select * from tb2 partition (p2) for update ;
+id	store_id
+[connection slave]
+use test_db;
+select * from tb1 for update;
+id	store_id
+1	1
+5	5
+6	6
+2	2
+7	7
+8	8
+3	3
+9	9
+4	4
+select * from tb2 for update;
+id	store_id
+select * from tb1 partition (p0) for update ;
+id	store_id
+1	1
+5	5
+6	6
+select * from tb1 partition (p1) for update ;
+id	store_id
+2	2
+7	7
+8	8
+select * from tb1 partition (p2) for update ;
+id	store_id
+3	3
+9	9
+select * from tb1 partition (p3) for update ;
+id	store_id
+4	4
+select * from tb2 partition (p0) for update ;
+id	store_id
+select * from tb2 partition (p1) for update ;
+id	store_id
+select * from tb2 partition (p2) for update ;
+id	store_id
+#########################################################
+#CASE 7: abnormal test - A and B have same partition table number but diff partition algorithm
+#########################################################
+#########################################################
+#CASE 7.1 : abnormal test - (range partition)A and B have same partition table number but diff partition algorithm
+#########################################################
+drop database if exists test_db;
+create database if not exists test_db;
+use test_db;
+CREATE TABLE tb1 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+partition BY RANGE (store_id) (
+partition p0 VALUES LESS THAN (8),
+partition p1 VALUES LESS THAN MAXVALUE
+);
+CREATE TABLE tb2 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+partition BY RANGE (store_id) (
+partition p0 VALUES LESS THAN (6),
+partition p1 VALUES LESS THAN MAXVALUE
+);
+insert into tb1 values(1,1);
+insert into tb1 values(2,2);
+insert into tb1 values(7,7);
+insert into tb1 values(13,13);
+copy table from tb1 to tb2;
+ERROR HY000: Copy table failed: partitons between two tables are not consistency.
+select * from tb1 for update;
+id	store_id
+1	1
+2	2
+7	7
+13	13
+select * from tb2 for update;
+id	store_id
+select * from tb1 partition (p0) for update ;
+id	store_id
+1	1
+2	2
+7	7
+select * from tb1 partition (p1) for update ;
+id	store_id
+13	13
+select * from tb2 partition (p0) for update ;
+id	store_id
+select * from tb2 partition (p1) for update ;
+id	store_id
+[connection slave]
+use test_db;
+select * from tb1 for update;
+id	store_id
+1	1
+2	2
+7	7
+13	13
+select * from tb2 for update;
+id	store_id
+select * from tb1 partition (p0) for update ;
+id	store_id
+1	1
+2	2
+7	7
+select * from tb1 partition (p1) for update ;
+id	store_id
+13	13
+select * from tb2 partition (p0) for update ;
+id	store_id
+select * from tb2 partition (p1) for update ;
+id	store_id
+#########################################################
+#CASE 7.2 : abnormal test - (key partition)A and B have same partition table number but diff partition algorithm
+#########################################################
+drop database if exists test_db;
+create database if not exists test_db;
+use test_db;
+CREATE TABLE tb1 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+partition by key (id)
+partitions 2;
+CREATE TABLE tb2 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+partition by key (store_id)
+partitions 2;
+insert into tb1 values(1,0);
+insert into tb1 values(2,1);
+insert into tb1 values(7,2);
+copy table from tb1 to tb2;
+ERROR HY000: Copy table failed: partitons between two tables are not consistency.
+select * from tb1 for update;
+id	store_id
+1	0
+7	2
+2	1
+select * from tb2 for update;
+id	store_id
+select * from tb1 partition (p0) for update ;
+id	store_id
+1	0
+7	2
+select * from tb1 partition (p1) for update ;
+id	store_id
+2	1
+select * from tb2 partition (p0) for update ;
+id	store_id
+select * from tb2 partition (p1) for update ;
+id	store_id
+[connection slave]
+use test_db;
+select * from tb1 for update;
+id	store_id
+1	0
+7	2
+2	1
+select * from tb2 for update;
+id	store_id
+select * from tb1 partition (p0) for update ;
+id	store_id
+1	0
+7	2
+select * from tb1 partition (p1) for update ;
+id	store_id
+2	1
+select * from tb2 partition (p0) for update ;
+id	store_id
+select * from tb2 partition (p1) for update ;
+id	store_id
+#########################################################
+#CASE 7.3 : abnormal test - (hash partition)A and B have same partition table number but diff partition algorithm
+#nowdays we support this situation !!  
+#########################################################
+drop database if exists test_db;
+create database if not exists test_db;
+use test_db;
+CREATE TABLE tb1 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+partition by hash (id)
+partitions 2;
+CREATE TABLE tb2 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+partition by hash (store_id)
+partitions 2;
+insert into tb1 values(1,0);
+insert into tb1 values(2,1);
+insert into tb1 values(7,2);
+copy table from tb1 to tb2;
+select * from tb1 for update;
+id	store_id
+2	1
+1	0
+7	2
+select * from tb2 for update;
+id	store_id
+2	1
+1	0
+7	2
+select * from tb1 partition (p0) for update ;
+id	store_id
+2	1
+select * from tb1 partition (p1) for update ;
+id	store_id
+1	0
+7	2
+select * from tb2 partition (p0) for update ;
+id	store_id
+2	1
+select * from tb2 partition (p1) for update ;
+id	store_id
+1	0
+7	2
+[connection slave]
+use test_db;
+select * from tb1 for update;
+id	store_id
+2	1
+1	0
+7	2
+select * from tb2 for update;
+id	store_id
+2	1
+1	0
+7	2
+select * from tb1 partition (p0) for update ;
+id	store_id
+2	1
+select * from tb1 partition (p1) for update ;
+id	store_id
+1	0
+7	2
+select * from tb2 partition (p0) for update ;
+id	store_id
+2	1
+select * from tb2 partition (p1) for update ;
+id	store_id
+1	0
+7	2
+#########################################################
+#CASE 7.4:normal test - (list partition)A and B have same partition table number but diff partition algorithm 
+#########################################################
+drop database if exists test_db;
+create database if not exists test_db;
+use test_db;
+CREATE TABLE tb1 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+PARTITION BY LIST(store_id) (
+PARTITION p0 VALUES IN (1,5,6,30),
+PARTITION p1 VALUES IN (2,7,8),
+PARTITION p2 VALUES IN (3,9,10),
+PARTITION p3 VALUES IN (4,11,12)
+);
+CREATE TABLE tb2 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+PARTITION BY LIST(store_id) (
+PARTITION p0 VALUES IN (1,5,6),
+PARTITION p1 VALUES IN (2,7,8),
+PARTITION p2 VALUES IN (3,9,10),
+PARTITION p3 VALUES IN (4,11,12)
+);
+insert into tb1 values(1,1),(2,2),(3,3),(4,4);
+insert into tb1 values(5,5),(6,6),(7,7),(8,8);
+insert into tb1 values(9,9);
+copy table from tb1 to tb2;
+ERROR HY000: Copy table failed: partitons between two tables are not consistency.
+select * from tb1 for update;
+id	store_id
+1	1
+5	5
+6	6
+2	2
+7	7
+8	8
+3	3
+9	9
+4	4
+select * from tb2 for update;
+id	store_id
+select * from tb1 partition (p0) for update ;
+id	store_id
+1	1
+5	5
+6	6
+select * from tb1 partition (p1) for update ;
+id	store_id
+2	2
+7	7
+8	8
+select * from tb1 partition (p2) for update ;
+id	store_id
+3	3
+9	9
+select * from tb1 partition (p3) for update ;
+id	store_id
+4	4
+select * from tb2 partition (p0) for update ;
+id	store_id
+select * from tb2 partition (p1) for update ;
+id	store_id
+select * from tb2 partition (p2) for update ;
+id	store_id
+select * from tb2 partition (p3) for update ;
+id	store_id
+[connection slave]
+use test_db;
+select * from tb1 for update;
+id	store_id
+1	1
+5	5
+6	6
+2	2
+7	7
+8	8
+3	3
+9	9
+4	4
+select * from tb2 for update;
+id	store_id
+select * from tb1 partition (p0) for update ;
+id	store_id
+1	1
+5	5
+6	6
+select * from tb1 partition (p1) for update ;
+id	store_id
+2	2
+7	7
+8	8
+select * from tb1 partition (p2) for update ;
+id	store_id
+3	3
+9	9
+select * from tb1 partition (p3) for update ;
+id	store_id
+4	4
+select * from tb2 partition (p0) for update ;
+id	store_id
+select * from tb2 partition (p1) for update ;
+id	store_id
+select * from tb2 partition (p2) for update ;
+id	store_id
+select * from tb2 partition (p3) for update ;
+id	store_id
+#########################################################
+#CASE 8: abnormal test - A and B have diff partition type
+#########################################################
+drop database if exists test_db;
+create database if not exists test_db;
+use test_db;
+CREATE TABLE tb1 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+partition BY key (store_id)
+partitions 2;
+CREATE TABLE tb2 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+partition BY HASH (store_id)
+partitions 2;
+insert into tb1 values(1,1);
+insert into tb1 values(2,2);
+insert into tb1 values(7,7);
+insert into tb1 values(13,13);
+copy table from tb1 to tb2;
+ERROR HY000: Copy table failed: partitons between two tables are not consistency.
+select * from tb1 for update;
+id	store_id
+1	1
+7	7
+13	13
+2	2
+select * from tb2 for update;
+id	store_id
+select * from tb1 partition (p0) for update ;
+id	store_id
+1	1
+7	7
+13	13
+select * from tb1 partition (p1) for update ;
+id	store_id
+2	2
+select * from tb2 partition (p0) for update ;
+id	store_id
+select * from tb2 partition (p1) for update ;
+id	store_id
+[connection slave]
+use test_db;
+select * from tb1 for update;
+id	store_id
+1	1
+7	7
+13	13
+2	2
+select * from tb2 for update;
+id	store_id
+select * from tb1 partition (p0) for update ;
+id	store_id
+1	1
+7	7
+13	13
+select * from tb1 partition (p1) for update ;
+id	store_id
+2	2
+select * from tb2 partition (p0) for update ;
+id	store_id
+select * from tb2 partition (p1) for update ;
+id	store_id
+#########################################################
+#CASE 9: abnormal test - A and B have subpartition tables
+#########################################################
+drop database if exists test_db;
+create database if not exists test_db;
+use test_db;
+CREATE TABLE tb1 (
+id INT NOT NULL PRIMARY KEY,
+store_id INT NOT NULL
+)
+partition BY RANGE (id) subpartition by hash(id %4) subpartitions 2(
+partition p0 VALUES LESS THAN (10),
+partition p1 VALUES LESS THAN MAXVALUE
+);
+CREATE TABLE tb2 (
+id INT NOT NULL PRIMARY KEY,
+store_id INT NOT NULL
+)
+partition BY RANGE (id) subpartition by hash(id %4) subpartitions 2(
+partition p0 VALUES LESS THAN (10),
+partition p1 VALUES LESS THAN MAXVALUE
+);
+insert into tb1 values(1,1);
+insert into tb1 values(4,4);
+insert into tb1 values(8,8);
+insert into tb1 values(13,13);
+copy table from tb1 to tb2;
+ERROR HY000: Copy table failed: partition table inlcudes subpartition.
+select * from tb1 for update;
+id	store_id
+4	4
+8	8
+1	1
+13	13
+select * from tb2 for update;
+id	store_id
+select * from tb1 partition (p0) for update ;
+id	store_id
+4	4
+8	8
+1	1
+select * from tb1 partition (p1) for update ;
+id	store_id
+13	13
+select * from tb2 partition (p0) for update ;
+id	store_id
+select * from tb2 partition (p1) for update ;
+id	store_id
+[connection slave]
+use test_db;
+select * from tb1 for update;
+id	store_id
+4	4
+8	8
+1	1
+13	13
+select * from tb2 for update;
+id	store_id
+select * from tb1 partition (p0) for update ;
+id	store_id
+4	4
+8	8
+1	1
+select * from tb1 partition (p1) for update ;
+id	store_id
+13	13
+select * from tb2 partition (p0) for update ;
+id	store_id
+select * from tb2 partition (p1) for update ;
+id	store_id
+#########################################################
+#CASE 10: abnormal test - A and B has diff patition name
+#########################################################
+drop database if exists test_db;
+create database if not exists test_db;
+use test_db;
+CREATE TABLE tb1 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+partition BY RANGE (store_id) (
+partition p0 VALUES LESS THAN (10),
+partition p1 VALUES LESS THAN MAXVALUE
+);
+CREATE TABLE tb2 (
+id INT NOT NULL,
+store_id INT NOT NULL
+)
+partition BY RANGE (store_id) (
+partition a VALUES LESS THAN (10),
+partition b VALUES LESS THAN MAXVALUE
+);
+insert into tb1 values(1,1);
+insert into tb1 values(11,11);
+copy table from tb1 to tb2;
+ERROR HY000: Copy table failed: partitons between two tables are not consistency.
+select * from tb1 for update;
+id	store_id
+1	1
+11	11
+select * from tb2 for update;
+id	store_id
+select * from tb1 partition (p0) for update ;
+id	store_id
+1	1
+select * from tb1 partition (p1) for update ;
+id	store_id
+11	11
+select * from tb2 partition (a) for update ;
+id	store_id
+select * from tb2 partition (b) for update ;
+id	store_id
+[connection slave]
+use test_db;
+select * from tb1 for update;
+id	store_id
+1	1
+11	11
+select * from tb2 for update;
+id	store_id
+select * from tb1 partition (p0) for update ;
+id	store_id
+1	1
+select * from tb1 partition (p1) for update ;
+id	store_id
+11	11
+select * from tb2 partition (a) for update ;
+id	store_id
+select * from tb2 partition (b) for update ;
+id	store_id
+[connection master]
+drop database if exists test_db;
+include/rpl_end.inc

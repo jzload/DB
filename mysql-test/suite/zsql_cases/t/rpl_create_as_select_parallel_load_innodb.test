@@ -1,0 +1,92 @@
+
+--let $use_gtids= 1
+--let $rpl_topology= 1->2
+--source include/rpl_init.inc
+--source include/have_log_bin.inc
+--source include/have_binlog_format_row.inc
+--source include/rpl_default_connections.inc
+--source include/rpl_reset.inc
+
+let $iter = 20;
+let $init_rows= 50;
+
+let $databases = 16;
+
+# windows run on PB2 is too slow to time out
+disable_query_log;
+if (`select convert(@@version_compile_os using latin1) IN ("Win32","Win64","Windows") as "TRUE"`)
+{
+  let $iter = 10;
+}
+enable_query_log;
+
+--disable_query_log
+--disable_result_log
+
+
+let $i = $databases + 1;
+while($i)
+{
+  let $i1 = $i;
+  dec $i1;
+  
+  eval create database test$i1;
+  eval use test$i1;
+  create table ti_nk (a int, b int, c text) engine=innodb;
+  create table ti_wk (a int auto_increment primary key, b int, c text) engine=innodb;
+  let $l1= $init_rows;
+  while($l1)
+  {
+       	eval insert into ti_nk values($l1, $i1, uuid());
+       	eval insert into ti_wk values(null, $i1, uuid());
+     dec $l1;
+  }
+  create table tcopy_nk as select * from ti_nk;
+  create table tcopy_wk as select * from ti_wk;
+  dec $i;
+}
+--let $sync_slave_connection= server_2
+--source include/sync_slave_sql_with_master.inc
+
+
+--enable_result_log
+--enable_query_log
+
+
+#
+# Consistency verification
+#
+
+let $i = $databases + 1;
+while($i)
+{
+  let $i1 = $i;
+  dec $i1;
+
+
+  let $diff_tables=server_1:test$i1.ti_nk, server_2:test$i1.ti_nk;
+  source include/diff_tables.inc;
+
+  let $diff_tables=server_1:test$i1.ti_wk, server_2:test$i1.ti_wk;
+  source include/diff_tables.inc;
+
+  dec $i;
+}
+
+--echo # clear up
+
+--source include/rpl_connection_master.inc
+let $i = $databases + 1;
+while($i)
+{
+
+  let $i1 = $i;
+  dec $i1;  
+  eval drop database test$i1;  
+
+  dec $i;
+}
+--let $sync_slave_connection= server_2
+--source include/sync_slave_sql_with_master.inc
+--let $rpl_skip_sync= 1
+--source include/rpl_end.inc

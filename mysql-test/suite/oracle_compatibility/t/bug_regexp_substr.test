@@ -1,0 +1,81 @@
+--echo ---------------------------------------------------------------
+--echo ## Fix a bug: regexp_substr return null in order_by will cause crash.
+--echo 
+--echo ---------------------------------------------------------------
+
+
+--echo ---------------------------------------------------------------
+--echo ## prepare
+--echo ---------------------------------------------------------------
+drop database if exists abczyy1_regexp;
+create database abczyy1_regexp;
+use abczyy1_regexp;
+
+create table tb1(a int key, b varchar(20), c int);
+insert into tb1 values(1, '123456', 123456);
+insert into tb1 values(2, '223456', 223456);
+insert into tb1 values(3, '323456', 323456);
+insert into tb1 values(4, '423456a12', 323456);
+insert into tb1(a,c) values(5, 323456);
+insert into tb1(a,b,c) values(6, 'ab', 323456);
+
+create table user_card(
+  card_number varchar(25) not null default '0',
+  account_id int(11) default null,
+  primary key(card_number)
+);
+insert into user_card values('1239adhf',11),('1278397dahfjk',12),('3678ha',13);
+insert into user_card values('1',11),('2',12),('3',13);
+insert into user_card(account_id) values(11);
+insert into user_card values('as',11);
+insert into user_card(card_number) values('a111s');
+insert into user_card values('aa11as12ab13',11);
+
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_1: test tb1
+--echo ---------------------------------------------------------------
+--error ER_TO_NUM_VALUE_INVALID
+select * from tb1 order by to_number(b) asc limit 10;
+
+select b, regexp_replace(b,'[0-9]*[0-9]','zyy') as b_tmp from tb1 order by b_tmp asc limit 10; 
+select b, regexp_substr(b,'[0-9]*[0-9]') as b_tmp from tb1 order by b_tmp asc limit 10; 
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_2: test user_card
+--echo ---------------------------------------------------------------
+## to_number() with regexp_substr
+select card_number, to_number(regexp_substr(card_number,'[0-9]*[0-9]',1)) as orderalias0, account_id from user_card order by orderalias0 asc limit 10;
+
+select card_number,  account_id from user_card order by to_number(regexp_substr(card_number,'[0-9]*[0-9]',1)) asc limit 10;
+
+## to_char() with regexp_substr
+select card_number, to_char(regexp_substr(card_number,'[0-9]*[0-9]',1)) as orderalias0, account_id from user_card order by orderalias0 asc limit 10;
+
+## length() with regexp_substr
+select card_number, length(regexp_substr(card_number,'[0-9]*[0-9]',1)) as orderalias0, account_id from user_card order by orderalias0 asc limit 10;
+
+## cast() with regexp_substr
+select card_number, cast(regexp_substr(card_number,'[0-9]*[0-9]',1) as decimal) as orderalias0, account_id from user_card order by orderalias0 asc limit 10;
+select card_number,cast(regexp_substr(account_id,'[0-9]*[0-9]',1) as decimal) as order_alis from user_card order by order_alis;
+
+## regexp_substr() in order_by
+select card_number, regexp_substr(card_number,'[0-9]*[0-9]',1) as orderalias0, account_id from user_card order by orderalias0 asc limit 10;
+select card_number, account_id from user_card order by regexp_substr(card_number,'[0-9]*[0-9]',1) asc limit 10;
+
+## other regexp funcs in order_by
+select card_number, regexp_instr(card_number,'[0-9]*[0-9]') as orderalias0, account_id from user_card order by orderalias0 asc limit 10;
+select card_number, regexp_like(card_number,'[0-9]*[0-9]') as orderalias0, account_id from user_card order by orderalias0 asc limit 10;
+select card_number, regexp_replace(card_number,'[0-9]*[0-9]','zyy') as orderalias0, account_id from user_card order by orderalias0 asc limit 10;
+
+## substr in order_by
+select card_number,substr(card_number,'123',1) as tmp_1 , account_id from user_card order by tmp_1 asc limit 10;
+
+
+
+--echo ---------------------------------------------------------------
+--echo ## End test to_number function with other functions
+--echo ---------------------------------------------------------------
+drop database abczyy1_regexp;

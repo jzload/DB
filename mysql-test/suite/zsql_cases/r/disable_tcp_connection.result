@@ -1,0 +1,43 @@
+#########################
+#CASE 1: test default value
+#########################
+show variables like 'disable_tcp_connection';
+Variable_name	Value
+disable_tcp_connection	OFF
+show variables like 'disable_tcp_connection';
+Variable_name	Value
+disable_tcp_connection	OFF
+show variables like 'disable_tcp_connection';
+Variable_name	Value
+disable_tcp_connection	OFF
+#########################
+#CASE 2: test set disable_tcp_connection=ON
+#########################
+set global disable_tcp_connection=ON;
+show variables like 'disable_tcp_connection';
+Variable_name	Value
+disable_tcp_connection	ON
+show variables like 'disable_tcp_connection';
+Variable_name	Value
+disable_tcp_connection	ON
+ERROR HY000: Disable new TCP/IP connection, see the global variable disable_tcp_connection
+#########################
+#CASE 3: test set disable_tcp_connection=OFF
+#########################
+set global disable_tcp_connection=OFF;
+show variables like 'disable_tcp_connection';
+Variable_name	Value
+disable_tcp_connection	OFF
+show variables like 'disable_tcp_connection';
+Variable_name	Value
+disable_tcp_connection	OFF
+show variables like 'disable_tcp_connection';
+Variable_name	Value
+disable_tcp_connection	OFF
+#########################
+#CASE 4: test error sql
+#########################
+set disable_tcp_connection=OFF;
+ERROR HY000: Variable 'disable_tcp_connection' is a GLOBAL variable and should be set with SET GLOBAL
+set session disable_tcp_connection=OFF;
+ERROR HY000: Variable 'disable_tcp_connection' is a GLOBAL variable and should be set with SET GLOBAL

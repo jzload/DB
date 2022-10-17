@@ -1,0 +1,184 @@
+drop database if exists yxx;
+create database yxx;
+use yxx;
+create table t1 (id int, age int);
+insert into t1 values (1, 1), (3, 3), (5, 5);
+set @old_parse_mode = @@parse_mode;
+set @@parse_mode = 2;
+"###################### (1) test in declare block #######################"
+#########################################################################
+# test 1.1: open unbinded-sys_refcursor in declare block
+#########################################################################
+declare
+rc sys_refcursor;
+begin
+open rc;
+end; 
+/
+ERROR HY000: failed to execute procedure, detail: refcursor has not been opened!
+#########################################################################
+# test 1.2: close unbinded-sys_refcursor in declare block
+#########################################################################
+declare
+rc sys_refcursor;
+begin
+close rc;
+end;
+/
+ERROR HY000: failed to execute procedure, detail: refcursor has not been opened!
+#########################################################################
+# test 1.3: fetch unbinded-sys_refcursor in declare block
+#########################################################################
+declare
+a int;
+rc sys_refcursor;
+begin
+fetch rc into a;
+end;
+/
+ERROR HY000: failed to execute procedure, detail: refcursor has not been opened!
+#########################################################################
+# test 1.4: access attributes of unbinded-sys_refcursor in declare block
+#########################################################################
+declare
+a int;
+rc sys_refcursor;
+begin
+a := rc%found;
+end;
+/
+ERROR HY000: failed to execute procedure, detail: refcursor has not been opened!
+"###################### (2) test in procedure call #######################"
+#########################################################################
+# test 2.1: open unbinded-sys_refcursor in procedure
+#########################################################################
+create procedure testproc1()
+as
+rc sys_refcursor;
+begin
+open rc;
+end;
+/
+call testproc1();/
+ERROR HY000: failed to execute procedure, detail: refcursor has not been opened!
+#########################################################################
+# test 2.2: close unbinded-sys_refcursor in procedure
+#########################################################################
+create procedure testproc2()
+as
+rc sys_refcursor;
+begin
+close rc;
+end;
+/
+call testproc2();/
+ERROR HY000: failed to execute procedure, detail: refcursor has not been opened!
+#########################################################################
+# test 2.3: fetch unbinded-sys_refcursor in procedure
+#########################################################################
+create procedure testproc3()
+as
+a int;
+rc sys_refcursor;
+begin
+fetch rc into a;
+end;
+/
+call testproc3();/
+ERROR HY000: failed to execute procedure, detail: refcursor has not been opened!
+#########################################################################
+# test 2.4: access attributes of unbinded-sys_refcursor in procedure
+#########################################################################
+create procedure testproc4()
+as
+a int;
+rc sys_refcursor;
+begin
+a := rc%found;
+end;
+/
+call testproc4();/
+ERROR HY000: failed to execute procedure, detail: refcursor has not been opened!
+"############### (3) test in procedure call with decalre ################"
+#########################################################################
+# test 3.1: open unbinded-sys_refcursor in procedure with declare
+#########################################################################
+create procedure testproc11()
+as
+begin
+declare
+rc sys_refcursor;
+begin
+open rc;
+end;
+end;
+/
+call testproc1();/
+ERROR HY000: failed to execute procedure, detail: refcursor has not been opened!
+#########################################################################
+# test 3.2: close unbinded-sys_refcursor in procedure with declare
+#########################################################################
+create procedure testproc12()
+as
+begin
+declare
+rc sys_refcursor;
+begin
+close rc;
+end;
+end;
+/
+call testproc2();/
+ERROR HY000: failed to execute procedure, detail: refcursor has not been opened!
+#########################################################################
+# test 3.3: fetch unbinded-sys_refcursor in procedure with declare
+#########################################################################
+create procedure testproc13()
+as
+begin
+declare
+a int;
+rc sys_refcursor;
+begin
+fetch rc into a;
+end;
+end;
+/
+call testproc3();/
+ERROR HY000: failed to execute procedure, detail: refcursor has not been opened!
+#########################################################################
+# test 3.4: access attributes of unbinded-sys_refcursor in procedure with declare
+#########################################################################
+create procedure testproc14()
+as
+begin
+declare
+a int;
+rc sys_refcursor;
+begin
+a := rc%found;
+end;
+end;
+/
+call testproc4();/
+ERROR HY000: failed to execute procedure, detail: refcursor has not been opened!
+"######## (4) test special case (refcursor var used incorrectly) ########"
+#########################################################################
+# test 4.1: open unbinded-sys_refcursor used as common var
+#########################################################################
+create procedure testcusr() is
+mmd int;
+r sys_refcursor;
+begin
+for r in(select id, age from t1)loop
+exit when r%notfound;
+select r.id, r.age;
+end loop;
+close r;
+end;
+/
+call testcusr();
+ERROR HY000: failed to execute procedure, detail: refcursor has not been opened!
+"clear..."
+drop database yxx;
+set @@parse_mode = @old_parse_mode;

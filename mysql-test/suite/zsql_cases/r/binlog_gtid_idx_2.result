@@ -1,0 +1,1013 @@
+include/master-slave.inc
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+[connection master]
+[connection master]
+create database fangpei_test;
+use fangpei_test;
+create table t1 (id int);
+##########################################################################
+#CASE 1: explicit transactions with gtid hint 
+##########################################################################
+[connection master]
+use fangpei_test;
+/*+GTID=7*/start transaction;
+insert into t1 values (7);
+commit;
+/*+GTID=8*/start transaction;
+insert into t1 values (8);
+commit;
+drop table if exists master_tmp_1_01;
+drop table if exists master_tmp_2_01;
+drop table if exists master_tmp_3_01;
+create table master_tmp_1_01(gtm_gtid varchar(256), pos varchar(256));
+create table master_tmp_2_01(status_flag int, other1 varchar(256), other2 varchar(256));
+create table master_tmp_3_01(gtm_gtid int);
+master-bin.000001
+1#gtm_gtid #binlog_start_pos
+7 569
+8 858
+insert into master_tmp_3_01 select cast(gtm_gtid as signed) as gtm_gtid from master_tmp_1_01 limit 1, 18446744073709551615;
+select * from master_tmp_1_01 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_01;
+count(*)
+3
+include/assert.inc [master gtid_idx file flag must be 1]
+include/assert.inc [1st gtm-gtid must be 7]
+include/assert.inc [2nd gtm-gtid must be 8]
+drop table master_tmp_1_01;
+drop table master_tmp_2_01;
+drop table master_tmp_3_01;
+[connection slave]
+use fangpei_test;
+drop table if exists slave_tmp_2_01;
+create table slave_tmp_2_01(status_flag int, other1 varchar(256), other2 varchar(256));
+slave-bin.000001
+1#gtm_gtid #binlog_start_pos
+include/assert.inc [slave gtid_idx file flag must be 1]
+drop table slave_tmp_2_01;
+##########################################################################
+#CASE 2: explicit transactions without gtid hint 
+##########################################################################
+[connection master]
+use fangpei_test;
+start transaction;
+insert into t1 values (9);
+commit;
+start transaction;
+insert into t1 values (10);
+commit;
+drop table if exists master_tmp_1_02;
+drop table if exists master_tmp_2_02;
+drop table if exists master_tmp_3_02;
+create table master_tmp_1_02(gtm_gtid varchar(256), pos varchar(256));
+create table master_tmp_2_02(status_flag int, other1 varchar(256), other2 varchar(256));
+create table master_tmp_3_02(gtm_gtid int);
+master-bin.000001
+1#gtm_gtid #binlog_start_pos
+7 569
+8 858
+insert into master_tmp_3_02 select cast(gtm_gtid as signed) as gtm_gtid from master_tmp_1_02 limit 1, 18446744073709551615;
+select * from master_tmp_1_02 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_02;
+count(*)
+3
+include/assert.inc [master gtid_idx file flag must be 1]
+include/assert.inc [1st gtm-gtid must be 7]
+include/assert.inc [2nd gtm-gtid must be 8]
+drop table master_tmp_1_02;
+drop table master_tmp_2_02;
+drop table master_tmp_3_02;
+[connection slave]
+use fangpei_test;
+drop table if exists slave_tmp_2_02;
+create table slave_tmp_2_02(status_flag int, other1 varchar(256), other2 varchar(256));
+slave-bin.000001
+1#gtm_gtid #binlog_start_pos
+include/assert.inc [slave gtid_idx file flag must be 1]
+drop table slave_tmp_2_02;
+##########################################################################
+#CASE 3: auto commit transactions with gtid hint 
+##########################################################################
+[connection master]
+use fangpei_test;
+/*+GTID=11*/insert into t1 values (11);
+/*+GTID=12*/insert into t1 values (12);
+drop table if exists master_tmp_1_03;
+drop table if exists master_tmp_2_03;
+drop table if exists master_tmp_3_03;
+create table master_tmp_1_03(gtm_gtid varchar(256), pos varchar(256));
+create table master_tmp_2_03(status_flag int, other1 varchar(256), other2 varchar(256));
+create table master_tmp_3_03(gtm_gtid int);
+master-bin.000001
+1#gtm_gtid #binlog_start_pos
+7 569
+8 858
+11 8039
+12 8328
+insert into master_tmp_3_03 select cast(gtm_gtid as signed) as gtm_gtid from master_tmp_1_03 limit 1, 18446744073709551615;
+select * from master_tmp_1_03 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_03;
+count(*)
+5
+include/assert.inc [master gtid_idx file flag must be 1]
+include/assert.inc [1st gtm-gtid must be 7]
+include/assert.inc [2nd gtm-gtid must be 8]
+include/assert.inc [3rd gtm-gtid must be 11]
+include/assert.inc [4th gtm-gtid must be 12]
+drop table master_tmp_1_03;
+drop table master_tmp_2_03;
+drop table master_tmp_3_03;
+[connection slave]
+use fangpei_test;
+drop table if exists slave_tmp_2_03;
+create table slave_tmp_2_03(status_flag int, other1 varchar(256), other2 varchar(256));
+slave-bin.000001
+1#gtm_gtid #binlog_start_pos
+include/assert.inc [slave gtid_idx file flag must be 1]
+drop table slave_tmp_2_03;
+##########################################################################
+#CASE 4: auto commit transactions without gtid hint 
+##########################################################################
+[connection master]
+use fangpei_test;
+insert into t1 values (13);
+insert into t1 values (14);
+drop table if exists master_tmp_1_04;
+drop table if exists master_tmp_2_04;
+drop table if exists master_tmp_3_04;
+create table master_tmp_1_04(gtm_gtid varchar(256), pos varchar(256));
+create table master_tmp_2_04(status_flag int, other1 varchar(256), other2 varchar(256));
+create table master_tmp_3_04(gtm_gtid int);
+master-bin.000001
+1#gtm_gtid #binlog_start_pos
+7 569
+8 858
+11 8039
+12 8328
+insert into master_tmp_3_04 select cast(gtm_gtid as signed) as gtm_gtid from master_tmp_1_04 limit 1, 18446744073709551615;
+select * from master_tmp_1_04 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_04;
+count(*)
+5
+include/assert.inc [master gtid_idx file flag must be 1]
+include/assert.inc [1st gtm-gtid must be 7]
+include/assert.inc [2nd gtm-gtid must be 8]
+include/assert.inc [3rd gtm-gtid must be 11]
+include/assert.inc [4th gtm-gtid must be 12]
+drop table master_tmp_1_04;
+drop table master_tmp_2_04;
+drop table master_tmp_3_04;
+[connection slave]
+use fangpei_test;
+drop table if exists slave_tmp_2_04;
+create table slave_tmp_2_04(status_flag int, other1 varchar(256), other2 varchar(256));
+slave-bin.000001
+1#gtm_gtid #binlog_start_pos
+include/assert.inc [slave gtid_idx file flag must be 1]
+drop table slave_tmp_2_04;
+##########################################################################
+#CASE 5: explicit transaction with gtid hint, bigger then max_binlog_size 
+##########################################################################
+[connection master]
+SET @old_max_binlog_size   = @@global.max_binlog_size;
+SET GLOBAL max_binlog_size = 8192;
+[connection slave]
+SET @old_max_binlog_size   = @@global.max_binlog_size;
+SET GLOBAL max_binlog_size = 8192;
+[connection master]
+use fangpei_test;
+drop table if exists master_tmp_1_05;
+drop table if exists master_tmp_2_05;
+drop table if exists master_tmp_3_05;
+create table master_tmp_1_05(gtm_gtid varchar(256), pos varchar(256));
+create table master_tmp_2_05(status_flag int, other1 varchar(256), other2 varchar(256));
+create table master_tmp_3_05(gtm_gtid int);
+master-bin.000002
+1#gtm_gtid #binlog_start_pos
+select * from master_tmp_1_05 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_05;
+count(*)
+1
+include/assert.inc [master gtid_idx file flag must be 1]
+truncate table master_tmp_1_05;
+truncate table master_tmp_2_05;
+[connection slave]
+[connection master]
+insert into t1 select * from t1 limit 3;
+insert into t1 select * from t1 limit 5;
+insert into t1 select * from t1 limit 10;
+insert into t1 select * from t1 limit 20;
+insert into t1 select * from t1 limit 40;
+insert into t1 select * from t1 limit 80;
+insert into t1 select * from t1 limit 100;
+insert into t1 select * from t1 limit 100;
+/*+GTID=3000*/start transaction;
+insert into t1 select * from t1 limit 3000;
+commit;
+master-bin.000002
+1#gtm_gtid #binlog_start_pos
+3000 6494
+insert into master_tmp_3_05 select cast(gtm_gtid as signed) as gtm_gtid from master_tmp_1_05 limit 1, 18446744073709551615;
+select * from master_tmp_1_05 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_05;
+count(*)
+2
+include/assert.inc [master gtid_idx file flag must be 1]
+include/assert.inc [1st gtm-gtid must be 3000]
+truncate table master_tmp_1_05;
+truncate table master_tmp_2_05;
+master-bin.000003
+1#gtm_gtid #binlog_start_pos
+select * from master_tmp_1_05 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_05;
+count(*)
+1
+include/assert.inc [master gtid_idx file flag must be 1]
+drop table master_tmp_1_05;
+drop table master_tmp_2_05;
+drop table master_tmp_3_05;
+[connection slave]
+use fangpei_test;
+drop table if exists slave_tmp_2_05;
+create table slave_tmp_2_05(status_flag int, other1 varchar(256), other2 varchar(256));
+slave-bin.000002
+1#gtm_gtid #binlog_start_pos
+include/assert.inc [slave gtid_idx file flag must be 1]
+truncate table slave_tmp_2_05;
+slave-bin.000003
+1#gtm_gtid #binlog_start_pos
+include/assert.inc [slave gtid_idx file flag must be 1]
+drop table slave_tmp_2_05;
+[connection master]
+SET GLOBAL max_binlog_size = @old_max_binlog_size;
+[connection slave]
+SET GLOBAL max_binlog_size = @old_max_binlog_size;
+##########################################################################
+#CASE 6: explicit transaction without gtid hint, bigger then max_binlog_size 
+##########################################################################
+[connection master]
+SET @old_max_binlog_size   = @@global.max_binlog_size;
+SET GLOBAL max_binlog_size = 8192;
+[connection slave]
+SET @old_max_binlog_size   = @@global.max_binlog_size;
+SET GLOBAL max_binlog_size = 8192;
+[connection master]
+use fangpei_test;
+drop table if exists master_tmp_1_06;
+drop table if exists master_tmp_2_06;
+drop table if exists master_tmp_3_06;
+create table master_tmp_1_06(gtm_gtid varchar(256), pos varchar(256));
+create table master_tmp_2_06(status_flag int, other1 varchar(256), other2 varchar(256));
+create table master_tmp_3_06(gtm_gtid int);
+master-bin.000003
+1#gtm_gtid #binlog_start_pos
+select * from master_tmp_1_06 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_06;
+count(*)
+1
+include/assert.inc [master gtid_idx file flag must be 1]
+truncate table master_tmp_1_06;
+truncate table master_tmp_2_06;
+[connection slave]
+[connection master]
+start transaction;
+insert into t1 select * from t1 limit 3000;
+commit;
+master-bin.000003
+1#gtm_gtid #binlog_start_pos
+select * from master_tmp_1_06 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_06;
+count(*)
+1
+include/assert.inc [master gtid_idx file flag must be 1]
+truncate table master_tmp_1_06;
+truncate table master_tmp_2_06;
+master-bin.000004
+1#gtm_gtid #binlog_start_pos
+select * from master_tmp_1_06 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_06;
+count(*)
+1
+include/assert.inc [master gtid_idx file flag must be 1]
+drop table master_tmp_1_06;
+drop table master_tmp_2_06;
+drop table master_tmp_3_06;
+[connection slave]
+use fangpei_test;
+drop table if exists slave_tmp_2_06;
+create table slave_tmp_2_06(status_flag int, other1 varchar(256), other2 varchar(256));
+slave-bin.000003
+1#gtm_gtid #binlog_start_pos
+include/assert.inc [slave gtid_idx file flag must be 1]
+truncate table slave_tmp_2_06;
+slave-bin.000004
+1#gtm_gtid #binlog_start_pos
+include/assert.inc [slave gtid_idx file flag must be 1]
+drop table slave_tmp_2_06;
+[connection master]
+SET GLOBAL max_binlog_size = @old_max_binlog_size;
+[connection slave]
+SET GLOBAL max_binlog_size = @old_max_binlog_size;
+##########################################################################
+#CASE 7: auto commit transaction with gtid hint, bigger then max_binlog_size 
+##########################################################################
+[connection master]
+SET @old_max_binlog_size   = @@global.max_binlog_size;
+SET GLOBAL max_binlog_size = 8192;
+[connection slave]
+SET @old_max_binlog_size   = @@global.max_binlog_size;
+SET GLOBAL max_binlog_size = 8192;
+[connection master]
+use fangpei_test;
+drop table if exists master_tmp_1_07;
+drop table if exists master_tmp_2_07;
+drop table if exists master_tmp_3_07;
+create table master_tmp_1_07(gtm_gtid varchar(256), pos varchar(256));
+create table master_tmp_2_07(status_flag int, other1 varchar(256), other2 varchar(256));
+create table master_tmp_3_07(gtm_gtid int);
+master-bin.000004
+1#gtm_gtid #binlog_start_pos
+select * from master_tmp_1_07 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_07;
+count(*)
+1
+include/assert.inc [master gtid_idx file flag must be 1]
+truncate table master_tmp_1_07;
+truncate table master_tmp_2_07;
+[connection slave]
+[connection master]
+/*+GTID=3002*/insert into t1 select * from t1 limit 3000;
+master-bin.000004
+1#gtm_gtid #binlog_start_pos
+3002 5109
+insert into master_tmp_3_07 select cast(gtm_gtid as signed) as gtm_gtid from master_tmp_1_07 limit 1, 18446744073709551615;
+select * from master_tmp_1_07 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_07;
+count(*)
+2
+include/assert.inc [master gtid_idx file flag must be 1]
+include/assert.inc [1st gtm-gtid must be 3002]
+truncate table master_tmp_1_07;
+truncate table master_tmp_2_07;
+master-bin.000005
+1#gtm_gtid #binlog_start_pos
+select * from master_tmp_1_07 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_07;
+count(*)
+1
+include/assert.inc [master gtid_idx file flag must be 1]
+drop table master_tmp_1_07;
+drop table master_tmp_2_07;
+drop table master_tmp_3_07;
+[connection slave]
+use fangpei_test;
+drop table if exists slave_tmp_2_07;
+create table slave_tmp_2_07(status_flag int, other1 varchar(256), other2 varchar(256));
+slave-bin.000004
+1#gtm_gtid #binlog_start_pos
+include/assert.inc [slave gtid_idx file flag must be 1]
+truncate table slave_tmp_2_07;
+slave-bin.000005
+1#gtm_gtid #binlog_start_pos
+include/assert.inc [slave gtid_idx file flag must be 1]
+drop table slave_tmp_2_07;
+[connection master]
+SET GLOBAL max_binlog_size = @old_max_binlog_size;
+[connection slave]
+SET GLOBAL max_binlog_size = @old_max_binlog_size;
+##########################################################################
+#CASE 8: auto commit transaction without gtid hint, bigger then max_binlog_size 
+##########################################################################
+[connection master]
+SET @old_max_binlog_size   = @@global.max_binlog_size;
+SET GLOBAL max_binlog_size = 8192;
+[connection slave]
+SET @old_max_binlog_size   = @@global.max_binlog_size;
+SET GLOBAL max_binlog_size = 8192;
+[connection master]
+use fangpei_test;
+drop table if exists master_tmp_1_08;
+drop table if exists master_tmp_2_08;
+drop table if exists master_tmp_3_08;
+create table master_tmp_1_08(gtm_gtid varchar(256), pos varchar(256));
+create table master_tmp_2_08(status_flag int, other1 varchar(256), other2 varchar(256));
+create table master_tmp_3_08(gtm_gtid int);
+master-bin.000005
+1#gtm_gtid #binlog_start_pos
+select * from master_tmp_1_08 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_08;
+count(*)
+1
+include/assert.inc [master gtid_idx file flag must be 1]
+truncate table master_tmp_1_08;
+truncate table master_tmp_2_08;
+[connection slave]
+[connection master]
+insert into t1 select * from t1 limit 3000;
+master-bin.000005
+1#gtm_gtid #binlog_start_pos
+select * from master_tmp_1_08 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_08;
+count(*)
+1
+include/assert.inc [master gtid_idx file flag must be 1]
+truncate table master_tmp_1_08;
+truncate table master_tmp_2_08;
+master-bin.000006
+1#gtm_gtid #binlog_start_pos
+select * from master_tmp_1_08 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_08;
+count(*)
+1
+include/assert.inc [master gtid_idx file flag must be 1]
+drop table master_tmp_1_08;
+drop table master_tmp_2_08;
+drop table master_tmp_3_08;
+[connection slave]
+use fangpei_test;
+drop table if exists slave_tmp_2_08;
+create table slave_tmp_2_08(status_flag int, other1 varchar(256), other2 varchar(256));
+slave-bin.000005
+1#gtm_gtid #binlog_start_pos
+include/assert.inc [slave gtid_idx file flag must be 1]
+truncate table slave_tmp_2_08;
+slave-bin.000006
+1#gtm_gtid #binlog_start_pos
+include/assert.inc [slave gtid_idx file flag must be 1]
+drop table slave_tmp_2_08;
+[connection master]
+SET GLOBAL max_binlog_size = @old_max_binlog_size;
+[connection slave]
+SET GLOBAL max_binlog_size = @old_max_binlog_size;
+##########################################################################
+#CASE 9: explicit transactions with gtid hint concurrent execute 
+##########################################################################
+[connection master]
+use fangpei_test;
+start transaction;
+/*+GTID=13*/start transaction;
+insert into t1 values (13);
+use fangpei_test;
+start transaction;
+/*+GTID=14*/start transaction;
+insert into t1 values (14);
+use fangpei_test;
+start transaction;
+/*+GTID=15*/start transaction;
+insert into t1 values (15);
+commit;
+commit;
+commit;
+use fangpei_test;
+drop table if exists master_tmp_1_09;
+drop table if exists master_tmp_2_09;
+drop table if exists master_tmp_3_09;
+create table master_tmp_1_09(gtm_gtid varchar(256), pos varchar(256));
+create table master_tmp_2_09(status_flag int, other1 varchar(256), other2 varchar(256));
+create table master_tmp_3_09(gtm_gtid int);
+master-bin.000006
+1#gtm_gtid #binlog_start_pos
+14 2598
+15 2887
+13 3176
+insert into master_tmp_3_09 select cast(gtm_gtid as signed) as gtm_gtid from master_tmp_1_09 limit 1, 18446744073709551615;
+select * from master_tmp_1_09 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_09;
+count(*)
+4
+include/assert.inc [master gtid_idx file flag must be 1]
+include/assert.inc [1st gtm-gtid must be 14]
+include/assert.inc [2nd gtm-gtid must be 15]
+include/assert.inc [3rd gtm-gtid must be 13]
+drop table master_tmp_1_09;
+drop table master_tmp_2_09;
+drop table master_tmp_3_09;
+[connection slave]
+use fangpei_test;
+drop table if exists slave_tmp_2_09;
+create table slave_tmp_2_09(status_flag int, other1 varchar(256), other2 varchar(256));
+slave-bin.000006
+1#gtm_gtid #binlog_start_pos
+include/assert.inc [slave gtid_idx file flag must be 1]
+drop table slave_tmp_2_09;
+##########################################################################
+#CASE 10: DDL with gtid hint 
+##########################################################################
+[connection master]
+use fangpei_test;
+/*+GTID=16*/create table t2 (id int);
+drop table if exists master_tmp_1_10;
+drop table if exists master_tmp_2_10;
+drop table if exists master_tmp_3_10;
+create table master_tmp_1_10(gtm_gtid varchar(256), pos varchar(256));
+create table master_tmp_2_10(status_flag int, other1 varchar(256), other2 varchar(256));
+create table master_tmp_3_10(gtm_gtid int);
+master-bin.000006
+1#gtm_gtid #binlog_start_pos
+14 2598
+15 2887
+13 3176
+16 6647
+insert into master_tmp_3_10 select cast(gtm_gtid as signed) as gtm_gtid from master_tmp_1_10 limit 1, 18446744073709551615;
+select * from master_tmp_1_10 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_10;
+count(*)
+5
+include/assert.inc [master gtid_idx file flag must be 1]
+include/assert.inc [1st gtm-gtid must be 14]
+include/assert.inc [2nd gtm-gtid must be 15]
+include/assert.inc [3rd gtm-gtid must be 13]
+include/assert.inc [4th gtm-gtid must be 16]
+drop table master_tmp_1_10;
+drop table master_tmp_2_10;
+drop table master_tmp_3_10;
+[connection slave]
+use fangpei_test;
+drop table if exists slave_tmp_1_10;
+drop table if exists slave_tmp_2_10;
+drop table if exists slave_tmp_3_10;
+create table slave_tmp_1_10(gtm_gtid varchar(256), pos varchar(256));
+create table slave_tmp_2_10(status_flag int, other1 varchar(256), other2 varchar(256));
+create table slave_tmp_3_10(gtm_gtid int);
+slave-bin.000006
+insert into slave_tmp_3_10 select cast(gtm_gtid as signed) as gtm_gtid from slave_tmp_1_10 limit 1, 18446744073709551615;
+include/assert.inc [slave gtid_idx file flag must be 1]
+include/assert.inc [1st gtm-gtid must be 16]
+drop table slave_tmp_1_10;
+drop table slave_tmp_2_10;
+drop table slave_tmp_3_10;
+##########################################################################
+#CASE 11: DDL with gtid hint nested in explicit transactions
+##########################################################################
+[connection master]
+use fangpei_test;
+/*+GTID=5500*/ start transaction;
+insert into t1 values (5500);
+/*+GTID=5003*/create table t8 (id int);
+insert into t1 values (5501);
+commit;
+drop table if exists master_tmp_1_11;
+drop table if exists master_tmp_2_11;
+drop table if exists master_tmp_3_11;
+create table master_tmp_1_11(gtm_gtid varchar(256), pos varchar(256));
+create table master_tmp_2_11(status_flag int, other1 varchar(256), other2 varchar(256));
+create table master_tmp_3_11(gtm_gtid int);
+master-bin.000006
+1#gtm_gtid #binlog_start_pos
+14 2598
+15 2887
+13 3176
+16 6647
+5500 10067
+5003 10356
+insert into master_tmp_3_11 select cast(gtm_gtid as signed) as gtm_gtid from master_tmp_1_11 limit 1, 18446744073709551615;
+select * from master_tmp_1_11 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_11;
+count(*)
+7
+include/assert.inc [master gtid_idx file flag must be 1]
+include/assert.inc [1st gtm-gtid must be 14]
+include/assert.inc [2nd gtm-gtid must be 15]
+include/assert.inc [3rd gtm-gtid must be 13]
+include/assert.inc [4th gtm-gtid must be 16]
+include/assert.inc [5th gtm-gtid must be 5500]
+include/assert.inc [6th gtm-gtid must be 5003]
+drop table master_tmp_1_11;
+drop table master_tmp_2_11;
+drop table master_tmp_3_11;
+[connection slave]
+use fangpei_test;
+drop table if exists slave_tmp_1_11;
+drop table if exists slave_tmp_2_11;
+drop table if exists slave_tmp_3_11;
+create table slave_tmp_1_11(gtm_gtid varchar(256), pos varchar(256));
+create table slave_tmp_2_11(status_flag int, other1 varchar(256), other2 varchar(256));
+create table slave_tmp_3_11(gtm_gtid int);
+slave-bin.000006
+insert into slave_tmp_3_11 select cast(gtm_gtid as signed) as gtm_gtid from slave_tmp_1_11 limit 1, 18446744073709551615;
+include/assert.inc [slave gtid_idx file flag must be 1]
+include/assert.inc [1st gtm-gtid must be 16]
+include/assert.inc [2nd gtm-gtid must be 5003]
+drop table slave_tmp_1_11;
+drop table slave_tmp_2_11;
+drop table slave_tmp_3_11;
+##########################################################################
+#CASE 12: DDL without gtid hint
+##########################################################################
+[connection master]
+use fangpei_test;
+create table t3 (id int);
+drop table if exists master_tmp_1_12;
+drop table if exists master_tmp_2_12;
+drop table if exists master_tmp_3_12;
+create table master_tmp_1_12(gtm_gtid varchar(256), pos varchar(256));
+create table master_tmp_2_12(status_flag int, other1 varchar(256), other2 varchar(256));
+create table master_tmp_3_12(gtm_gtid int);
+master-bin.000006
+1#gtm_gtid #binlog_start_pos
+14 2598
+15 2887
+13 3176
+16 6647
+5500 10067
+5003 10356
+insert into master_tmp_3_12 select cast(gtm_gtid as signed) as gtm_gtid from master_tmp_1_12 limit 1, 18446744073709551615;
+select * from master_tmp_1_12 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_12;
+count(*)
+7
+include/assert.inc [master gtid_idx file flag must be 1]
+include/assert.inc [1st gtm-gtid must be 14]
+include/assert.inc [2nd gtm-gtid must be 15]
+include/assert.inc [3rd gtm-gtid must be 13]
+include/assert.inc [4th gtm-gtid must be 16]
+include/assert.inc [5th gtm-gtid must be 5500]
+include/assert.inc [6th gtm-gtid must be 5003]
+drop table master_tmp_1_12;
+drop table master_tmp_2_12;
+drop table master_tmp_3_12;
+[connection slave]
+use fangpei_test;
+drop table if exists slave_tmp_1_12;
+drop table if exists slave_tmp_2_12;
+drop table if exists slave_tmp_3_12;
+create table slave_tmp_1_12(gtm_gtid varchar(256), pos varchar(256));
+create table slave_tmp_2_12(status_flag int, other1 varchar(256), other2 varchar(256));
+create table slave_tmp_3_12(gtm_gtid int);
+slave-bin.000006
+insert into slave_tmp_3_12 select cast(gtm_gtid as signed) as gtm_gtid from slave_tmp_1_12 limit 1, 18446744073709551615;
+include/assert.inc [slave gtid_idx file flag must be 1]
+include/assert.inc [1st gtm-gtid must be 16]
+include/assert.inc [2nd gtm-gtid must be 5003]
+drop table slave_tmp_1_12;
+drop table slave_tmp_2_12;
+drop table slave_tmp_3_12;
+##########################################################################
+#CASE 13: master & slave rotate for one time and several times  
+##########################################################################
+[connection master]
+SET @old_max_binlog_size   = @@global.max_binlog_size;
+SET GLOBAL max_binlog_size = 8192;
+[connection slave]
+SET @old_max_binlog_size   = @@global.max_binlog_size;
+SET GLOBAL max_binlog_size = 8192;
+[connection master]
+use fangpei_test;
+drop table if exists master_tmp_1_l3;
+drop table if exists master_tmp_2_l3;
+create table master_tmp_1_l3(gtm_gtid varchar(256), pos varchar(256));
+create table master_tmp_2_l3(status_flag int, other1 varchar(256), other2 varchar(256));
+master-bin.000007
+1#gtm_gtid #binlog_start_pos
+select * from master_tmp_1_l3 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_l3;
+count(*)
+1
+include/assert.inc [master gtid_idx file flag must be 1]
+truncate table master_tmp_1_l3;
+truncate table master_tmp_2_l3;
+[connection slave]
+use fangpei_test;
+drop table if exists slave_tmp_2_l3;
+create table slave_tmp_2_l3(status_flag int, other1 varchar(256), other2 varchar(256));
+slave-bin.000007
+1#gtm_gtid #binlog_start_pos
+include/assert.inc [slave gtid_idx file flag must be 1]
+truncate table slave_tmp_2_l3;
+[connection master]
+use fangpei_test;
+/*+GTID=3004*/insert into t1 select * from t1 limit 3000;
+master-bin.000007
+1#gtm_gtid #binlog_start_pos
+3004 1975
+select * from master_tmp_1_l3 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_l3;
+count(*)
+2
+include/assert.inc [master gtid_idx file flag must be 1]
+truncate table master_tmp_1_l3;
+truncate table master_tmp_2_l3;
+[connection slave]
+use fangpei_test;
+slave-bin.000007
+1#gtm_gtid #binlog_start_pos
+include/assert.inc [slave gtid_idx file flag must be 1]
+truncate table slave_tmp_2_l3;
+[connection master]
+use fangpei_test;
+master-bin.000008
+1#gtm_gtid #binlog_start_pos
+select * from master_tmp_1_l3 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_l3;
+count(*)
+1
+include/assert.inc [master gtid_idx file flag must be 1]
+truncate table master_tmp_1_l3;
+truncate table master_tmp_2_l3;
+[connection slave]
+use fangpei_test;
+slave-bin.000008
+1#gtm_gtid #binlog_start_pos
+include/assert.inc [slave gtid_idx file flag must be 1]
+truncate table slave_tmp_2_l3;
+[connection master]
+use fangpei_test;
+/*+GTID=3005*/insert into t1 select * from t1 limit 3000;
+master-bin.000008
+1#gtm_gtid #binlog_start_pos
+3005 2305
+select * from master_tmp_1_l3 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_l3;
+count(*)
+2
+include/assert.inc [master gtid_idx file flag must be 1]
+truncate table master_tmp_1_l3;
+truncate table master_tmp_2_l3;
+[connection slave]
+use fangpei_test;
+slave-bin.000008
+1#gtm_gtid #binlog_start_pos
+include/assert.inc [slave gtid_idx file flag must be 1]
+truncate table slave_tmp_2_l3;
+[connection master]
+use fangpei_test;
+master-bin.000009
+1#gtm_gtid #binlog_start_pos
+select * from master_tmp_1_l3 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_l3;
+count(*)
+1
+include/assert.inc [master gtid_idx file flag must be 1]
+drop table master_tmp_1_l3;
+drop table master_tmp_2_l3;
+[connection slave]
+use fangpei_test;
+include/assert.inc [slave gtid_idx file flag must be 1]
+drop table slave_tmp_2_l3;
+[connection master]
+SET GLOBAL max_binlog_size = @old_max_binlog_size;
+[connection slave]
+SET GLOBAL max_binlog_size = @old_max_binlog_size;
+##########################################################################
+#CASE 14: master & slave 'purge binary logs to ...'
+##########################################################################
+[connection master]
+purge binary logs to 'master-bin.000003';
+[connection slave]
+purge binary logs to 'slave-bin.000002';
+##########################################################################
+#CASE 15: master & slave 'purge master logs to ...'
+##########################################################################
+[connection master]
+purge master logs to 'master-bin.000004';
+[connection slave]
+purge master logs to 'slave-bin.000004';
+##########################################################################
+#CASE 16: master & slave 'purge binary logs before YYYY-MM-DD HH-mm-ss'
+##########################################################################
+[connection master]
+purge binary logs before '1991-01-01 00:00:00';
+[connection slave]
+purge binary logs before '1991-01-01 00:00:00';
+##########################################################################
+#CASE 17: master & slave purge logs over max period when rotating binlog
+##########################################################################
+[connection master]
+flush binary logs;
+[connection slave]
+flush binary logs;
+##########################################################################
+#CASE 18: master & slave purge logs over max period when starting DB
+##########################################################################
+include/rpl_stop_server.inc [server_number=1]
+include/rpl_start_server.inc [server_number=1]
+[connection master]
+include/rpl_stop_server.inc [server_number=2]
+include/rpl_start_server.inc [server_number=2]
+[connection slave]
+start slave;
+##########################################################################
+#CASE 19: master & slave purge logs with binlog not found
+##########################################################################
+[connection master]
+purge binary logs to 'master-bin.000009';
+Warnings:
+Warning	1612	Being purged log ./master-bin.000008 was not found
+[connection slave]
+purge binary logs to 'slave-bin.000009';
+Warnings:
+Warning	1612	Being purged log ./slave-bin.000007 was not found
+##########################################################################
+#CASE 20: master & slave purge logs with gtid_idx file not found
+##########################################################################
+[connection master]
+purge binary logs to 'master-bin.000010';
+Warnings:
+Warning	1612	Being purged log ./master-bin.000009.gtid_idx was not found
+[connection slave]
+purge binary logs to 'slave-bin.000010';
+Warnings:
+Warning	1612	Being purged log ./slave-bin.000009.gtid_idx was not found
+##########################################################################
+#CASE 21: master & slave exec 'reset master'
+##########################################################################
+include/rpl_reset.inc
+[connection master]
+use fangpei_test;
+drop table if exists master_tmp_1_21;
+drop table if exists master_tmp_2_21;
+create table master_tmp_1_21(gtm_gtid varchar(256), pos varchar(256));
+create table master_tmp_2_21(status_flag int, other1 varchar(256), other2 varchar(256));
+master-bin.000001
+1#gtm_gtid #binlog_start_pos
+select * from master_tmp_1_21 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_21;
+count(*)
+1
+include/assert.inc [master gtid_idx file flag must be 1]
+drop table master_tmp_1_21;
+drop table master_tmp_2_21;
+[connection slave]
+use fangpei_test;
+drop table if exists slave_tmp_2_21;
+create table slave_tmp_2_21(status_flag int, other1 varchar(256), other2 varchar(256));
+slave-bin.000001
+1#gtm_gtid #binlog_start_pos
+include/assert.inc [slave gtid_idx file flag must be 1]
+drop table slave_tmp_2_21;
+##########################################################################
+#CASE 22: slave exec 'stop slave; reset slave; shutdown'
+##########################################################################
+include/rpl_reset.inc
+RESET SLAVE;
+Warnings:
+Note	1759	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	1760	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+[connection slave]
+use fangpei_test;
+drop table if exists slave_tmp_2_22;
+create table slave_tmp_2_22(status_flag int, other1 varchar(256), other2 varchar(256));
+slave-bin.000001
+1#gtm_gtid #binlog_start_pos
+include/assert.inc [slave gtid_idx file flag must be 1]
+drop table slave_tmp_2_22;
+##########################################################################
+#CASE 23: slave exec 'stop slave; reset slave all; shutdown'
+##########################################################################
+include/rpl_reset.inc
+RESET SLAVE ALL;
+use fangpei_test;
+/*+GTID=231*/insert into t1 values (231);
+/*+GTID=232*/insert into t1 values (232);
+drop table if exists slave_tmp_2_23;
+create table slave_tmp_2_23(status_flag int, other1 varchar(256), other2 varchar(256));
+slave-bin.000002
+1#gtm_gtid #binlog_start_pos
+truncate table slave_tmp_2_23;
+Warnings:
+Note	1759	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	1760	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+[connection slave]
+use fangpei_test;
+slave-bin.000002
+1#gtm_gtid #binlog_start_pos
+include/assert.inc [slave gtid_idx file flag must be 1]
+drop table slave_tmp_2_23;
+##########################################################################
+#CASE 24: slave exec 'stop slave; reset slave all; rotate'
+##########################################################################
+include/rpl_reset.inc
+RESET SLAVE ALL;
+use fangpei_test;
+drop table if exists slave_tmp_2_24;
+create table slave_tmp_2_24(status_flag int, other1 varchar(256), other2 varchar(256));
+slave-bin.000003
+1#gtm_gtid #binlog_start_pos
+truncate table slave_tmp_2_24;
+use fangpei_test;
+flush binary logs;
+slave-bin.000004
+1#gtm_gtid #binlog_start_pos
+drop table slave_tmp_2_24;
+Warnings:
+Note	1759	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	1760	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+##########################################################################
+#CASE 25: slave exec 'master / slave switch'
+##########################################################################
+[connection master]
+use fangpei_test;
+/*+GTID=11*/insert into t1 values (11);
+/*+GTID=12*/insert into t1 values (12);
+include/rpl_change_topology.inc
+RESET SLAVE ALL;
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+[connection slave]
+[old slave, new master]
+use fangpei_test;
+/*+GTID=13*/insert into t1 values (13);
+/*+GTID=14*/insert into t1 values (14);
+[connection master]
+[old master, new slave]
+use fangpei_test;
+drop table if exists master_tmp_1_25;
+drop table if exists master_tmp_2_25;
+drop table if exists master_tmp_3_25;
+create table master_tmp_1_25(gtm_gtid varchar(256), pos varchar(256));
+create table master_tmp_2_25(status_flag int, other1 varchar(256), other2 varchar(256));
+create table master_tmp_3_25(gtm_gtid int);
+master-bin.000001
+1#gtm_gtid #binlog_start_pos
+11 2287
+12 2576
+insert into master_tmp_3_25 select cast(gtm_gtid as signed) as gtm_gtid from master_tmp_1_25 limit 1, 18446744073709551615;
+select * from master_tmp_1_25 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_25;
+count(*)
+3
+include/assert.inc [master gtid_idx file flag must be 1]
+include/assert.inc [1st gtm-gtid must be 11]
+include/assert.inc [2nd gtm-gtid must be 12]
+drop table master_tmp_1_25;
+drop table master_tmp_2_25;
+drop table master_tmp_3_25;
+[connection slave]
+[old slave, new master]
+use fangpei_test;
+drop table if exists slave_tmp_1_25;
+drop table if exists slave_tmp_2_25;
+create table slave_tmp_1_25(gtm_gtid varchar(256), pos varchar(256));
+create table slave_tmp_2_25(status_flag int, other1 varchar(256), other2 varchar(256));
+slave-bin.000004
+1#gtm_gtid #binlog_start_pos
+select * from slave_tmp_1_25 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from slave_tmp_1_25;
+count(*)
+1
+include/assert.inc [slave gtid_idx file flag must be 1]
+drop table slave_tmp_1_25;
+drop table slave_tmp_2_25;
+[connection slave]
+[old slave, new master]
+drop database fangpei_test;
+include/rpl_end.inc

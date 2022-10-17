@@ -1,0 +1,39 @@
+################################################################################
+# BUG: the server id in the master log is negative when the slave server id is set greater than 2^31
+# 
+# we fixed the code in function repl_semi_binlog_dump_start repl_semi_binlog_dump_end apply_event_and_update_pos 
+# and changed the "server_id: %d" to"server_id: %u" 
+################################################################################
+--source include/not_group_replication_plugin.inc
+--source include/master-slave.inc
+#--source include/have_binlog_format_row.inc
+
+--source include/rpl_connection_slave.inc
+show variables like "server_id";
+let $server_id=`select @@server_id`;
+--source include/stop_slave.inc
+--source include/start_slave.inc
+
+--source include/rpl_connection_master.inc
+--disable_warnings
+drop table if exists t1;
+drop table if exists t2;
+--enable_warnings
+
+create table t1(id_string varchar(20));
+create table t2(id_string varchar(20));
+let $data_dir=`select @@datadir`;
+let $err_log_dir=$data_dir../../log/mysqld.1.err;
+
+--disable_query_log
+eval load data infile '$err_log_dir' into table t1 LINES STARTING BY 'Start asynchronous binlog_dump to slave (server_id: ' terminated by ')';
+eval load data infile '$err_log_dir' into table t2 LINES STARTING BY 'Stop asynchronous binlog_dump to slave (server_id: ' terminated by ')';
+--enable_query_log
+
+eval select * from t1 where id_string = $server_id limit 1;
+eval select * from t2 where id_string = $server_id limit 1;
+
+drop table t1;
+drop table t2;
+
+--source include/rpl_end.inc

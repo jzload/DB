@@ -1,0 +1,411 @@
+#
+# This test is about function `load data infile ... gdb_format 'JCSV'`. 
+# This function is commonly used together with `outfile gdb_format 'JCSV'`.
+# While import data with JCSV, escape_char will be purely data, instead if indicating escapement.
+#
+
+SET @sql_mode_orig = @@sql_mode;
+
+set names utf8mb4;
+create database yxx;
+use yxx;
+
+CREATE TABLE `src` (
+  `c1` char(18) COLLATE utf8mb4_bin DEFAULT NULL,
+  `c2` char(18) COLLATE utf8mb4_bin DEFAULT NULL,
+  `c3` char(18) COLLATE utf8mb4_bin DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+CREATE TABLE `dst` like `src`;
+
+
+--echo ########################## BEGIN THE TEST ##################################
+
+--echo #########################################################################
+--echo # test-1 common data in table
+--echo #########################################################################
+
+insert into src values ('123456789', 'abcdefghijk', '~!@#$%^&*()_+');
+insert into src values ('123456789', 'abcdefghijk', '~!@#$%^&*()_+');
+
+
+disable_query_log;
+eval select * from src into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" fields terminated by '' gdb_format 'JCSV';
+eval load data infile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" into table dst character set binary (@a) set c1=substring(@a, 1, 18), c2=substring(@a, 19, 18), c3=substring(@a, 37, 18) gdb_format 'JCSV';
+enable_query_log;
+
+eval set sql_mode=@sql_mode_orig;
+select * from src;
+select * from dst;
+
+--echo # 0 rows result expected 
+select * from dst where (c1,c2,c3) not in (select c1,c2,c3 from src);
+
+truncate table src;
+truncate table dst;
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test.log
+
+
+--echo #########################################################################
+--echo # test-2 data with special chararcter in table, but not TAB and \n
+--echo #########################################################################
+
+insert into src values ('start', x'410001020304050607080B0C0D0E0F41', 'end');
+insert into src values ('start', x'410001020304050607080B0C0D0E0F41', 'end');
+
+
+disable_query_log;
+eval select * from src into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" fields terminated by '' gdb_format 'JCSV';
+eval load data infile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" into table dst character set binary (@a) set c1=substring(@a, 1, 18), c2=substring(@a, 19, 18), c3=substring(@a, 37, 18) gdb_format 'JCSV';
+enable_query_log;
+
+eval set sql_mode=@sql_mode_orig;
+select * from src;
+select * from dst;
+
+--echo # 0 rows result expected
+select * from dst where (c1,c2,c3) not in (select c1,c2,c3 from src);
+
+truncate table src;
+truncate table dst;
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test.log
+
+
+
+--echo #########################################################################
+--echo # test-3 data with Chinese chararcter in table
+--echo #########################################################################
+
+insert into src values ('相声小品', '魔术杂技', '多彩中国');
+insert into src values ('相声小品', '魔术杂技', '多彩中国');
+
+
+disable_query_log;
+eval select * from src into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" fields terminated by '' gdb_format 'JCSV';
+eval load data infile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" into table dst character set binary (@a) set c1=substring(@a, 1, 18), c2=substring(@a, 19, 18), c3=substring(@a, 37, 18) gdb_format 'JCSV';
+enable_query_log;
+
+eval set sql_mode=@sql_mode_orig;
+select * from src;
+select * from dst;
+
+--echo # 0 rows result expected
+select * from dst where (c1,c2,c3) not in (select c1,c2,c3 from src);
+
+truncate table src;
+truncate table dst;
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test.log
+
+
+
+
+--echo #########################################################################
+--echo # test-4 data with TAB chararcter in table
+--echo #########################################################################
+
+insert into src values ('abcd', x'410003091041', 'abcd');
+insert into src values ('abcd', x'410003091041', 'abcd');
+
+
+disable_query_log;
+eval select * from src into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" fields terminated by '' gdb_format 'JCSV';
+--echo # give a fake 'fields terminated', so that TAB can be treated as data
+eval load data infile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" into table dst character set binary fields terminated by '#' (@a) set c1=substring(@a, 1, 18), c2=substring(@a, 19, 18), c3=substring(@a, 37, 18) gdb_format 'JCSV';
+enable_query_log;
+
+eval set sql_mode=@sql_mode_orig;
+select * from src;
+select * from dst;
+
+--echo # 0 rows result expected
+select * from dst where (c1,c2,c3) not in (select c1,c2,c3 from src);
+
+truncate table src;
+truncate table dst;
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test.log
+
+
+
+--echo #########################################################################
+--echo # test-5 data with \n chararcter in table, with default \n terminated, leading to error
+--echo #########################################################################
+
+insert into src values ('abcd', x'4100030A1041', 'abcd');
+insert into src values ('abcd', x'4100030A1041', 'abcd');
+
+
+disable_query_log;
+eval select * from src into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" fields terminated by '' gdb_format 'JCSV';
+eval load data infile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" into table dst character set binary (@a) set c1=substring(@a, 1, 18), c2=substring(@a, 19, 18), c3=substring(@a, 37, 18) gdb_format 'JCSV';
+enable_query_log;
+
+--echo # dst should not be same with src, cause of db cannot tell '\n' from line_end
+eval set sql_mode=@sql_mode_orig;
+select * from src;
+select * from dst;
+
+--echo # >= 1 rows result expected
+select * from dst where (c1,c2,c3) not in (select c1,c2,c3 from src);
+
+truncate table src;
+truncate table dst;
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test.log
+
+
+
+
+--echo #########################################################################
+--echo # test-6 data with \n chararcter in table, with other lines terminated
+--echo #########################################################################
+
+insert into src values ('abcd', x'4100030A1041', 'abcd');
+insert into src values ('abcd', x'4100030A1041', 'abcd');
+
+
+disable_query_log;
+eval select * from src into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" fields terminated by '' lines terminated by '@@@\n' gdb_format 'JCSV';
+eval load data infile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" into table dst character set binary lines terminated by '@@@\n' (@a) set c1=substring(@a, 1, 18), c2=substring(@a, 19, 18), c3=substring(@a, 37, 18) gdb_format 'JCSV';
+enable_query_log;
+
+eval set sql_mode=@sql_mode_orig;
+select * from src;
+select * from dst;
+
+--echo # 0 rows result expected
+select * from dst where (c1,c2,c3) not in (select c1,c2,c3 from src);
+
+truncate table src;
+truncate table dst;
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test.log
+
+
+
+--echo #########################################################################
+--echo # test-7 data with \n and TAB chararcter in table, with other lines terminated
+--echo #########################################################################
+
+insert into src values ('abcd', x'410003090A1041', 'abcd');
+insert into src values ('abcd', x'410003090A1041', 'abcd');
+
+
+disable_query_log;
+eval select * from src into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" fields terminated by '' lines terminated by '@@@\n' gdb_format 'JCSV';
+eval load data infile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" into table dst character set binary fields terminated by '##' lines terminated by '@@@\n' (@a) set c1=substring(@a, 1, 18), c2=substring(@a, 19, 18), c3=substring(@a, 37, 18) gdb_format 'JCSV';
+enable_query_log;
+
+eval set sql_mode=@sql_mode_orig;
+select * from src;
+select * from dst;
+
+--echo # 0 rows result expected
+select * from dst where (c1,c2,c3) not in (select c1,c2,c3 from src);
+
+truncate table src;
+truncate table dst;
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test.log
+
+
+--echo #########################################################################
+--echo # test-8 data with all ASCII except \n and TAB chararcter
+--echo #########################################################################
+
+drop table src;
+drop table dst;
+create table src (c1 char(16), c2 char(255), c3 char(16));
+create table dst like src;
+
+insert into src values ('abcd', x'0001020304050607080b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f', 'abcd');
+insert into src values ('abcd', x'0001020304050607080b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f', 'abcd');
+
+
+disable_query_log;
+eval select * from src into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" fields terminated by '' gdb_format 'JCSV';
+eval load data infile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" into table dst character set binary (@a) set c1=substring(@a, 1, 16), c2=substring(@a, 17, 255), c3=substring(@a, 272, 16) gdb_format 'JCSV';
+enable_query_log;
+
+eval set sql_mode=@sql_mode_orig;
+select * from src;
+select * from dst;
+
+--echo # 0 rows result expected
+select * from dst where (c1,c2,c3) not in (select c1,c2,c3 from src);
+
+truncate table src;
+truncate table dst;
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test.log
+
+
+
+
+--echo #########################################################################
+--echo # test-9 data with all ASCII chars
+--echo #########################################################################
+
+insert into src values ('abcd', x'000102030405060708090A0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c', 'abcd');
+insert into src values ('abcd', x'000102030405060708090A0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c', 'abcd');
+
+
+disable_query_log;
+eval select * from src into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" fields terminated by '' lines terminated by '@@@\n' gdb_format 'JCSV';
+eval load data infile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" into table dst character set binary fields terminated by '##' lines terminated by '@@@\n' (@a) set c1=substring(@a, 1, 16), c2=substring(@a, 17, 255), c3=substring(@a, 272, 16) gdb_format 'JCSV';
+enable_query_log;
+
+eval set sql_mode=@sql_mode_orig;
+select * from src;
+select * from dst;
+
+--echo # 0 rows result expected
+select * from dst where (c1,c2,c3) not in (select c1,c2,c3 from src);
+
+truncate table src;
+truncate table dst;
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test.log
+
+
+
+--echo #########################################################################
+--echo # test-10 if there is a NULL field in table, there is nothing for this field in exported result
+--echo #########################################################################
+
+insert into src values ('123456789', NULL, '~!@#$%^&*()_+');
+
+disable_query_log;
+eval select * from src into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" fields terminated by '' gdb_format 'JCSV';
+eval set sql_mode='';
+eval load data infile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" into table dst character set binary (@a) set c1=substring(@a, 1, 18), c2=substring(@a, 19, 18), c3=substring(@a, 37, 18) gdb_format 'JCSV';
+enable_query_log;
+
+eval set sql_mode=@sql_mode_orig;
+select * from src;
+select * from dst;
+
+--echo # >=1 rows result expected
+select * from dst where (c1,c2,c3) not in (select c1,c2,c3 from src);
+
+truncate table src;
+truncate table dst;
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test.log
+
+
+--echo #########################################################################
+--echo # test-11 JCSV requires fields enclosed to be empty
+--echo #########################################################################
+
+insert into src values ('123456789', 'abcdefghi', '~!@#$%^&*()_+');
+
+
+disable_query_log;
+--error ER_WRONG_USAGE_GDB_FORMAT
+eval select * from src into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" fields enclosed by '%' terminated by '' gdb_format 'JCSV';
+enable_query_log;
+
+truncate table src;
+truncate table dst;
+
+
+--echo #########################################################################
+--echo # test-12 if load_data use_var is used, fields enclosed and terminated cannot be empty at the same time
+--echo #########################################################################
+
+insert into src values ('123456789', 'abcdefghi', '~!@#$%^&*()_+');
+
+
+disable_query_log;
+eval select * from src into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" fields terminated by '' gdb_format 'JCSV';
+--error ER_LOAD_FROM_FIXED_SIZE_ROWS_TO_VAR
+eval load data infile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" into table dst character set binary fields terminated by '' (@a) set c1=substring(@a, 1, 18), c2=substring(@a, 19, 18), c3=substring(@a, 37, 18) gdb_format 'JCSV';
+enable_query_log;
+
+truncate table src;
+truncate table dst;
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test.log
+
+
+
+--echo #########################################################################
+--echo # test-13 data with TAB chararcter in table, load data with default fields terminated leads to wrong data
+--echo #########################################################################
+
+insert into src values ('abcd', x'410003091041', 'abcd');
+
+
+disable_query_log;
+eval select * from src into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" fields terminated by '' gdb_format 'JCSV';
+--echo # give a fake 'fields terminated', so that TAB can be treated as data
+eval set sql_mode='';
+eval load data infile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" into table dst character set binary  (@a) set c1=substring(@a, 1, 18), c2=substring(@a, 19, 18), c3=substring(@a, 37, 18) gdb_format 'JCSV';
+enable_query_log;
+
+eval set sql_mode=@sql_mode_orig;
+select * from src;
+select * from dst;
+
+--echo # >=1 rows result expected
+select * from dst where (c1,c2,c3) not in (select c1,c2,c3 from src);
+
+truncate table src;
+truncate table dst;
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test.log
+
+
+
+--echo #########################################################################
+--echo # test-14 for long Chinese string, outfile may be incorrect
+--echo #########################################################################
+drop table src;
+drop table dst;
+create table src (c1 char(20), c2 char(20), c3 char(20)) DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+create table dst like src;
+
+insert into src values ('相声小品abcdefgh1234', '评书笑话abcdefgh1234', '多彩中国abcdefgh1234');
+insert into src values ('相声小品abcdefgh1234', '评书笑话abcdefgh1234', '多彩中国abcdefgh1234');
+
+
+disable_query_log;
+eval select * from src into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" fields terminated by '' gdb_format 'JCSV';
+eval load data infile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" into table dst character set binary (@a) set c1=substring(@a, 1, 20), c2=substring(@a, 21, 20), c3=substring(@a, 41, 20) gdb_format 'JCSV';
+enable_query_log;
+
+eval set sql_mode=@sql_mode_orig;
+select * from src;
+select * from dst;
+
+--echo # >=1 rows result expected
+select * from dst where (c1,c2,c3) not in (select c1,c2,c3 from src);
+
+truncate table src;
+truncate table dst;
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test.log
+
+
+--echo #########################################################################
+--echo # test-15 different character set
+--echo #########################################################################
+
+drop table src;
+drop table dst;
+create table src (c1 char(16) character set gbk,
+                  c2 char(255) character set gb18030,
+                  c3 char(16) character set latin1);
+create table dst like src;
+
+insert into src values ('ab中文', 'this is not 汉语拼音，这是汉字', '§«±µ¶¶»½¿');
+
+
+disable_query_log;
+eval select * from src into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" fields terminated by '' gdb_format 'JCSV';
+eval load data infile "$MYSQLTEST_VARDIR/tmp/outfile-test.log" into table dst character set binary (@a) set c1=substring(@a, 1, 16), c2=substring(@a, 17, 255), c3=substring(@a, 272, 16) gdb_format 'JCSV';
+enable_query_log;
+
+select * from src;
+select * from dst;
+
+--echo # 0 rows result expected
+select * from dst where (c1,c2,c3) not in (select c1,c2,c3 from src);
+
+truncate table src;
+truncate table dst;
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test.log
+
+--echo # cleanup ...
+drop database yxx;

@@ -1,0 +1,611 @@
+#
+# 1. test YYYY
+#
+select to_date('2020', 'YYYY') from dual;
+to_date('2020', 'YYYY')
+2020-04-01 00:00:00
+select to_date('2020', 'yyyy') from dual;
+to_date('2020', 'yyyy')
+2020-04-01 00:00:00
+select to_date('2020', 'yYyY') from dual;
+to_date('2020', 'yYyY')
+2020-04-01 00:00:00
+select to_date('220', 'YYYY') from dual;
+to_date('220', 'YYYY')
+0220-04-01 00:00:00
+select to_date('9820', 'YYYY') from dual;
+to_date('9820', 'YYYY')
+9820-04-01 00:00:00
+select to_date('10-3 13:04:33', 'MM-DD HH24:MI:SS') from dual;
+to_date('10-3 13:04:33', 'MM-DD HH24:MI:SS')
+2020-10-03 13:04:33
+#
+# 2. test Y,YYY
+#
+select to_date('2,020', 'Y,YYY') from dual;
+to_date('2,020', 'Y,YYY')
+2020-04-01 00:00:00
+select to_date('2,020', 'y,yyy') from dual;
+to_date('2,020', 'y,yyy')
+2020-04-01 00:00:00
+select to_date('2020', 'Y,YYY') from dual;
+to_date('2020', 'Y,YYY')
+2020-04-01 00:00:00
+select to_date('20,20', 'Y,YYY') from dual;
+to_date('20,20', 'Y,YYY')
+2020-04-01 00:00:00
+select to_date('20', 'Y,YYY') from dual;
+to_date('20', 'Y,YYY')
+0020-04-01 00:00:00
+select to_date('  20', 'Y,YYY') from dual;
+to_date('  20', 'Y,YYY')
+0020-04-01 00:00:00
+select to_date('22,0', 'Y,YYY') from dual;
+to_date('22,0', 'Y,YYY')
+0220-04-01 00:00:00
+select to_date('2,20', 'Y,YYY') from dual;
+to_date('2,20', 'Y,YYY')
+0220-04-01 00:00:00
+select to_date('2,2,0', 'Y,YYY') from dual;
+to_date('2,2,0', 'Y,YYY')
+0220-04-01 00:00:00
+select to_date('a20', 'Y,YYY') from dual;
+ERROR HY000: invalid value for format 'Y,YYY'
+select to_date('222,01', 'Y,YYY') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_date('222,0', 'yyyy') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_date('-2220', 'YYYY') from dual;
+ERROR HY000: convert date/time fail: year must be between 1 and 9999
+select to_date('2220 12', 'YYYY') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+#
+# 3. test MM
+#
+select to_date('2', 'MM') from dual;
+to_date('2', 'MM')
+2020-02-01 00:00:00
+select to_date('12', 'MM') from dual;
+to_date('12', 'MM')
+2020-12-01 00:00:00
+select to_date('02', 'MM') from dual;
+to_date('02', 'MM')
+2020-02-01 00:00:00
+select to_date('0', 'MM') from dual;
+ERROR HY000: convert date/time fail: not a valid month
+select to_date('12', 'MM') from dual;
+to_date('12', 'MM')
+2020-12-01 00:00:00
+select to_date('13', 'MM') from dual;
+ERROR HY000: convert date/time fail: not a valid month
+select to_date('1', 'mm') from dual;
+to_date('1', 'mm')
+2020-01-01 00:00:00
+select to_date('1', 'mM') from dual;
+to_date('1', 'mM')
+2020-01-01 00:00:00
+select to_date('1', 'Mm') from dual;
+to_date('1', 'Mm')
+2020-01-01 00:00:00
+#
+# 4. test DD
+#
+select to_date('2', 'DD') from dual;
+to_date('2', 'DD')
+2020-04-02 00:00:00
+select to_date('0', 'DD') from dual;
+ERROR HY000: convert date/time fail: day of month must be between 1 and last day of month
+select to_date('12', 'DD') from dual;
+to_date('12', 'DD')
+2020-04-12 00:00:00
+select to_date('02', 'DD') from dual;
+to_date('02', 'DD')
+2020-04-02 00:00:00
+select to_date('35', 'DD') from dual;
+ERROR HY000: convert date/time fail: day of month must be between 1 and last day of month
+select to_date('04-31', 'MM-DD') from dual;
+ERROR HY000: convert date/time fail: date not valid for month specified
+select to_date('05-31', 'MM-DD') from dual;
+to_date('05-31', 'MM-DD')
+2020-05-31 00:00:00
+select to_date('04-30', 'MM-DD') from dual;
+to_date('04-30', 'MM-DD')
+2020-04-30 00:00:00
+select to_date('2-30', 'MM-DD') from dual;
+ERROR HY000: convert date/time fail: date not valid for month specified
+select to_date('2020-2-29', 'YYYY-MM-DD') from dual;
+to_date('2020-2-29', 'YYYY-MM-DD')
+2020-02-29 00:00:00
+select to_date('2019-2-29', 'YYYY-MM-DD') from dual;
+ERROR HY000: convert date/time fail: date not valid for month specified
+select to_date('1', 'dd') from dual;
+to_date('1', 'dd')
+2020-04-01 00:00:00
+select to_date('11', 'dd') from dual;
+to_date('11', 'dd')
+2020-04-11 00:00:00
+select to_date('11', 'Dd') from dual;
+to_date('11', 'Dd')
+2020-04-11 00:00:00
+#
+# 5. test YYYY-MM-DD interval
+#
+select to_date('2020-1-1', 'YYYY-MM-DD') from dual;
+to_date('2020-1-1', 'YYYY-MM-DD')
+2020-01-01 00:00:00
+select to_date('2020 1 1', 'YYYY MM DD') from dual;
+to_date('2020 1 1', 'YYYY MM DD')
+2020-01-01 00:00:00
+select to_date('2020/1/1', 'YYYY/MM/DD') from dual;
+to_date('2020/1/1', 'YYYY/MM/DD')
+2020-01-01 00:00:00
+select to_date('2020,01,1', 'YYYY,MM,DD') from dual;
+to_date('2020,01,1', 'YYYY,MM,DD')
+2020-01-01 00:00:00
+select to_date('2020.12.01', 'YYYY.MM.DD') from dual;
+to_date('2020.12.01', 'YYYY.MM.DD')
+2020-12-01 00:00:00
+select to_date('2020;12;01', 'YYYY;MM;DD') from dual;
+to_date('2020;12;01', 'YYYY;MM;DD')
+2020-12-01 00:00:00
+select to_date('20201201', 'YYYYMMDD') from dual;
+to_date('20201201', 'YYYYMMDD')
+2020-12-01 00:00:00
+select to_date('2020121', 'YYYYMMDD') from dual;
+to_date('2020121', 'YYYYMMDD')
+2020-12-01 00:00:00
+select to_date('2020821', 'YYYYMMDD') from dual;
+ERROR HY000: convert date/time fail: not a valid month
+select to_date('2020_1_1', 'YYYY_MM_DD') from dual;
+to_date('2020_1_1', 'YYYY_MM_DD')
+2020-01-01 00:00:00
+select to_date('2020+1+1', 'YYYY+MM+DD') from dual;
+to_date('2020+1+1', 'YYYY+MM+DD')
+2020-01-01 00:00:00
+select to_date('2020?1%1', 'YYYY#MM@DD') from dual;
+to_date('2020?1%1', 'YYYY#MM@DD')
+2020-01-01 00:00:00
+select to_date('2020??1--1', 'YYYY#MM@DD') from dual;
+ERROR HY000: invalid value for format 'MM'
+select to_date('2020??1--1', 'YYYY??MM--DD') from dual;
+to_date('2020??1--1', 'YYYY??MM--DD')
+2020-01-01 00:00:00
+select to_date('2020??1--1', 'YYYY?#MM$-DD') from dual;
+to_date('2020??1--1', 'YYYY?#MM$-DD')
+2020-01-01 00:00:00
+select to_date('2020??1-1', 'YYYY?MM-DD') from dual;
+ERROR HY000: invalid value for format 'MM'
+select to_date('2020??1-1', 'YYYYcMM-DD') from dual;
+ERROR HY000: invalid format 'cMM-DD'
+#
+# 6. test YYYY-MM-DD order
+#
+select to_date('1 12 2020', 'MM DD YYYY') from dual;
+to_date('1 12 2020', 'MM DD YYYY')
+2020-01-12 00:00:00
+select to_date('01 12 2020', 'MM DD YYYY') from dual;
+to_date('01 12 2020', 'MM DD YYYY')
+2020-01-12 00:00:00
+select to_date('11 22 2020', 'MM DD YYYY') from dual;
+to_date('11 22 2020', 'MM DD YYYY')
+2020-11-22 00:00:00
+select to_date('11/02/2020', 'MM/DD/YYYY') from dual;
+to_date('11/02/2020', 'MM/DD/YYYY')
+2020-11-02 00:00:00
+select to_date('11/2/2020', 'MM/DD/YYYY') from dual;
+to_date('11/2/2020', 'MM/DD/YYYY')
+2020-11-02 00:00:00
+select to_date('2-11-2020', 'MM-DD-YYYY') from dual;
+to_date('2-11-2020', 'MM-DD-YYYY')
+2020-02-11 00:00:00
+select to_date('2020.11.2', 'YYYY.DD.MM') from dual;
+to_date('2020.11.2', 'YYYY.DD.MM')
+2020-02-11 00:00:00
+#
+# 7. test hour
+#
+select to_date('11', 'HH') from dual;
+to_date('11', 'HH')
+2020-04-01 11:00:00
+select to_date('8', 'HH') from dual;
+to_date('8', 'HH')
+2020-04-01 08:00:00
+select to_date('08', 'HH') from dual;
+to_date('08', 'HH')
+2020-04-01 08:00:00
+select to_date('07', 'hh') from dual;
+to_date('07', 'hh')
+2020-04-01 07:00:00
+select to_date('11', 'HH') from dual;
+to_date('11', 'HH')
+2020-04-01 11:00:00
+select to_date('8', 'HH') from dual;
+to_date('8', 'HH')
+2020-04-01 08:00:00
+select to_date('0', 'HH') from dual;
+ERROR HY000: convert date/time fail: hour must be between 1 and 12 in 12-Hour Clock
+select to_date('1', 'HH') from dual;
+to_date('1', 'HH')
+2020-04-01 01:00:00
+select to_date('01', 'HH') from dual;
+to_date('01', 'HH')
+2020-04-01 01:00:00
+select to_date('12', 'HH') from dual;
+to_date('12', 'HH')
+2020-04-01 12:00:00
+select to_date('13', 'HH') from dual;
+ERROR HY000: convert date/time fail: hour must be between 1 and 12 in 12-Hour Clock
+select to_date('10', 'hH12') from dual;
+to_date('10', 'hH12')
+2020-04-01 10:00:00
+select to_date('0', 'HH24') from dual;
+to_date('0', 'HH24')
+2020-04-01 00:00:00
+select to_date('3', 'HH24') from dual;
+to_date('3', 'HH24')
+2020-04-01 03:00:00
+select to_date('09', 'HH24') from dual;
+to_date('09', 'HH24')
+2020-04-01 09:00:00
+select to_date('14', 'HH24') from dual;
+to_date('14', 'HH24')
+2020-04-01 14:00:00
+select to_date('0', 'HH24') from dual;
+to_date('0', 'HH24')
+2020-04-01 00:00:00
+select to_date('24', 'HH24') from dual;
+ERROR HY000: convert date/time fail: hour must be between 0 and 23 in 24-Hour Clock
+select to_date('23', 'HH24') from dual;
+to_date('23', 'HH24')
+2020-04-01 23:00:00
+select to_date('20', 'hh24') from dual;
+to_date('20', 'hh24')
+2020-04-01 20:00:00
+select to_date('17', 'hH24') from dual;
+to_date('17', 'hH24')
+2020-04-01 17:00:00
+select to_date('12 am', 'HH am') from dual;
+to_date('12 am', 'HH am')
+2020-04-01 00:00:00
+select to_date('12 pm', 'HH am') from dual;
+to_date('12 pm', 'HH am')
+2020-04-01 12:00:00
+#
+# 8. test minute
+#
+select to_date('7', 'MI') from dual;
+to_date('7', 'MI')
+2020-04-01 00:07:00
+select to_date('07', 'MI') from dual;
+to_date('07', 'MI')
+2020-04-01 00:07:00
+select to_date('43', 'MI') from dual;
+to_date('43', 'MI')
+2020-04-01 00:43:00
+select to_date('143', 'MI') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_date('0', 'MI') from dual;
+to_date('0', 'MI')
+2020-04-01 00:00:00
+select to_date('60', 'MI') from dual;
+ERROR HY000: convert date/time fail: minutes must be between 0 and 59
+select to_date('13', 'mi') from dual;
+to_date('13', 'mi')
+2020-04-01 00:13:00
+select to_date('53', 'Mi') from dual;
+to_date('53', 'Mi')
+2020-04-01 00:53:00
+#
+# 9. test second
+#
+select to_date('53', 'SS') from dual;
+to_date('53', 'SS')
+2020-04-01 00:00:53
+select to_date('3', 'SS') from dual;
+to_date('3', 'SS')
+2020-04-01 00:00:03
+select to_date('03', 'SS') from dual;
+to_date('03', 'SS')
+2020-04-01 00:00:03
+select to_date('0', 'SS') from dual;
+to_date('0', 'SS')
+2020-04-01 00:00:00
+select to_date('60', 'SS') from dual;
+ERROR HY000: convert date/time fail: seconds must be between 0 and 59
+select to_date('35', 'ss') from dual;
+to_date('35', 'ss')
+2020-04-01 00:00:35
+select to_date('35', 'sS') from dual;
+to_date('35', 'sS')
+2020-04-01 00:00:35
+#
+# 10 test time include hour,minute,second part
+#
+select to_date('1:3:1', 'HH:MI:SS') from dual;
+to_date('1:3:1', 'HH:MI:SS')
+2020-04-01 01:03:01
+select to_date('01:03:01', 'HH:MI:SS') from dual;
+to_date('01:03:01', 'HH:MI:SS')
+2020-04-01 01:03:01
+select to_date('11:43:56', 'HH:MI:SS') from dual;
+to_date('11:43:56', 'HH:MI:SS')
+2020-04-01 11:43:56
+select to_date('0:0:0', 'HH:MI:SS') from dual;
+ERROR HY000: convert date/time fail: hour must be between 1 and 12 in 12-Hour Clock
+select to_date('0:0:0', 'HH24:MI:SS') from dual;
+to_date('0:0:0', 'HH24:MI:SS')
+2020-04-01 00:00:00
+select to_date('101112', 'HH24:MI:SS') from dual;
+to_date('101112', 'HH24:MI:SS')
+2020-04-01 10:11:12
+select to_date('101112', 'HH24MISS') from dual;
+to_date('101112', 'HH24MISS')
+2020-04-01 10:11:12
+select to_date('24:60:60', 'HH24:MI:SS') from dual;
+ERROR HY000: convert date/time fail: hour must be between 0 and 23 in 24-Hour Clock
+select to_date('60:0:60', 'MI:HH:SS') from dual;
+ERROR HY000: convert date/time fail: hour must be between 1 and 12 in 12-Hour Clock
+select to_date('60:0:60', 'SS:HH:MI') from dual;
+ERROR HY000: convert date/time fail: hour must be between 1 and 12 in 12-Hour Clock
+select to_date('12:13:60', 'SS:ss:MI') from dual;
+ERROR HY000: convert date/time fail: format code appears twice: ss
+select to_date('12:12:60', 'SS:ss:MI') from dual;
+ERROR HY000: convert date/time fail: format code appears twice: ss
+select to_date('12:13:60:12', 'MI:SS:ss:MI') from dual;
+ERROR HY000: convert date/time fail: format code appears twice: ss
+select to_date('60:12:13', 'MI:SS:ss') from dual;
+ERROR HY000: convert date/time fail: format code appears twice: ss
+#
+# 11 test am pm
+#
+select to_date('AM', 'AM') from dual;
+to_date('AM', 'AM')
+2020-04-01 00:00:00
+select to_date('am', 'AM') from dual;
+to_date('am', 'AM')
+2020-04-01 00:00:00
+select to_date('A.M.', 'AM') from dual;
+ERROR HY000: convert date/time fail: the value of format AM/PM/am/pm is wrong
+select to_date('p.m.', 'AM') from dual;
+ERROR HY000: convert date/time fail: the value of format AM/PM/am/pm is wrong
+select to_date('pm', 'AM') from dual;
+to_date('pm', 'AM')
+2020-04-01 00:00:00
+select to_date('am', 'AM') from dual;
+to_date('am', 'AM')
+2020-04-01 00:00:00
+select to_date('pm', 'A.M.') from dual;
+ERROR HY000: convert date/time fail: the value of format A.M./P.M./a.m./p.m. is wrong
+select to_date('p.m.', 'A.M.') from dual;
+to_date('p.m.', 'A.M.')
+2020-04-01 00:00:00
+select to_date('c.c.', 'A.M.') from dual;
+ERROR HY000: convert date/time fail: the value of format A.M./P.M./a.m./p.m. is wrong
+#
+# 12 test time & am pm
+#
+select to_date('11:12:30 am', 'HH:MI:SS AM') from dual;
+to_date('11:12:30 am', 'HH:MI:SS AM')
+2020-04-01 11:12:30
+select to_date('11:12:30 pm', 'HH:MI:SS AM') from dual;
+to_date('11:12:30 pm', 'HH:MI:SS AM')
+2020-04-01 23:12:30
+select to_date('11:12:30 a.m.', 'HH:MI:SS A.M.') from dual;
+to_date('11:12:30 a.m.', 'HH:MI:SS A.M.')
+2020-04-01 11:12:30
+select to_date('11:12:30 p.m.', 'HH:MI:SS A.M.') from dual;
+to_date('11:12:30 p.m.', 'HH:MI:SS A.M.')
+2020-04-01 23:12:30
+select to_date('11:12:30 am', 'HH:MI:SS PM') from dual;
+to_date('11:12:30 am', 'HH:MI:SS PM')
+2020-04-01 11:12:30
+select to_date('11:12:30 a.m.', 'HH:MI:SS P.M.') from dual;
+to_date('11:12:30 a.m.', 'HH:MI:SS P.M.')
+2020-04-01 11:12:30
+select to_date('11:12:30 am', 'HH:MI:SS P.M.') from dual;
+ERROR HY000: convert date/time fail: the value of format A.M./P.M./a.m./p.m. is wrong
+select to_date('11:12:30 A.M.', 'HH:MI:SS A.M.') from dual;
+to_date('11:12:30 A.M.', 'HH:MI:SS A.M.')
+2020-04-01 11:12:30
+select to_date('11:12:30 p.m.', 'HH:MI:SS A.M.') from dual;
+to_date('11:12:30 p.m.', 'HH:MI:SS A.M.')
+2020-04-01 23:12:30
+select to_date('11:12:30 a.m.', 'HH:MI:SS P.M.') from dual;
+to_date('11:12:30 a.m.', 'HH:MI:SS P.M.')
+2020-04-01 11:12:30
+select to_date('11:12:30 a.m.', 'HH:MI:SS p.M.') from dual;
+to_date('11:12:30 a.m.', 'HH:MI:SS p.M.')
+2020-04-01 11:12:30
+select to_date('13:12:30 am', 'HH12:MI:SS AM') from dual;
+ERROR HY000: convert date/time fail: hour must be between 1 and 12 in 12-Hour Clock
+select to_date('11:12:30 am', 'HH24:MI:SS AM') from dual;
+ERROR HY000: convert date/time fail: 'HH24' precludes use of meridian indicator
+select to_date('13:12:30 am', 'HH24:MI:SS AM') from dual;
+ERROR HY000: convert date/time fail: 'HH24' precludes use of meridian indicator
+select to_date('13:12:30 pm', 'HH24:MI:SS PM') from dual;
+ERROR HY000: convert date/time fail: 'HH24' precludes use of meridian indicator
+select to_date('am 13:12:30', 'AM HH24:MI:SS') from dual;
+ERROR HY000: convert date/time fail: 'HH24' precludes use of meridian indicator
+select to_date('am pm 10:12:30', 'AM AM HH12:MI:SS') from dual;
+ERROR HY000: convert date/time fail: format code appears twice: A.M./P.M./a.m./p.m.
+select to_date('am pm 10:12:30', 'AM PM HH12:MI:SS') from dual;
+ERROR HY000: convert date/time fail: format code appears twice: A.M./P.M./a.m./p.m.
+select to_date('10:12:30', 'HH24:MI:SS') from dual;
+to_date('10:12:30', 'HH24:MI:SS')
+2020-04-01 10:12:30
+select to_date('2020 am', 'YYYY p.m.') from dual;
+ERROR HY000: convert date/time fail: the value of format A.M./P.M./a.m./p.m. is wrong
+select to_date('2020 a.m.', 'YYYY p.m.') from dual;
+to_date('2020 a.m.', 'YYYY p.m.')
+2020-04-01 00:00:00
+#
+# 13 test time & am pm
+#
+select to_date('2020-02-10 14:12:24', 'YYYY-MM-DD HH24:MI:SS') from dual;
+to_date('2020-02-10 14:12:24', 'YYYY-MM-DD HH24:MI:SS')
+2020-02-10 14:12:24
+select to_date('2020 02,10 14.12.24', 'YYYY MM,DD HH24.MI.SS') from dual;
+to_date('2020 02,10 14.12.24', 'YYYY MM,DD HH24.MI.SS')
+2020-02-10 14:12:24
+select to_date('2020-02-10 14:12:24', 'YYYY-MM-DD HH24:MI:SS') from dual;
+to_date('2020-02-10 14:12:24', 'YYYY-MM-DD HH24:MI:SS')
+2020-02-10 14:12:24
+select to_date('2020-10 14:12:24', 'YYYY-DD HH24:MI:SS') from dual;
+to_date('2020-10 14:12:24', 'YYYY-DD HH24:MI:SS')
+2020-04-10 14:12:24
+select to_date('2020 10 14:12:24', 'YYYY MM HH24:MI:SS') from dual;
+to_date('2020 10 14:12:24', 'YYYY MM HH24:MI:SS')
+2020-10-01 14:12:24
+#
+# 14 test format chars
+#
+select to_date('aa2020', 'aaYYYY') from dual;
+ERROR HY000: invalid format 'aaYYYY'
+select to_date('aa2020', '"aa"YYYY') from dual;
+to_date('aa2020', '"aa"YYYY')
+2020-04-01 00:00:00
+select to_date('aa2020', '"AA"YYYY') from dual;
+to_date('aa2020', '"AA"YYYY')
+2020-04-01 00:00:00
+select to_date('aa2020', '"aaYYYY') from dual;
+ERROR HY000: convert date/time fail: literal does not match format string
+#
+# 15 test format chars
+#
+select to_date('2020', '') from dual;
+to_date('2020', '')
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '2020' for function to_date
+select to_date('', '') from dual;
+to_date('', '')
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '' for function to_date
+select to_date('   ', '') from dual;
+to_date('   ', '')
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '   ' for function to_date
+select to_date('2020', ' ') from dual;
+ERROR HY000: convert date/time fail: literal does not match format string
+select to_date('', ' ') from dual;
+to_date('', ' ')
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '' for function to_date
+select to_date(' ', ' ') from dual;
+to_date(' ', ' ')
+2020-07-01 00:00:00
+select to_date('   ', '  ') from dual;
+to_date('   ', '  ')
+2020-07-01 00:00:00
+select to_date('', 'YYYY') from dual;
+to_date('', 'YYYY')
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '' for function to_date
+select to_date('2020', 'YYYY-MM') from dual;
+ERROR HY000: convert date/time fail: input value not long enough for date format
+select to_date('2020-15', 'YYYY') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string
+select to_date('2020') from dual;
+ERROR HY000: convert date/time fail: input value not long enough for date format
+select to_date('2020-2-3 11:15:34') from dual;
+to_date('2020-2-3 11:15:34')
+2020-02-03 11:15:34
+select to_date('2020-2-3') from dual;
+to_date('2020-2-3')
+2020-02-03 00:00:00
+#
+# 16 test NULL args
+#
+select to_date(NULL, 'YYYY-MM-DD') from dual;
+to_date(NULL, 'YYYY-MM-DD')
+NULL
+select to_date('2020-05-11', NULL) from dual;
+to_date('2020-05-11', NULL)
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '2020-05-11' for function to_date
+#
+# 17 test args is NULL field
+#
+drop database if exists testdb_to_date;
+create database testdb_to_date;
+use testdb_to_date;
+create table TEST_TBL_1(a varchar(100), b varchar(50));
+insert into TEST_TBL_1 values (NULL, NULL);
+select to_date(TEST_TBL_1.a, 'YYYY-MM-DD') from TEST_TBL_1;
+to_date(TEST_TBL_1.a, 'YYYY-MM-DD')
+NULL
+select to_date('2020-12-11', TEST_TBL_1.b) from TEST_TBL_1;
+to_date('2020-12-11', TEST_TBL_1.b)
+NULL
+select to_date(TEST_TBL_1.a, TEST_TBL_1.b) from TEST_TBL_1;
+to_date(TEST_TBL_1.a, TEST_TBL_1.b)
+NULL
+truncate table TEST_TBL_1;
+insert into TEST_TBL_1 values ('2020-05-21', 'YYYY-MM-DD'), (NULL, 'YYYY-MM-DD'), ('2020-05-27', 'YYYY-MM-DD');
+select to_date(TEST_TBL_1.a, TEST_TBL_1.b) from TEST_TBL_1;
+to_date(TEST_TBL_1.a, TEST_TBL_1.b)
+2020-05-21 00:00:00
+NULL
+2020-05-27 00:00:00
+truncate table TEST_TBL_1;
+insert into TEST_TBL_1 values ('2020-05-21', 'YYYY-MM-DD'), ('2020-05-23', NULL), ('2020-05-27', 'YYYY-MM-DD');
+select to_date(TEST_TBL_1.a, TEST_TBL_1.b) from TEST_TBL_1;
+to_date(TEST_TBL_1.a, TEST_TBL_1.b)
+2020-05-21 00:00:00
+NULL
+2020-05-27 00:00:00
+drop database testdb_to_date;
+#
+# 18 test format FF
+#
+select to_date('2020-05-11 13:14:15.1234', 'YYYY-MM-DD HH24:MI:SS.FF') from dual;
+ERROR HY000: invalid format 'FF'
+select to_date('2020-05-11 13:14:15.1234', 'YYYY-MM-DD HH24:MI:SS.ff') from dual;
+ERROR HY000: invalid format 'ff'
+select to_date('2020-05-11 13:14:15.1234', 'YYYY-MM-DD HH24:MI:SS.ff5') from dual;
+ERROR HY000: invalid format 'ff'
+#
+# 19 input value not long enough for date format
+#
+select to_date('11', 'MM YYYY') from dual;
+ERROR HY000: convert date/time fail: input value not long enough for date format
+select to_date('11', 'MM Y,YYY') from dual;
+ERROR HY000: convert date/time fail: input value not long enough for date format
+select to_date('2020', 'YYYY MM') from dual;
+ERROR HY000: convert date/time fail: input value not long enough for date format
+select to_date('2020', 'YYYY DD') from dual;
+ERROR HY000: convert date/time fail: input value not long enough for date format
+select to_date('11', 'HH24 YYYY') from dual;
+ERROR HY000: convert date/time fail: input value not long enough for date format
+select to_date('11', 'HH24 Y,YYY') from dual;
+ERROR HY000: convert date/time fail: input value not long enough for date format
+select to_date('11', 'HH24 MM') from dual;
+ERROR HY000: convert date/time fail: input value not long enough for date format
+select to_date('11', 'HH24 DD') from dual;
+ERROR HY000: convert date/time fail: input value not long enough for date format
+select to_date('2020', 'YYYY HH') from dual;
+to_date('2020', 'YYYY HH')
+2020-04-01 00:00:00
+select to_date('11', 'HH12 MI') from dual;
+to_date('11', 'HH12 MI')
+2020-04-01 11:00:00
+select to_date('11', 'HH24 SS') from dual;
+to_date('11', 'HH24 SS')
+2020-04-01 11:00:00
+select to_date('11', 'HH24 FF') from dual;
+ERROR HY000: invalid format 'FF'
+select to_date('2020-04-10', 'YYYY-MM-DD YYYY-MM') from dual;
+ERROR HY000: convert date/time fail: input value not long enough for date format
+select to_date('2020-04-10', 'YYYY-MM-DD HH:MI:SS') from dual;
+to_date('2020-04-10', 'YYYY-MM-DD HH:MI:SS')
+2020-04-10 00:00:00
+#
+# 20 input value is longer than date format
+#
+select to_date('2020-04-10 10:10:10', 'YYYY-MM-DD') from dual;
+ERROR HY000: convert date/time fail: date format picture ends before converting entire input string

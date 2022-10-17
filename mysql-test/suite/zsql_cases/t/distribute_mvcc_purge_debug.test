@@ -1,0 +1,182 @@
+--source include/have_debug_sync.inc
+
+--disable_query_log
+call mtr.add_suppression("\\[Warning\\] .* Ignoring tablespace .* because it could not be opened");
+call mtr.add_suppression("\\[ERROR\\] .* Encryption can't find master key, please check the keyring plugin is loaded.");
+call mtr.add_suppression("\\[ERROR\\] .* Failed to find tablespace for table `\.\.*`\.`\.\.*` in the cache.");
+call mtr.add_suppression("\\[ERROR\\] .* Operating system error number 2 in a file operation.");
+call mtr.add_suppression("\\[ERROR\\] .* The error means the system cannot find the path specified.");
+call mtr.add_suppression("\\[ERROR\\] .* Could not find a valid tablespace file for");
+call mtr.add_suppression("\\[ERROR\\] .* If you are installing InnoDB, remember that you must create directories yourself, InnoDB does not create them.");
+call mtr.add_suppression("\\[ERROR\\] .* Can't set undo tablespace 'innodb_undo_001' to be encrypted");
+--enable_query_log
+
+let $MYSQLD_BASEDIR= `select @@basedir`;
+let $START_PAGE_SIZE= `select @@innodb_page_size`;
+let $LOG_FILE_SIZE= `select @@innodb_log_file_size`;
+
+# Create path for ibdata* & undo* files both DBs
+--mkdir $MYSQL_TMP_DIR/innodb_undo_data_dir
+--mkdir $MYSQL_TMP_DIR/innodb_data_home_dir
+--mkdir $MYSQL_TMP_DIR/datadir
+
+# Set path for --datadir
+let $MYSQLD_DATADIR = $MYSQL_TMP_DIR/datadir/data;
+
+# Set path for undo* files.
+let $MYSQLD_UNDO_DATADIR = $MYSQL_TMP_DIR/innodb_undo_data_dir;
+
+# Set path for ibdata* files.
+let $MYSQLD_HOME_DATA_DIR = $MYSQL_TMP_DIR/innodb_data_home_dir;
+
+let BOOTSTRAP_SQL=$MYSQL_TMP_DIR/boot.sql;
+
+--echo # create bootstrap file
+write_file $BOOTSTRAP_SQL;
+CREATE DATABASE test DEFAULT CHARACTER SET latin1;
+EOF
+
+--echo # Stop the MTR default DB server
+--source include/shutdown_mysqld.inc
+
+--echo # Test1: bootstrap with 2 undo tablespaces and with keyring.
+let NEW_CMD = $MYSQLD --no-defaults --innodb_dedicated_server=OFF --initialize-insecure --innodb_log_file_size=$LOG_FILE_SIZE --innodb_page_size=$START_PAGE_SIZE --innodb_data_home_dir=$MYSQLD_HOME_DATA_DIR --innodb_undo_directory=$MYSQLD_UNDO_DATADIR --basedir=$MYSQLD_BASEDIR --datadir=$MYSQLD_DATADIR --init-file=$BOOTSTRAP_SQL --secure-file-priv=""  </dev/null>>$MYSQLTEST_VARDIR/tmp/bootstrap2.log 2>&1;
+
+--echo # Run the bootstrap command with keyring
+--exec $NEW_CMD
+
+--echo # Start the DB server with undo log encryption disabled, and no keyring plugin.
+--replace_result $MYSQLD_HOME_DATA_DIR MYSQLD_HOME_DATA_DIR $MYSQLD_UNDO_DATADIR MYSQLD_UNDO_DATADIR $MYSQLD_DATADIR MYSQLD_DATADIR $START_PAGE_SIZE PAGE_SIZE $LOG_FILE_SIZE LOG_FILE_SIZE
+--let $restart_parameters="restart: --innodb_page_size=$START_PAGE_SIZE --innodb_log_file_size=$LOG_FILE_SIZE --innodb_data_home_dir=$MYSQLD_HOME_DATA_DIR --innodb_undo_directory=$MYSQLD_UNDO_DATADIR --datadir=$MYSQLD_DATADIR"
+--source include/start_mysqld_no_echo.inc
+
+SET @transaction_isolation_session_orig = @@global.transaction_isolation;
+SET global transaction_isolation= 'READ-COMMITTED';
+SET session transaction_isolation= 'READ-COMMITTED';
+set @old_mvcc_purge = @@global.innodb_distributed_mvcc_purge;
+set @old_purge_gtmgtid = @@global.innodb_distributed_mvcc_purge_gtmgtid;
+CREATE TABLE t (  a int,  GTID bigint) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+--echo
+--echo ############################################################
+--echo # 1. prepare the data
+--echo # set the variables
+
+set global innodb_distributed_mvcc_purge = on;
+set global innodb_distributed_mvcc_purge_gtmgtid = 8;
+
+--echo # Connection con1:
+connect (con1,localhost,root,,);
+connection con1;
+
+
+insert into t values(1,9); 
+insert into t values(2,10); 
+insert into t values(3,11); 
+insert into t values(4,12); 
+insert into t values(6,13); 
+insert into t values(7,20); 
+insert into t values(8,21);
+
+
+--echo
+--echo ############################################################
+--echo # 1. update delete error
+--echo #  active list  11, 13
+connection default;
+--send set global innodb_distributed_mvcc_purge_gtmgtid = 15;
+connection con1;
+/*+GTID=13*/update t set GTID=13;
+/*+GTID=13*/delete from t;
+set GLOBAL debug ='+d,trx_purge_before_purge_really';
+select @@innodb_distributed_mvcc_purge_gtmgtid;
+set  DEBUG_SYNC = "now wait_for in_purge";
+--ERROR ER_TABLE_DEF_CHANGED
+select /*+ SET_VAR(active_gtm_gtid_list='CwAAAAAAAAANAAAAAAAAAA==') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t;
+SET  DEBUG_SYNC= "now SIGNAL select_Done";
+set GLOBAL debug ='-d,trx_purge_before_purge_really';
+
+connection default;
+--reap
+--echo
+--echo ############################################################
+--echo # 2. select when alter table
+--echo #  active list  11, 13
+set  DEBUG_SYNC = "innodb_commit_inplace_alter_table_wait  wait_for select_in_alter_done";
+--send alter table t drop a;
+connection con1;
+SET  DEBUG_SYNC= "now SIGNAL select_in_alter_done";
+--ERROR ER_TABLE_DEF_CHANGED
+select /*+ SET_VAR(active_gtm_gtid_list='CwAAAAAAAAANAAAAAAAAAA==') SET_VAR(next_gtm_gtid=20)*/ GTID from t;
+connection default;
+--reap
+
+--echo
+--echo ############################################################
+--echo # 2. insert  then rollback
+--echo #  active list  11, 13
+create table t1(a int primary key, GTID bigint);
+insert into t1 values(1,9); 
+insert into t1 values(2,10); 
+insert into t1 values(3,11); 
+insert into t1 values(4,12); 
+insert into t1 values(6,13); 
+insert into t1 values(7,20); 
+insert into t1 values(8,21);
+begin;
+/*+GTID=17*/insert into  t1 values(9, 17);
+/*+GTID=17*/update t1 set GTID = 17;
+/*+GTID=17*/delete from t1;
+rollback;
+select /*+ SET_VAR(active_gtm_gtid_list=' ') SET_VAR(next_gtm_gtid=16)*/ * from t1;
+
+--echo
+--echo ############################################################
+--echo # 2. delete then insert and rollback
+--echo #  active list  11, 13
+CREATE TABLE `t2` (
+  `database_name` varchar(64) ,
+  `table_name` varchar(199) ,
+  `last_update` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `n_rows` bigint unsigned NOT NULL,
+  `clustered_index_size` bigint unsigned NOT NULL,
+  `sum_of_other_index_sizes` bigint unsigned NOT NULL,
+  PRIMARY KEY (`database_name`,`table_name`)
+) ENGINE=InnoDB;
+
+insert into t2 select * from mysql.innodb_table_stats;
+alter table t2 add GTID bigint;
+update t2 set GTID=1;
+begin ;
+/*+GTID=17*/delete from t2 where database_name='test' and table_name ='t2';
+/*+GTID=17*/insert into t2 values('test','t2',now(), 1, 2, 1, 17);
+rollback;
+select /*+ SET_VAR(active_gtm_gtid_list='CwAAAAAAAAANAAAAAAAAAA==') SET_VAR(next_gtm_gtid=20)*/ 
+database_name, table_name, n_rows,clustered_index_size,sum_of_other_index_sizes,GTID from t2 
+where database_name='test' and table_name ='t2';
+--echo
+--echo ############################################################
+--echo #  clean up
+--echo #  
+connection default;
+SET global transaction_isolation= @transaction_isolation_session_orig;
+set session transaction_isolation= @transaction_isolation_session_orig;
+set global  innodb_distributed_mvcc_purge = @old_mvcc_purge;
+set global innodb_distributed_mvcc_purge_gtmgtid = @old_purge_gtmgtid;
+DROP TABLE t, t1, t2;
+SET DEBUG_SYNC= "RESET";
+
+--echo # restart the server with MTR default
+--let $restart_parameters=
+--source include/restart_mysqld.inc
+
+--remove_file $BOOTSTRAP_SQL
+
+--echo # Remove residue files
+--force-rmdir $MYSQL_TMP_DIR/datadir
+--force-rmdir $MYSQL_TMP_DIR/innodb_data_home_dir
+--force-rmdir $MYSQL_TMP_DIR/innodb_undo_data_dir
+--remove_file $MYSQLTEST_VARDIR/tmp/bootstrap2.log
+
+disconnect default;
+disconnect con1;

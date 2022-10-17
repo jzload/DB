@@ -1,0 +1,1159 @@
+drop database if exists test_db;
+create database test_db;
+use test_db;
+=========================================================
+异常情况测试
+=========================================================
+异常测试：range 分区字段为varchar类型字段时，需报错
+CREATE TABLE test (
+id INT,
+name varchar(7),
+address varchar(7))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (name)
+( PARTITION p0 VALUES LESS THAN (199));
+ERROR HY000: Field 'name' is of a not allowed type for this type of partitioning
+异常测试：分区值全是整形字段，需报错
+CREATE TABLE test (
+id INT,
+id2 INT,
+id3 INT,
+name varchar(7))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name,1))
+( PARTITION p0 VALUES LESS THAN (id),
+PARTITION p1 VALUES LESS THAN (id2));
+ERROR 42S22: Unknown column 'id' in 'partition function'
+异常测试：分区值全是字符串字段，需报错
+CREATE TABLE test (
+id INT,
+name varchar(7),
+name2 varchar(7))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name,1))
+( PARTITION p0 VALUES LESS THAN (name),
+PARTITION p1 VALUES LESS THAN (name2));
+ERROR 42S22: Unknown column 'name' in 'partition function'
+异常测试：不支持处理substr字符处理函数之外的函数：concat
+CREATE TABLE test (
+id INT,
+name varchar(7),
+address varchar(7))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (concat(name, address))
+( PARTITION p0 VALUES LESS THAN ('ccc'));
+ERROR HY000: This partition function is not allowed
+异常测试：不支持字符类型的列
+CREATE TABLE test (
+id INT,
+name varchar(7),
+address varchar(7))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (name)
+( PARTITION p0 VALUES LESS THAN ('ccc'));
+ERROR HY000: VALUES value for partition 'p0' must have type INT
+异常测试：substr函数的入参数量错误:一个参数
+CREATE TABLE test (
+id INT,
+name varchar(7) )COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name))
+( PARTITION p0 VALUES LESS THAN ('ccc'),
+PARTITION p1 VALUES LESS THAN ('eee'));
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '))
+( PARTITION p0 VALUES LESS THAN ('ccc'),
+PARTITION p1 VALUES LESS THAN ('eee'' at line 4
+异常测试：substr函数的入参数量错误:四个参数
+CREATE TABLE test (
+id INT,
+name varchar(7) )COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1, 2, 4))
+( PARTITION p0 VALUES LESS THAN ('ccc'),
+PARTITION p1 VALUES LESS THAN ('eee'));
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ', 4))
+( PARTITION p0 VALUES LESS THAN ('ccc'),
+PARTITION p1 VALUES LESS THAN ('e' at line 4
+异常测试：values less than 的值必须是字符串
+CREATE TABLE test (
+id INT,
+name varchar(7) )COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1, 3))
+( PARTITION p0 VALUES LESS THAN (199),
+PARTITION p1 VALUES LESS THAN ('xxx'));
+ERROR HY000: VALUES value for partition 'p0' must have type STRING
+异常测试：values less than 的值不能为NULL
+CREATE TABLE test (
+id INT,
+name varchar(7) )COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1, 3))
+( PARTITION p0 VALUES LESS THAN (NULL),
+PARTITION p1 VALUES LESS THAN ('xxx'));
+ERROR HY000: Not allowed to use NULL value in VALUES LESS THAN
+异常测试：values less than 的值不能空(不是空字符串)
+CREATE TABLE test (
+id INT,
+name varchar(7) )COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1, 3))
+( PARTITION p0 VALUES LESS THAN ( ),
+PARTITION p1 VALUES LESS THAN ('xxx'));
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '),
+PARTITION p1 VALUES LESS THAN ('xxx'))' at line 5
+异常测试：Invalid character string
+create table if not exists test (
+id1 int,
+city varchar(15))COLLATE=utf8mb4_bin
+partition by range (substr(city, 8, 7))
+(PARTITION part_0 VALUES less than (' '),
+PARTITION part_2 VALUES less than ('1XX'),
+PARTITION part_3 VALUES less than ('55'),
+PARTITION part_4 VALUES less than ('5XX'),
+PARTITION part_5 VALUES less than ('99'),
+PARTITION part_6 VALUES less than ('9XX X'),
+PARTITION part_1 VALUES less than (x'476F6C64656E44'),
+PARTITION part_7 VALUES less than ('中文'),
+PARTITION part_8 VALUES less than (maxvalue));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id1` int(11) DEFAULT NULL,
+  `city` varchar(15) COLLATE utf8mb4_bin DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`city`,8,7))
+(PARTITION part_0 VALUES LESS THAN (' ') ENGINE = InnoDB,
+ PARTITION part_2 VALUES LESS THAN ('1XX') ENGINE = InnoDB,
+ PARTITION part_3 VALUES LESS THAN ('55') ENGINE = InnoDB,
+ PARTITION part_4 VALUES LESS THAN ('5XX') ENGINE = InnoDB,
+ PARTITION part_5 VALUES LESS THAN ('99') ENGINE = InnoDB,
+ PARTITION part_6 VALUES LESS THAN ('9XX X') ENGINE = InnoDB,
+ PARTITION part_1 VALUES LESS THAN ('GoldenD') ENGINE = InnoDB,
+ PARTITION part_7 VALUES LESS THAN ('中文') ENGINE = InnoDB,
+ PARTITION part_8 VALUES LESS THAN MAXVALUE ENGINE = InnoDB) */
+drop table test;
+异常测试：Partition column values of incorrect type
+create table if not exists test_1 (
+id1 int,
+city varchar(15))COLLATE=utf8mb4_bin
+partition by range (substr(city,8,2))
+(PARTITION part_0 VALUES less than (' '),
+PARTITION part_1 VALUES less than (X'FFD8FFE000104A4649460001010100'),
+PARTITION part_2 VALUES less than ('1XX'),
+PARTITION part_3 VALUES less than ('55'),
+PARTITION part_4 VALUES less than ('5XX'),
+PARTITION part_5 VALUES less than ('99'),
+PARTITION part_6 VALUES less than ('9XX X'),
+PARTITION part_7 VALUES less than ('中文'),
+PARTITION part_8 VALUES less than (maxvalue));
+ERROR HY000: Invalid utf8mb4 character string: 'FFD8FF'
+和range columns保持一致，values less than 的值可以为空字符串('')
+CREATE TABLE test (
+id INT,
+name varchar(7) )COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1, 3))
+( PARTITION p0 VALUES LESS THAN (''),
+PARTITION p1 VALUES LESS THAN ('xxx'));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` varchar(7) COLLATE utf8mb4_bin DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1,3))
+(PARTITION p0 VALUES LESS THAN ('') ENGINE = InnoDB,
+ PARTITION p1 VALUES LESS THAN ('xxx') ENGINE = InnoDB) */
+drop table if exists test;
+和range columns保持一致，values less than 的值可以包含单引号/双引号/特殊符号
+CREATE TABLE test (
+id INT,
+name varchar(30) )COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1, 30))
+( PARTITION p0 VALUES LESS THAN ("cc'cc"),
+PARTITION p1 VALUES LESS THAN ('kk"kk'),
+PARTITION p2 VALUES LESS THAN ('yy~`@#$%^&*()_+-={}[]|\:;<>,.?/'));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` varchar(30) COLLATE utf8mb4_bin DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1,30))
+(PARTITION p0 VALUES LESS THAN ('cc''cc') ENGINE = InnoDB,
+ PARTITION p1 VALUES LESS THAN ('kk"kk') ENGINE = InnoDB,
+ PARTITION p2 VALUES LESS THAN ('yy~`@#$%^&*()_+-={}[]|:;<>,.?/') ENGINE = InnoDB) */
+insert into test values (1, "cc");
+select * from test partition (p0);
+id	name
+1	cc
+insert into test values (2, 'kk"');
+select * from test partition (p1);
+id	name
+2	kk"
+insert into test values (3, 'yy"');
+select * from test partition (p2);
+id	name
+3	yy"
+drop table if exists test;
+异常测试：values less than 的值必须是严格递增
+CREATE TABLE test (
+id INT,
+name char(7) )COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1, 3))
+( PARTITION p0 VALUES LESS THAN ('fff'),
+PARTITION p1 VALUES LESS THAN ('ccc'));
+ERROR HY000: VALUES LESS THAN value must be strictly increasing for each partition
+异常测试：分区名字若相同，需要报错
+CREATE TABLE test (
+id INT,
+name varchar(7) )COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1, 3))
+( PARTITION p0 VALUES LESS THAN ('ccc'),
+PARTITION p0 VALUES LESS THAN ('fff'),
+PARTITION pmax VALUES LESS THAN (MAXVALUE));
+ERROR HY000: Duplicate partition name p0
+异常测试：分区名字和子分区名字若相同，需要报错
+CREATE TABLE test (
+id INT,
+name varchar(7) )COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1, 3))
+SUBPARTITION BY HASH (id) subpartitions 2
+( PARTITION p0 VALUES LESS THAN ('ccc')
+(subpartition p0, subpartition s1),
+PARTITION p0 VALUES LESS THAN ('fff')
+(subpartition s2, subpartition s3),
+PARTITION pmax VALUES LESS THAN (MAXVALUE)
+(subpartition s4, subpartition s5));
+ERROR HY000: Duplicate partition name p0
+异常测试：MAXVALUE只能作为最后一个分区的值
+CREATE TABLE test (
+id INT,
+name varchar(7) )COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1, 3))
+( PARTITION p0 VALUES LESS THAN ('ccc'),
+PARTITION p0 VALUES LESS THAN (MAXVALUE),
+PARTITION pmax VALUES LESS THAN ('zzz'));
+ERROR HY000: MAXVALUE can only be used in last partition definition
+异常测试：分区名字必须是字符串，若是数字，需要报错
+CREATE TABLE test (
+id INT,
+name varchar(7) )COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1, 3))
+( PARTITION 123 VALUES LESS THAN ('ccc'),
+PARTITION pmax VALUES LESS THAN (MAXVALUE));
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '123 VALUES LESS THAN ('ccc'),
+PARTITION pmax VALUES LESS THAN (MAXVALUE))' at line 5
+支持创建分区表时指定partition的数量
+CREATE TABLE test (
+id INT,
+name varchar(7),
+primary key(id, name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name,1))
+PARTITIONS 5
+( PARTITION p0   VALUES LESS THAN ('ccc'),
+PARTITION p1   VALUES LESS THAN ('eee'),
+PARTITION p2   VALUES LESS THAN ('ggg'),
+PARTITION p3   VALUES LESS THAN ('ppp'),
+PARTITION pmax VALUES LESS THAN (maxvalue));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) NOT NULL,
+  `name` varchar(7) COLLATE utf8mb4_bin NOT NULL,
+  PRIMARY KEY (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+(PARTITION p0 VALUES LESS THAN ('ccc') ENGINE = InnoDB,
+ PARTITION p1 VALUES LESS THAN ('eee') ENGINE = InnoDB,
+ PARTITION p2 VALUES LESS THAN ('ggg') ENGINE = InnoDB,
+ PARTITION p3 VALUES LESS THAN ('ppp') ENGINE = InnoDB,
+ PARTITION pmax VALUES LESS THAN MAXVALUE ENGINE = InnoDB) */
+drop table if exists test;
+创建分区表时,指定partition的数量与实际不符时，应报错
+CREATE TABLE test (
+id INT,
+name char(7),
+primary key(id, name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name,1))
+PARTITIONS 4
+( PARTITION p0   VALUES LESS THAN ('ccc'),
+PARTITION p1   VALUES LESS THAN ('eee'),
+PARTITION p2   VALUES LESS THAN ('ggg'),
+PARTITION p3   VALUES LESS THAN ('ppp'),
+PARTITION pmax VALUES LESS THAN (maxvalue));
+ERROR 42000: Wrong number of partitions defined, mismatch with previous setting near '( PARTITION p0   VALUES LESS THAN ('ccc'),
+PARTITION p1   VALUES LESS THAN ('eee' at line 7
+=========================================================
+range 分区支持substring/substr函数
+=========================================================
+substr函数支持char，varchar字段
+CREATE TABLE test (
+id INT,
+name char(7) )COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1, 3))
+( PARTITION p0 VALUES LESS THAN ('ccc'),
+PARTITION p1 VALUES LESS THAN (MAXVALUE));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1,3))
+(PARTITION p0 VALUES LESS THAN ('ccc') ENGINE = InnoDB,
+ PARTITION p1 VALUES LESS THAN MAXVALUE ENGINE = InnoDB) */
+drop table if exists test;
+CREATE TABLE test (
+id INT,
+name varchar(7) )COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1, 3))
+( PARTITION p0 VALUES LESS THAN ('ccc'),
+PARTITION p1 VALUES LESS THAN (MAXVALUE));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` varchar(7) COLLATE utf8mb4_bin DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1,3))
+(PARTITION p0 VALUES LESS THAN ('ccc') ENGINE = InnoDB,
+ PARTITION p1 VALUES LESS THAN MAXVALUE ENGINE = InnoDB) */
+drop table if exists test;
+substr函数不支持除了char，varchar之外的字段类型
+CREATE TABLE test (
+id INT,
+name char(7) )COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(id, 1, 3))
+( PARTITION p0 VALUES LESS THAN ('ccc'),
+PARTITION p1 VALUES LESS THAN (MAXVALUE));
+ERROR HY000: Partition column values of incorrect type
+支持substring函数
+CREATE TABLE test (
+id INT,
+name char(7) )COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substring(name, 1, 3))
+( PARTITION p0 VALUES LESS THAN ('ccc'),
+PARTITION p1 VALUES LESS THAN (MAXVALUE));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1,3))
+(PARTITION p0 VALUES LESS THAN ('ccc') ENGINE = InnoDB,
+ PARTITION p1 VALUES LESS THAN MAXVALUE ENGINE = InnoDB) */
+drop table if exists test;
+CREATE TABLE test (
+id INT,
+name char(7) )COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substring(name, 1))
+( PARTITION p0 VALUES LESS THAN ('ccc'),
+PARTITION p1 VALUES LESS THAN (MAXVALUE));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+(PARTITION p0 VALUES LESS THAN ('ccc') ENGINE = InnoDB,
+ PARTITION p1 VALUES LESS THAN MAXVALUE ENGINE = InnoDB) */
+drop table if exists test;
+substr函数的字段可以不是主键(若表中没有主键)
+CREATE TABLE test (
+id INT,
+name char(7) )COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substring(name, 1))
+( PARTITION p0 VALUES LESS THAN ('ccc'));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+(PARTITION p0 VALUES LESS THAN ('ccc') ENGINE = InnoDB) */
+drop table if exists test;
+substr函数的字段必须是主键的一部分(若表中含有主键)
+CREATE TABLE test (
+id INT primary key,
+name char(7))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substring(name, 1))
+( PARTITION p0 VALUES LESS THAN ('ccc'));
+ERROR HY000: A PRIMARY KEY must include all columns in the table's partitioning function
+CREATE TABLE test (
+id INT,
+name char(7),
+address char(7),
+primary key(id, name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substring(name, 1))
+( PARTITION p0 VALUES LESS THAN ('ccc'));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) NOT NULL,
+  `name` char(7) COLLATE utf8mb4_bin NOT NULL,
+  `address` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  PRIMARY KEY (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+(PARTITION p0 VALUES LESS THAN ('ccc') ENGINE = InnoDB) */
+drop table if exists test;
+CREATE TABLE test (
+id INT,
+name char(7),
+address char(7),
+primary key(id, name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substring(address, 1))
+( PARTITION p0 VALUES LESS THAN ('ccc'));
+ERROR HY000: A PRIMARY KEY must include all columns in the table's partitioning function
+substr函数必须是唯一键的一部分(若表中含有唯一键)
+CREATE TABLE test (
+id INT unique key,
+name char(7))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substring(name, 1))
+( PARTITION p0 VALUES LESS THAN ('ccc'));
+ERROR HY000: A UNIQUE INDEX must include all columns in the table's partitioning function
+CREATE TABLE test (
+id INT,
+name char(7),
+address char(7),
+unique key(id, name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substring(name, 1))
+( PARTITION p0 VALUES LESS THAN ('ccc'));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  `address` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+(PARTITION p0 VALUES LESS THAN ('ccc') ENGINE = InnoDB) */
+drop table if exists test;
+CREATE TABLE test (
+id INT,
+name char(7),
+address char(7),
+unique key(id, name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substring(address, 1))
+( PARTITION p0 VALUES LESS THAN ('ccc'));
+ERROR HY000: A UNIQUE INDEX must include all columns in the table's partitioning function
+=========================================================
+range 分区支持substring/substr函数：insert命令
+=========================================================
+支持 insert 的数据
+CREATE TABLE test (
+id INT,
+name char(7),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1)) partitions 3
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('ccc')
+(subpartition s0, subpartition s1),
+PARTITION p_kkk VALUES LESS THAN ('kkk')
+(subpartition s2, subpartition s3),
+PARTITION p_max VALUES LESS THAN (MAXVALUE)
+(subpartition s4, subpartition s5));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+SUBPARTITION BY HASH (`id`)
+(PARTITION p_ccc VALUES LESS THAN ('ccc')
+ (SUBPARTITION s0 ENGINE = InnoDB,
+  SUBPARTITION s1 ENGINE = InnoDB),
+ PARTITION p_kkk VALUES LESS THAN ('kkk')
+ (SUBPARTITION s2 ENGINE = InnoDB,
+  SUBPARTITION s3 ENGINE = InnoDB),
+ PARTITION p_max VALUES LESS THAN MAXVALUE
+ (SUBPARTITION s4 ENGINE = InnoDB,
+  SUBPARTITION s5 ENGINE = InnoDB)) */
+insert into test values (1, 'aaa');
+insert 的数据落入正确的分区
+select * from test partition (p_ccc) order by id;
+id	name
+1	aaa
+insert 的数据落入正确的子分区
+select * from test partition (s1) order by id;
+id	name
+1	aaa
+insert 的数据类型有整形转换为字符型能够落入正确的分区
+insert into test values (2, 222);
+select * from test partition (p_ccc) order by id;
+id	name
+1	aaa
+2	222
+insert 的数据为分区值的临界值
+insert into test values (3, 'ccc');
+select * from test partition (p_kkk) order by id;
+id	name
+3	ccc
+insert 的数据落入maxvalue分区
+insert into test values (4, 'mmm');
+select * from test partition (p_max) order by id;
+id	name
+4	mmm
+drop table test;
+insert 的数据找不到满足条件的分区时，需要报错
+CREATE TABLE test (
+id INT,
+name char(7),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1))
+( PARTITION p_ccc VALUES LESS THAN ('ccc'),
+PARTITION p_fff VALUES LESS THAN ('fff'),
+PARTITION p_kkk VALUES LESS THAN ('kkk'));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+(PARTITION p_ccc VALUES LESS THAN ('ccc') ENGINE = InnoDB,
+ PARTITION p_fff VALUES LESS THAN ('fff') ENGINE = InnoDB,
+ PARTITION p_kkk VALUES LESS THAN ('kkk') ENGINE = InnoDB) */
+insert into test values (1, 'zzz');
+ERROR HY000: Table has no partition for value 'zzz'
+drop table if exists test;
+=========================================================
+range 分区支持substring/substr函数：支持hash/key子分区
+=========================================================
+支持hash子分区,子分区的名字若不指定，由mysql自己生成
+CREATE TABLE test (
+id INT,
+name char(7),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1)) partitions 3
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('ccc'),
+PARTITION p_fff VALUES LESS THAN ('fff'),
+PARTITION p_kkk VALUES LESS THAN ('kkk'));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+SUBPARTITION BY HASH (`id`)
+SUBPARTITIONS 2
+(PARTITION p_ccc VALUES LESS THAN ('ccc') ENGINE = InnoDB,
+ PARTITION p_fff VALUES LESS THAN ('fff') ENGINE = InnoDB,
+ PARTITION p_kkk VALUES LESS THAN ('kkk') ENGINE = InnoDB) */
+drop table if exists test;
+支持hash子分区,指定子分区的名字
+CREATE TABLE test (
+id INT,
+name char(7),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1)) partitions 3
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('ccc')
+(subpartition s0, subpartition s1),
+PARTITION p_fff VALUES LESS THAN ('fff')
+(subpartition s2, subpartition s3),
+PARTITION p_kkk VALUES LESS THAN ('kkk')
+(subpartition s4, subpartition s5));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+SUBPARTITION BY HASH (`id`)
+(PARTITION p_ccc VALUES LESS THAN ('ccc')
+ (SUBPARTITION s0 ENGINE = InnoDB,
+  SUBPARTITION s1 ENGINE = InnoDB),
+ PARTITION p_fff VALUES LESS THAN ('fff')
+ (SUBPARTITION s2 ENGINE = InnoDB,
+  SUBPARTITION s3 ENGINE = InnoDB),
+ PARTITION p_kkk VALUES LESS THAN ('kkk')
+ (SUBPARTITION s4 ENGINE = InnoDB,
+  SUBPARTITION s5 ENGINE = InnoDB)) */
+insert into test values (1, 'aaa'), (2, 'bbb');
+insert into test values (3, 'ccc'), (4, 'ddd');
+select * from test partition (p_ccc, p_fff) order by id;
+id	name
+1	aaa
+2	bbb
+3	ccc
+4	ddd
+select * from test partition (s0, s1) order by id;
+id	name
+1	aaa
+2	bbb
+drop table if exists test;
+支持hash子分区,子分区的名字若相同，需报错
+CREATE TABLE test (
+id INT,
+name char(7),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1)) partitions 2
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('ccc')
+(subpartition s0, subpartition s1),
+PARTITION p_kkk VALUES LESS THAN ('kkk')
+(subpartition s0, subpartition s5));
+ERROR HY000: Duplicate partition name s0
+支持key子分区,子分区的名字若不指定，由mysql自己生成
+CREATE TABLE test (
+id INT,
+name char(7),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1)) partitions 3
+subpartition by key (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('ccc'),
+PARTITION p_fff VALUES LESS THAN ('fff'),
+PARTITION p_kkk VALUES LESS THAN ('kkk'));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+SUBPARTITION BY KEY (id)
+SUBPARTITIONS 2
+(PARTITION p_ccc VALUES LESS THAN ('ccc') ENGINE = InnoDB,
+ PARTITION p_fff VALUES LESS THAN ('fff') ENGINE = InnoDB,
+ PARTITION p_kkk VALUES LESS THAN ('kkk') ENGINE = InnoDB) */
+drop table if exists test;
+支持key子分区,指定子分区的名字
+CREATE TABLE test (
+id INT,
+name char(7),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1)) partitions 3
+subpartition by key (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('ccc')
+(subpartition s0, subpartition s1),
+PARTITION p_fff VALUES LESS THAN ('fff')
+(subpartition s2, subpartition s3),
+PARTITION p_kkk VALUES LESS THAN ('kkk')
+(subpartition s4, subpartition s5));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+SUBPARTITION BY KEY (id)
+(PARTITION p_ccc VALUES LESS THAN ('ccc')
+ (SUBPARTITION s0 ENGINE = InnoDB,
+  SUBPARTITION s1 ENGINE = InnoDB),
+ PARTITION p_fff VALUES LESS THAN ('fff')
+ (SUBPARTITION s2 ENGINE = InnoDB,
+  SUBPARTITION s3 ENGINE = InnoDB),
+ PARTITION p_kkk VALUES LESS THAN ('kkk')
+ (SUBPARTITION s4 ENGINE = InnoDB,
+  SUBPARTITION s5 ENGINE = InnoDB)) */
+drop table if exists test;
+支持key子分区,子分区的名字若相同，需报错
+CREATE TABLE test (
+id INT,
+name char(7),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1)) partitions 2
+subpartition by key (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('ccc')
+(subpartition s0, subpartition s1),
+PARTITION p_kkk VALUES LESS THAN ('kkk')
+(subpartition s0, subpartition s5));
+ERROR HY000: Duplicate partition name s0
+支持hash/key子分区,其他子分区，需报错
+CREATE TABLE test (
+id INT,
+name char(7),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1)) partitions 2
+subpartition by range (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('ccc')
+(subpartition s0, subpartition s1),
+PARTITION p_kkk VALUES LESS THAN ('kkk')
+(subpartition s0, subpartition s5));
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'range (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('ccc')
+(subpartit' at line 6
+=========================================================
+range 分区支持substring/substr函数：支持 create select 语法
+=========================================================
+支持 create select 语法
+CREATE TABLE test (
+id INT,
+name char(7),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1)) partitions 3
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('ccc')
+(subpartition s0, subpartition s1),
+PARTITION p_kkk VALUES LESS THAN ('kkk')
+(subpartition s2, subpartition s3),
+PARTITION p_zzz VALUES LESS THAN ('zzz')
+(subpartition s4, subpartition s5));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+SUBPARTITION BY HASH (`id`)
+(PARTITION p_ccc VALUES LESS THAN ('ccc')
+ (SUBPARTITION s0 ENGINE = InnoDB,
+  SUBPARTITION s1 ENGINE = InnoDB),
+ PARTITION p_kkk VALUES LESS THAN ('kkk')
+ (SUBPARTITION s2 ENGINE = InnoDB,
+  SUBPARTITION s3 ENGINE = InnoDB),
+ PARTITION p_zzz VALUES LESS THAN ('zzz')
+ (SUBPARTITION s4 ENGINE = InnoDB,
+  SUBPARTITION s5 ENGINE = InnoDB)) */
+insert into test values (1, 'aaa'), (2, 'bbb');
+insert into test values (3, 'ddd'), (4, 'fff');
+insert into test values (5, 'lll'), (6, 'mmm');
+select子句中的分区名字不存在，需报错
+create table tmp select * from test partition (p_NoExist);
+ERROR HY000: Unknown partition 'p_NoExist' in table 'test'
+select子句中支持单个分区
+select * from test partition (p_ccc) order by id;
+id	name
+1	aaa
+2	bbb
+create table tmp select * from test partition (p_ccc);
+select * from tmp order by id;
+id	name
+1	aaa
+2	bbb
+drop table if exists tmp;
+select子句中支持多个连续分区
+select * from test partition (p_ccc, p_kkk) order by id;
+id	name
+1	aaa
+2	bbb
+3	ddd
+4	fff
+create table tmp select * from test partition (p_ccc, p_kkk);
+select * from tmp order by id;
+id	name
+1	aaa
+2	bbb
+3	ddd
+4	fff
+drop table if exists tmp;
+select子句中支持多个不连续分区
+select * from test partition (p_ccc, p_zzz) order by id;
+id	name
+1	aaa
+2	bbb
+5	lll
+6	mmm
+create table tmp select * from test partition (p_ccc, p_zzz);
+select * from tmp order by id;
+id	name
+1	aaa
+2	bbb
+5	lll
+6	mmm
+drop table if exists tmp;
+select子句中支持单个子分区
+select * from test partition (s0) order by id;
+id	name
+2	bbb
+create table t_s0 select * from test partition (s0);
+select * from t_s0 order by id;
+id	name
+2	bbb
+drop table if exists t_s0;
+select子句中支持多个连续子分区
+select * from test partition (s0, s1) order by id;
+id	name
+1	aaa
+2	bbb
+create table tmp select * from test partition (s0, s1);
+select * from tmp order by id;
+id	name
+1	aaa
+2	bbb
+drop table if exists tmp;
+select子句中支持多个不连续分区
+select * from test partition (s0, s3) order by id;
+id	name
+2	bbb
+3	ddd
+create table tmp select * from test partition (s0, s3);
+select * from tmp order by id;
+id	name
+2	bbb
+3	ddd
+drop table if exists tmp;
+drop table test;
+=========================================================
+range 分区支持substring/substr函数：update 命令
+=========================================================
+update 分区字段后，会根据字段值落入正确的分区
+CREATE TABLE test (
+id INT,
+name char(7),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1))
+( PARTITION p_ccc VALUES LESS THAN ('ccc'),
+PARTITION p_fff VALUES LESS THAN ('fff'),
+PARTITION p_kkk VALUES LESS THAN ('kkk'),
+PARTITION p_max VALUES LESS THAN (MAXVALUE));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+(PARTITION p_ccc VALUES LESS THAN ('ccc') ENGINE = InnoDB,
+ PARTITION p_fff VALUES LESS THAN ('fff') ENGINE = InnoDB,
+ PARTITION p_kkk VALUES LESS THAN ('kkk') ENGINE = InnoDB,
+ PARTITION p_max VALUES LESS THAN MAXVALUE ENGINE = InnoDB) */
+insert into test values (1, 'aaa');
+select * from test partition (p_ccc) order by id;
+id	name
+1	aaa
+update test set name='ggg' where id = 1;
+select * from test partition (p_ccc) order by id;
+id	name
+select * from test partition (p_kkk) order by id;
+id	name
+1	ggg
+truncate table test;
+insert into test values (1, 'jjj');
+select * from test partition (p_kkk) order by id;
+id	name
+1	jjj
+update test set name = NULL where id = 1;
+select * from test partition (p_ccc) order by id;
+id	name
+1	NULL
+select * from test partition (p_kkk) order by id;
+id	name
+drop table test;
+=========================================================
+range 分区支持substring/substr函数：支持prepare模式
+=========================================================
+支持prepare模式
+CREATE TABLE test (
+id INT,
+name char(7),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1))
+( PARTITION p_ccc VALUES LESS THAN ('ccc'),
+PARTITION p_fff VALUES LESS THAN ('fff'),
+PARTITION p_kkk VALUES LESS THAN ('kkk'),
+PARTITION p_max VALUES LESS THAN (MAXVALUE));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+(PARTITION p_ccc VALUES LESS THAN ('ccc') ENGINE = InnoDB,
+ PARTITION p_fff VALUES LESS THAN ('fff') ENGINE = InnoDB,
+ PARTITION p_kkk VALUES LESS THAN ('kkk') ENGINE = InnoDB,
+ PARTITION p_max VALUES LESS THAN MAXVALUE ENGINE = InnoDB) */
+prepare insert_stmt from "insert into test values (?,?)";
+set @a= 8;
+set @b= 'MMM';
+execute insert_stmt using @a, @b;
+deallocate prepare insert_stmt;
+select *from test partition (p_ccc) order by id;
+id	name
+8	MMM
+prepare update_stmt from "update test set name = ? where id = ?";
+set @a= 8;
+set @b= 'mmm';
+execute update_stmt using @b, @a;
+deallocate prepare update_stmt;
+select *from test partition (p_max) order by id;
+id	name
+8	mmm
+prepare delete_stmt from "delete from test where id = ?";
+set @a= 8;
+execute delete_stmt using @a;
+deallocate prepare delete_stmt;
+select *from test order by id;
+id	name
+drop table test;
+=========================================================
+range 分区支持substring/substr函数：delete 命令
+=========================================================
+支持delete命令
+CREATE TABLE test (
+id INT,
+name char(7),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1))
+( PARTITION p_ccc VALUES LESS THAN ('ccc'),
+PARTITION p_fff VALUES LESS THAN ('fff'),
+PARTITION p_kkk VALUES LESS THAN ('kkk'),
+PARTITION p_max VALUES LESS THAN (MAXVALUE));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+(PARTITION p_ccc VALUES LESS THAN ('ccc') ENGINE = InnoDB,
+ PARTITION p_fff VALUES LESS THAN ('fff') ENGINE = InnoDB,
+ PARTITION p_kkk VALUES LESS THAN ('kkk') ENGINE = InnoDB,
+ PARTITION p_max VALUES LESS THAN MAXVALUE ENGINE = InnoDB) */
+insert into test values (1, '');
+insert into test values (2, NULL);
+insert into test values (3, 'aaa');
+insert into test values (4, 'ddd');
+insert into test values (5, 'jjj');
+insert into test values (6, 'zzz');
+insert into test values (7, '多字节');
+insert into test values (11, '###');
+insert into test values (12, '<<<');
+insert into test values (13, '???');
+insert into test values (14, '{{{');
+insert into test values (15, '|||');
+insert into test values (16, '}}}');
+delete 命令指定的分区名字不存在时，需报错
+delete from test partition (p_NoExist);
+ERROR HY000: Unknown partition 'p_NoExist' in table 'test'
+delete命令指定的单个分区有效时，删除成功
+delete from test partition (p_ccc);
+select * from test partition (p_ccc) order by id;
+id	name
+delete命令指定的多个分区有效时，删除成功
+delete from test partition (p_fff, p_kkk);
+select * from test partition (p_fff, p_kkk) order by id;
+id	name
+drop table if exists test;
+CREATE TABLE test (
+id INT,
+name char(7),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1)) partitions 3
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('ccc')
+(subpartition s0, subpartition s1),
+PARTITION p_kkk VALUES LESS THAN ('kkk')
+(subpartition s2, subpartition s3),
+PARTITION p_zzz VALUES LESS THAN ('zzz')
+(subpartition s4, subpartition s5));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+SUBPARTITION BY HASH (`id`)
+(PARTITION p_ccc VALUES LESS THAN ('ccc')
+ (SUBPARTITION s0 ENGINE = InnoDB,
+  SUBPARTITION s1 ENGINE = InnoDB),
+ PARTITION p_kkk VALUES LESS THAN ('kkk')
+ (SUBPARTITION s2 ENGINE = InnoDB,
+  SUBPARTITION s3 ENGINE = InnoDB),
+ PARTITION p_zzz VALUES LESS THAN ('zzz')
+ (SUBPARTITION s4 ENGINE = InnoDB,
+  SUBPARTITION s5 ENGINE = InnoDB)) */
+insert into test values (1, 'aaa'), (2, 'bbb');
+insert into test values (3, 'ddd'), (4, 'fff');
+insert into test values (5, 'lll'), (6, 'mmm');
+delete命令指定的单个子分区无效时，需报错
+delete from test partition (sp_NoExist);
+ERROR HY000: Unknown partition 'sp_NoExist' in table 'test'
+delete命令指定的单个子分区有效时，删除成功
+delete from test partition (s0);
+select * from test partition (s0) order by id;
+id	name
+delete命令指定的多个子分区有效时，删除成功
+delete from test partition (s1, s2);
+select * from test partition (s1, s2) order by id;
+id	name
+delete命令指定分区和子分区时，删除成功
+delete from test partition (p_zzz, s3);
+select * from test partition (p_zzz, s3) order by id;
+id	name
+drop table test;
+=========================================================
+range 分区支持substring/substr函数：支持copy table语法
+=========================================================
+range substr支持copy table
+CREATE TABLE test (
+id INT,
+name char(7),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1)) partitions 3
+( PARTITION p_ccc VALUES LESS THAN ('ccc'),
+PARTITION p_kkk VALUES LESS THAN ('kkk'),
+PARTITION p_zzz VALUES LESS THAN ('zzz'));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+(PARTITION p_ccc VALUES LESS THAN ('ccc') ENGINE = InnoDB,
+ PARTITION p_kkk VALUES LESS THAN ('kkk') ENGINE = InnoDB,
+ PARTITION p_zzz VALUES LESS THAN ('zzz') ENGINE = InnoDB) */
+insert into test values (1, 'aaa'), (2, 'bbb');
+insert into test values (3, 'ddd'), (4, 'fff');
+insert into test values (5, 'lll'), (6, 'mmm');
+create table tmp like test;
+select * from test partition (p_ccc) order by id;
+id	name
+1	aaa
+2	bbb
+select * from test partition (p_kkk) order by id;
+id	name
+3	ddd
+4	fff
+select * from test partition (p_kkk) order by id;
+id	name
+3	ddd
+4	fff
+copy table from test to tmp;
+select * from test partition (p_ccc) order by id;
+id	name
+1	aaa
+2	bbb
+select * from test partition (p_kkk) order by id;
+id	name
+3	ddd
+4	fff
+select * from test partition (p_kkk) order by id;
+id	name
+3	ddd
+4	fff
+select * from tmp partition (p_ccc) order by id;
+id	name
+1	aaa
+2	bbb
+select * from tmp partition (p_kkk) order by id;
+id	name
+3	ddd
+4	fff
+select * from tmp partition (p_kkk) order by id;
+id	name
+3	ddd
+4	fff
+drop table tmp, test;
+=========================================================
+range 分区支持substring/substr函数：select 命令
+=========================================================
+select partition 带有where 子句
+CREATE TABLE test (
+id INT,
+name char(7),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1)) partitions 3
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('ccc')
+(subpartition s0, subpartition s1),
+PARTITION p_kkk VALUES LESS THAN ('kkk')
+(subpartition s2, subpartition s3),
+PARTITION p_zzz VALUES LESS THAN ('zzz')
+(subpartition s4, subpartition s5));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+SUBPARTITION BY HASH (`id`)
+(PARTITION p_ccc VALUES LESS THAN ('ccc')
+ (SUBPARTITION s0 ENGINE = InnoDB,
+  SUBPARTITION s1 ENGINE = InnoDB),
+ PARTITION p_kkk VALUES LESS THAN ('kkk')
+ (SUBPARTITION s2 ENGINE = InnoDB,
+  SUBPARTITION s3 ENGINE = InnoDB),
+ PARTITION p_zzz VALUES LESS THAN ('zzz')
+ (SUBPARTITION s4 ENGINE = InnoDB,
+  SUBPARTITION s5 ENGINE = InnoDB)) */
+insert into test values (1, 'aaa'), (2, 'bbb');
+insert into test values (3, 'ddd'), (4, 'fff');
+insert into test values (5, 'lll'), (6, 'mmm');
+select * from test partition (p_ccc,p_kkk) where name < 'bbb';
+id	name
+1	aaa
+select * from test partition (p_ccc,p_kkk) where name <= 'bbb';
+id	name
+2	bbb
+1	aaa
+select * from test partition (p_ccc,p_kkk) where name > 'bbb';
+id	name
+4	fff
+3	ddd
+select * from test partition (p_ccc,p_kkk) where name >= 'bbb';
+id	name
+2	bbb
+4	fff
+3	ddd
+drop table test;
+=========================================================
+range 分区支持substring/substr函数：select_into_outfile/load_data_infile
+=========================================================
+CREATE TABLE test (
+id INT,
+name char(7),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1)) partitions 2
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('ccc')
+(subpartition s0, subpartition s1),
+PARTITION p_kkk VALUES LESS THAN ('kkk')
+(subpartition s2, subpartition s3));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+SUBPARTITION BY HASH (`id`)
+(PARTITION p_ccc VALUES LESS THAN ('ccc')
+ (SUBPARTITION s0 ENGINE = InnoDB,
+  SUBPARTITION s1 ENGINE = InnoDB),
+ PARTITION p_kkk VALUES LESS THAN ('kkk')
+ (SUBPARTITION s2 ENGINE = InnoDB,
+  SUBPARTITION s3 ENGINE = InnoDB)) */
+insert into test values (1, 'aaa'), (2, 'bbb');
+insert into test values (3, 'ddd'), (4, 'fff');
+支持 select_into_outfile
+select * into outfile 'MYSQLTEST_VARDIR/tmp/range_substr_20200629.txt' from test order by id;
+select load_file('MYSQLTEST_VARDIR/tmp/range_substr_20200629.txt');
+load_file('MYSQLTEST_VARDIR/tmp/range_substr_20200629.txt')
+1	aaa
+2	bbb
+3	ddd
+4	fff
+
+truncate table test;
+支持 load_data_infile
+LOAD DATA INFILE 'MYSQLTEST_VARDIR/tmp/range_substr_20200629.txt' INTO TABLE test;
+select * from test order by id;
+id	name
+1	aaa
+2	bbb
+3	ddd
+4	fff
+drop table test;
+清理测试数据
+drop database if exists test_db;

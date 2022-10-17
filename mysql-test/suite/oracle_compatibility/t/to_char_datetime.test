@@ -1,0 +1,293 @@
+# The main testing script for to_char(datetime)
+
+SELECT TO_CHAR('2018/02/18', 'YYYY') FROM dual;
+
+SELECT TO_CHAR('2018/02/18', 'YYY') FROM dual;
+
+SELECT TO_CHAR('2018/02/18', 'YY') FROM dual;
+
+SELECT TO_CHAR('2018/02/18', 'Y') FROM dual;
+
+--error 1583
+SELECT TO_CHAR('2018/02/18', 'YYYYY') FROM dual;
+
+--error 1583
+SELECT TO_CHAR('2018/02/18', 'YYYYYY') FROM dual;
+
+--error 1583
+SELECT TO_CHAR('2018/02/18', YYYY) FROM dual;
+
+SELECT TO_CHAR(2018/02/18, 'YYYY') FROM dual;
+
+SELECT TO_CHAR(2018/02/18, 'YY') FROM dual;
+
+SELECT TO_CHAR(2018, 'YYYY') FROM dual;
+
+SELECT TO_CHAR('2018', 'yyyy') FROM dual;
+
+SELECT TO_CHAR('2018/10/10', 'YyYy') FROM dual;
+
+SELECT TO_CHAR('2018/10/10', 'YYYy') FROM dual;
+
+SELECT TO_CHAR('2018/10/10', 'yyyY') FROM dual;
+
+SELECT TO_CHAR('2018/02', 'YYYY') FROM dual;
+
+SELECT TO_CHAR('2 018/10/10', 'yyyy') FROM dual;
+
+SELECT TO_CHAR('2,018/10/10', 'yyyy') FROM dual;
+
+SELECT TO_CHAR('2018/10/10', 'y,yyy') FROM dual;
+
+SELECT TO_CHAR('2018/10/9', 'mm') FROM dual;
+
+SELECT TO_CHAR('2018-10-9', 'mm') FROM dual;
+
+SELECT TO_CHAR('10-9', 'mm') FROM dual;
+
+SELECT TO_CHAR('10', 'mm') FROM dual;
+
+SELECT TO_CHAR('2018-10-9', 'MM') FROM dual;
+
+SELECT TO_CHAR('2018/10/9', 'MM') FROM dual;
+
+--error 1583
+SELECT TO_CHAR('2018-10-9', mm) FROM dual;
+
+--error 1583
+SELECT TO_CHAR('2018/10/9', MM) FROM dual;
+
+SELECT TO_CHAR('-2018/10/9', 'MM') FROM dual;
+
+SELECT TO_CHAR('2018/-10/-9', 'MM') FROM dual;
+
+SELECT TO_CHAR('2018/+10/-9', 'MM') FROM dual;
+
+SELECT TO_CHAR('+2018/+10/-9', 'MM') FROM dual;
+
+SELECT TO_CHAR('+2018/+-10/-9', 'MM') FROM dual;
+
+SELECT to_char('2020+12+01 13:24:45.123456','month');
+
+select to_char('2020+12+01 13:24:45.123456','mon');
+
+select to_char('2020+12+01 13:24:45.123456','MON');
+
+select to_char('2020+12+01 13:24:45.123456','MONTH');
+
+select to_char('2020-12-01 13:24:45.123456','Dd');
+
+select to_char('2020-12-01 13:24:45.123456','DD');
+
+select to_char('2020-12-01 13:24:45.123456','dd');
+
+select to_char('2020-12-01 13:24:45.123456','yyyymmdd');
+
+select to_char('2020-12-01 13:24:45.123456','mmdd yyyy');
+
+select to_char('2020-12-01 13:24:45.123456','mMdd YYYy');
+
+select to_char('2020,12,01 13:24:45.123456','mMdd YYYy');
+
+select to_char('20201201 13:24:45.123456','mMdd YYYy');
+
+select to_char('2020 12 01 13:24:45.123456','mMdd YYYy');
+
+select to_char('2020+12+01 13:24:45.123456','mMdd YYYy');
+
+select to_char('2020+12+01 13:24:45.123456','mM+dd YYYy');
+
+select to_char('2020+12+01 13:24:45.123456','mM+dd YY+Yy');
+
+select to_char('2020+12+01 13:24:45.123456','mM#dd YYYy');
+
+select to_char('2020+12+01 13:24:45.123456','mM$$dd YYYy');
+
+select to_char('2020+12+01 13:24:45.123456','HH');
+
+select to_char('2020+12+01 13:24:45.123456','hh');
+
+select to_char('2020+12+01 13:24:45.123456','hH');
+
+select to_char('2020+12+01 13:24:45.123456','HH24');
+
+select to_char('2020+12+01 13:24:45.123456','hh24');
+
+select to_char('2020+12+01 13:24:45.123456','hH24');
+
+--error 1583
+select to_char('2020+12+01 13:24:45.123456','hH12');
+
+--error 1583
+select to_char('2020+12+01 13:24:45.123456','HH12');
+
+--error 1583
+select to_char('2020+12+01 13:24:45.123456','hh12');
+
+select to_char('2020+12+01 13:24:45.123456','MI');
+
+select to_char('2020+12+01 13:24:45.123456','mi');
+
+select to_char('2020+12+01 13:24:45.123456','Mi');
+
+select to_char('2020+12+01 13:24:45.123456','mI');
+
+--error 1583
+select to_char('2020+12+01 13:24:45.123456','mI12');
+
+--error 1583
+select to_char('2020+12+01 13:24:45.123456','mI60');
+
+--error 1583
+select to_char('2020+12+01 13:24:45.123456','mI59');
+
+--error 1583
+select to_char('2020+12+01 13:24:45.123456','mI58');
+
+select to_char('2020+12+01 13:24:45.123456','ss');
+
+select to_char('2020+12+01 13:24:45.123456','sS');
+
+select to_char('2020+12+01 13:24:45.123456','Ss');
+
+select to_char('2020+12+01 13:24:45.123456','SS');
+
+select to_char('2020+12+01 13:24:45.123456','+SS');
+
+select to_char('2020+12+01 13:24:45.123456','#sS');
+
+select to_char('2020+12+01 13:24:45.123456','FF');
+
+--error 1583
+select to_char('2020+12+01 13:24:45.123456','ff0');
+
+select to_char('2020+12+01 13:24:45.123456','FF1');
+
+select to_char('2020+12+01 13:24:45.123456','FF2');
+
+select to_char('2020+12+01 13:24:45.123456','FF3');
+
+select to_char('2020+12+01 13:24:45.123456','FF4');
+
+select to_char('2020+12+01 13:24:45.123456','FF5');
+
+select to_char('2020+12+01 13:24:45.123456','FF6');
+
+select to_char('2020+12+01 13:24:45.123456','FF7');
+
+select to_char('2020+12+01 13:24:45.123456','FF8');
+
+select to_char('2020+12+01 13:24:45.123456','FF9');
+
+select to_char('2020+12+01 13:24:45.123456','Ff8');
+
+select to_char('2020+12+01 13:24:45.123456','ff8');
+
+--error 1583
+select to_char('2020+12+01 13:24:45.123456','0ff');
+
+--error 1583
+select to_char('2020+12+01 13:24:45.123456','FF10');
+
+--error 1583
+select to_char('2020+12+01 13:24:45.123456','FF11');
+
+--error 1583
+select to_char('2020+12+01 13:24:45.123456','FF99');
+
+--error 1583
+select to_char('2020+12+01 13:24:45.123456','8ff');
+
+--error 1583
+select to_char('2020+12+01 13:24:45.123456','9ff');
+
+--error 1583
+select to_char('2020+12+01 13:24:45.123456','ff0ff');
+
+#repeated time format
+select to_char(timestamp'2020-06-05 13:24:45.123456','mimi') result from dual;
+
+select to_char(timestamp'2020-06-05 13:24:45.123456','ssss') result from dual;
+
+select to_char(timestamp'2020-06-05 13:24:45.123456','ss:ss') result from dual;
+
+select to_char(timestamp'2020-06-05 13:24:45.123456','hhhh') result from dual;
+
+select to_char(timestamp'2020-06-05 13:24:45.123456','hh hh') result from dual;
+
+select to_char(timestamp'2020-06-05 13:24:45.123456','dd dd') result from dual;
+
+select to_char(timestamp'2020-06-05 13:24:45.123456','dd d dd') result from dual;
+
+--error 1583
+select to_char(timestamp'2020-06-05 13:24:45.123456','ddddd') result from dual;
+
+select to_char(timestamp'2020-06-05 13:24:45.123456','mm mm') result from dual;
+
+select to_char(timestamp'2020-06-05 13:24:45.123456','mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm') result from dual;
+
+select to_char(timestamp'2020-06-05 13:24:45.123456','yyyy yyyy') result from dual;
+
+select to_char(timestamp'2020-06-05 13:24:45.123456','yy yy') result from dual;
+
+select to_char(timestamp'2020-06-05 13:24:45.123456','month month month') result from dual;
+
+select to_char(timestamp'2020-06-05 13:24:45.123456','month mm') result from dual;
+
+select  TO_CHAR(date'2020-06-05','yyyy-mm-dd  yyyy-mm-dd') result from dual;
+
+select to_char(timestamp'2020-05-01 09:09:59.123400','yyyy-mm-dd hh:mi:ss.ff3 yyyy-mm-dd hh:mi:ss.ff3 yyyy-mm-dd hh:mi:ss.ff3') result from dual;
+
+select to_char(timestamp'2020-05-01 09:09:59.123400','fmyyyy-mm-dd hh:mi:ss.ff3fm') from dual;
+
+select to_char(timestamp'2020-05-01 09:09:59.123400','fmyyyy-mm-dd fmhh:mi:ss.ff3fm') from dual;
+
+select to_char(timestamp'2020-05-01 09:09:59.123400','fmyyyy-fmmm-dd fmhh:mi:ss.ff3fm') from dual;
+
+select to_char(timestamp'2020-05-01 09:09:59.123400','fmyyyy-fmfmmm-dd fmhh:mi:ss.ff3fm') from dual;
+
+select to_char(timestamp'2020-01-20 16:35:16.123456','y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y') result from dual;
+
+--error 1583
+select to_char(timestamp'2020-01-20 16:35:16.123456','y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y y') from dual;
+
+select to_char(timestamp'2020-06-05 13:24:45.123456','ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9') result from dual;
+
+--error 1583
+select to_char(timestamp'2020-06-05 13:24:45.123456','ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9ff9') result from dual;
+
+####
+select to_char('2020-04-15 13:24:45.123456','d');
+
+select to_char('2020-04-15 13:24:45.123456','D');
+
+--error 1583
+select to_char('2020-04-15 13:24:45.123456','ddd');
+
+--error 1583
+select to_char('2020-04-15 13:24:45.123456','w');
+
+--error 1583
+select to_char('2020-04-15 13:24:45.123456','day');
+
+select to_char('2020-04-15 13:24:45.123456','Q');
+
+select to_char('2020-04-15 13:24:45.123456','D D D D');
+
+select to_char('2020-05-01 09:09:59.123400','yyyy-mm-dd hh:mi:ss.ff');
+
+select to_char('2020-05-01 09:09:59.123400','fmyyyy-mm-dd hh:mi:ss.ff');
+
+select to_char('2020-05-01 09:09:59.123400','fm yyyy-mm-dd hh:mi:ss.ff');
+
+select to_char('2020-05-01 09:09:59.123400','yyyy-mm-dd fmhh:mi:ss.ff');
+
+select to_char('2020-05-01 09:09:59.123400','yyyy-mm-dd fm hh:mi:ss.ff');
+
+--error 1583
+select to_char('2020-05-01 09:09:59.123400','yyyy-mm-dd f m hh:mi:ss.ff');
+
+#时间格式
+select to_char('2000-01-01' + INTERVAL '123-2' YEAR_MONTH) from dual;
+
+select to_char('0' + INTERVAL '123-2' YEAR_MONTH) from dual;

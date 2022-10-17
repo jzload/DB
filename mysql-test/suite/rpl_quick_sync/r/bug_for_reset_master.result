@@ -1,0 +1,58 @@
+create user zyy1@localhost;
+grant all on *.* to zyy1@localhost;
+####################################################################
+# master install plugin
+####################################################################
+[connection default]
+include/install_semisync_master.inc
+SET GLOBAL rpl_semi_sync_master_enabled = 0;
+set global rpl_semi_sync_master_timeout = 1000;
+CREATE TABLE t1(c1 INT);
+create database if not exists abczyy;
+create table abczyy.tb1(a int key, b int);
+###################################################################
+# Test1: semisync with reset master
+###################################################################
+[connection default]
+SET GLOBAL rpl_semi_sync_master_enabled = 0;
+SET GLOBAL rpl_semi_sync_master_quick_sync_enabled = 0;
+SET GLOBAL rpl_semi_sync_master_enabled = 1;
+set global rpl_semi_sync_master_timeout = 3000;
+[connection default]
+include/assert.inc [Rpl_semi_sync_master_wait_sessions should be 0]
+insert into abczyy.tb1(a,b) values(1,1);;
+[connection conzyy1]
+include/assert.inc [Rpl_semi_sync_master_wait_sessions should be 1]
+reset master;
+include/assert.inc [Rpl_semi_sync_master_wait_sessions should be 0]
+[connection default]
+include/assert.inc [Rpl_semi_sync_master_wait_sessions should be 0]
+###################################################################
+# Test2: quicksync with reset master
+###################################################################
+SET GLOBAL rpl_semi_sync_master_enabled = 0;
+SET GLOBAL rpl_semi_sync_master_quick_sync_enabled = 1;
+SET GLOBAL rpl_semi_sync_master_enabled = 1;
+set global rpl_semi_sync_master_wait_cond_hwm = '1:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '0:0';
+set global rpl_semi_sync_master_timeout = 3000;
+[connection default]
+include/assert.inc [Rpl_semi_sync_master_wait_sessions should be 0]
+insert into abczyy.tb1(a,b) values(2,2);;
+[connection conzyy1]
+include/assert.inc [Rpl_semi_sync_master_wait_sessions should be 1]
+reset master;
+include/assert.inc [Rpl_semi_sync_master_wait_sessions should be 0]
+[connection default]
+include/assert.inc [Rpl_semi_sync_master_wait_sessions should be 0]
+###################################################################
+# test end
+###################################################################
+[connection default]
+include/uninstall_semisync_master.inc
+drop user zyy1@localhost;
+[connection default]
+drop database if exists abczyy;
+DROP TABLE t1;
+CALL mtr.add_suppression(".* Timeout waiting for reply of binlog .*");
+CALL mtr.add_suppression(".* Failed to allocate memory for ack_array .*");

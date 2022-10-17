@@ -1,0 +1,236 @@
+include/rpl_init.inc [topology=1->2, 1->3, 1->4, 1->5]
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+CREATE TABLE t1(c1 INT);
+include/rpl_sync.inc
+[connection server_1]
+include/install_semisync_master.inc
+####################################################################
+# Test Case: check the thread_pool_size of threadpool mode
+####################################################################
+include/assert.inc [ should be 24]
+SET GLOBAL rpl_semi_sync_master_enabled = 0;
+SET GLOBAL rpl_semi_sync_master_timeout = 1000;
+###################################################################
+# Test Case: add slave 2 3
+###################################################################
+[connection server_2]
+include/install_semisync_slave.inc
+[connection server_3]
+include/install_semisync_slave.inc
+[connection server_1]
+###################################################################
+# the base config and status for quick sync
+###################################################################
+set global rpl_semi_sync_master_wait_cond_hwm = '2:1';
+set global rpl_semi_sync_master_wait_cond_lwm = '1:0';
+set global rpl_semi_sync_master_group1 = '2,3:1';
+set global rpl_semi_sync_master_group2 = '1,4:1';
+set global rpl_semi_sync_master_enabled = ON;
+include/assert.inc [Rpl_semi_sync_master_active_groups should be 2]
+include/assert.inc [Rpl_semi_sync_master_current_stat_master_flag should be 1]
+include/assert.inc [Rpl_semi_sync_master_current_wait_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_err_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_group1_status should be 2:GROUP_ACTIVE]
+include/assert.inc [Rpl_semi_sync_master_group2_status should be 0:GROUP_ACTIVE]
+create database if not exists abczyy1;
+create table if not exists abczyy1.tb1(a int key, b int);
+###############################################################################################
+# Test Case 1: set wait_cond_hwm && wait_no_slave=ON && err_flag=0 && hwm_stat from 1 to 0
+###############################################################################################
+set global rpl_semi_sync_master_wait_cond_hwm='5:0';
+include/assert.inc [Rpl_semi_sync_master_active_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_current_stat_master_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_current_wait_groups should be 5]
+include/assert.inc [Rpl_semi_sync_master_err_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_group1_status should be 2:GROUP_ACTIVE]
+include/assert.inc [Rpl_semi_sync_master_group2_status should be 0:GROUP_UNACTIVE]
+set global rpl_semi_sync_master_wait_cond_hwm='2:1';
+###############################################################################################
+# Test Case 2: set wait_cond_hwm && wait_no_slave=ON && err_flag=0 && hwm_stat from 0 to 1
+###############################################################################################
+set global rpl_semi_sync_master_wait_cond_hwm='2:0';
+include/assert.inc [Rpl_semi_sync_master_active_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_current_stat_master_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_current_wait_groups should be 2]
+include/assert.inc [Rpl_semi_sync_master_err_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_group1_status should be 2:GROUP_ACTIVE]
+include/assert.inc [Rpl_semi_sync_master_group2_status should be 0:GROUP_UNACTIVE]
+set global rpl_semi_sync_master_wait_cond_hwm='2:1';
+include/assert.inc [Rpl_semi_sync_master_active_groups should be 2]
+include/assert.inc [Rpl_semi_sync_master_current_stat_master_flag should be 1]
+include/assert.inc [Rpl_semi_sync_master_current_wait_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_err_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_group1_status should be 2:GROUP_ACTIVE]
+include/assert.inc [Rpl_semi_sync_master_group2_status should be 0:GROUP_ACTIVE]
+#################################################################################################################
+# Test Case 3: set wait_cond_hwm && wait_no_slave=ON && err_flag=0 && hwm_stat=1 && master_group need wait
+#################################################################################################################
+set global rpl_semi_sync_master_group2='1,4:2';
+include/assert.inc [Rpl_semi_sync_master_active_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_current_stat_master_flag should be 1]
+include/assert.inc [Rpl_semi_sync_master_current_wait_groups should be 2]
+include/assert.inc [Rpl_semi_sync_master_err_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_group1_status should be 2:GROUP_ACTIVE]
+include/assert.inc [Rpl_semi_sync_master_group2_status should be 0:GROUP_UNACTIVE]
+set global rpl_semi_sync_master_wait_cond_hwm='3:1';
+include/assert.inc [Rpl_semi_sync_master_active_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_current_stat_master_flag should be 1]
+include/assert.inc [Rpl_semi_sync_master_current_wait_groups should be 3]
+include/assert.inc [Rpl_semi_sync_master_err_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_group1_status should be 2:GROUP_ACTIVE]
+include/assert.inc [Rpl_semi_sync_master_group2_status should be 0:GROUP_UNACTIVE]
+set global rpl_semi_sync_master_wait_cond_hwm='2:1';
+set global rpl_semi_sync_master_group2='1,4:1';
+#################################################################################################################
+# Test Case 4: set wait_cond_hwm && wait_no_slave=ON && err_flag=0 && hwm_stat=1 && master_group not need wait
+#################################################################################################################
+set global rpl_semi_sync_master_wait_cond_hwm='3:1';
+include/assert.inc [Rpl_semi_sync_master_active_groups should be 2]
+include/assert.inc [Rpl_semi_sync_master_current_stat_master_flag should be 1]
+include/assert.inc [Rpl_semi_sync_master_current_wait_groups should be 2]
+include/assert.inc [Rpl_semi_sync_master_err_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_group1_status should be 2:GROUP_ACTIVE]
+include/assert.inc [Rpl_semi_sync_master_group2_status should be 0:GROUP_ACTIVE]
+set global rpl_semi_sync_master_wait_cond_hwm='2:1';
+#################################################################################################################
+# Test Case 5: set wait_cond_hwm && wait_no_slave=ON && err_flag=0 && hwm_stat=0
+#################################################################################################################
+set global rpl_semi_sync_master_wait_cond_hwm='2:0';
+include/assert.inc [Rpl_semi_sync_master_active_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_current_stat_master_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_current_wait_groups should be 2]
+include/assert.inc [Rpl_semi_sync_master_err_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_group1_status should be 2:GROUP_ACTIVE]
+include/assert.inc [Rpl_semi_sync_master_group2_status should be 0:GROUP_UNACTIVE]
+set global rpl_semi_sync_master_wait_cond_hwm='1:0';
+include/assert.inc [Rpl_semi_sync_master_active_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_current_stat_master_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_current_wait_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_err_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_group1_status should be 2:GROUP_ACTIVE]
+include/assert.inc [Rpl_semi_sync_master_group2_status should be 0:GROUP_UNACTIVE]
+set global rpl_semi_sync_master_wait_cond_hwm='2:1';
+#################################################################################################################
+# Test Case 6: set wait_cond_hwm && wait_no_slave=OFF && err_flag=0
+#################################################################################################################
+set global rpl_semi_sync_master_wait_no_slave= OFF;
+include/assert.inc [Rpl_semi_sync_master_active_groups should be 2]
+include/assert.inc [Rpl_semi_sync_master_current_stat_master_flag should be 1]
+include/assert.inc [Rpl_semi_sync_master_current_wait_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_err_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_group1_status should be 2:GROUP_ACTIVE]
+include/assert.inc [Rpl_semi_sync_master_group2_status should be 0:GROUP_ACTIVE]
+set global rpl_semi_sync_master_wait_cond_hwm='1:0';
+include/assert.inc [Rpl_semi_sync_master_active_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_current_stat_master_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_current_wait_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_err_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_group1_status should be 2:GROUP_ACTIVE]
+include/assert.inc [Rpl_semi_sync_master_group2_status should be 0:GROUP_UNACTIVE]
+set global rpl_semi_sync_master_wait_cond_hwm='2:1';
+#################################################################################################################
+# Test Case 7: set wait_cond_hwm && wait_no_slave=OFF && err_flag from 0 to 2
+#################################################################################################################
+set global rpl_semi_sync_master_wait_no_slave= OFF;
+include/assert.inc [Rpl_semi_sync_master_active_groups should be 2]
+include/assert.inc [Rpl_semi_sync_master_current_stat_master_flag should be 1]
+include/assert.inc [Rpl_semi_sync_master_current_wait_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_err_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_group1_status should be 2:GROUP_ACTIVE]
+include/assert.inc [Rpl_semi_sync_master_group2_status should be 0:GROUP_ACTIVE]
+set global rpl_semi_sync_master_wait_cond_hwm='2:0';
+include/assert.inc [Rpl_semi_sync_master_active_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_current_stat_master_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_current_wait_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_err_flag should be 2]
+include/assert.inc [Rpl_semi_sync_master_group1_status should be 2:GROUP_ACTIVE]
+include/assert.inc [Rpl_semi_sync_master_group2_status should be 0:GROUP_UNACTIVE]
+set global rpl_semi_sync_master_wait_cond_hwm='2:1';
+#################################################################################################################
+# Test Case 8: set wait_cond_hwm && err_flag=2
+#################################################################################################################
+set global rpl_semi_sync_master_wait_cond_hwm='2:0';
+truncate table abczyy1.tb1;
+include/assert.inc [Rpl_semi_sync_master_active_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_current_stat_master_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_current_wait_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_err_flag should be 2]
+include/assert.inc [Rpl_semi_sync_master_group1_status should be 2:GROUP_ACTIVE]
+include/assert.inc [Rpl_semi_sync_master_group2_status should be 0:GROUP_UNACTIVE]
+set global rpl_semi_sync_master_wait_cond_hwm='3:1';
+include/assert.inc [Rpl_semi_sync_master_active_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_current_stat_master_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_current_wait_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_err_flag should be 2]
+include/assert.inc [Rpl_semi_sync_master_group1_status should be 2:GROUP_ACTIVE]
+include/assert.inc [Rpl_semi_sync_master_group2_status should be 0:GROUP_UNACTIVE]
+set global rpl_semi_sync_master_wait_cond_hwm='2:1';
+#################################################################################################################
+# Test Case 9: set wait_cond_hwm && err_flag from 2 to 0
+#################################################################################################################
+set global rpl_semi_sync_master_wait_cond_hwm='2:0';
+truncate table abczyy1.tb1;
+include/assert.inc [Rpl_semi_sync_master_active_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_current_stat_master_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_current_wait_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_err_flag should be 2]
+include/assert.inc [Rpl_semi_sync_master_group1_status should be 2:GROUP_ACTIVE]
+include/assert.inc [Rpl_semi_sync_master_group2_status should be 0:GROUP_UNACTIVE]
+set global rpl_semi_sync_master_wait_cond_hwm='2:1';
+include/assert.inc [Rpl_semi_sync_master_active_groups should be 2]
+include/assert.inc [Rpl_semi_sync_master_current_stat_master_flag should be 1]
+include/assert.inc [Rpl_semi_sync_master_current_wait_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_err_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_group1_status should be 2:GROUP_ACTIVE]
+include/assert.inc [Rpl_semi_sync_master_group2_status should be 0:GROUP_ACTIVE]
+set global rpl_semi_sync_master_wait_cond_hwm='2:1';
+#################################################################################################################
+# Test Case 10: set wait_cond_hwm && err_flag=1
+#################################################################################################################
+set global rpl_semi_sync_master_wait_cond_hwm='3:1';
+set global rpl_semi_sync_master_wait_cond_lwm='2:0';
+truncate table abczyy1.tb1;
+include/assert.inc [Rpl_semi_sync_master_active_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_current_stat_master_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_current_wait_groups should be 2]
+include/assert.inc [Rpl_semi_sync_master_err_flag should be 1]
+include/assert.inc [Rpl_semi_sync_master_group1_status should be 2:GROUP_ACTIVE]
+include/assert.inc [Rpl_semi_sync_master_group2_status should be 0:GROUP_UNACTIVE]
+set global rpl_semi_sync_master_wait_cond_hwm='3:0';
+include/assert.inc [Rpl_semi_sync_master_active_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_current_stat_master_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_current_wait_groups should be 2]
+include/assert.inc [Rpl_semi_sync_master_err_flag should be 1]
+include/assert.inc [Rpl_semi_sync_master_group1_status should be 2:GROUP_ACTIVE]
+include/assert.inc [Rpl_semi_sync_master_group2_status should be 0:GROUP_UNACTIVE]
+set global rpl_semi_sync_master_wait_cond_lwm='1:0';
+set global rpl_semi_sync_master_wait_cond_hwm='2:1';
+########################################################################
+# Coverage Test
+########################################################################
+SET GLOBAL rpl_semi_sync_master_wait_for_slave_count = 4;
+SET GLOBAL rpl_semi_sync_master_enabled= OFF;
+[connection server_2]
+include/uninstall_semisync_slave.inc
+[connection server_3]
+include/uninstall_semisync_slave.inc
+[connection server_1]
+[connection server_1]
+include/uninstall_semisync_master.inc
+[connection server_1]
+DROP TABLE t1;
+drop database if exists abczyy1;
+CALL mtr.add_suppression(".* Timeout waiting for reply of binlog .*");
+CALL mtr.add_suppression(".* Failed to allocate memory for ack_array .*");
+include/rpl_end.inc

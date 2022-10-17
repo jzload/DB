@@ -1,0 +1,178 @@
+# restart
+##
+## prepare
+##
+Drop database if exists abczyy_test;
+Warnings:
+Note	1008	Can't drop database 'abczyy_test'; database doesn't exist
+Create database abczyy_test;
+Create table abczyy_test.tb1(a int key, b int);
+Create table abczyy_test.tb2(a int key, b int);
+Insert into abczyy_test.tb2(a,b) values(1,1),(2,2),(3,3),(4,4),(5,5),(6,6),(7,7),(8,8),(9,9);
+set global autocommit=1;
+##
+## Test 1.1 [comment format error] match char + error
+##
+/*-GTID=0123456789*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(11,11);
+select TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_GTM_GTID
+NULL
+rollback;
+##
+## Test 1.2 [comment format error] match GTID error
+##
+/*+GTiD=0123456789*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+select TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_GTM_GTID
+NULL
+rollback;
+##
+## Test 1.3 [comment format error] match char = error
+##
+/*+GTID:0123456789*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+select TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_GTM_GTID
+NULL
+rollback;
+##
+## Test 1.4 [comment format error] match long comment > MAX_GTID_LEN(32)
+##
+/*+GTID=012345678901234567890123456789012*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+select TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_GTM_GTID
+01234567890123456789012345678901
+rollback;
+##
+## Test 1.5 [comment format error] match empty comment
+##
+/*+GTID=*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+select TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_GTM_GTID
+NULL
+rollback;
+##
+## Test 1.6 [comment format error] match only space comment
+##
+/*+GTID=    */Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+select TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_GTM_GTID
+    
+rollback;
+##
+## Test 2.1 no special GTID comment
+##
+Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+select TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_GTM_GTID
+NULL
+rollback;
+##
+## Test 2.2 transaction comment
+##
+/*+GTID=0123456789*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+select TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_GTM_GTID
+0123456789
+rollback;
+##
+## Test 2.3 transaction comment with max len(MAX_GTID_LEN)
+##
+/*+GTID=01234567890123456789012345678901*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+select TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_GTM_GTID
+01234567890123456789012345678901
+rollback;
+##
+## Test 2.4 STATEMENT comment
+##
+Start transaction;
+/*+GTID=1*/Insert into abczyy_test.tb1(a,b) values(1,1);
+select TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_GTM_GTID
+1
+/*+GTID=2*/Insert into abczyy_test.tb1(a,b) values(2,2);
+select TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_GTM_GTID
+2
+rollback;
+##
+## Test 2.5 mutli special comments
+##
+/*+GTID=000001*/Start transaction;
+/*+GTID=000002*/Insert into abczyy_test.tb1(a,b) values(1,1);
+select TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_GTM_GTID
+000002
+rollback;
+##
+## Test 2.6 comment in the middle of sql
+##
+Start/*+GTID=1000001*/ transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+select TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_GTM_GTID
+1000001
+rollback;
+##
+## Test 2.7 comment in the end of sql
+##
+Start transaction/*+GTID=111000001*/ ;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+select TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_GTM_GTID
+111000001
+rollback;
+##
+## Test 2.8 start transaction commit the last trx
+##
+/*+GTID=12345000001*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(201,201);
+select TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_GTM_GTID
+12345000001
+/*+GTID=12345000002*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(202,202);
+select TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_GTM_GTID
+12345000002
+commit;
+##
+## Test 2.9 DDL commit the last trx
+##
+/*+GTID=123456789000003*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(203,203);
+/*+GTID=123456789000004*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(204,204);
+select TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_GTM_GTID
+123456789000004
+123456789000003
+/*+GTID=123456789000005*/alter table abczyy_test.tb1 engine=innodb;
+select TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_GTM_GTID
+123456789000004
+commit;
+##
+## Test 2.10 auto_commit sql
+##
+/*+GTID=000001*/Start transaction;
+Update abczyy_test.tb2 set b = 11 where a=1;
+/*+GTID=000002*/Update abczyy_test.tb2 set b = 12 where a=1;
+select TRX_GTM_GTID FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+TRX_GTM_GTID
+000002
+000001
+commit;
+##
+## clear
+##
+Drop database if exists abczyy_test;

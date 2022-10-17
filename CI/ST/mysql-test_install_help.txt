@@ -1,0 +1,41 @@
+mysql-test自动化测试用例部署环境：
+1、提供一台机器：
+10.46.178.97   
+
+2、建立一个MYSQL_TRUNK_IT测试目录
+   /home/data_sdb/MYSQL_A_D_IT
+
+3、建立一份代码克隆路径
+   git clone ...
+   增加了一个目录为：/home/data_sdb/MYSQL_A_D_IT/DB
+   
+3.1、拷贝执行脚本IT/update_and_execute_it.sh到/home/data_sdb/MYSQL_A_D_IT目录下
+
+4、建立1个测试用户目录：mysql_it1
+   useradd mysql_it1 -d /home/data_sdb/MYSQL_A_D_IT/mysql_it1 -m
+
+5、建立一个输出结果目录：output
+   /home/data_sdb/MYSQL_A_D_IT/output
+   
+6、jfrog配置及安装（可执行文件存放在10.46.178.97 /home/zyy_work/目录下）
+   1）将jfrog进程传到/home/data_sdb/MYSQL_A_D_IT目录下
+   2）vi /etc/hosts  在文件最后追加以下内容： 10.41.103.97 artnj.zte.com.cn
+   3）在/home/data_sdb/MYSQL_A_D_IT目录下执行：
+      ./jfrog rt c goldendb-snapshot-generic/ --url=https://artnj.zte.com.cn/artifactory/
+      Artifactory server ID [goldendb-snapshot-generic/]: 回车
+      API key (leave empty for basic authentication): 回车
+      User [10184561]: 10184561
+      Password: [Info] Encrypting password...
+      [Info] Done encrypting password.
+   4）验证是否可以下载：
+     ./jfrog rt dl --flat=true goldendb-snapshot-generic/DB/allmaster/last.txt
+	 
+7、找潘朝喜帮忙拉job
+
+8、注意:
+1）如果步骤4的用户名不一致，则需要更改update_and_execute_it.sh脚本中test_user环境变量的名称
+2）如果步骤6中需要拉取的版本变更，则需要更改update_and_execute_it.sh脚本中file_name环境变量的名称
+
+
+   
+   

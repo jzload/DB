@@ -1,0 +1,96 @@
+--echo #
+--echo # BUG#93761 - optimize table will cause the slave MTS deadlock
+--echo #
+
+--echo # init
+drop database if exists abc_test;
+create database abc_test;
+use abc_test;
+create table tb1(a int key, b char(10), c varchar(20));
+create table tb2(a int key, b char(10), c varchar(20));
+create table tb3(a int key, b char(10), c varchar(20));
+create table tb4(a int key, b char(10), c varchar(20))engine=myisam;
+create table tb5(a int key, b char(10), c varchar(20))engine=myisam;
+create table tb6(a int key, b char(10), c varchar(20))engine=myisam;
+
+delimiter //;
+create procedure abc_test.load(count int unsigned)
+begin
+set @c=0;
+start transaction;
+while @c <count DO
+INSERT INTO tb1 select @c,repeat(char(97+rand()*26),8),repeat(char(97+rand()*26),15);
+INSERT INTO tb2 select @c,repeat(char(97+rand()*26),8),repeat(char(97+rand()*26),15);
+INSERT INTO tb3 select @c,repeat(char(97+rand()*26),8),repeat(char(97+rand()*26),15);
+INSERT INTO tb4 select @c,repeat(char(97+rand()*26),8),repeat(char(97+rand()*26),15);
+INSERT INTO tb5 select @c,repeat(char(97+rand()*26),8),repeat(char(97+rand()*26),15);
+INSERT INTO tb6 select @c,repeat(char(97+rand()*26),8),repeat(char(97+rand()*26),15);
+set @c=@c+1;
+end while;
+commit;
+end;//
+delimiter ;//
+
+call abc_test.load(1000);
+
+--echo # test for innodb table
+optimize table tb1;
+optimize table tb2, tb3;
+optimize NO_WRITE_TO_BINLOG table tb2, tb3;
+optimize LOCAL table tb2, tb3;
+
+analyze table tb1;
+analyze table tb2, tb3;
+analyze NO_WRITE_TO_BINLOG table tb2, tb3;
+analyze LOCAL table tb2, tb3;
+
+check table tb1;
+check table tb2, tb3;
+check table tb2, tb3 FOR UPGRADE;
+check table tb2, tb3 QUICK;
+check table tb2, tb3 FAST;
+check table tb2, tb3 MEDIUM;
+check table tb2, tb3 EXTENDED;
+check table tb2, tb3 CHANGED;
+
+repair table tb1;
+repair table tb2, tb3;
+repair NO_WRITE_TO_BINLOG table tb2, tb3;
+repair LOCAL table tb2, tb3;
+repair table tb2, tb3 QUICK;
+repair table tb2, tb3 EXTENDED;
+repair table tb2, tb3 USE_FRM;
+
+
+--echo # test for myisam table
+optimize table tb4;
+optimize table tb5, tb6;
+optimize NO_WRITE_TO_BINLOG table tb5, tb6;
+optimize LOCAL table tb5, tb6;
+
+analyze table tb4;
+analyze table tb5, tb6;
+analyze NO_WRITE_TO_BINLOG table tb5, tb6;
+analyze LOCAL table tb5, tb6;
+
+check table tb4;
+check table tb5, tb6;
+check table tb5, tb6 FOR UPGRADE;
+check table tb5, tb6 QUICK;
+check table tb5, tb6 FAST;
+check table tb5, tb6 MEDIUM;
+check table tb5, tb6 EXTENDED;
+check table tb5, tb6 CHANGED;
+
+repair table tb4;
+repair table tb5, tb6;
+repair NO_WRITE_TO_BINLOG table tb5, tb6;
+repair LOCAL table tb5, tb6;
+repair table tb5, tb6 QUICK;
+repair table tb5, tb6 EXTENDED;
+repair table tb5, tb6 USE_FRM;
+
+
+--echo # clear
+drop procedure if exists abc_test.load;
+drop database if exists abc_test;

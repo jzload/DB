@@ -1,0 +1,153 @@
+include/rpl_init.inc [topology=1->2]
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+include/rpl_sync.inc
+[connection server_1]
+include/install_semisync_master.inc
+####################################################################
+# Test Case: check the thread_pool_size of threadpool mode
+####################################################################
+include/assert.inc [ should be 4]
+SET GLOBAL rpl_semi_sync_master_enabled = 0;
+set global rpl_semi_sync_master_timeout = 1000;
+###################################################################
+# Test Case: add slave 2
+###################################################################
+[connection server_2]
+include/install_semisync_slave.inc
+[connection server_1]
+###################################################################
+# the base config and status for quick sync
+###################################################################
+set global rpl_semi_sync_master_wait_cond_hwm = '2:1';
+set global rpl_semi_sync_master_wait_cond_lwm = '1:0';
+set global rpl_semi_sync_master_group1 = '2,3:1';
+set global rpl_semi_sync_master_group2 = '1,4:1';
+set global rpl_semi_sync_master_enabled = ON;
+include/assert.inc [Rpl_semi_sync_master_active_groups should be 2]
+include/assert.inc [Rpl_semi_sync_master_current_stat_master_flag should be 1]
+include/assert.inc [Rpl_semi_sync_master_current_wait_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_err_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_group1_status should be 1:GROUP_ACTIVE]
+include/assert.inc [Rpl_semi_sync_master_group2_status should be 0:GROUP_ACTIVE]
+###################################################################
+# the base config and status for slave
+###################################################################
+[connection server_2]
+set global rpl_semi_sync_master_wait_cond_hwm = '2:1';
+set global rpl_semi_sync_master_wait_cond_lwm = '1:0';
+set global rpl_semi_sync_master_group1 = '2,3:1';
+set global rpl_semi_sync_master_group2 = '1,4:1';
+set global rpl_semi_sync_master_wait_no_slave = OFF;
+set global rpl_semi_sync_master_enabled = ON;
+include/assert.inc [Rpl_semi_sync_master_active_groups should be 0]
+include/assert.inc [Rpl_semi_sync_master_current_stat_master_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_current_wait_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_err_flag should be 1]
+include/assert.inc [Rpl_semi_sync_master_group1_status should be 0:GROUP_UNACTIVE]
+include/assert.inc [Rpl_semi_sync_master_group2_status should be 0:GROUP_UNACTIVE]
+###################################################################
+# test slave_case.sql
+###################################################################
+[connection server_1]
+drop user if exists repl_test;
+Warnings:
+Note	3162	Authorization ID 'repl_test'@'%' does not exist.
+create user repl_test@'localhost' identified by 'repl_test';
+create user repl_test@'%' identified by 'repl_test';
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, RELOAD, LOCK TABLES, REPLICATION SLAVE, REPLICATION CLIENT, 
+CREATE ROUTINE, ALTER ROUTINE, CREATE TABLESPACE,ALTER,create temporary tables on *.* TO 'repl_test'@'localhost' ;
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, RELOAD, LOCK TABLES, REPLICATION SLAVE, REPLICATION CLIENT, 
+CREATE ROUTINE, ALTER ROUTINE, CREATE TABLESPACE,ALTER,create temporary tables on *.* TO 'repl_test'@'%' ;
+drop database if exists it_quick_sync_read_only;
+Warnings:
+Note	1008	Can't drop database 'it_quick_sync_read_only'; database doesn't exist
+create database it_quick_sync_read_only;
+create database `#mysql50#a-b-c`;
+use it_quick_sync_read_only;
+drop table if exists t1;
+Warnings:
+Note	1051	Unknown table 'it_quick_sync_read_only.t1'
+drop table if exists t2;
+Warnings:
+Note	1051	Unknown table 'it_quick_sync_read_only.t2'
+drop table if exists t3;
+Warnings:
+Note	1051	Unknown table 'it_quick_sync_read_only.t3'
+drop table if exists t4;
+Warnings:
+Note	1051	Unknown table 'it_quick_sync_read_only.t4'
+create table t1(id int);
+create index t1_index1 on t1(id);
+create table t2(id int primary key, name varchar(10));
+create table t3(id int);
+create table t4(id int);
+create table tb_test1(id int) engine = myisam;
+create table tb_test2(id int) engine = myisam;
+create view view1 as select t2.name from t1 join t2 where t1.id = t2.id;
+create temporary table tmp1(id int, name varchar(20));
+insert into t1 values(1),(2),(3);
+insert into t2 values(1,'1'),(2,'2'),(3,'3');
+insert into t3 values(4),(5),(6);
+insert into t4 values(7),(8),(9);
+insert into tmp1 values(10,'x'),(11,'y'),(12,'z');
+create procedure sp_test1(p_id int)
+begin
+insert into t1 values(p_id);
+end
+//
+call sp_test1(222);
+create function sf_test1(p_id int) returns int
+DETERMINISTIC
+begin
+return p_id * p_id;
+end
+//
+select sf_test1(222);
+sf_test1(222)
+49284
+set @sum = 0;
+create trigger trig_test1 before insert on t1 for each row 
+set @sum = @sum + new.id;
+insert into t1 values(333);
+select @sum;
+@sum
+333
+create event event_test1
+on schedule at CURRENT_TIMESTAMP  +  interval 1  minute 
+do
+update t3 set id = id + 20;
+CHANGE MASTER TO  MASTER_HOST = 'localhost', MASTER_USER = 'repl_test', MASTER_PASSWORD = 'repl_test', MASTER_AUTO_POSITION = 1;
+Warnings:
+Note	1759	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	1760	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+start slave;
+stop slave;
+reset slave;
+reset slave all;
+show slave hosts;
+########################################################################
+# Coverage Test
+########################################################################
+SET GLOBAL rpl_semi_sync_master_enabled= OFF;
+[connection server_2]
+include/uninstall_semisync_slave.inc
+[connection server_2]
+set global rpl_semi_sync_master_wait_cond_lwm = '';
+set global rpl_semi_sync_master_wait_cond_hwm = '';
+set global rpl_semi_sync_master_group1 = '';
+set global rpl_semi_sync_master_group2 = '';
+set global rpl_semi_sync_master_wait_no_slave = ON;
+SET GLOBAL rpl_semi_sync_master_enabled= OFF;
+[connection server_1]
+[connection server_1]
+include/uninstall_semisync_master.inc
+[connection server_1]
+drop user repl_test@'localhost';
+drop user repl_test@'%';
+drop database it_quick_sync_read_only;
+drop database `#mysql50#a-b-c`;
+CALL mtr.add_suppression(".* Timeout waiting for reply of binlog .*");
+CALL mtr.add_suppression(".* Failed to allocate memory for ack_array .*");
+include/rpl_end.inc

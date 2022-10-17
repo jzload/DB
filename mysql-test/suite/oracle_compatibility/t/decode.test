@@ -1,0 +1,144 @@
+#
+# Test：ZSQL兼容Oracle的 decode() 函数
+#
+# Syntax:
+#    DECODE ( expr, {search, result [, search, result...]}, [default] )
+#
+
+# 创建测试数据库和测试表，并构造测试数据
+drop database if exists test_decode_db;
+create database test_decode_db;
+use test_decode_db;
+drop table if exists test_decode_db.test_decode;
+create table if not exists test_decode_db.test_decode
+(
+  id         int not null primary key,
+  id1        int,
+  id2        int,
+  varchar1   varchar(80)
+);
+
+start transaction;
+insert into test_decode (id,id1,id2,varchar1) values (1,  11, 111, '语文');
+insert into test_decode (id,id1,id2,varchar1) values (2,  22,  22, '数学');
+insert into test_decode (id,id1,id2,varchar1) values (3, 333,  33, '品德');
+insert into test_decode (id,id1,id2,varchar1) values (4,  44, 444,  NULL);
+insert into test_decode (id,id1,id2,varchar1) values (5, 555,  55, 'English');
+commit;
+
+
+# decode 可以作为表名/列名/别名
+create table if not exists decode (a int, decode varchar(20));
+insert into decode (a, decode) values (1, 'decode func');
+select a as decode from decode;
+drop table if exists decode;
+
+# 语法错误
+--error 1054
+select decode from dual;
+--error 1582
+select decode() from dual;
+--error 1582
+select decode(1) from dual;
+--error 1064
+select decode(1,) from dual;
+--error 1064
+select decode(1,2,) from dual;
+
+# NULL和空字符串('')
+select decode(NULL, 4, 2) from dual;
+select decode(NULL, 4, 2, NULL) from dual;
+select decode(NULL, NULL, 2, NULL) from dual;
+select decode('', 4, 2) from dual;
+select decode('', 4, 2, 'X') from dual;
+select decode('', '', 2, 'X') from dual;
+select decode('', NULL, 2, 'X') from dual;
+select decode(NULL, '', 2, 'X') from dual;
+
+# 隐式类型转换
+# |expr  |search  |result  |default
+# ----------------------------------
+# |int   |int     |char    |
+# |int   |int     |int     |
+# |int   |char    |char    |
+# |int   |char    |int     |
+# |int   |char    |int     |int
+# |int   |char    |int     |char
+# ----------------------------------
+select decode(2, 2, '5') from dual;
+select decode(2, 2, 5) from dual;
+select decode(2, '2', '5') from dual;
+select decode(2, '2', 5) from dual;
+select decode(2, '3', 3, 5) from dual;
+select decode(2, '3', 3, '5') from dual;
+
+# |expr   |search  |result  |default
+# ----------------------------------
+# |char   |int     |char    |
+# |char   |int     |int     |
+# |char   |char    |char    |
+# |char   |char    |int     |
+# |char   |char    |int     |int
+# |char   |char    |int     |char
+# ----------------------------------
+select decode('2', 2, '5') from dual;
+select decode('2', 2, 5) from dual;
+select decode('2', '2', '5') from dual;
+select decode('2', '2', 5) from dual;
+select decode('2', '3', 3, 5) from dual;
+select decode('2', '3', 3, '5') from dual;
+
+# 日期类型
+select decode (to_timestamp('2020-05-08','yyyy-mm-dd'), '2020-05-08 00:00:00.000000', 'timestamp', 'default') as decode_timestamp;
+select decode (to_date('2020-05-08','yyyy-mm-dd'), '2020-05-08 00:00:00', 'timestamp', 'default') as decode_date;
+
+# 字段值
+select decode (id,1,'id is 1',2,'id is 2','otners') from test_decode order by id;
+select decode (id,1,concat('id is ', id),2,concat('id is ', id),'otners') from test_decode order by id;
+select decode (varchar1,'语文',concat('是', varchar1),'数学',concat('是', varchar1),'English',concat('是', varchar1)) from test_decode order by id;
+select decode (varchar1,'语文','语文是1','数学','数学是2','English','英语是5','其他数') from test_decode order by id;
+select decode (varchar1,'语文','语文是1','数学','数学是2','English','英语是5','其他数') as decode_result from test_decode order by id;
+
+# 简单表达式/函数嵌套
+select id1,id2,
+  decode (sign(nvl(id1,0) - nvl(id2,0)),
+          -1, nvl(id2,0) - nvl(id1,0),
+           0, nvl(id1,0) - nvl(id2,0),
+           1, nvl(id1,0) - nvl(id2,0)) as decode_desc
+from test_decode order by id;
+select decode (id+1,2,'id is 1',3,'id is 2','otners') from test_decode order by id;
+select length (decode(varchar1,'语文','语文是1','数学','数学是2','English','英语是3','其他数')) from test_decode order by id;
+select decode(length(varchar1),7,'English',13,'高等-数学',6,'语文或数学','其他数') from test_decode order by id;
+select decode(char_length(varchar1)+1,3,'char length is 3','其他数') from test_decode order by id;
+
+# from 子查询
+select * from (select decode (1,1,'1=1','false') from dual) tmp;
+select * from (select id,decode (id,1,'id is 1',2,'id is 2','others') from test_decode) tmp order by id;
+select * from (select id,decode (id+1,2,'id is 1',3,'id is 2','otners') from test_decode)tmp order by id;
+select * from (select id,decode(varchar1,'语文','语文是1','数学','数学是2','English','英语是5','其他数') from test_decode) tmp order by id;
+select * from (select id,decode(varchar1,'语文','语文是1','数学','数学是2','English','英语是5') from test_decode) tmp order by id;
+select decode_result from (select id,decode(varchar1,'语文','语文是1','数学','数学是2','English','英语是5','其他数') as decode_result from test_decode)tmp order by id;
+select * from (select id,decode(length(varchar1),7,'English',13,'高等-数学',6,'语文或数学','其他数') from test_decode)tmp order by id;
+select * from (select id,decode(length(varchar1)+1,7,'English',13,'高等-数学',6,'语文或数学','其他数') from test_decode)tmp order by id;
+
+# where 子查询
+select * from test_decode where id = decode (1,1,'1',2) order by id;
+select * from test_decode where exists (select decode (1,1,'1=1','false') from dual) order by id;
+select * from test_decode where id in (select decode(varchar1,'语文','1','数学','2','English','5','3') from test_decode) order by id;
+select * from test_decode where id in (select decode(varchar1,'语文','1','数学','2','English','5','3') as decode_result from test_decode) order by id;
+select * from test_decode where id not in (select decode(varchar1,'语文','1','数学','2','English','5','3') from test_decode) order by id;
+select * from test_decode where id in (select length (decode(varchar1,'语文','1','数学','12','English','123','12345')) from test_decode) order by id;
+select * from test_decode where id in (select decode(length(varchar1)-5,1,1,2,5,6) from test_decode) order by id;
+select * from test_decode where id = decode(varchar1,'语文','1','数学','2','English','5','3') order by id;
+select * from test_decode where id != decode(varchar1,'语文','1','数学','2','English','5','3') order by id;
+select * from test_decode where id in (decode(varchar1,'语文','1','数学','12','English','123','12345')) order by id;
+select * from test_decode where id in (decode(length(varchar1)-5,1,1,2,5,6)) order by id;
+
+# oreder by
+select * from test_decode order by decode(varchar1,'语文','1','数学','2','english','3','5');
+
+
+# 清理测试数据
+drop database if exists test_decode_db;
+
+# End of ZSQL 兼容Oracle的 decode() 函数 tests

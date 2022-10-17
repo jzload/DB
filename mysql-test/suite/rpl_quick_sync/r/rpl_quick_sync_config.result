@@ -1,0 +1,245 @@
+include/rpl_init.inc [topology=1->2, 1->3, 1->4, 1->5]
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+CREATE TABLE t1(c1 INT);
+include/rpl_sync.inc
+[connection server_1]
+include/install_semisync_master.inc
+####################################################################
+# Test Case: check the thread_pool_size of threadpool mode
+####################################################################
+include/assert.inc [ should be 24]
+SET GLOBAL rpl_semi_sync_master_enabled = 0;
+set global rpl_semi_sync_master_timeout = 1000;
+###################################################################
+# Test Case: add slave 2 3 4 5
+###################################################################
+[connection server_2]
+include/install_semisync_slave.inc
+[connection server_3]
+include/install_semisync_slave.inc
+[connection server_4]
+include/install_semisync_slave.inc
+[connection server_5]
+include/install_semisync_slave.inc
+[connection server_1]
+###################################################################
+# Test Case 1: set wait_cond_hwm ok
+###################################################################
+set global rpl_semi_sync_master_wait_cond_lwm = '0:0';
+set @@global.rpl_semi_sync_master_wait_cond_hwm = NULL;
+set global rpl_semi_sync_master_wait_cond_hwm = '1:1';
+set @@global.rpl_semi_sync_master_wait_cond_hwm = ' 1 : 1 ';
+set global rpl_semi_sync_master_wait_cond_hwm = '0:1';
+set @@global.rpl_semi_sync_master_wait_cond_hwm = '1:0';
+set global rpl_semi_sync_master_wait_cond_hwm = '10:1';
+set @@global.rpl_semi_sync_master_wait_cond_hwm = '3:1';
+set global rpl_semi_sync_master_wait_cond_hwm = '6:0';
+set @@global.rpl_semi_sync_master_wait_cond_hwm = '10:0';
+set global rpl_semi_sync_master_wait_cond_hwm = '1:1';
+set @@global.rpl_semi_sync_master_wait_cond_hwm = '0:1';
+set global rpl_semi_sync_master_wait_cond_hwm = '1:0';
+set @@global.rpl_semi_sync_master_wait_cond_hwm = '10:0';
+set global rpl_semi_sync_master_wait_cond_hwm = '4:1';
+set @@global.rpl_semi_sync_master_wait_cond_hwm = '7:0';
+set global rpl_semi_sync_master_wait_cond_hwm = '10:1';
+set @@global.rpl_semi_sync_master_wait_cond_hwm = NULL;
+include/assert.inc [Rpl_semi_sync_master_wait_cond_hwm should be NULL]
+###################################################################
+# Test Case 2: set wait_cond_hwm error
+###################################################################
+set  rpl_semi_sync_master_wait_cond_hwm = '4:1';
+ERROR HY000: Variable 'rpl_semi_sync_master_wait_cond_hwm' is a GLOBAL variable and should be set with SET GLOBAL
+set session  rpl_semi_sync_master_wait_cond_hwm = '4:1';
+ERROR HY000: Variable 'rpl_semi_sync_master_wait_cond_hwm' is a GLOBAL variable and should be set with SET GLOBAL
+set global rpl_semi_sync_master_wait_cond_hwm = '-3:1';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_hwm' can't be set to the value of '-3:1'
+set global rpl_semi_sync_master_wait_cond_hwm = '3:-1';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_hwm' can't be set to the value of '3:-1'
+set global rpl_semi_sync_master_wait_cond_hwm = '3,1';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_hwm' can't be set to the value of '3,1'
+set global rpl_semi_sync_master_wait_cond_hwm = '3:1,';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_hwm' can't be set to the value of '3:1,'
+set global rpl_semi_sync_master_wait_cond_hwm = '3:,1';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_hwm' can't be set to the value of '3:,1'
+set global rpl_semi_sync_master_wait_cond_hwm = '.3:0';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_hwm' can't be set to the value of '.3:0'
+set global rpl_semi_sync_master_wait_cond_hwm = '3.:0';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_hwm' can't be set to the value of '3.:0'
+set global rpl_semi_sync_master_wait_cond_hwm = '1 0:0';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_hwm' can't be set to the value of '1 0:0'
+set global rpl_semi_sync_master_wait_cond_hwm = '10:0 0';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_hwm' can't be set to the value of '10:0 0'
+set global rpl_semi_sync_master_wait_cond_hwm = '10:0:10';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_hwm' can't be set to the value of '10:0:10'
+set global rpl_semi_sync_master_wait_cond_hwm = ':0:0';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_hwm' can't be set to the value of ':0:0'
+set global rpl_semi_sync_master_wait_cond_hwm = '1';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_hwm' can't be set to the value of '1'
+set global rpl_semi_sync_master_wait_cond_hwm = '2:';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_hwm' can't be set to the value of '2:'
+set global rpl_semi_sync_master_wait_cond_hwm = ':0';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_hwm' can't be set to the value of ':0'
+set global rpl_semi_sync_master_wait_cond_hwm = '11:0';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_hwm' can't be set to the value of '11:0'
+set global rpl_semi_sync_master_wait_cond_hwm = '5234567890:0';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_hwm' can't be set to the value of '5234567890:0'
+set global rpl_semi_sync_master_wait_cond_hwm = '1234567890123456789012:0';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_hwm' can't be set to the value of '1234567890123456789012:0'
+set global rpl_semi_sync_master_wait_cond_hwm = '3:2';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_hwm' can't be set to the value of '3:2'
+set global rpl_semi_sync_master_wait_cond_hwm = '5:5234567890';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_hwm' can't be set to the value of '5:5234567890'
+set global rpl_semi_sync_master_wait_cond_hwm = '10:1234567890123456789012';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_hwm' can't be set to the value of '10:1234567890123456789012'
+###################################################################
+# Test Case 3: set wait_cond_hwm < wait_cond_lwm error 
+###################################################################
+set global rpl_semi_sync_master_wait_cond_hwm = '10:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '2:1';
+set global rpl_semi_sync_master_wait_cond_hwm = '5:1';
+set global rpl_semi_sync_master_wait_cond_hwm = '4:0';
+set global rpl_semi_sync_master_wait_cond_hwm = '3:0';
+set global rpl_semi_sync_master_wait_cond_hwm = '3:1';
+set global rpl_semi_sync_master_wait_cond_hwm = '2:0';
+set global rpl_semi_sync_master_wait_cond_hwm = '2:1';
+set global rpl_semi_sync_master_wait_cond_hwm = '1:0';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_hwm' can't be set to the value of '1:0'
+set global rpl_semi_sync_master_wait_cond_lwm = '1:0';
+set global rpl_semi_sync_master_wait_cond_hwm = '2:0';
+set global rpl_semi_sync_master_wait_cond_hwm = '2:1';
+set global rpl_semi_sync_master_wait_cond_hwm = '1:0';
+set global rpl_semi_sync_master_wait_cond_hwm = '1:1';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_hwm' can't be set to the value of '1:1'
+set global rpl_semi_sync_master_wait_cond_hwm = '0:0';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_hwm' can't be set to the value of '0:0'
+set global rpl_semi_sync_master_wait_cond_lwm = NULL;
+set global rpl_semi_sync_master_wait_cond_hwm = '0:0';
+set global rpl_semi_sync_master_wait_cond_hwm = '0:1';
+set global rpl_semi_sync_master_wait_cond_hwm = '1:1';
+set global rpl_semi_sync_master_wait_cond_lwm = '0:1';
+set global rpl_semi_sync_master_wait_cond_hwm = '0:0';
+set global rpl_semi_sync_master_wait_cond_hwm = '0:1';
+set global rpl_semi_sync_master_wait_cond_hwm = '1:1';
+###################################################################
+# Test Case 4: set wait_cond_lwm ok
+###################################################################
+set global rpl_semi_sync_master_wait_cond_hwm = '10:0';
+set global rpl_semi_sync_master_wait_cond_lwm = NULL;
+set global rpl_semi_sync_master_wait_cond_lwm = '1:1';
+set global rpl_semi_sync_master_wait_cond_lwm = ' 1 : 1 ';
+set global rpl_semi_sync_master_wait_cond_lwm = '0:1';
+set global rpl_semi_sync_master_wait_cond_lwm = '1:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '10:1';
+set global rpl_semi_sync_master_wait_cond_lwm = '3:1';
+set global rpl_semi_sync_master_wait_cond_lwm = '6:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '10:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '1:1';
+set global rpl_semi_sync_master_wait_cond_lwm = '0:1';
+set global rpl_semi_sync_master_wait_cond_lwm = '1:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '10:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '4:1';
+set global rpl_semi_sync_master_wait_cond_lwm = '7:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '10:1';
+set global rpl_semi_sync_master_wait_cond_lwm = NULL;
+include/assert.inc [Rpl_semi_sync_master_wait_cond_lwm should be NULL]
+###################################################################
+# Test Case 5: set wait_cond_hwm error
+###################################################################
+set  rpl_semi_sync_master_wait_cond_lwm = '4:1';
+ERROR HY000: Variable 'rpl_semi_sync_master_wait_cond_lwm' is a GLOBAL variable and should be set with SET GLOBAL
+set session  rpl_semi_sync_master_wait_cond_lwm = '4:1';
+ERROR HY000: Variable 'rpl_semi_sync_master_wait_cond_lwm' is a GLOBAL variable and should be set with SET GLOBAL
+set global rpl_semi_sync_master_wait_cond_lwm = '-3:1';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_lwm' can't be set to the value of '-3:1'
+set global rpl_semi_sync_master_wait_cond_lwm = '3:-1';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_lwm' can't be set to the value of '3:-1'
+set global rpl_semi_sync_master_wait_cond_lwm = '3,1';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_lwm' can't be set to the value of '3,1'
+set global rpl_semi_sync_master_wait_cond_lwm = '3:1,';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_lwm' can't be set to the value of '3:1,'
+set global rpl_semi_sync_master_wait_cond_lwm = '3:,1';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_lwm' can't be set to the value of '3:,1'
+set global rpl_semi_sync_master_wait_cond_lwm = '.3:0';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_lwm' can't be set to the value of '.3:0'
+set global rpl_semi_sync_master_wait_cond_lwm = '3.:0';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_lwm' can't be set to the value of '3.:0'
+set global rpl_semi_sync_master_wait_cond_lwm = '1 0:0';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_lwm' can't be set to the value of '1 0:0'
+set global rpl_semi_sync_master_wait_cond_lwm = '10:0 0';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_lwm' can't be set to the value of '10:0 0'
+set global rpl_semi_sync_master_wait_cond_lwm = '10:0:10';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_lwm' can't be set to the value of '10:0:10'
+set global rpl_semi_sync_master_wait_cond_lwm = ':0:0';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_lwm' can't be set to the value of ':0:0'
+set global rpl_semi_sync_master_wait_cond_lwm = '1';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_lwm' can't be set to the value of '1'
+set global rpl_semi_sync_master_wait_cond_lwm = '2:';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_lwm' can't be set to the value of '2:'
+set global rpl_semi_sync_master_wait_cond_lwm = ':0';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_lwm' can't be set to the value of ':0'
+set global rpl_semi_sync_master_wait_cond_lwm = '11:0';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_lwm' can't be set to the value of '11:0'
+set global rpl_semi_sync_master_wait_cond_lwm = '5234567890:0';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_lwm' can't be set to the value of '5234567890:0'
+set global rpl_semi_sync_master_wait_cond_lwm = '1234567890123456789012:0';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_lwm' can't be set to the value of '1234567890123456789012:0'
+set global rpl_semi_sync_master_wait_cond_lwm = '3:2';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_lwm' can't be set to the value of '3:2'
+set global rpl_semi_sync_master_wait_cond_lwm = '5:5234567890';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_lwm' can't be set to the value of '5:5234567890'
+set global rpl_semi_sync_master_wait_cond_lwm = '10:1234567890123456789012';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_lwm' can't be set to the value of '10:1234567890123456789012'
+###################################################################
+# Test Case 6: set wait_cond_lwm > wait_cond_hwm error 
+###################################################################
+set global rpl_semi_sync_master_wait_cond_lwm = NULL;
+set global rpl_semi_sync_master_wait_cond_hwm = '3:1';
+set global rpl_semi_sync_master_wait_cond_lwm = '1:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '2:1';
+set global rpl_semi_sync_master_wait_cond_lwm = '3:1';
+set global rpl_semi_sync_master_wait_cond_lwm = '3:0';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_lwm' can't be set to the value of '3:0'
+set global rpl_semi_sync_master_wait_cond_lwm = NULL;
+set global rpl_semi_sync_master_wait_cond_hwm = '2:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '1:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '2:1';
+set global rpl_semi_sync_master_wait_cond_lwm = '2:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '3:1';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_lwm' can't be set to the value of '3:1'
+set global rpl_semi_sync_master_wait_cond_lwm = NULL;
+set global rpl_semi_sync_master_wait_cond_hwm = '0:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '0:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '0:1';
+set global rpl_semi_sync_master_wait_cond_lwm = '1:1';
+ERROR 42000: Variable 'rpl_semi_sync_master_wait_cond_lwm' can't be set to the value of '1:1'
+########################################################################
+# Coverage Test
+########################################################################
+SET GLOBAL rpl_semi_sync_master_wait_for_slave_count = 4;
+SET GLOBAL rpl_semi_sync_master_enabled= OFF;
+[connection server_2]
+include/uninstall_semisync_slave.inc
+[connection server_3]
+include/uninstall_semisync_slave.inc
+[connection server_4]
+include/uninstall_semisync_slave.inc
+[connection server_5]
+include/uninstall_semisync_slave.inc
+[connection server_1]
+include/uninstall_semisync_master.inc
+[connection server_1]
+DROP TABLE t1;
+CALL mtr.add_suppression(".* Timeout waiting for reply of binlog .*");
+CALL mtr.add_suppression(".* Failed to allocate memory for ack_array .*");
+include/rpl_end.inc

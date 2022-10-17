@@ -1,0 +1,200 @@
+--echo ---------------------------------------------------------------
+--echo ## test to_number mainly for scientific notation 
+--echo ---------------------------------------------------------------
+set @@sql_mode = STRICT_TRANS_TABLES;
+select @@sql_mode;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_1: test for one param
+--echo ---------------------------------------------------------------
+# numberic input
+select to_number(123E3) as result from dual;
+select to_number(123E+3) as result from dual;
+select to_number(123E-3) as result from dual;
+select to_number(1.23E+64) as result from dual;
+select to_number(1.23E-28) as result from dual;
+--error ER_TO_NUM_OUT_OF_RANGE
+select to_number(1.23E+65) as result from dual;
+--error ER_TO_NUM_OUT_OF_RANGE
+select to_number(1.23E-29) as result from dual;
+
+# string input
+select to_number('123E3') as result from dual;
+select to_number('123E+3') as result from dual;
+select to_number('123E-3') as result from dual;
+select to_number('1.23E+64') as result from dual;
+select to_number('1.23E-28') as result from dual;
+select to_number('+123E3') as result from dual;
+--error ER_TO_NUM_OUT_OF_RANGE
+select to_number('1.23E+65') as result from dual;
+--error ER_TO_NUM_OUT_OF_RANGE
+select to_number('1.23E-29') as result from dual;
+
+# other invalid input
+select to_number('+123E3   ') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('1.23EE3') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('--123E3') as result from dual;
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_2: test for two params
+--echo ---------------------------------------------------------------
+# test for negative exponent
+select to_number('1.23E-1','9.99EEEE') as result from dual;
+select to_number('1.23E-3','9.99EEEE') as result from dual;
+select to_number('1.23E-28','9.99EEEE') as result from dual;
+--error ER_TO_NUM_OUT_OF_RANGE
+select to_number('1.23E-29','9.99EEEE') as result from dual;
+--error ER_TO_NUM_OUT_OF_RANGE
+select to_number('1.23E-30','9.99EEEE') as result from dual;
+
+# test for positive exponent
+select to_number('1.23E1','9.99EEEE') as result from dual;
+select to_number('1.23E+1','9.99EEEE') as result from dual;
+select to_number('1.23E2','9.99EEEE') as result from dual;
+select to_number('1.23E+2','9.99EEEE') as result from dual;
+select to_number('1.23E+3','9.99EEEE') as result from dual;
+select to_number('1.23E+64','9.99EEEE') as result from dual;
+select to_number('0.23E+65','9.99EEEE') as result from dual;
+--error ER_TO_NUM_OUT_OF_RANGE
+select to_number('1.23E+65','9.99EEEE') as result from dual;
+--error ER_TO_NUM_OUT_OF_RANGE
+select to_number('1.23E+67','9.99EEEE') as result from dual;
+
+# test with '0'/'9'/'G' in fmt
+select to_number('2,','9Geeee') as result from dual;
+select to_number('2,.3','9GD999eeee') as result from dual;
+select to_number('2,','99eeee') as result from dual;
+select to_number('2','99eeee') as result from dual;
+select to_number('2','00eeee') as result from dual;
+select to_number('2,,','00eeee') as result from dual;
+select to_number('1,,,,','9geeee') as result from dual;
+select to_number('$0.234','$0D9999eeee') as result from dual;
+
+# test with currency
+## dollar symbol in fmt
+select to_number('$1.23E+3','$9.99EEEE') as result from dual;
+select to_number('$1.23E+3','9.9$9EEEE') as result from dual;
+select to_number('$1.23E+3','9.99$EEEE') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('$1.23E+3','9.99E$EEE') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('$1.23E+3','9.99EEEE$') as result from dual;
+select to_number('$1.23E+3','9.99$EEEE') as result from dual;
+
+## L/C/U symbol in fmt
+select to_number('$1.23E+3','L9.99EEEE') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('1.243$E+3','9.99LEEEE') as result from dual;
+select to_number('1$23E+3','9L99EEEE') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('1.243E+3$','9.99EEEEL') as result from dual;
+
+select to_number('$1.23E+3','U9.99EEEE') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('1.243$E+3','9.99UEEEE') as result from dual;
+select to_number('1$23E+3','9U99EEEE') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('1.243E+3$','9.99EEEEU') as result from dual;
+
+select to_number('USD1.23E+3','C9.99EEEE') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('1.243USDE+3','9.99CEEEE') as result from dual;
+select to_number('1USD23E+3','9C99EEEE') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('1.243E+3USD','9.99EEEEC') as result from dual;
+
+# test with S/PR/MI
+select to_number('+1.23E+3','S9.99EEEE') as result from dual;
+select to_number('-1.23E+3','S9.99EEEE') as result from dual;
+select to_number('1.23E+3-','9.99EEEES') as result from dual;
+select to_number('1.23E+3+','9.99EEEES') as result from dual;
+select to_number('1.23E+3-','9.99EEEEMI') as result from dual;
+select to_number('1.23E+3+','9.99EEEEMI') as result from dual;
+select to_number('1.23E+3 ','9.99EEEEMI') as result from dual;
+select to_number('1.23E+3','9.99EEEEPR') as result from dual;
+select to_number('<1.23E+3>','9.99EEEEPR') as result from dual;
+
+# test for invalid fmt
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('1.23E+3','9.99EEEEE') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('1.23E+3','9.99EEE') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('.0023E2','.9999eeee') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('2','9eeee9') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('2','eeee9') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('0.0234E+2','eeee') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('+.234','SD9999eeee') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('$.234','$D9999eeee') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('$0.234','$D9999eeee') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('$1.234E+2','99.999e$eee') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('2,234','9,999eeee') as result from dual;
+--error ER_TO_NUM_FORMAT_INVALID
+select to_number('2','9EEEEeeee') as result from dual;
+
+# test for invalid value
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('2,234','9G999eeee') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('2','9Geeee') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('2,','99Geeee') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number(',,1,,,,','9geeee') as result from dual;
+
+# test for others in code review
+select to_number('12  ') as result from dual;
+select to_number('  12  ') as result from dual;
+select to_number('  12') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('1 2') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('1-2') as result from dual;
+select to_number('1,,,,','9geeee') as result from dual;
+select to_number('.0023E2','9.9999eeee') as result from dual;
+select to_number('0.1E+3','9.99EEEE') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('1E+') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('1E+  ') as result from dual;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number('1.122','9.9EEEE') from dual;
+
+# test for table
+set @@sql_mode = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO';
+select @@sql_mode;
+create database if not exists to_num_test3;
+use to_num_test3;
+create table t1(
+    id int key,
+    value1 double(10,5),
+    value2 varchar(68),
+    fmt varchar(30)
+);
+insert into t1 (id,value1,value2,fmt) values(1, 1.56, '1.56', '99.99EEEE');
+insert into t1 (id,value1,value2,fmt) values(2, 1.56E+3, '1.56E+3', '99.99EEEE');
+insert into t1 (id,value1,value2,fmt) values(3, 1.56E+3, '1.56E+65', '99.99eeee');
+insert into t1 (id,value1,value2,fmt) values(4, 1.56E+3, '1.56E+64', '9.9eeee');
+select * from t1;
+select to_number(t1.value1) from t1 where t1.id = 1;
+select to_number(t1.value2,t1.fmt) from t1 where t1.id = 2;
+--error ER_TO_NUM_OUT_OF_RANGE
+select to_number(t1.value2,t1.fmt) from t1 where t1.id = 3;
+--error ER_TO_NUM_VALUE_INVALID
+select to_number(t1.value2,t1.fmt) from t1 where t1.id = 4;
+drop database if exists to_num_test3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test end
+--echo ---------------------------------------------------------------

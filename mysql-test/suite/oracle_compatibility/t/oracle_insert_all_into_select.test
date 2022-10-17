@@ -1,0 +1,1165 @@
+--source include/master-slave.inc
+
+drop database if exists insert_all_select_test;
+create database insert_all_select_test;
+create table insert_all_select_test.t1(id int primary key auto_increment, name varchar(25), birth date);
+create table insert_all_select_test.t2(id int primary key auto_increment, name varchar(25), birth date);
+create table insert_all_select_test.t3(id int primary key auto_increment, name varchar(25), birth date);
+
+insert into insert_all_select_test.t2 values(1, 'xiao', '2020-06-10'),(2, 'yao', '2019-06-10'),(3, 'guo', '2018-06-10');
+
+--echo ---------------------------------------------------------------
+--echo ## Test oracle compatibility of insert all select
+--echo ---------------------------------------------------------------
+
+--echo ---------------------------------------------------------------
+--echo ## Test_1: test insert all select, basic function
+--echo ---------------------------------------------------------------
+
+--connection master
+
+insert all into insert_all_select_test.t1
+           into insert_all_select_test.t3
+           select * from insert_all_select_test.t2 where id=1;
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t3;
+
+insert all into insert_all_select_test.t1(name)
+           into insert_all_select_test.t3(name)
+           select name from insert_all_select_test.t2 where id=2;
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t3;
+
+insert all into insert_all_select_test.t1(name, birth)
+           into insert_all_select_test.t3(name, birth)
+           select name,birth from insert_all_select_test.t2;
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t3;
+
+--source include/rpl_sync.inc
+
+--connection slave
+--source include/start_slave.inc
+--source include/wait_for_slave_to_start.inc
+
+--echo ## slave data:
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t3;
+
+--source include/stop_slave.inc
+--source include/wait_for_slave_to_stop.inc
+
+--echo ---------------------------------------------------------------
+--echo ## Test_2: test insert all select, have values keyword
+--echo ---------------------------------------------------------------
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+
+--error ER_PARSE_ERROR
+insert all into insert_all_select_test.t1(id) values(2)
+           into insert_all_select_test.t3
+           select * from insert_all_select_test.t2 where id=1;
+
+--error ER_PARSE_ERROR
+insert all into insert_all_select_test.t1
+           into insert_all_select_test.t3(id,name) values(2,'yaya')
+           select * from insert_all_select_test.t2 where id=1;
+
+--error ER_PARSE_ERROR
+explain insert all into insert_all_select_test.t1
+           into insert_all_select_test.t3(id,name) values(2,'yaya')
+           select * from insert_all_select_test.t2 where id=1;
+
+--error ER_PARSE_ERROR
+insert all into insert_all_select_test.t1
+           into insert_all_select_test.t3(id,name) values(2,'yaya')
+           (select * from insert_all_select_test.t2 where id=1);
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_3: test insert all select, insert into different db
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+
+drop database if exists insert_all_select_test1;
+create database insert_all_select_test1;
+create table insert_all_select_test1.t1(id int primary key auto_increment, name varchar(25), birth date);
+
+use insert_all_select_test1;
+
+insert all into t1(id,name)
+           into insert_all_select_test.t3(id,name)
+           select id,name from insert_all_select_test.t2 where id=1;
+
+explain insert all into t1(id,name)
+           into insert_all_select_test.t3(id,name)
+           select id,name from insert_all_select_test.t2 where id=1;
+
+explain insert into t1(id,name)
+           select id,name from insert_all_select_test.t2 where id=1;
+
+insert all into t1(name, birth)
+           into insert_all_select_test.t3(name, birth)
+           select name,birth from insert_all_select_test.t2;
+
+select * from t1;
+select * from insert_all_select_test.t3;
+
+drop database insert_all_select_test1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_4: test insert all select, subquery is union
+--echo ---------------------------------------------------------------
+
+use insert_all_select_test;
+
+create table websites(id int primary key auto_increment, name varchar(20), url blob, alxea bigint, country varchar(20));
+create table apps(id int primary key auto_increment, app_name varchar(20), url blob, country varchar(20));
+create table t4(id int primary key auto_increment, name varchar(20), app_name varchar(20),url blob, alxea bigint, country varchar(20));
+create table t41(id int primary key auto_increment, name varchar(20), app_name varchar(20),url blob, alxea bigint, country varchar(20));
+
+insert all into websites values(1, 'Google',"https://www.google.cm",1,'USA')
+into websites values(2,'baidu',"https://www.baidu.com/", 13,'CN')
+into websites values(3,'cainiao',"http://www.runoob.com/", 4689,'CN')
+into websites values(4,'weibo',"http://weibo.com/ ",20,'CN')
+into websites values(5,'Facebook',"https://www.facebook.com/",3 ,'USA')
+into websites values(7,'stackoverflow',"http://stackoverflow.com/",0 ,'IND')
+select * from dual;
+
+insert all into apps values(1 ,'QQ APP',"http://im.qq.com/", 'CN')
+into apps values(2 ,'weibo APP',"http://weibo.com/",'CN')
+into apps values(3 ,'tao APP',"https://www.taobao.com/" ,"CN")
+select * from dual;
+
+insert all into insert_all_select_test.t4(country)
+into insert_all_select_test.t41(country)
+SELECT country FROM insert_all_select_test.websites union (select country from insert_all_select_test.apps order by country);
+
+explain insert all into insert_all_select_test.t4(country)
+into insert_all_select_test.t41(country)
+SELECT country FROM insert_all_select_test.websites union (select country from insert_all_select_test.apps order by country);
+
+explain insert into insert_all_select_test.t4(country)
+SELECT country FROM insert_all_select_test.websites union (select country from insert_all_select_test.apps order by country);
+
+select * from t4;
+select * from t41;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_5: test insert all select, subquery is join
+--echo ---------------------------------------------------------------
+
+create table tcount_tbl(runoob_author varchar(50), runoob_count int);
+insert all into tcount_tbl values('cainiao', 10)
+into tcount_tbl values('RUNOOB.COM',20)
+into tcount_tbl values('Google',22)
+select * from dual;
+
+create table runoob_tbl(runoob_id int primary key auto_increment, runoob_title varchar(50), runoob_author varchar(50), submission_date date);
+insert all into runoob_tbl values(1,'PHP','cainiao', '2017-04-12')
+into runoob_tbl values(2,'Mysql','cainiao', '2017-04-12')
+into runoob_tbl values(3,'Java',' RUNOOB.COM','2015-05-01')
+into runoob_tbl values(4,'Python','RUNOOB.COM','2016-03-06')
+into runoob_tbl values(5,'C','FK','2017-03-06')
+select * from dual;
+
+create table t5(runoob_id int primary key auto_increment, runoob_title varchar(50), runoob_author varchar(50), submission_date date, runoob_count int);
+create table t51(runoob_id int primary key auto_increment, runoob_title varchar(50), runoob_author varchar(50), submission_date date, runoob_count int);
+
+--echo ## inner join
+insert all into insert_all_select_test.t5(runoob_id, runoob_author, runoob_count)
+into insert_all_select_test.t51(runoob_id, runoob_author, runoob_count)
+SELECT a.runoob_id, a.runoob_author, b.runoob_count FROM insert_all_select_test.runoob_tbl a, insert_all_select_test.tcount_tbl b WHERE a.runoob_author = b.runoob_author;
+
+explain insert all into insert_all_select_test.t5(runoob_id, runoob_author, runoob_count)
+into insert_all_select_test.t51(runoob_id, runoob_author, runoob_count)
+SELECT a.runoob_id, a.runoob_author, b.runoob_count FROM insert_all_select_test.runoob_tbl a, insert_all_select_test.tcount_tbl b WHERE a.runoob_author = b.runoob_author;
+
+explain insert into insert_all_select_test.t5(runoob_id, runoob_author, runoob_count)
+SELECT a.runoob_id, a.runoob_author, b.runoob_count FROM insert_all_select_test.runoob_tbl a, insert_all_select_test.tcount_tbl b WHERE a.runoob_author = b.runoob_author;
+
+select * from t5;
+select * from t51;
+
+truncate table t5;
+truncate table t51;
+--echo ## left join
+insert all into insert_all_select_test.t5(runoob_id, runoob_author, runoob_count)
+into insert_all_select_test.t51(runoob_id, runoob_author, runoob_count)
+SELECT a.runoob_id, a.runoob_author, b.runoob_count FROM insert_all_select_test.runoob_tbl a LEFT JOIN insert_all_select_test.tcount_tbl b ON a.runoob_author = b.runoob_author;
+
+select * from t5;
+select * from t51;
+
+truncate table t5;
+truncate table t51;
+--echo ## right join
+insert all into insert_all_select_test.t5(runoob_id, runoob_author, runoob_count)
+into insert_all_select_test.t51(runoob_id, runoob_author, runoob_count)
+SELECT a.runoob_id, a.runoob_author, b.runoob_count FROM insert_all_select_test.runoob_tbl a RIGHT JOIN insert_all_select_test.tcount_tbl b ON a.runoob_author = b.runoob_author;
+
+select * from t5;
+select * from t51;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_6: test insert all select, select from dual
+--echo ---------------------------------------------------------------
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+
+--error ER_INSERT_ALL_ERROR
+insert all into insert_all_select_test.t1
+           into insert_all_select_test.t3
+           select * from dual;
+
+--error ER_INSERT_ALL_ERROR
+explain insert all into insert_all_select_test.t1
+           into insert_all_select_test.t3
+           select * from dual;
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_7: test insert all select, select from (select from)
+--echo ---------------------------------------------------------------
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+
+insert all into insert_all_select_test.t1(id)
+           into insert_all_select_test.t3(id)
+           select * from (select id from t2) as a;
+
+explain insert all into insert_all_select_test.t1(id)
+           into insert_all_select_test.t3(id)
+           select * from (select id from t2) as a;
+
+explain insert into insert_all_select_test.t1(id)
+           select * from (select id from t2) as a;
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t3;
+
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+
+insert all into insert_all_select_test.t1(id)
+           into insert_all_select_test.t3(id)
+           select id from insert_all_select_test.t2 where name not in (select name from insert_all_select_test.t2 where id=2);
+
+explain insert all into insert_all_select_test.t1(id)
+           into insert_all_select_test.t3(id)
+           select id from insert_all_select_test.t2 where name not in (select name from insert_all_select_test.t2 where id=2);
+
+explain insert into insert_all_select_test.t1(id)
+           select id from insert_all_select_test.t2 where name not in (select name from insert_all_select_test.t2 where id=2);
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_8: test insert all select, select from (select from dual)
+--echo ---------------------------------------------------------------
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+
+insert all into insert_all_select_test.t1(id)
+           into insert_all_select_test.t3(id)
+           select * from (select 1 from dual) as a;
+
+explain insert all into insert_all_select_test.t1(id)
+           into insert_all_select_test.t3(id)
+           select * from (select 1 from dual) as a;
+
+explain insert into insert_all_select_test.t1(id)
+           select * from (select 1 from dual) as a;
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_9: test insert all select, select from (select from union)
+--echo ---------------------------------------------------------------
+truncate table insert_all_select_test.t4;
+truncate table insert_all_select_test.t41;
+
+insert all into insert_all_select_test.t4(country)
+           into insert_all_select_test.t41(country)
+           select * from
+           (SELECT country FROM insert_all_select_test.websites union
+             (select country from insert_all_select_test.apps order by country))
+           as a;
+
+explain insert all into insert_all_select_test.t4(country)
+           into insert_all_select_test.t41(country)
+           select * from
+           (SELECT country FROM insert_all_select_test.websites union
+             (select country from insert_all_select_test.apps order by country))
+           as a;
+
+explain insert into insert_all_select_test.t4(country)
+           select * from
+           (SELECT country FROM insert_all_select_test.websites union
+             (select country from insert_all_select_test.apps order by country))
+           as a;
+
+select * from insert_all_select_test.t4;
+select * from insert_all_select_test.t41;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_10: test insert all select, select from (select from join)
+--echo ---------------------------------------------------------------
+truncate table insert_all_select_test.t5;
+truncate table insert_all_select_test.t51;
+
+insert all into insert_all_select_test.t5(runoob_id, runoob_author, runoob_count)
+           into insert_all_select_test.t51(runoob_id, runoob_author, runoob_count)
+           select * from
+           (SELECT a.runoob_id, a.runoob_author, b.runoob_count FROM
+              insert_all_select_test.runoob_tbl a LEFT JOIN
+              insert_all_select_test.tcount_tbl b ON a.runoob_author = b.runoob_author)
+           as a;
+
+explain insert all into insert_all_select_test.t5(runoob_id, runoob_author, runoob_count)
+           into insert_all_select_test.t51(runoob_id, runoob_author, runoob_count)
+           select * from
+           (SELECT a.runoob_id, a.runoob_author, b.runoob_count FROM
+              insert_all_select_test.runoob_tbl a LEFT JOIN
+              insert_all_select_test.tcount_tbl b ON a.runoob_author = b.runoob_author)
+           as a;
+
+explain insert into insert_all_select_test.t5(runoob_id, runoob_author, runoob_count)
+           select * from
+           (SELECT a.runoob_id, a.runoob_author, b.runoob_count FROM
+              insert_all_select_test.runoob_tbl a LEFT JOIN
+              insert_all_select_test.tcount_tbl b ON a.runoob_author = b.runoob_author)
+           as a;
+
+select * from insert_all_select_test.t5;
+select * from insert_all_select_test.t51;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_11: test insert all select, all type
+--echo ---------------------------------------------------------------
+create table insert_all_select_test.t7(
+  id       int       primary key auto_increment,
+  tinyid   tinyint,
+  smallid  smallint,
+  medid    mediumint,
+  bigid    bigint,
+  floid    float,
+  douid    double,
+  deid     decimal(3,2),
+  dateid   date,
+  timeid   time,
+  yearid   year,
+  dtid     datetime,
+  tsid     timestamp,
+  name     varchar(25),
+  name1    char(10),
+  tbname   tinyblob,
+  txname   tinytext,
+  bname    blob,
+  tname    text,
+  mbname   mediumblob,
+  mtname   mediumtext,
+  lbname   longblob,
+  ltname   longtext,
+  a        SET('A','B','C'),
+  b        ENUM('F','M')
+);
+
+create table insert_all_select_test.t71(
+  id       int       primary key auto_increment,
+  tinyid   tinyint,
+  smallid  smallint,
+  medid    mediumint,
+  bigid    bigint,
+  floid    float,
+  douid    double,
+  deid     decimal(3,2),
+  dateid   date,
+  timeid   time,
+  yearid   year,
+  dtid     datetime,
+  tsid     timestamp,
+  name     varchar(25),
+  name1    char(10),
+  tbname   tinyblob,
+  txname   tinytext,
+  bname    blob,
+  tname    text,
+  mbname   mediumblob,
+  mtname   mediumtext,
+  lbname   longblob,
+  ltname   longtext,
+  a        SET('A','B','C'),
+  b        ENUM('F','M')
+);
+
+create table insert_all_select_test.t72(
+  id       int       primary key auto_increment,
+  tinyid   tinyint,
+  smallid  smallint,
+  medid    mediumint,
+  bigid    bigint,
+  floid    float,
+  douid    double,
+  deid     decimal(3,2),
+  dateid   date,
+  timeid   time,
+  yearid   year,
+  dtid     datetime,
+  tsid     timestamp,
+  name     varchar(25),
+  name1    char(10),
+  tbname   tinyblob,
+  txname   tinytext,
+  bname    blob,
+  tname    text,
+  mbname   mediumblob,
+  mtname   mediumtext,
+  lbname   longblob,
+  ltname   longtext,
+  a        SET('A','B','C'),
+  b        ENUM('F','M')
+);
+
+insert all into insert_all_select_test.t7 values(1, 2, 3, 4, 5, 5.61, 5.554, 6.987, '2020-06-01', '18:18:16', 2020, '2020-06-01 00:00:00', '2020-06-01 00:00:00', 'ss', 'ss', 'xx', 'xx', 'ss', 'ss', 'xx', 'xx', 's', 'x', 'A', 'M')
+           into insert_all_select_test.t7 values(2, 2, 3, 4, 5, 5.61, 5.554, 6.987, '2020-06-01', '18:18:16', 2020, '2020-06-01 00:00:00', '2020-06-01 00:00:00', 'ss', 'ss', 'xx', 'xx', 'ss', 'ss', 'xx', 'xx', 's', 'x', 'B', 'F')
+           select * from dual;
+
+select * from insert_all_select_test.t7;
+
+insert all into insert_all_select_test.t71
+           into insert_all_select_test.t72
+           select * from insert_all_select_test.t7;
+
+explain insert all into insert_all_select_test.t71
+           into insert_all_select_test.t72
+           select * from insert_all_select_test.t7;
+
+explain insert into insert_all_select_test.t71
+           select * from insert_all_select_test.t7;
+
+select * from insert_all_select_test.t71;
+select * from insert_all_select_test.t72;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_12: test insert all into 100 tables
+--echo ---------------------------------------------------------------
+create database insert_all_select_test1;
+use insert_all_select_test1;
+
+create table insert_all_select_test1.t10(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_select_test1.t11(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_select_test1.t12(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_select_test1.t13(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_select_test1.t14(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_select_test1.t15(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_select_test1.t16(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_select_test1.t17(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_select_test1.t18(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_select_test1.t19(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_select_test1.t20(id int primary key auto_increment, name varchar(25), address varchar(25));
+
+insert all into t10 values(1, 'xiaoxiao', 'street') select * from dual;
+
+DELIMITER |;
+DROP PROCEDURE IF EXISTS `insert_sql_pro` |
+CREATE PROCEDURE `insert_sql_pro`()
+BEGIN
+DECLARE i INT;
+DECLARE j INT;
+DECLARE table_name blob;
+DECLARE sql_stmt blob;
+DECLARE sql_tmp blob;
+SET i = 11;
+SET @sql_item="";
+WHILE i<21 DO
+set j = 1;
+WHILE j<11 DO
+set sql_tmp = @sql_item;
+set table_name = CONCAT('t', i, "(name, address) " );
+SET sql_stmt = CONCAT(
+'into ', table_name
+);
+SET @sql_item = CONCAT(sql_tmp, sql_stmt);
+SET j = j+1;
+END WHILE;
+SET i = i+1;
+END WHILE;
+set @sql = CONCAT('insert all ', @sql_item, 'select name,address from t10');
+PREPARE create_stmt FROM @sql;
+EXECUTE create_stmt;
+END |
+DELIMITER ;|
+
+call insert_sql_pro;
+
+drop database insert_all_select_test1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_13: test insert all into temporary table
+--echo ---------------------------------------------------------------
+
+create temporary table insert_all_select_test.tmp_table(id int primary key auto_increment, name varchar(25), birth date);
+
+insert all into insert_all_select_test.tmp_table select * from insert_all_select_test.t2;
+explain insert all into insert_all_select_test.tmp_table select * from insert_all_select_test.t2;
+
+--error ER_CANT_REOPEN_TABLE
+insert all into insert_all_select_test.tmp_table(name, birth)
+           into insert_all_select_test.tmp_table(name, birth)
+           select name, birth from insert_all_select_test.t2;
+
+--error ER_CANT_REOPEN_TABLE
+explain insert all into insert_all_select_test.tmp_table(name, birth)
+           into insert_all_select_test.tmp_table(name, birth)
+           select name, birth from insert_all_select_test.t2;
+
+select * from insert_all_select_test.tmp_table;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_14: test select insert_all_select_test.t2 from dual
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+
+--error ER_INSERT_ALL_ERROR
+insert all into insert_all_select_test.t1(id, name)
+           into insert_all_select_test.t3(id, name)
+           select insert_all_select_test.t2 from dual;
+
+--error ER_INSERT_ALL_ERROR
+explain insert all into insert_all_select_test.t1(id, name)
+           into insert_all_select_test.t3(id, name)
+           select insert_all_select_test.t2 from dual;
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t2;
+select * from insert_all_select_test.t3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_15: abnormal test,insert all on duplicate key
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_select_test.t1;
+
+--error ER_PARSE_ERROR
+insert all into insert_all_select_test.t1(id, name)
+           on duplicate key update id=(select id from insert_all_select_test.t2)
+           select id,name from insert_all_select_test.t2;
+
+select * from insert_all_select_test.t1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_16: abnormal test,fields num not match select item
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+
+--error ER_WRONG_VALUE_COUNT_ON_ROW
+insert all into insert_all_select_test.t1(id, name)
+           into insert_all_select_test.t3(id, name, birth)
+           select id,name from insert_all_select_test.t2;
+
+--error ER_WRONG_VALUE_COUNT_ON_ROW
+insert all into insert_all_select_test.t1(id, name)
+           into insert_all_select_test.t3(id, name, birth)
+           select id,name,birth from insert_all_select_test.t2;
+
+--error ER_WRONG_VALUE_COUNT_ON_ROW
+insert all into insert_all_select_test.t1(id)
+           into insert_all_select_test.t3(address)
+           select id,name from insert_all_select_test.t2;
+
+--error ER_WRONG_VALUE_COUNT_ON_ROW
+explain insert all into insert_all_select_test.t1(id)
+           into insert_all_select_test.t3(address)
+           select id,name from insert_all_select_test.t2;
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t2;
+select * from insert_all_select_test.t3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_17: abnormal test,primary key conflict
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+insert all into insert_all_select_test.t1(id) values(1) select * from dual;
+
+--error ER_DUP_ENTRY
+insert all into insert_all_select_test.t1(id, name)
+           into insert_all_select_test.t3(id, name)
+           select id,name from insert_all_select_test.t2;
+
+truncate insert_all_select_test.t1;
+insert all into insert_all_select_test.t3(id) values(1) select * from dual;
+
+--error ER_DUP_ENTRY
+insert all into insert_all_select_test.t1(id, name)
+           into insert_all_select_test.t3(id, name)
+           select id,name from insert_all_select_test.t2;
+
+explain insert all into insert_all_select_test.t1(id, name)
+           into insert_all_select_test.t3(id, name)
+           select id,name from insert_all_select_test.t2;
+
+truncate insert_all_select_test.t3;
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t3;
+
+insert all into insert_all_select_test.t1(id, name)
+           into insert_all_select_test.t3(id, name)
+           select id,name from insert_all_select_test.t2;
+
+--error ER_DUP_ENTRY
+insert all into insert_all_select_test.t1(id, name)
+           into insert_all_select_test.t3(id, name)
+           select id,name from insert_all_select_test.t2;
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t2;
+select * from insert_all_select_test.t3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_18: abnormal test,table not exist
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+
+--error ER_NO_SUCH_TABLE
+insert all into insert_all_select_test.t8(id, name)
+           into insert_all_select_test.t1(id, name)
+           into insert_all_select_test.t3(id, name)
+           select id,name from insert_all_select_test.t2;
+
+--error ER_NO_SUCH_TABLE
+insert all into insert_all_select_test.t1(id, name)
+           into insert_all_select_test.t8(id, name)
+           into insert_all_select_test.t3(id, name)
+           select id,name from insert_all_select_test.t2;
+
+--error ER_NO_SUCH_TABLE
+insert all into insert_all_select_test.t1(id, name)
+           into insert_all_select_test.t3(id, name)
+           into insert_all_select_test.t8(id, name)
+           select id,name from insert_all_select_test.t2;
+
+--error ER_NO_SUCH_TABLE
+explain insert all into insert_all_select_test.t1(id, name)
+           into insert_all_select_test.t3(id, name)
+           into insert_all_select_test.t8(id, name)
+           select id,name from insert_all_select_test.t2;
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_19: abnormal test, fields not match select item
+--echo ---------------------------------------------------------------
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+
+--error ER_TRUNCATED_WRONG_VALUE
+insert all into insert_all_select_test.t1(id, name)
+           into insert_all_select_test.t3(name, birth)
+           select id,name from insert_all_select_test.t2;
+
+--error ER_BAD_FIELD_ERROR
+insert all into insert_all_select_test.t1(id, name)
+           into insert_all_select_test.t3(id, address)
+           select id,name from insert_all_select_test.t2;
+
+--error ER_BAD_FIELD_ERROR
+insert all into insert_all_select_test.t1(id)
+           into insert_all_select_test.t3(address)
+           select id from insert_all_select_test.t2;
+
+--error ER_BAD_FIELD_ERROR
+insert all into insert_all_select_test.t1(id, name)
+           into insert_all_select_test.t3(id, name)
+           select id,address from insert_all_select_test.t2;
+
+--error ER_BAD_FIELD_ERROR
+insert all into insert_all_select_test.t1(id, name, address, birth)
+           into insert_all_select_test.t3(id, name, address, birth)
+           select id,name,address,address from insert_all_select_test.t2;
+
+--error ER_BAD_FIELD_ERROR
+insert all into insert_all_select_test.t1(id, name, address, birth)
+           into insert_all_select_test.t3(id, name, address, birth)
+           select * from insert_all_select_test.t2;
+
+alter table insert_all_select_test.t1 add column address char(10);
+alter table insert_all_select_test.t2 add column address char(10);
+insert all into insert_all_select_test.t2 values(19,'ss','2020-12-10','kk'),(20,'ss','2020-09-10','mm') select * from dual;
+alter table insert_all_select_test.t3 add column address char(10);
+
+insert all into insert_all_select_test.t1(name, address)
+           into insert_all_select_test.t3(address, name)
+           select name,address from insert_all_select_test.t2;
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t3;
+
+truncate insert_all_select_test.t1;
+truncate insert_all_select_test.t3;
+
+insert all into insert_all_select_test.t2 values(21,'1234567890123','2020-12-10','kk'),(22,'9876543210123','2020-09-10','mm') select * from dual;
+
+--error ER_DATA_TOO_LONG
+insert all into insert_all_select_test.t1(name, address)
+           into insert_all_select_test.t3(address, name)
+           select name,address from insert_all_select_test.t2;
+
+alter table insert_all_select_test.t1 add column col_v5 varchar(5);
+alter table insert_all_select_test.t3 add column col_v5 varchar(5);
+
+--error 1265 #WARN_DATA_TRUNCATED
+insert all into insert_all_select_test.t1(name, col_v5)
+           into insert_all_select_test.t3(name, col_v5)
+           select address,name from insert_all_select_test.t2 where id=21;
+
+alter table insert_all_select_test.t1 drop column address;
+alter table insert_all_select_test.t2 drop column address;
+alter table insert_all_select_test.t3 drop column address;
+alter table insert_all_select_test.t1 drop column col_v5;
+alter table insert_all_select_test.t3 drop column col_v5;
+
+alter table insert_all_select_test.t1 add column col_char char;
+alter table insert_all_select_test.t3 add column col_char char;
+insert all into insert_all_select_test.t1(col_char)
+           into insert_all_select_test.t3(col_char)
+                select id from insert_all_select_test.t2 where id<10;
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t3;
+alter table insert_all_select_test.t1 drop column col_char;
+alter table insert_all_select_test.t3 drop column col_char;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_20: test insert all into tables,transaction rollback
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+
+begin;
+
+insert all into insert_all_select_test.t1(id, birth)
+           into insert_all_select_test.t3(id, birth)
+           select id,birth from insert_all_select_test.t2;
+
+rollback;
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_21: test insert all into tables,in transaction,ddl end
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+
+begin;
+
+insert all into insert_all_select_test.t1(id, name)
+           into insert_all_select_test.t3(id, name)
+           select id,name from insert_all_select_test.t2;
+
+drop table insert_all_select_test.t4;
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_22: test insert all into tables,in transaction
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+
+begin;
+
+insert all into insert_all_select_test.t1(id, name)
+           into insert_all_select_test.t3(id, name)
+           select id,name from insert_all_select_test.t2;
+
+commit;
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_23: test insert all into view
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+
+create view insert_all_select_test.view_t1 as select * from insert_all_select_test.t2;
+
+--error ER_INSERT_ALL_ERROR
+insert all into insert_all_select_test.view_t1
+           into insert_all_select_test.t3
+           select * from insert_all_select_test.t2;
+
+--error ER_INSERT_ALL_ERROR
+insert all into insert_all_select_test.t3
+           into insert_all_select_test.view_t1
+           select * from insert_all_select_test.t2;
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t3;
+select * from insert_all_select_test.view_t1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_24: test select * into t4 from t2
+--echo ---------------------------------------------------------------
+create table if not exists insert_all_select_test.t4(id int primary key auto_increment, name varchar(25), birth date);
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+
+--error ER_PARSE_ERROR
+insert all into insert_all_select_test.t1
+           into insert_all_select_test.t3
+           select * into insert_all_select_test.t4 from insert_all_select_test.t2;
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_25: test select * into t4
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+
+--error ER_PARSE_ERROR
+insert all into insert_all_select_test.t1
+           into insert_all_select_test.t3
+           select * into insert_all_select_test.t4;
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_26: test select * into outfile 't4' from t2;
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+
+--error ER_PARSE_ERROR
+insert all into insert_all_select_test.t1
+           into insert_all_select_test.t3
+           select * into outfile insert_all_select_test.t4 from insert_all_select_test.t2;
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_27: test insert all into tb (select from t2);
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+
+--error ER_PARSE_ERROR
+insert all into insert_all_select_test.t1
+           into insert_all_select_test.t3
+           (select * from insert_all_select_test.t2);
+
+--error ER_INSERT_ALL_ERROR
+insert all into insert_all_select_test.t1
+           into insert_all_select_test.t3
+           select 1;
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_28: test select from t2 union select * from dual;
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+
+--error ER_NO_TABLES_USED
+insert all into insert_all_select_test.t1
+           into insert_all_select_test.t3
+           select * from insert_all_select_test.t2 union select * from dual;
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_29: test triggers for insert all select;
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+
+DELIMITER |;
+drop trigger if exists insert_all_select_test.tgr_users_delete;
+create trigger insert_all_select_test.tgr_users_delete
+before delete on insert_all_select_test.t2
+for each row
+begin
+insert all into insert_all_select_test.t1
+           into insert_all_select_test.t3
+           select * from insert_all_select_test.t2;
+end|
+
+DELIMITER ;|
+
+delete from insert_all_select_test.t2 where id=20;
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_30: test event for insert all select;
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+
+use insert_all_select_test;
+
+DELIMITER |;
+create event insert_all_select_test.ev ON SCHEDULE every 1 second on completion preserve disable
+do
+insert all into insert_all_select_test.t1(name)
+           into insert_all_select_test.t3(name)
+           select name from insert_all_select_test.t2 |
+
+DELIMITER ;|
+
+ALTER EVENT insert_all_select_test.ev ON COMPLETION PRESERVE ENABLE;
+
+select sleep(1);
+
+ALTER EVENT insert_all_select_test.ev DISABLE;
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t3;
+
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_31: test different type of index;
+--echo ---------------------------------------------------------------
+
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+
+alter table insert_all_select_test.t3 change id id int default 0;
+alter table insert_all_select_test.t3 drop primary key;
+
+insert all into insert_all_select_test.t1
+           into insert_all_select_test.t3
+           select * from insert_all_select_test.t2;
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t3;
+
+alter table insert_all_select_test.t3 add UNIQUE(id);
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+insert all into insert_all_select_test.t1
+           into insert_all_select_test.t3
+           select * from insert_all_select_test.t2;
+
+--error ER_DUP_ENTRY
+insert all into insert_all_select_test.t1(name)
+           into insert_all_select_test.t3(name)
+           select name from insert_all_select_test.t2;
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t3;
+
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+alter table insert_all_select_test.t3 change id id int primary key auto_increment;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_32: test insert all select in binlog format statement
+--echo ---------------------------------------------------------------
+drop temporary table insert_all_select_test.tmp_table;
+alter table insert_all_select_test.t1 change id id int default 0;
+alter table insert_all_select_test.t2 change id id int;
+alter table insert_all_select_test.t3 change id id int default 0;
+desc t1;
+desc t2;
+desc t3;
+set @sav_binlog_format=  @@session.binlog_format;
+set @@session.binlog_format= statement;
+
+start transaction;
+set session transaction isolation level repeatable read;
+
+truncate table insert_all_select_test.t3;
+truncate table insert_all_select_test.t1;
+insert all into insert_all_select_test.t1(name)
+           into insert_all_select_test.t3(name)
+           select name from insert_all_select_test.t2 where id=1;
+commit;
+set @@session.binlog_format= @sav_binlog_format;
+
+select * from insert_all_select_test.t1;
+select * from insert_all_select_test.t3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_33: test insert all select, subquery include minus
+--echo ---------------------------------------------------------------
+use insert_all_select_test;
+create table t_user(id int, no varchar(10), name varchar(10), age int, level_no int);
+create table t_user1(id int, no varchar(10), name varchar(10), age int, level_no int);
+create table t_user2(id int, no varchar(10), name varchar(10), age int, level_no int);
+create table t_user3(id int, no varchar(10), name varchar(10), age int, level_no int);
+drop table if exists t_item;
+create table t_item(id int, no varchar(10));
+insert into t_item values(1, 'a'),(1, 'a'),(2, 'b'),(3, 'c'),(4, 'd');
+drop table if exists t_item2;
+create table t_item2(c1 int, c2 varchar(10));
+insert into t_item2 values(1, 'a'),(2, 'b'),(3, 'dddd');
+
+insert all into t_user1(id,no) into t_user2(id,no) into t_user3(id,no)
+       select id, no from t_item where id > 0 minus select * from t_item2;
+
+explain select id, no from t_item where id > 0 minus select * from t_item2;
+explain insert into t_user1(id,no)
+       select id, no from t_item where id > 0 minus select * from t_item2;
+explain insert all into t_user1(id,no) into t_user2(id,no) into t_user3(id,no)
+       select id, no from t_item where id > 0 minus select * from t_item2;
+
+select id, no from t_item where id > 0 minus select * from t_item2;
+select * from t_user1;
+select * from t_user2;
+select * from t_user3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_34: test insert all select, subquery include minus(right has parens)
+--echo ---------------------------------------------------------------
+truncate t_user1;
+truncate t_user2;
+truncate t_user3;
+
+insert all into t_user1(id,no) into t_user2(id,no) into t_user3(id,no)
+       select id, no from t_item where id > 0 minus (select * from t_item2);
+
+explain select id, no from t_item where id > 0 minus (select * from t_item2);
+explain insert into t_user1(id,no)
+       select id, no from t_item where id > 0 minus (select * from t_item2);
+explain insert all into t_user1(id,no) into t_user2(id,no) into t_user3(id,no)
+       select id, no from t_item where id > 0 minus (select * from t_item2);
+
+select id, no from t_item where id > 0 minus (select * from t_item2);
+select * from t_user1;
+select * from t_user2;
+select * from t_user3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_35: test insert all select, subquery is minus ... union ...
+--echo ---------------------------------------------------------------
+truncate t_user1;
+truncate t_user2;
+truncate t_user3;
+
+insert all into t_user1(id,no) into t_user2(id,no) into t_user3(id,no)
+       select id, no from t_item where id > 0 minus (select * from t_item2) union select * from t_item;
+
+explain select id, no from t_item where id > 0 minus (select * from t_item2) union select * from t_item;
+explain insert into t_user1(id,no)
+       select id, no from t_item where id > 0 minus (select * from t_item2) union select * from t_item;
+explain insert all into t_user1(id,no) into t_user2(id,no) into t_user3(id,no)
+       select id, no from t_item where id > 0 minus (select * from t_item2) union select * from t_item;
+
+select id, no from t_item where id > 0 minus (select * from t_item2) union select * from t_item;
+select * from t_user1;
+select * from t_user2;
+select * from t_user3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_36: test insert all select, subquery is union ... minus ...
+--echo ---------------------------------------------------------------
+truncate t_user1;
+truncate t_user2;
+truncate t_user3;
+
+insert all into t_user1(id,no) into t_user2(id,no) into t_user3(id,no)
+       select id, no from t_item where id > 0 union (select * from t_item2) minus select * from t_item;
+
+explain select id, no from t_item where id > 0 union (select * from t_item2) minus select * from t_item;
+explain insert into t_user1(id,no)
+       select id, no from t_item where id > 0 union (select * from t_item2) minus select * from t_item;
+explain insert all into t_user1(id,no) into t_user2(id,no) into t_user3(id,no)
+       select id, no from t_item where id > 0 union (select * from t_item2) minus select * from t_item;
+
+select id, no from t_item where id > 0 union (select * from t_item2) minus select * from t_item;
+select * from t_user1;
+select * from t_user2;
+select * from t_user3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_37: test insert all select, subquery include minus, dest table and source table is same
+--echo ---------------------------------------------------------------
+truncate t_user1;
+truncate t_user2;
+truncate t_user3;
+
+insert into t_user values(1, '00001', 'a', 25, 1),(2, '00002', 'b', 30, 2),
+                         (3, '00003', 'c', 35, 3),(4, '00004', 'd', 45, 1),
+                         (5, '00005', 'e', 30, 2),(6, '00006', 'f', 35, 3),
+                         (7, '00007', 'g', 25, 1),(8, '00008', 'h', 35, 2),
+                         (9, '00009', 'i', 20, 3),(10, '00010', 'j', 25, 1),
+                         (1, NULL, 'a', 25, 1);
+
+select * from t_user;
+select name, age from t_user where age < 40 minus select name, age from t_user where age between 30 and 35;
+
+insert all into t_user(name,age) into t_user(name,age)
+       select name, age from t_user where age < 40 minus select name, age from t_user where age between 30 and 35;
+
+--replace_result 17 19
+explain select name, age from t_user where age < 40 minus select name, age from t_user where age between 30 and 35;
+
+--replace_result 17 19
+explain insert into t_user(name,age)
+       select name, age from t_user where age < 40 minus select name, age from t_user where age between 30 and 35;
+
+--replace_result 17 19
+explain insert all into t_user(name,age) into t_user(name,age)
+       select name, age from t_user where age < 40 minus select name, age from t_user where age between 30 and 35;
+
+select name,age from t_user;
+
+--echo ---------------------------------------------------------------
+--echo ## End test insert all into select
+--echo ---------------------------------------------------------------
+--connection default
+drop database if exists insert_all_select_test;
+
+--connection master
+drop database if exists insert_all_select_test;
+
+--connection slave
+drop database if exists insert_all_select_test;

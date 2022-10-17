@@ -1,0 +1,14 @@
+drop database if exists timezone5_test1;
+show variables like "%time_zone%";
+Variable_name	Value
+system_time_zone	CST
+time_zone	SYSTEM
+create database timezone5_test1;
+use timezone5_test1;
+create table t1(time timestamp);
+insert into t1 values('1986-05-04 00:01:02');
+ERROR 22007: Incorrect datetime value: '1986-05-04 00:01:02' for column 'time' at row 1
+select * from t1;
+time
+drop table t1;
+drop database timezone5_test1;

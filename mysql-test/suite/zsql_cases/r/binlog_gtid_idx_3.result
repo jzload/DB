@@ -1,0 +1,216 @@
+include/master-slave.inc
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+[connection master]
+[connection master]
+create database fangpei_test;
+use fangpei_test;
+create table t1 (id int);
+##########################################################################
+#CASE 1: enable_binlog_gtmgtid_index switch test
+##########################################################################
+[connection master]
+show variables like 'enable_binlog_gtmgtid_index';
+Variable_name	Value
+enable_binlog_gtmgtid_index	OFF
+select @@enable_binlog_gtmgtid_index;
+@@enable_binlog_gtmgtid_index
+0
+include/assert.inc [master system variable 'enable_binlog_gtmgtid_index' must be 0]
+set session enable_binlog_gtmgtid_index = true;
+ERROR HY000: Variable 'enable_binlog_gtmgtid_index' is a GLOBAL variable and should be set with SET GLOBAL
+show variables like 'enable_binlog_gtmgtid_index';
+Variable_name	Value
+enable_binlog_gtmgtid_index	OFF
+select @@enable_binlog_gtmgtid_index;
+@@enable_binlog_gtmgtid_index
+0
+include/assert.inc [master system variable 'enable_binlog_gtmgtid_index' must be 0]
+set global enable_binlog_gtmgtid_index = true;
+show variables like 'enable_binlog_gtmgtid_index';
+Variable_name	Value
+enable_binlog_gtmgtid_index	ON
+select @@enable_binlog_gtmgtid_index;
+@@enable_binlog_gtmgtid_index
+1
+include/assert.inc [master system variable 'enable_binlog_gtmgtid_index' must be 1]
+set global enable_binlog_gtmgtid_index = false;
+show variables like 'enable_binlog_gtmgtid_index';
+Variable_name	Value
+enable_binlog_gtmgtid_index	OFF
+select @@enable_binlog_gtmgtid_index;
+@@enable_binlog_gtmgtid_index
+0
+include/assert.inc [master system variable 'enable_binlog_gtmgtid_index' must be 0]
+[connection slave]
+show variables like 'enable_binlog_gtmgtid_index';
+Variable_name	Value
+enable_binlog_gtmgtid_index	OFF
+select @@enable_binlog_gtmgtid_index;
+@@enable_binlog_gtmgtid_index
+0
+include/assert.inc [master system variable 'enable_binlog_gtmgtid_index' must be 0]
+set session enable_binlog_gtmgtid_index = true;
+ERROR HY000: Variable 'enable_binlog_gtmgtid_index' is a GLOBAL variable and should be set with SET GLOBAL
+show variables like 'enable_binlog_gtmgtid_index';
+Variable_name	Value
+enable_binlog_gtmgtid_index	OFF
+select @@enable_binlog_gtmgtid_index;
+@@enable_binlog_gtmgtid_index
+0
+include/assert.inc [master system variable 'enable_binlog_gtmgtid_index' must be 0]
+set global enable_binlog_gtmgtid_index = true;
+show variables like 'enable_binlog_gtmgtid_index';
+Variable_name	Value
+enable_binlog_gtmgtid_index	ON
+select @@enable_binlog_gtmgtid_index;
+@@enable_binlog_gtmgtid_index
+1
+include/assert.inc [master system variable 'enable_binlog_gtmgtid_index' must be 1]
+set global enable_binlog_gtmgtid_index = false;
+show variables like 'enable_binlog_gtmgtid_index';
+Variable_name	Value
+enable_binlog_gtmgtid_index	OFF
+select @@enable_binlog_gtmgtid_index;
+@@enable_binlog_gtmgtid_index
+0
+include/assert.inc [master system variable 'enable_binlog_gtmgtid_index' must be 0]
+##########################################################################
+#CASE 2: start master & slave normally
+##########################################################################
+[connection master]
+use fangpei_test;
+master-bin.000001
+[connection slave]
+slave-bin.000001
+##########################################################################
+#CASE 6: shutdown master & slave after a bit of transactions
+##########################################################################
+[connection master]
+use fangpei_test;
+/*+GTID=1*/start transaction;
+insert into t1 values (1);
+commit;
+/*+GTID=2*/insert into t1 values (2);
+include/rpl_restart_server.inc [server_number=1]
+[connection master]
+master-bin.000001
+master-bin.000002
+include/rpl_restart_server.inc [server_number=2]
+[connection slave]
+start slave;
+slave-bin.000001
+slave-bin.000002
+##########################################################################
+#CASE 7: shutdown master & slave after (a bit of transactions and master 
+#        enable_binlog_gtmgtid_index = true)
+##########################################################################
+[connection master]
+use fangpei_test;
+/*+GTID=3*/start transaction;
+insert into t1 values (3);
+commit;
+/*+GTID=4*/insert into t1 values (4);
+set global enable_binlog_gtmgtid_index = true;
+/*+GTID=5*/start transaction;
+insert into t1 values (5);
+commit;
+/*+GTID=6*/insert into t1 values (6);
+include/rpl_restart_server.inc [server_number=1]
+[connection master]
+master-bin.000002
+master-bin.000003
+include/rpl_restart_server.inc [server_number=2]
+[connection slave]
+start slave;
+slave-bin.000002
+slave-bin.000003
+##########################################################################
+#CASE 9 & CASE 10: shutdown master & slave after master/slave binlog rotate
+##########################################################################
+[connection master]
+use fangpei_test;
+insert into t1 select * from t1 limit 5;
+insert into t1 select * from t1 limit 10;
+insert into t1 select * from t1 limit 20;
+insert into t1 select * from t1 limit 40;
+insert into t1 select * from t1 limit 80;
+insert into t1 select * from t1 limit 100;
+insert into t1 select * from t1 limit 200;
+insert into t1 select * from t1 limit 400;
+/*+GTID=1000*/insert into t1 select * from t1 limit 1000;
+[connection slave]
+include/rpl_restart_server.inc [server_number=1]
+[connection master]
+master-bin.000004
+master-bin.000005
+include/rpl_restart_server.inc [server_number=2]
+[connection slave]
+start slave;
+slave-bin.000004
+slave-bin.000005
+##########################################################################
+#CASE 11: shutdown master & slave after (master enable_binlog_gtmgtid_index = true and binlog rotate)
+##########################################################################
+[connection master]
+use fangpei_test;
+/*+GTID=11*/start transaction;
+insert into t1 values (11);
+commit;
+/*+GTID=12*/insert into t1 values (12);
+set global enable_binlog_gtmgtid_index = true;
+/*+GTID=1000*/insert into t1 select * from t1 limit 1000;
+/*+GTID=1000*/insert into t1 select * from t1 limit 1000;
+/*+GTID=13*/start transaction;
+insert into t1 values (13);
+commit;
+/*+GTID=14*/insert into t1 values (14);
+master-bin.000005
+[connection slave]
+include/rpl_restart_server.inc [server_number=1]
+[connection master]
+master-bin.000006
+1#gtm_gtid #binlog_start_pos
+13 155
+14 444
+master-bin.000007
+include/rpl_restart_server.inc [server_number=2]
+[connection slave]
+start slave;
+slave-bin.000006
+slave-bin.000007
+##########################################################################
+#CASE 12: shutdown master & slave (master shutdown abnormally)
+##########################################################################
+[connection master]
+master-bin.000007
+[connection slave]
+use fangpei_test;
+slave-bin.000007
+[connection master]
+# Kill the server
+include/rpl_start_server.inc [server_number=1]
+[connection master]
+master-bin.000008
+include/rpl_stop_server.inc [server_number=2]
+include/rpl_start_server.inc [server_number=2]
+[connection slave]
+start slave;
+slave-bin.000008
+##########################################################################
+#CASE 13: shutdown master & slave (slave shutdown abnormally)
+##########################################################################
+include/rpl_stop_server.inc [server_number=1]
+include/rpl_start_server.inc [server_number=1]
+[connection master]
+master-bin.000009
+[connection slave]
+# Kill the server
+include/rpl_start_server.inc [server_number=2]
+[connection slave]
+start slave;
+slave-bin.000009
+[connection master]
+drop database fangpei_test;
+include/rpl_end.inc

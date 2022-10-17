@@ -1,0 +1,90 @@
+drop database if exists yxx;
+create database yxx;
+#########################################################################
+#  test case 1: select outfile with enclosed and escaped param
+#########################################################################
+set names utf8mb4;
+create table yxx.tt (id int primary key, name_1 char(64), name_2 varchar(64), name_3 varchar(64));
+insert into yxx.tt  values(1111,'ABCD!@#$%^&*()','ABCD!@#$%^&*()', '123456789');
+insert into yxx.tt values(2222, '"ab@cd"', x'03090A22405C5E', x'0102030405060708090A0B0C0D0E0F40');
+# default outfile
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test.1"))
+1111	ABCD!@#$%^&*()	ABCD!@#$%^&*()	123456789
+2222	"ab@cd"	\	\
+"@\\^	\	\
+@
+
+# gdb_format 'jcsv' works well
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test.2"))
+1111	ABCD!@#$%^&*()                                                  	ABCD!@#$%^&*()	123456789
+2222	"ab@cd"                                                         		
+"@\^		
+@
+
+# gdb_format 'jcsv' works well when there is no fields enclosement
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test.3"))
+1111#ABCD!@#$%^&*()                                                  #ABCD!@#$%^&*()#123456789
+2222#"ab@cd"                                                         #	
+"@\^#	
+@
+
+# gdb_format 'jcsv' works well with empty string enclosement
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test.4"))
+1111#ABCD!@#$%^&*()                                                  #ABCD!@#$%^&*()#123456789
+2222#"ab@cd"                                                         #	
+"@\^#	
+@
+
+# gdb_format 'jcsv' works well with empty string enclosement and empty string terminater
+# no spaces will be appended
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test.5"))
+1111ABCD!@#$%^&*()                                                  ABCD!@#$%^&*()123456789
+2222"ab@cd"                                                         	
+"@\^	
+@
+
+# gdb_format 'jcsv' works well with no enclosement and empty string terminater
+# no spaces will be appended
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test.6"))
+1111ABCD!@#$%^&*()                                                  ABCD!@#$%^&*()123456789
+2222"ab@cd"                                                         	
+"@\^	
+@
+
+# ============================ bad cases ============================
+# gdb_format 'jcsv' doesn't work with enclosed
+ERROR HY000: Wrong usage for gdb_format: field enclosement must be empty when `JCSV` format is used
+# gdb_format 'jcsv' doesn't work with optionally enclosed
+ERROR HY000: Wrong usage for gdb_format: field enclosement must be empty when `JCSV` format is used
+#########################################################################
+#  test case 2: select outfile for text and blob field type
+#########################################################################
+create table yxx.blobtext (id int primary key, name1 text, name2 blob, name3 blob);
+insert into yxx.blobtext  values(1111,'ABCD!@#$%^&*()','ABCD!@#$%^&*()', 'ABCD!@#$%^&*()');
+insert into yxx.blobtext values(2222, '"ab@cd"', x'03090A22405C5E', x'0102030405060708090A0B0C0D0E0F40');
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test.10"))
+1111#ABCD!@#$%^&*()#ABCD!@#$%^&*()#ABCD!@#$%^&*()
+2222#"ab@cd"#	
+"@\^#	
+@
+
+# no spaces will be appended when enclosement and terminater are all empty
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test.11"))
+1111ABCD!@#$%^&*()ABCD!@#$%^&*()ABCD!@#$%^&*()
+2222"ab@cd"	
+"@\^	
+@
+
+drop table if exists yxx.blobtext;
+"restore charactor set:"
+#########################################################################
+#  test case 3: select outfile for every ASCII char
+#########################################################################
+create table yxx.asciitest (id int primary key, name1 text) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+insert into yxx.asciitest values(1, x'0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f202122232425262728292a2b2c2d2e2f303132333435363738393a3b3c3d3e3f404142434445464748494a4b4c4d4e4f505152535455565758595a5b5c5d5e5f606162636465666768696a6b6c6d6e6f707172737475767778797a7b7c7d7e7f');
+insert into yxx.asciitest values(2,"中兴通讯在数据库领域具备超过十七年的技术积累，自2002年开始先后自主研发文件数据库、内存数据库、分布式数据库等产品并大规模服务电信领域产品；2014年率先拓展金融行业分布式数据库，该产品完全自主研发并获得100多项相关专利。针对银行OLTP业务，中兴通讯分布式数据库GoldenDB为业务带来传统单机数据库无法提供的计算及扩展能力，提供高 可用、高可靠、资源调度灵活的数据库服务，支持金融行业已有业务升级及创新业务快速部署的需求。中兴通讯GoldenDB分布式数据库 已经在中信银行、江苏省农村信用社联合社、江苏银行、湖南省政府、湖北仙桃市政府等单位成功商用，主要应用场景包括：高并发场 景：针对政府、金融、运营商、互联网业务对数据库的高并发交易的要求，且可以保证数据的事务强一致性。海量数据存储访问场景： 针对现有单机数据库的存储容量和性能限制，提供大容量、可水平平滑扩容的数据库解决方案。");
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test.7"))
+1#	
+ !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~@@2#中兴通讯在数据库领域具备超过十七年的技术积累，自2002年开始先后自主研发文件数据库、内存数据库、分布式数据库等产品并大规模服务电信领域产品；2014年率先拓展金融行业分布式数据库，该产品完全自主研发并获得100多项相关专利。针对银行OLTP业务，中兴通讯分布式数据库GoldenDB为业务带来传统单机数据库无法提供的计算及扩展能力，提供高 可用、高可靠、资源调度灵活的数据库服务，支持金融行业已有业务升级及创新业务快速部署的需求。中兴通讯GoldenDB分布式数据库 已经在中信银行、江苏省农村信用社联合社、江苏银行、湖南省政府、湖北仙桃市政府等单位成功商用，主要应用场景包括：高并发场 景：针对政府、金融、运营商、互联网业务对数据库的高并发交易的要求，且可以保证数据的事务强一致性。海量数据存储访问场景： 针对现有单机数据库的存储容量和性能限制，提供大容量、可水平平滑扩容的数据库解决方案。@@
+"clean up ..."
+drop database yxx;

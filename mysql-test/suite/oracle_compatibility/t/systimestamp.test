@@ -1,0 +1,61 @@
+begin;
+# set the time 2020-07-01 12:02:44.123456789 for this client.
+SET TIMESTAMP=1593594164.123456789;
+select systimestamp;
+select SYSTIMESTAMP;
+select sYSTimesTAMP;
+
+-- error ER_PARSE_ERROR
+select systimestamp();
+
+-- error ER_PARSE_ERROR
+select SYSTIMESTAMP(-1);
+
+select sYSTIMESTAMP(1);
+select SYSTimesTAMP(6);
+
+-- error ER_TOO_BIG_PRECISION
+select SYSTimesTAMP(7);
+
+select to_char(systimestamp, 'yyyy-mm-dd hh:mi:ss.ff4') from dual;
+select TO_CHAR(SYSTIMESTAMP, 'HH24:MI:SS.FF3') ;
+select TO_CHAR(SYSTIMESTAMP, 'HH24MISSFF3') ;
+
+# systimestamp 作为关键字，不可以作普通标识符，若需要做标识符，需要加反引号
+# 库名，表名，列名
+--error ER_PARSE_ERROR
+create database systimestamp;
+create database `systimestamp`;
+
+use `systimestamp`;
+--error ER_PARSE_ERROR
+create table  systimestamp  (a int);
+--error ER_PARSE_ERROR
+create table `systimestamp` (systimestamp int);
+create table `systimestamp` (`systimestamp` int);
+
+select length(systimestamp) = length(systimestamp(6)) from dual;
+
+# 支持 from子查询
+select * from (select systimestamp from dual) tmp;
+
+create table test (a int);
+insert into test values (1), (2), (3);
+
+# 作为列的别名
+--error ER_PARSE_ERROR
+select a as  systimestamp  from test;
+select a as `systimestamp` from test;
+
+# 支持 where子句
+select * from test where a != systimestamp order by a;
+
+# 支持 order by子句
+select * from test order by systimestamp;
+
+# 清理数据
+--error ER_PARSE_ERROR
+drop database systimestamp;
+drop database `systimestamp`;
+
+commit;

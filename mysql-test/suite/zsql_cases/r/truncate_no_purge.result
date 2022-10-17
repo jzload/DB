@@ -1,0 +1,79 @@
+#########################################################
+#Prepare for test
+#########################################################
+drop database if exists abczyy_truncate;
+create database abczyy_truncate;
+use abczyy_truncate;
+create table tb1(a int auto_increment key, c1 varchar(7000));
+create procedure abczyy_truncate.loadtb1(count int unsigned)
+begin
+set @c = 0;
+while @c < count DO
+insert into abczyy_truncate.tb1 select NULL,repeat(char(97+rand()*26),7000);
+set @c=@c+1;
+end while;
+end;
+//
+create procedure abczyy_truncate.loadtb11(count int unsigned)
+begin
+set @c = 0;
+while @c < count DO
+insert into abczyy_truncate.tb11 select @c,@c,@c,repeat(char(97+rand()*26),7000);
+set @c=@c+1;
+end while;
+end;
+//
+#########################################################
+#CASE 1.1 truncate table no purge for myisam table
+#########################################################
+create table abczyy_truncate.tb1_myisam(a int key, c1 char(200))engine=myisam;
+insert into abczyy_truncate.tb1_myisam(a,c1) values(1,'aaa'),(2,'bbb'),(3,'ccc');
+truncate table abczyy_truncate.tb1_myisam no purge;
+insert into abczyy_truncate.tb1_myisam(a,c1) values(4,'aaa'),(5,'bbb'),(6,'ccc');
+truncate table abczyy_truncate.tb1_myisam;
+drop table if exists abczyy_truncate.tb1_myisam;
+#########################################################
+#CASE 1.2 truncate table no purge for tempory table
+#########################################################
+create temporary table abczyy_truncate.tb1_temp(a int key, c1 char(200));
+insert into abczyy_truncate.tb1_temp(a,c1) values(1,'aaa'),(2,'bbb'),(3,'ccc');
+truncate table abczyy_truncate.tb1_temp no purge;
+insert into abczyy_truncate.tb1_temp(a,c1) values(4,'aaa'),(5,'bbb'),(6,'ccc');
+truncate table abczyy_truncate.tb1_temp;
+drop TEMPORARY table if exists abczyy_truncate.tb1_temp;
+#########################################################
+#CASE 1.3 truncate table no purge for share tablespace
+#########################################################
+set global innodb_file_per_table = 0;
+create table abczyy_truncate.tb2(a int auto_increment key, c1 varchar(7000));
+insert into abczyy_truncate.tb2(c1) select repeat('a',7000);
+create procedure abczyy_truncate.loadtb2(count int unsigned)
+begin
+set @c = 0;
+while @c < count DO
+insert into abczyy_truncate.tb2 select NULL,repeat(char(97+rand()*26),7000);
+set @c=@c+1;
+end while;
+end;
+//
+call abczyy_truncate.loadtb2(2000);
+truncate table abczyy_truncate.tb2;
+select count(*) from abczyy_truncate.tb2;
+count(*)
+0
+call abczyy_truncate.loadtb2(2000);
+truncate table abczyy_truncate.tb2 no purge;
+select count(*) from abczyy_truncate.tb2;
+count(*)
+0
+call abczyy_truncate.loadtb2(2000);
+select count(*) from abczyy_truncate.tb2;
+count(*)
+2000
+set global innodb_file_per_table = 1;
+drop table abczyy_truncate.tb2;
+drop procedure abczyy_truncate.loadtb2;
+#########################################################
+#END clean up
+#########################################################
+drop database abczyy_truncate;

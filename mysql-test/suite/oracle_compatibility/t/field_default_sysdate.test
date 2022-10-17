@@ -1,0 +1,79 @@
+drop database if exists DEFAULT_SYSDATE;
+create database DEFAULT_SYSDATE;
+use DEFAULT_SYSDATE;
+
+##################################################################################################
+# 1. datetime default sysdate
+##################################################################################################
+drop table if exists sd_t1;
+create table sd_t1 (id int, dt datetime default sysdate);
+insert into sd_t1 (id) values (1);
+insert into sd_t1 (id) values (2);
+insert into sd_t1 (id, dt) values (3, '2020-08-01 12:00:00');
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2})/2020-08-05 12:13:14/
+select dt from sd_t1;
+
+-- error ER_INVALID_DEFAULT
+create table sd_t1_1 (id int, dt datetime(3) default sysdate);
+-- error ER_INVALID_DEFAULT
+create table sd_t1_1 (id int, dt datetime default sysdate(3));
+-- error ER_INVALID_DEFAULT
+create table sd_t1_1 (id int, dt datetime default sysdate(3));
+
+
+#
+# oracle 日期类型没有datetime，只有date和timestamp，故建表语句如下：
+# create table sd_t1 (id int, dt date default sysdate);
+# create table sd_t1 (id int, dt date(1) default sysdate); ========>报错
+# create table sd_t1 (id int, dt date default sysdate(1)); ========>报错
+# oracle 表现如下：
+# insert into sd_t1 (id, dt) values (3, '2020-08-01 12:00:00.12'); ========>报错
+# select 的结果如下： 1 2020-07-29 15:48:31
+#
+
+
+##################################################################################################
+# 2. timestamp default sysdate
+##################################################################################################
+drop table if exists sd_t2;
+create table sd_t2 (id int, dt timestamp default sysdate);
+insert into sd_t2 (id) values (1);
+insert into sd_t2 (id) values (2);
+insert into sd_t2 (id, dt) values (3, '2020-08-01 12:00:00');
+insert into sd_t2 (id, dt) values (4, '2020-08-01 12:00:00.123456');
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2})/2020-08-05 12:13:14/
+select dt from sd_t2;
+
+create table sd_t2_1 (id int, dt timestamp(3) default sysdate(3));
+insert into sd_t2_1 (id) values (1);
+insert into sd_t2_1 (id) values (2);
+insert into sd_t2_1 (id, dt) values (3, '2020-08-01 12:00:00');
+insert into sd_t2_1 (id, dt) values (4, '2020-08-01 12:00:00.123456');
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2}).([0-9]{3})/2020-08-05 12:13:14.123/
+select dt from sd_t2_1;
+
+
+-- error ER_INVALID_DEFAULT
+create table sd_t2_2 (id int, dt timestamp(3) default sysdate);
+-- error ER_INVALID_DEFAULT
+create table sd_t2_2 (id int, dt timestamp default sysdate(3));
+
+
+#
+# oracle 表现如下：
+# create table sd_t2 (id int, dt timestamp default sysdate);
+# insert into sd_t2 (id, dt) values (3, '2020-08-01 12:00:00.1234567890'); ========>报错，精度最大是9
+# select 的结果如下：
+# 1 2020-07-29 15:49:27.000000
+# 2 2020-07-29 15:49:27.000000
+# 3 2020-08-01 12:00:00.000000
+# 4 2020-08-01 12:00:00.123456
+#
+# oracle timestamp可以设置精度：
+# create table sd_t2 (id int, dt timestamp(3) default sysdate);
+# create table sd_t2 (id int, dt timestamp default sysdate(3)); ========>报错
+# create table sd_t2 (id int, dt timestamp(3) default sysdate(3)); ========>报错
+#
+#
+
+drop database DEFAULT_SYSDATE;

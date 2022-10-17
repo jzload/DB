@@ -1,0 +1,266 @@
+
+--echo #
+--echo # Prepare data
+--echo #
+
+--disable_warnings
+drop database if exists oracle_numeric_testdb;
+create database oracle_numeric_testdb;
+use oracle_numeric_testdb;
+
+--echo #
+--echo # test oracle mode: NUMERIC without arguments
+--echo #
+
+# set to oracle mode
+set parse_mode=2;
+
+create table   test_tbl_01(b numeric);
+insert into    test_tbl_01 values(12.34);
+select * from  test_tbl_01;
+
+truncate table test_tbl_01;
+insert into    test_tbl_01 values(12.123456);
+select * from  test_tbl_01;
+
+truncate table test_tbl_01;
+insert into    test_tbl_01 values(23.123456789123);
+select * from  test_tbl_01;
+
+truncate table test_tbl_01;
+insert into    test_tbl_01 values(123.123456789123);
+select * from  test_tbl_01;
+
+truncate table test_tbl_01;
+insert into    test_tbl_01 values(12345678.12345678);
+select * from  test_tbl_01;
+
+truncate table test_tbl_01;
+insert into    test_tbl_01 values(1234567890.1234);
+select * from  test_tbl_01;
+
+truncate table test_tbl_01;
+insert into    test_tbl_01 values(123456789123.12345678);
+select * from  test_tbl_01;
+
+truncate table test_tbl_01;
+insert into    test_tbl_01 values(12345678901234567890123456789012345678901234567890123456789012345.12345678);
+select * from  test_tbl_01;
+
+truncate table test_tbl_01;
+--error ER_WARN_DATA_OUT_OF_RANGE
+insert into    test_tbl_01 values(123456789012345678901234567890123456789012345678901234567890123456.12345678);
+
+--echo #
+--echo # test oracle mode: NUMBER, DECIMAL without arguments
+--echo #
+
+# set to oracle mode
+set parse_mode=2;
+
+create table   test_tbl_02(b number);
+insert into    test_tbl_02 values(12.56);
+select * from  test_tbl_02;
+
+truncate table test_tbl_02;
+--error ER_WARN_DATA_OUT_OF_RANGE
+insert into    test_tbl_02 values(123456789123.12345678);
+
+
+--echo #
+--echo # test oracle mode: DECIMAL without arguments
+--echo #
+
+# set to oracle mode
+set parse_mode=2;
+
+create table   test_tbl_02_2(b decimal);
+insert into    test_tbl_02_2 values(12.56);
+select * from  test_tbl_02_2;
+
+truncate table test_tbl_02_2;
+insert into    test_tbl_02_2 values(12345678901234.345678);
+select * from  test_tbl_02_2;
+
+--echo #
+--echo # test oracle mode: NUMERIC(p)
+--echo #
+
+# set to oracle mode
+set parse_mode=2;
+
+create table   test_tbl_03(b numeric(3));
+insert into    test_tbl_03 values (12.123);
+select * from  test_tbl_03;
+
+truncate table test_tbl_03;
+insert into    test_tbl_03 values (123.123);
+select * from  test_tbl_03;
+
+truncate table test_tbl_03;
+--error ER_WARN_DATA_OUT_OF_RANGE
+insert into    test_tbl_03 values(1234.123);
+
+
+--echo #
+--echo # test oracle mode: NUMERIC(p, s) p > s
+--echo #
+
+# set to oracle mode
+set parse_mode=2;
+
+create table   test_tbl_04(a numeric(3,2));
+--error ER_WARN_DATA_OUT_OF_RANGE
+insert into    test_tbl_04 values(123.34);
+
+truncate table test_tbl_04;
+insert into    test_tbl_04 values(5.34);
+select * from  test_tbl_04;
+
+truncate table test_tbl_04;
+insert into    test_tbl_04 values(0.37);
+select * from  test_tbl_04;
+
+truncate table test_tbl_04;
+insert into    test_tbl_04 values(4.378);
+select * from  test_tbl_04;
+
+truncate table test_tbl_04;
+insert into    test_tbl_04 values(4.363);
+select * from  test_tbl_04;
+
+truncate table test_tbl_04;
+insert into    test_tbl_04 values(-4.363);
+select * from  test_tbl_04;
+
+
+--echo #
+--echo # test oracle mode: NUMERIC(p, s) p = s
+--echo #
+
+# set to oracle mode
+set parse_mode=2;
+
+create table   test_tbl_05(a numeric(3,3));
+insert into    test_tbl_05 values(0.34);
+select * from  test_tbl_05;
+
+truncate table test_tbl_05;
+insert into    test_tbl_05 values(0.345);
+select * from  test_tbl_05;
+
+truncate table test_tbl_05;
+insert into    test_tbl_05 values(0.3452);
+select * from  test_tbl_05;
+
+truncate table test_tbl_05;
+insert into    test_tbl_05 values(0.3456);
+select * from  test_tbl_05;
+
+truncate table test_tbl_05;
+--error ER_WARN_DATA_OUT_OF_RANGE
+insert into    test_tbl_05 values(1.3);
+
+truncate table test_tbl_05;
+--error ER_WARN_DATA_OUT_OF_RANGE
+insert into    test_tbl_05 values(1.345);
+
+--echo #
+--echo # test mysql mode: decimal without argument, precision is 10
+--echo #
+
+set parse_mode=1;
+
+create table   test_tbl_06(a decimal);
+insert into    test_tbl_06 values(14.345);
+select * from  test_tbl_06;
+
+truncate table test_tbl_06;
+insert into    test_tbl_06 values(1234567890.345);
+select * from  test_tbl_06;
+
+truncate table test_tbl_06;
+--error ER_WARN_DATA_OUT_OF_RANGE
+insert into    test_tbl_06 values(123456789012.23445);
+
+--echo #
+--echo # test mysql mode: number without argument, precision is 10
+--echo #
+
+set parse_mode=1;
+
+create table   test_tbl_07(a number);
+insert into    test_tbl_07 values(14.345);
+select * from  test_tbl_07;
+
+truncate table test_tbl_07;
+insert into    test_tbl_07 values(1234567890.345);
+select * from  test_tbl_07;
+
+truncate table test_tbl_07;
+--error ER_WARN_DATA_OUT_OF_RANGE
+insert into    test_tbl_07 values(123456789012.23445);
+
+--echo #
+--echo # test mysql mode: numeric without argument, precision is 10
+--echo #
+
+set parse_mode=1;
+
+create table   test_tbl_08(a numeric);
+insert into    test_tbl_08 values(14.345);
+select * from  test_tbl_08;
+
+truncate table test_tbl_08;
+insert into    test_tbl_08 values(1234567890.345);
+select * from  test_tbl_08;
+
+truncate table test_tbl_08;
+--error ER_WARN_DATA_OUT_OF_RANGE
+insert into    test_tbl_08 values(123456789012.23445);
+
+--echo #
+--echo # test mysql mode: fixed without argument, precision is 10
+--echo #
+
+set parse_mode=1;
+
+create table   test_tbl_09(a fixed);
+insert into    test_tbl_09 values(14.345);
+select * from  test_tbl_09;
+
+truncate table test_tbl_09;
+insert into    test_tbl_09 values(1234567890.345);
+select * from  test_tbl_09;
+
+truncate table test_tbl_09;
+--error ER_WARN_DATA_OUT_OF_RANGE
+insert into    test_tbl_08 values(123456789012.23445);
+
+--echo #
+--echo # test oracle mode: fixed without argument, precision is 10
+--echo #
+
+set parse_mode=2;
+
+create table   test_tbl_10(a fixed);
+insert into    test_tbl_10 values(14.345);
+select * from  test_tbl_10;
+
+truncate table test_tbl_10;
+insert into    test_tbl_10 values(1234567890.345);
+select * from  test_tbl_10;
+
+truncate table test_tbl_10;
+--error ER_WARN_DATA_OUT_OF_RANGE
+insert into    test_tbl_10 values(123456789012.23445);
+
+
+--echo #
+--echo # clean
+--echo #
+
+drop database oracle_numeric_testdb;
+# set back to mysql mode
+set parse_mode=1;
+--enable_warnings

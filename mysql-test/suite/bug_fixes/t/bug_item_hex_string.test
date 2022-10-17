@@ -1,0 +1,13 @@
+#
+# Test fixes for Item_hex_string clone_item() function
+# used in constant propagation in optimizer.
+#
+DROP DATABASE IF EXISTS bug_item_hex_string_test;
+create schema bug_item_hex_string_test;
+use bug_item_hex_string_test;
+create table tt as select 0x60 a,0x60 b;
+
+select * from tt where a=b having a=b and a=0x60;
+select * from tt where a=b having a=b and a=0b01100000;
+
+drop schema bug_item_hex_string_test;

@@ -1,0 +1,809 @@
+#
+# This file provides testcases for Oracle truncate subpartition/partition gramma.
+# Testcases will be designed on these dimentions:
+#   (1) parse_mode: MYSQL_PARSE_MODE or ORACLE_PARSE_MODE
+#   (2) truncate type: partition or subpartition
+#   (3) partition status: an existed partition; an existed subpartition; not exist
+#   (4) some different types of partitioning, including whether specifying names of 
+#       subpartitions or not
+#
+
+create database yxx;
+use yxx;
+set names utf8mb4;
+
+--echo ############################## RANGE PARTITION, HASH SUBPARTITION ###############################
+
+#######################################################
+## no specified names of subpartition
+########################################################
+CREATE TABLE t1 (id INT, purchased DATE)
+    PARTITION BY RANGE( YEAR(purchased) )
+    SUBPARTITION BY HASH( TO_DAYS(purchased) )
+    SUBPARTITIONS 2 (
+        PARTITION p0 VALUES LESS THAN (2000),
+        PARTITION p1 VALUES LESS THAN (2020),
+        PARTITION p2 VALUES LESS THAN MAXVALUE
+    );
+
+--delimiter /
+create procedure filldata()
+begin
+  delete from t1;
+  insert into t1 values (1, '1994-10-24'), (2, '1999-10-25'), (3, '2005-10-24'), (4, '2015-10-25'), (5, '2020-10-24'), (6, '2021-10-24');
+end;
+/
+
+create procedure checkdata()
+begin
+  select "Start checking data ..." from dual;
+  select * from t1 partition (p0sp0);
+  select * from t1 partition (p0sp1);
+  select * from t1 partition (p1sp0);
+  select * from t1 partition (p1sp1);
+  select * from t1 partition (p2sp0);
+  select * from t1 partition (p2sp1);
+  select "End checking data ..." from dual;
+end;
+/
+
+--delimiter ;
+
+
+--echo #########################################################################
+--echo # test-1 mysql_mode, no specified names of subpartition
+--echo #########################################################################
+
+set @@parse_mode = 1;
+call filldata();
+call checkdata();
+
+--echo # do truncate partition to a non-existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition p3;
+
+--echo # do truncate partition to a non-existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition p0sp2;
+
+--echo # do truncate partition to an existed partition
+
+call filldata();
+alter table t1 truncate partition p0;
+call checkdata();
+
+--echo # do truncate partition to an existed subpartition
+call filldata();
+alter table t1 truncate partition p1sp0;
+call checkdata();
+
+
+call filldata();
+
+
+--echo # do truncate subpartition to a non-existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p8;
+
+--echo # do truncate subpartition to a non-existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p0sp2;
+
+--echo # do truncate subpartition to an existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p0;
+
+--echo # do truncate subpartition to an existed subpartition
+
+call filldata();
+alter table t1 truncate subpartition p0sp1;
+call checkdata();
+
+
+
+--echo #########################################################################
+--echo # test-2 oracle_mode, no specified names of subpartition
+--echo #########################################################################
+
+set @@parse_mode = 2;
+
+call filldata();
+call checkdata();
+
+--echo # do truncate partition to a non-existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition p3;
+
+--echo # do truncate partition to a non-existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition p0sp2;
+
+--echo # do truncate partition to an existed partition
+
+call filldata();
+alter table t1 truncate partition p0;
+call checkdata();
+
+--echo # do truncate partition to an existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition p1sp0;
+
+
+--echo # do truncate subpartition to a non-existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p8;
+
+--echo # do truncate subpartition to a non-existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p0sp2;
+
+--echo # do truncate subpartition to an existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p0;
+
+--echo # do truncate subpartition to an existed subpartition
+
+call filldata();
+alter table t1 truncate subpartition p0sp1;
+call checkdata();
+
+
+
+#######################################################
+## with specified names of subpartition
+########################################################
+drop table if exists t1;
+drop procedure if exists filldata;
+drop procedure if exists checkdata;
+
+CREATE TABLE t1 (id INT, purchased DATE)
+    PARTITION BY RANGE( YEAR(purchased) )
+    SUBPARTITION BY HASH( TO_DAYS(purchased) ) (
+        PARTITION p0 VALUES LESS THAN (2000) (
+          SUBPARTITION s0,
+          SUBPARTITION s1
+        ),
+        PARTITION p1 VALUES LESS THAN (2020) (
+          SUBPARTITION s2,
+          SUBPARTITION s3
+        ),
+        PARTITION p2 VALUES LESS THAN MAXVALUE (
+          SUBPARTITION s4,
+          SUBPARTITION s5
+        )
+    );
+
+--delimiter /
+create procedure filldata()
+begin
+  delete from t1;
+  insert into t1 values (1, '1994-10-24'), (2, '1999-10-25'), (3, '2005-10-24'), (4, '2015-10-25'), (5, '2020-10-24'), (6, '2021-10-24');
+end;
+/
+
+create procedure checkdata()
+begin
+  select "Start checking data ..." from dual;
+  select * from t1 partition (s0);
+  select * from t1 partition (s1);
+  select * from t1 partition (s2);
+  select * from t1 partition (s3);
+  select * from t1 partition (s4);
+  select * from t1 partition (s5);
+  select "End checking data ..." from dual;
+end;
+/
+
+--delimiter ;
+
+
+--echo #########################################################################
+--echo # test-3 mysql_mode, with specified names of subpartition
+--echo #########################################################################
+
+set @@parse_mode = 1;
+call filldata();
+call checkdata();
+
+--echo # do truncate partition to a non-existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition p3;
+
+--echo # do truncate partition to a non-existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition p0sp0;
+
+--echo # do truncate partition to an existed partition
+
+call filldata();
+alter table t1 truncate partition p0;
+call checkdata();
+
+--echo # do truncate partition to an existed subpartition
+
+call filldata();
+alter table t1 truncate partition s2;
+call checkdata();
+
+
+
+--echo # do truncate subpartition to a non-existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p8;
+
+--echo # do truncate subpartition to a non-existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p0sp1;
+
+--echo # do truncate subpartition to an existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p0;
+
+--echo # do truncate subpartition to an existed subpartition
+
+call filldata();
+alter table t1 truncate subpartition s2;
+call checkdata();
+
+
+--echo #########################################################################
+--echo # test-4 oracle_mode, with specified names of subpartition
+--echo #########################################################################
+
+set @@parse_mode = 2;
+call filldata();
+call checkdata();
+
+--echo # do truncate partition to a non-existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition p3;
+
+--echo # do truncate partition to a non-existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition p0sp1;
+
+--echo # do truncate partition to an existed partition
+
+call filldata();
+alter table t1 truncate partition p0;
+call checkdata();
+
+--echo # do truncate partition to an existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition s5;
+
+
+--echo # do truncate subpartition to a non-existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p8;
+
+--echo # do truncate subpartition to a non-existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p0sp0;
+
+--echo # do truncate subpartition to an existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p0;
+
+--echo # do truncate subpartition to an existed subpartition
+
+call filldata();
+alter table t1 truncate subpartition s5;
+call checkdata();
+
+
+
+--echo ############################## LIST PARTITION, KEY SUBPARTITION ###############################
+
+#######################################################
+# no specified names of subpartition
+#######################################################
+drop table if exists t1;
+drop procedure if exists filldata;
+drop procedure if exists checkdata;
+
+CREATE TABLE t1 (id INT, purchased DATE)
+    PARTITION BY LIST( YEAR(purchased) )
+    SUBPARTITION BY KEY( id )
+    SUBPARTITIONS 2 (
+        PARTITION p0 VALUES IN (1994,1999),
+        PARTITION p1 VALUES IN (2005,2015),
+        PARTITION p2 VALUES IN (2020,2021)
+    );
+
+--delimiter /
+create or replace procedure filldata()
+begin
+  delete from t1;
+  insert into t1 values (1, '1994-10-24'), (2, '1999-10-25'), (3, '2005-10-24'), (4, '2015-10-25'), (5, '2020-10-24'), (6, '2021-10-24');
+end;
+/
+
+create procedure checkdata()
+begin
+  select "Start checking data ..." from dual;
+  select * from t1 partition (p0sp0);
+  select * from t1 partition (p0sp1);
+  select * from t1 partition (p1sp0);
+  select * from t1 partition (p1sp1);
+  select * from t1 partition (p2sp0);
+  select * from t1 partition (p2sp1);
+  select "End checking data ..." from dual;
+end;
+/
+
+--delimiter ;
+
+
+--echo #########################################################################
+--echo # test-5 mysql_mode, no specified names of subpartition
+--echo #########################################################################
+
+set @@parse_mode = 1;
+call filldata();
+call checkdata();
+
+--echo # do truncate partition to a non-existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition p3;
+
+--echo # do truncate partition to a non-existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition p0sp2;
+
+--echo # do truncate partition to an existed partition
+
+call filldata();
+alter table t1 truncate partition p0;
+call checkdata();
+
+--echo # do truncate partition to an existed subpartition
+
+call filldata();
+alter table t1 truncate partition p1sp0;
+call checkdata();
+
+
+--echo # do truncate subpartition to a non-existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p8;
+
+--echo # do truncate subpartition to a non-existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p0sp2;
+
+--echo # do truncate subpartition to an existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p0;
+
+--echo # do truncate subpartition to an existed subpartition
+
+call filldata();
+alter table t1 truncate subpartition p0sp1;
+call checkdata();
+
+
+
+--echo #########################################################################
+--echo # test-6 oracle_mode, no specified names of subpartition
+--echo #########################################################################
+
+set @@parse_mode = 2;
+call filldata();
+call checkdata();
+
+--echo # do truncate partition to a non-existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition p3;
+
+--echo # do truncate partition to a non-existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition p0sp2;
+
+--echo # do truncate partition to an existed partition
+
+call filldata();
+alter table t1 truncate partition p0;
+call checkdata();
+
+--echo # do truncate partition to an existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition p1sp0;
+
+
+--echo # do truncate subpartition to a non-existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p8;
+
+--echo # do truncate subpartition to a non-existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p0sp2;
+
+--echo # do truncate subpartition to an existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p0;
+
+--echo # do truncate subpartition to an existed subpartition
+
+call filldata();
+alter table t1 truncate subpartition p0sp1;
+call checkdata();
+
+
+#######################################################
+## with specified names of subpartition
+########################################################
+drop table if exists t1;
+drop procedure if exists filldata;
+drop procedure if exists checkdata;
+
+CREATE TABLE t1 (id INT, purchased DATE)
+    PARTITION BY LIST( YEAR(purchased) )
+    SUBPARTITION BY KEY( id ) (
+        PARTITION p0 VALUES IN (1994,1999) (
+          SUBPARTITION s0,
+          SUBPARTITION s1
+        ),
+        PARTITION p1 VALUES IN (2005,2015) (
+          SUBPARTITION s2,
+          SUBPARTITION s3
+        ),
+        PARTITION p2 VALUES IN (2020,2021) (
+          SUBPARTITION s4,
+          SUBPARTITION s5
+        )
+    );
+
+
+--delimiter /
+create procedure filldata()
+begin
+  delete from t1;
+  insert into t1 values (1, '1994-10-24'), (2, '1999-10-25'), (3, '2005-10-24'), (4, '2015-10-25'), (5, '2020-10-24'), (6, '2021-10-24');
+end;
+/
+
+create procedure checkdata()
+begin
+  select "Start checking data ..." from dual;
+  select * from t1 partition (s0);
+  select * from t1 partition (s1);
+  select * from t1 partition (s2);
+  select * from t1 partition (s3);
+  select * from t1 partition (s4);
+  select * from t1 partition (s5);
+  select "End checking data ..." from dual;
+end;
+/
+
+--delimiter ;
+
+
+--echo #########################################################################
+--echo # test-7 mysql_mode, with specified names of subpartition
+--echo #########################################################################
+
+set @@parse_mode = 1;
+call filldata();
+call checkdata();
+
+--echo # do truncate partition to a non-existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition p3;
+
+--echo # do truncate partition to a non-existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition p0sp0;
+
+--echo # do truncate partition to an existed partition
+
+call filldata();
+alter table t1 truncate partition p0;
+call checkdata();
+
+--echo # do truncate partition to an existed subpartition
+
+call filldata();
+alter table t1 truncate partition s2;
+call checkdata();
+
+
+--echo # do truncate subpartition to a non-existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p8;
+
+--echo # do truncate subpartition to a non-existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p0sp1;
+
+--echo # do truncate subpartition to an existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p0;
+
+--echo # do truncate subpartition to an existed subpartition
+
+call filldata();
+alter table t1 truncate subpartition s2;
+call checkdata();
+
+
+
+--echo #########################################################################
+--echo # test-8 oracle_mode, with specified names of subpartition
+--echo #########################################################################
+
+set @@parse_mode = 2;
+call filldata();
+call checkdata();
+
+--echo # do truncate partition to a non-existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition p3;
+
+--echo # do truncate partition to a non-existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition p0sp1;
+
+--echo # do truncate partition to an existed partition
+
+call filldata();
+alter table t1 truncate partition p0;
+call checkdata();
+
+--echo # do truncate partition to an existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate partition s5;
+
+
+--echo # do truncate subpartition to a non-existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p8;
+
+--echo # do truncate subpartition to a non-existed subpartition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p0sp0;
+
+--echo # do truncate subpartition to an existed partition
+
+--error ER_UNKNOWN_PARTITION
+alter table t1 truncate subpartition p0;
+
+--echo # do truncate subpartition to an existed subpartition
+
+call filldata();
+alter table t1 truncate subpartition s5;
+call checkdata();
+
+
+
+--echo ############################## SOME OTHER TESTS ###############################
+
+--echo #########################################################################
+--echo # test-9 prepared statement
+--echo #########################################################################
+
+# under mysql_parse_mode, truncate partition works for partition or subpartition
+set @@parse_mode = 1;
+
+call filldata();
+prepare stmt from "alter table t1 truncate partition p0";
+select * from t1 partition (p0);
+execute stmt;
+select * from t1 partition (p0);
+
+call filldata();
+prepare stmt from "alter table t1 truncate partition s0";
+select * from t1 partition (p0);
+execute stmt;
+select * from t1 partition (p0);
+
+call filldata();
+# under mysql_parse_mode, truncate subpartition works for subpartition only
+set @@parse_mode = 1;
+prepare stmt from "alter table t1 truncate subpartition p0";
+--error ER_UNKNOWN_PARTITION
+execute stmt;
+
+call filldata();
+prepare stmt from "alter table t1 truncate subpartition s0";
+select * from t1 partition (p0);
+execute stmt;
+select * from t1 partition (p0);
+
+
+# under oracle_parse_mode, truncate partition works for partition only
+set @@parse_mode = 2;
+call filldata();
+prepare stmt from "alter table t1 truncate partition p0";
+select * from t1 partition (p0);
+execute stmt;
+select * from t1 partition (p0);
+
+call filldata();
+prepare stmt from "alter table t1 truncate partition s0";
+--error ER_UNKNOWN_PARTITION
+execute stmt;
+
+# under oracle_parse_mode, truncate subpartition works for subpartition only
+set @@parse_mode = 2;
+call filldata();
+prepare stmt from "alter table t1 truncate subpartition p0";
+--error ER_UNKNOWN_PARTITION
+execute stmt;
+
+prepare stmt from "alter table t1 truncate subpartition s0";
+call filldata();
+select * from t1 partition (p0);
+execute stmt;
+select * from t1 partition (p0);
+
+
+# execute repeatedly
+set @@parse_mode = 1;
+call filldata();
+prepare stmt from "alter table t1 truncate subpartition s0";
+execute stmt;
+select * from t1 partition (p0);
+
+call filldata();
+execute stmt;
+select * from t1 partition (p0);
+
+
+--echo #########################################################################
+--echo # test-10 truncate subpartition in procedure
+--echo #########################################################################
+
+call filldata();
+
+set @@parse_mode = 2;
+
+--echo # truncate subpartition should works normally
+
+--delimiter /
+declare
+  a int;
+begin
+  alter table t1 truncate subpartition s0;
+end;
+/
+--delimiter ;
+
+# rows should be truncated 
+select * from t1 partition (p0);
+
+--echo # truncate subpartition leads to implicit-commit
+call filldata();
+create table tt (id int, age int);
+
+--delimiter /
+declare
+  a int;
+begin
+  insert into tt values (1,1), (2,2);
+  alter table t1 truncate subpartition s0;
+  rollback;
+end;
+/
+--delimiter ;
+
+# expected 2 rows data
+select * from tt;
+
+# rows should be truncated
+select * from t1 partition (p0);
+
+
+--echo # execute repeatedly in procedure
+call filldata();
+
+set @@parse_mode = 2;
+--delimiter /
+create or replace procedure proc()
+begin
+  DECLARE t INT DEFAULT 1;
+  WHILE t < 4 DO
+    alter table t1 truncate subpartition s0;
+    SET t = t + 1;
+  END WHILE;
+end;
+/
+--delimiter ;
+
+call proc();
+select * from t1 partition (p0);
+
+
+
+
+--echo #########################################################################
+--echo # test-11 truncate subpartition in transaction
+--echo #########################################################################
+
+--echo # truncate subpartition in a transaction
+call filldata();
+truncate table tt;
+
+begin;
+insert into tt values (1,1), (2,2);
+alter table t1 truncate subpartition s0;
+commit;
+
+# rows should be truncated
+select * from t1 partition (p0);
+# 2 rows expeced
+select * from tt;
+
+--echo # truncate subpartition in a transaction and rollback (no effect cause of committed already)
+call filldata();
+truncate table tt;
+
+begin;
+insert into tt values (1,1), (2,2);
+alter table t1 truncate subpartition s0;
+select * from t1 partition (p0);
+rollback;
+
+# 2 rows expected
+select * from tt;
+# rows should be truncated 
+select * from t1 partition (p0);
+
+
+--echo ############################## update global index  ###############################
+
+set @@parse_mode = 2;
+call filldata();
+alter table t1 truncate subpartition s0 update global indexes;
+call checkdata();
+
+call filldata();
+alter table t1 truncate partition p0 update global indexes;
+call checkdata();
+
+--echo # restore ...
+drop database yxx;
+

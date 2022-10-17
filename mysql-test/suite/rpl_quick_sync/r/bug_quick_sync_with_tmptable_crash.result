@@ -1,0 +1,358 @@
+include/rpl_init.inc [topology=1->2, 1->3]
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+CREATE TABLE t1(c1 INT);
+include/rpl_sync.inc
+[connection server_1]
+include/install_semisync_master.inc
+CALL mtr.add_suppression(".* Timeout waiting for reply of binlog .*");
+####################################################################
+# Test Case: check the thread_pool_size of threadpool mode
+####################################################################
+include/assert.inc [ should be 24]
+SET GLOBAL rpl_semi_sync_master_enabled = 0;
+set global rpl_semi_sync_master_timeout = 1000;
+###################################################################
+# Test Case: add slave 2 3
+###################################################################
+[connection server_2]
+include/install_semisync_slave.inc
+[connection server_3]
+include/install_semisync_slave.inc
+[connection server_1]
+SET GLOBAL rpl_semi_sync_master_enabled = 1;
+set global rpl_semi_sync_master_timeout = 1000;
+drop database if exists abczyy_temptable;
+Warnings:
+Note	1008	Can't drop database 'abczyy_temptable'; database doesn't exist
+create database abczyy_temptable;
+create table abczyy_temptable.tb1(a int key, b int);
+create table abczyy_temptable.tb2(a int key, b int);
+create table abczyy_temptable.tb3(a int key, b int);
+insert into abczyy_temptable.tb1(a,b) values(1,1),(2,1),(3,1),(11,11),(12,11),(13,11),(111,111),(112,111),(113,111);
+insert into abczyy_temptable.tb3(a,b) values(4,1),(5,1),(6,1),(14,11),(15,11),(16,11),(114,111),(115,111),(116,111);
+set session sql_mode = STRICT_TRANS_TABLES;
+Warnings:
+Warning	3135	'NO_ZERO_DATE', 'NO_ZERO_IN_DATE' and 'ERROR_FOR_DIVISION_BY_ZERO' sql modes should be used with strict mode. They will be merged with strict mode in a future release.
+select @@session.sql_mode;
+@@session.sql_mode
+STRICT_TRANS_TABLES
+###################################################################
+# Test Case 1: quick_sync with tmp_table in group by
+###################################################################
+[connection server_1]
+insert into abczyy_temptable.tb2 select * from abczyy_temptable.tb1 group by(b);
+select * from abczyy_temptable.tb2 order by a;
+a	b
+1	1
+11	11
+111	111
+update abczyy_temptable.tb2 set b=1024 where a=(select a from abczyy_temptable.tb1 group by(b) limit 1);
+select * from abczyy_temptable.tb2 order by a;
+a	b
+1	1024
+11	11
+111	111
+delete from abczyy_temptable.tb2 where a=(select a from abczyy_temptable.tb1 group by(b) limit 1);
+select * from abczyy_temptable.tb2 order by a;
+a	b
+11	11
+111	111
+truncate table abczyy_temptable.tb2;
+insert into abczyy_temptable.tb2 select * from abczyy_temptable.tb1;
+select * from abczyy_temptable.tb2 order by a;
+a	b
+1	1
+2	1
+3	1
+11	11
+12	11
+13	11
+111	111
+112	111
+113	111
+truncate table abczyy_temptable.tb2;
+###################################################################
+# Test Case 2: quick_sync with tmp_table in union
+###################################################################
+[connection server_1]
+insert into abczyy_temptable.tb2 select * from abczyy_temptable.tb1 union select * from abczyy_temptable.tb3;
+select * from abczyy_temptable.tb2 order by a;
+a	b
+1	1
+2	1
+3	1
+4	1
+5	1
+6	1
+11	11
+12	11
+13	11
+14	11
+15	11
+16	11
+111	111
+112	111
+113	111
+114	111
+115	111
+116	111
+update abczyy_temptable.tb2 set b=1024 where a=(select a from abczyy_temptable.tb1 union select a from abczyy_temptable.tb3 limit 1);
+select * from abczyy_temptable.tb2 order by a;
+a	b
+1	1024
+2	1
+3	1
+4	1
+5	1
+6	1
+11	11
+12	11
+13	11
+14	11
+15	11
+16	11
+111	111
+112	111
+113	111
+114	111
+115	111
+116	111
+delete from abczyy_temptable.tb2 where a=(select a from abczyy_temptable.tb1 union select a from abczyy_temptable.tb3 limit 1);
+select * from abczyy_temptable.tb2 order by a;
+a	b
+2	1
+3	1
+4	1
+5	1
+6	1
+11	11
+12	11
+13	11
+14	11
+15	11
+16	11
+111	111
+112	111
+113	111
+114	111
+115	111
+116	111
+truncate table abczyy_temptable.tb2;
+insert into abczyy_temptable.tb2 select * from abczyy_temptable.tb1 order by a;
+select * from abczyy_temptable.tb2 order by a;
+a	b
+1	1
+2	1
+3	1
+11	11
+12	11
+13	11
+111	111
+112	111
+113	111
+truncate table abczyy_temptable.tb2;
+###################################################################
+# Test Case 3: quick_sync with tmp_table in multi-block
+###################################################################
+[connection server_1]
+insert into abczyy_temptable.tb2 select * from abczyy_temptable.tb1 group by(b);
+delete from abczyy_temptable.tb2;
+insert into abczyy_temptable.tb2 select * from abczyy_temptable.tb1 union select * from abczyy_temptable.tb3;
+delete from abczyy_temptable.tb2;
+//
+###################################################################
+# Test Case 4: quick_sync with tmp_table in prepare (prepare not support quick_sync)
+###################################################################
+[connection server_1]
+prepare zyy_insert_stmt from 'insert into abczyy_temptable.tb2 select * from abczyy_temptable.tb1 union select * from abczyy_temptable.tb3 limit ?';
+set @var1 = 1;
+execute zyy_insert_stmt using @var1;
+select * from abczyy_temptable.tb2 order by a;
+a	b
+1	1
+truncate table abczyy_temptable.tb2;
+insert into abczyy_temptable.tb2 select * from abczyy_temptable.tb1 union select * from abczyy_temptable.tb3;
+prepare zyy_update_stmt from 'update abczyy_temptable.tb2 set b=1024 where a=(select a from abczyy_temptable.tb1 union select a from abczyy_temptable.tb3 limit ?)';
+set @var1 = 1;
+execute zyy_update_stmt using @var1;
+select * from abczyy_temptable.tb2 order by a;
+a	b
+1	1024
+2	1
+3	1
+4	1
+5	1
+6	1
+11	11
+12	11
+13	11
+14	11
+15	11
+16	11
+111	111
+112	111
+113	111
+114	111
+115	111
+116	111
+prepare zyy_delete_stmt from 'delete from abczyy_temptable.tb2 where a=(select a from abczyy_temptable.tb1 union select a from abczyy_temptable.tb3 limit ?)';
+set @var1 = 1;
+execute zyy_delete_stmt using @var1;
+select * from abczyy_temptable.tb2 order by a;
+a	b
+2	1
+3	1
+4	1
+5	1
+6	1
+11	11
+12	11
+13	11
+14	11
+15	11
+16	11
+111	111
+112	111
+113	111
+114	111
+115	111
+116	111
+truncate table abczyy_temptable.tb2;
+###################################################################
+# Test Case 5: quick_sync with tmp_table in commit
+###################################################################
+[connection server_1]
+start transaction;
+insert into abczyy_temptable.tb2 select * from abczyy_temptable.tb1 union select * from abczyy_temptable.tb3;
+commit;
+select * from abczyy_temptable.tb2 order by a;
+a	b
+1	1
+2	1
+3	1
+4	1
+5	1
+6	1
+11	11
+12	11
+13	11
+14	11
+15	11
+16	11
+111	111
+112	111
+113	111
+114	111
+115	111
+116	111
+truncate table abczyy_temptable.tb2;
+start transaction;
+insert into abczyy_temptable.tb2 select * from abczyy_temptable.tb1 union select * from abczyy_temptable.tb3;
+select * from abczyy_temptable.tb2 order by a;
+a	b
+1	1
+2	1
+3	1
+4	1
+5	1
+6	1
+11	11
+12	11
+13	11
+14	11
+15	11
+16	11
+111	111
+112	111
+113	111
+114	111
+115	111
+116	111
+delete from abczyy_temptable.tb2;
+commit;
+###################################################################
+# Test Case 6: quick_sync with tmp_table in implict commit
+###################################################################
+[connection server_1]
+start transaction;
+insert into abczyy_temptable.tb2 select * from abczyy_temptable.tb1 union select * from abczyy_temptable.tb3;
+select * from abczyy_temptable.tb2 order by a;
+a	b
+1	1
+2	1
+3	1
+4	1
+5	1
+6	1
+11	11
+12	11
+13	11
+14	11
+15	11
+16	11
+111	111
+112	111
+113	111
+114	111
+115	111
+116	111
+truncate table abczyy_temptable.tb2;
+commit;
+start transaction;
+insert into abczyy_temptable.tb2 select * from abczyy_temptable.tb1 group by(b);
+truncate table abczyy_temptable.tb2;
+select * from abczyy_temptable.tb2 order by a;
+a	b
+commit;
+###################################################################
+# Test Case 7: quick_sync with tmp_table in procedure
+###################################################################
+[connection server_1]
+create procedure abczyy_temptable.load()
+begin
+insert into abczyy_temptable.tb2 select * from abczyy_temptable.tb1 group by(b);
+select * from abczyy_temptable.tb2 order by a;
+update abczyy_temptable.tb2 set b=1024 where a=(select a from abczyy_temptable.tb1 group by(b) limit 1);
+select * from abczyy_temptable.tb2 order by a;
+delete from abczyy_temptable.tb2 where a=(select a from abczyy_temptable.tb1 group by(b) limit 1);
+select * from abczyy_temptable.tb2 order by a;
+truncate table abczyy_temptable.tb2;
+end;
+//
+call abczyy_temptable.load();
+a	b
+1	1
+11	11
+111	111
+a	b
+1	1024
+11	11
+111	111
+a	b
+11	11
+111	111
+drop procedure if exists abczyy_temptable.load;
+########################################################################
+# Test End
+########################################################################
+[connection server_1]
+set global rpl_semi_sync_master_enabled = OFF;
+[connection server_2]
+include/uninstall_semisync_slave.inc
+[connection server_3]
+include/uninstall_semisync_slave.inc
+[connection server_1]
+[connection server_1]
+include/uninstall_semisync_master.inc
+[connection server_1]
+drop database if exists abczyy_temptable;
+DROP TABLE t1;
+CALL mtr.add_suppression(".* Timeout waiting for reply of binlog .*");
+CALL mtr.add_suppression(".* Failed to allocate memory for ack_array .*");
+CALL mtr.add_suppression('Unsafe statement written to the binary log');
+include/rpl_end.inc

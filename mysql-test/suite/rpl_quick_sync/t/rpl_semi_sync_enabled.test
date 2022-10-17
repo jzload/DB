@@ -1,0 +1,331 @@
+################################################################################
+# WL#7169 Semisync: make master wait for more than one slave to ack back
+#
+# The worklog added semisync master variable
+# rpl_semi_sync_master_wait_for_slave_count. The variable controls how many acks
+# from different slaves the transaction should wait for.
+#
+# The test verifies rpl_semi_sync_master_wait_for_slave_count works well.
+################################################################################
+--source include/not_group_replication_plugin.inc
+
+--let rpl_topology=1->2, 1->3, 1->4, 1->5
+--source include/rpl_init.inc
+CREATE TABLE t1(c1 INT);
+--source include/rpl_sync.inc
+
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+--source include/install_semisync_master.inc
+
+--echo ####################################################################
+--echo # Test Case: check the thread_pool_size of threadpool mode
+--echo ####################################################################
+--let $assert_variable_name= thread_pool_size
+--let $assert_variable_value= 24
+--source include/assert_variable.inc
+
+# It is for coverage test to cover the debug code.
+SET GLOBAL rpl_semi_sync_master_enabled = 0;
+set global rpl_semi_sync_master_timeout = 1000;
+
+--echo ###################################################################
+--echo # Test Case: add slave 2 3
+--echo ###################################################################
+--let $rpl_connection_name= server_2
+--source include/rpl_connection.inc
+--source include/install_semisync_slave.inc
+
+--let $rpl_connection_name= server_3
+--source include/rpl_connection.inc
+--source include/install_semisync_slave.inc
+
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+--let $clients= query_get_value(show status like "Rpl_semi_sync_master_clients", Value, 1)
+while($clients != 2)
+{
+  sleep 10;
+  --let $clients= query_get_value(show status like "Rpl_semi_sync_master_clients", Value, 1)
+}
+
+
+SET GLOBAL rpl_semi_sync_master_enabled = 1;
+create database if not exists abczyy1;
+create table if not exists abczyy1.tb1(a int key, b int); 
+
+
+--echo ###################################################################
+--echo # Test Case 1: set quick_sync_enabled invalid
+--echo ###################################################################
+--let $assert_variable_name= rpl_semi_sync_master_enabled
+--let $assert_variable_value= 1
+--source include/assert_variable.inc
+--let $assert_variable_name= rpl_semi_sync_master_quick_sync_enabled
+--let $assert_variable_value= 1
+--source include/assert_variable.inc
+
+--error 1231
+set global rpl_semi_sync_master_quick_sync_enabled = 0;
+--let $assert_variable_name= rpl_semi_sync_master_quick_sync_enabled
+--let $assert_variable_value= 1
+--source include/assert_variable.inc
+
+--error 1231
+set global rpl_semi_sync_master_quick_sync_enabled = 1;
+--let $assert_variable_name= rpl_semi_sync_master_quick_sync_enabled
+--let $assert_variable_value= 1
+--source include/assert_variable.inc
+
+--error 1231
+set global rpl_semi_sync_master_quick_sync_enabled = OFF;
+--let $assert_variable_name= rpl_semi_sync_master_quick_sync_enabled
+--let $assert_variable_value= 1
+--source include/assert_variable.inc
+
+--error 1231
+set global rpl_semi_sync_master_quick_sync_enabled = ON;
+--let $assert_variable_name= rpl_semi_sync_master_quick_sync_enabled
+--let $assert_variable_value= 1
+--source include/assert_variable.inc
+
+
+--echo ###################################################################
+--echo # Test Case 2: set quick_sync_enabled valid
+--echo ###################################################################
+set global rpl_semi_sync_master_enabled = OFF;
+--let $assert_variable_name= rpl_semi_sync_master_enabled
+--let $assert_variable_value= 0
+--source include/assert_variable.inc
+--let $assert_variable_name= rpl_semi_sync_master_quick_sync_enabled
+--let $assert_variable_value= 1
+--source include/assert_variable.inc
+
+set global rpl_semi_sync_master_quick_sync_enabled = 0;
+--let $assert_variable_name= rpl_semi_sync_master_quick_sync_enabled
+--let $assert_variable_value= 0
+--source include/assert_variable.inc
+
+set global rpl_semi_sync_master_quick_sync_enabled = 1;
+--let $assert_variable_name= rpl_semi_sync_master_quick_sync_enabled
+--let $assert_variable_value= 1
+--source include/assert_variable.inc
+
+set global rpl_semi_sync_master_quick_sync_enabled = OFF;
+--let $assert_variable_name= rpl_semi_sync_master_quick_sync_enabled
+--let $assert_variable_value= 0
+--source include/assert_variable.inc
+
+set global rpl_semi_sync_master_quick_sync_enabled = ON;
+--let $assert_variable_name= rpl_semi_sync_master_quick_sync_enabled
+--let $assert_variable_value= 1
+--source include/assert_variable.inc
+
+
+--echo ###################################################################
+--echo # Test Case 3: wait_for_slave_count=1
+--echo ###################################################################
+set global rpl_semi_sync_master_enabled = OFF;
+set global rpl_semi_sync_master_quick_sync_enabled = OFF;
+set global rpl_semi_sync_master_enabled = ON;
+--let $assert_variable_name= rpl_semi_sync_master_wait_for_slave_count
+--let $assert_variable_value= 1
+--source include/assert_variable.inc
+
+insert into abczyy1.tb1(a,b) values(1,1);
+--let $master_status_expect = ON
+--let $master_status= [show status like "Rpl_semi_sync_master_status", Value, 1]
+--let assert_cond= "$master_status" like "$master_status_expect"
+--let assert_text= Rpl_semi_sync_master_status should be ON
+--source include/assert.inc
+
+--echo ###################################################################
+--echo # Test Case 4: wait_for_slave_count=2
+--echo ###################################################################
+set global rpl_semi_sync_master_enabled = OFF;
+set global rpl_semi_sync_master_quick_sync_enabled = OFF;
+set global rpl_semi_sync_master_wait_for_slave_count = 2;
+set global rpl_semi_sync_master_enabled = ON;
+--let $assert_variable_name= rpl_semi_sync_master_wait_for_slave_count
+--let $assert_variable_value= 2
+--source include/assert_variable.inc
+
+truncate table abczyy1.tb1;
+--let $master_status_expect = ON
+--let $master_status= [show status like "Rpl_semi_sync_master_status", Value, 1]
+--let assert_cond= "$master_status" like "$master_status_expect"
+--let assert_text= Rpl_semi_sync_master_status should be ON
+--source include/assert.inc
+
+
+--echo ###################################################################
+--echo # Test Case 5: wait_for_slave_count=3
+--echo ###################################################################
+set global rpl_semi_sync_master_enabled = OFF;
+set global rpl_semi_sync_master_quick_sync_enabled = OFF;
+set global rpl_semi_sync_master_enabled = ON;
+set global rpl_semi_sync_master_wait_for_slave_count = 3;
+--let $assert_variable_name= rpl_semi_sync_master_wait_for_slave_count
+--let $assert_variable_value= 3
+--source include/assert_variable.inc
+
+insert into abczyy1.tb1(a,b) values(1,1);
+--let $master_status_expect = OFF
+--let $master_status= [show status like "Rpl_semi_sync_master_status", Value, 1]
+--let assert_cond= "$master_status" like "$master_status_expect"
+--let assert_text= Rpl_semi_sync_master_status should be OFF
+--source include/assert.inc
+
+
+--echo ###################################################################
+--echo # Test Case 6: wwait_no_slave = OFF && clients!=0
+--echo ###################################################################
+set global rpl_semi_sync_master_enabled = OFF;
+set global rpl_semi_sync_master_quick_sync_enabled = OFF;
+set global rpl_semi_sync_master_enabled = ON;
+set global rpl_semi_sync_master_wait_for_slave_count = 3;
+--let $assert_variable_name= rpl_semi_sync_master_wait_for_slave_count
+--let $assert_variable_value= 3
+--source include/assert_variable.inc
+
+set global rpl_semi_sync_master_wait_no_slave = OFF;
+--let $master_status_expect = ON
+--let $master_status= [show status like "Rpl_semi_sync_master_status", Value, 1]
+--let assert_cond= "$master_status" like "$master_status_expect"
+--let assert_text= Rpl_semi_sync_master_status should be ON
+--source include/assert.inc
+
+
+--echo ###################################################################
+--echo # Test Case 7: wwait_no_slave = ON
+--echo ###################################################################
+set global rpl_semi_sync_master_enabled = OFF;
+set global rpl_semi_sync_master_quick_sync_enabled = OFF;
+set global rpl_semi_sync_master_wait_no_slave = OFF;
+set global rpl_semi_sync_master_enabled = ON;
+set global rpl_semi_sync_master_wait_for_slave_count = 3;
+
+truncate table abczyy1.tb1;
+set global rpl_semi_sync_master_wait_no_slave = OFF;
+--let $master_status_expect = OFF
+--let $master_status= [show status like "Rpl_semi_sync_master_status", Value, 1]
+--let assert_cond= "$master_status" like "$master_status_expect"
+--let assert_text= Rpl_semi_sync_master_status should be OFF
+--source include/assert.inc
+
+set global rpl_semi_sync_master_wait_no_slave = ON;
+--let $master_status_expect = ON
+--let $master_status= [show status like "Rpl_semi_sync_master_status", Value, 1]
+--let assert_cond= "$master_status" like "$master_status_expect"
+--let assert_text= Rpl_semi_sync_master_status should be ON
+--source include/assert.inc
+
+
+--echo ###################################################################
+--echo # Test Case 8: rpl_semi_sync_master_enabled = ON && wait_for_slave_count=3
+--echo ###################################################################
+set global rpl_semi_sync_master_enabled = OFF;
+set global rpl_semi_sync_master_quick_sync_enabled = OFF;
+set global rpl_semi_sync_master_wait_no_slave = OFF;
+set global rpl_semi_sync_master_wait_for_slave_count = 3;
+
+set global rpl_semi_sync_master_enabled = ON;
+
+--let $master_status_expect = OFF
+--let $master_status= [show status like "Rpl_semi_sync_master_status", Value, 1]
+--let assert_cond= "$master_status" like "$master_status_expect"
+--let assert_text= Rpl_semi_sync_master_status should be OFF
+--source include/assert.inc
+
+
+--echo ###################################################################
+--echo # Test Case 9: rpl_semi_sync_master_enabled = ON && wait_for_slave_count=2
+--echo ###################################################################
+set global rpl_semi_sync_master_enabled = OFF;
+set global rpl_semi_sync_master_quick_sync_enabled = OFF;
+set global rpl_semi_sync_master_wait_no_slave = OFF;
+set global rpl_semi_sync_master_wait_for_slave_count = 2;
+
+set global rpl_semi_sync_master_enabled = ON;
+
+--let $master_status_expect = ON
+--let $master_status= [show status like "Rpl_semi_sync_master_status", Value, 1]
+--let assert_cond= "$master_status" like "$master_status_expect"
+--let assert_text= Rpl_semi_sync_master_status should be ON
+--source include/assert.inc
+
+
+--echo ###################################################################
+--echo # Test Case 10: rpl_semi_sync_master_enabled = OFF
+--echo ###################################################################
+set global rpl_semi_sync_master_enabled = OFF;
+set global rpl_semi_sync_master_quick_sync_enabled = OFF;
+set global rpl_semi_sync_master_wait_no_slave = OFF;
+set global rpl_semi_sync_master_wait_for_slave_count = 2;
+set global rpl_semi_sync_master_enabled = ON;
+
+set global rpl_semi_sync_master_enabled = OFF;
+
+--let $master_status_expect = OFF
+--let $master_status= [show status like "Rpl_semi_sync_master_status", Value, 1]
+--let assert_cond= "$master_status" like "$master_status_expect"
+--let assert_text= Rpl_semi_sync_master_status should be OFF
+--source include/assert.inc
+
+
+--echo ########################################################################
+--echo # Test Case 11: wait_no_slave = OFF && clients==0
+--echo ########################################################################
+--let $rpl_connection_name= server_2
+--source include/rpl_connection.inc
+--source include/uninstall_semisync_slave.inc
+
+--let $rpl_connection_name= server_3
+--source include/rpl_connection.inc
+--source include/uninstall_semisync_slave.inc
+
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+--let $clients= query_get_value(show status like "Rpl_semi_sync_master_clients", Value, 1)
+while($clients != 0)
+{
+  sleep 10;
+  --let $clients= query_get_value(show status like "Rpl_semi_sync_master_clients", Value, 1)
+}
+
+set global rpl_semi_sync_master_enabled = OFF;
+set global rpl_semi_sync_master_wait_no_slave = ON;
+set global rpl_semi_sync_master_quick_sync_enabled = OFF;
+set global rpl_semi_sync_master_enabled = ON;
+--let $master_status_expect = ON
+--let $master_status= [show status like "Rpl_semi_sync_master_status", Value, 1]
+--let assert_cond= "$master_status" like "$master_status_expect"
+--let assert_text= Rpl_semi_sync_master_status should be ON
+--source include/assert.inc
+
+set global rpl_semi_sync_master_wait_no_slave = OFF;
+--let $master_status_expect = OFF
+--let $master_status= [show status like "Rpl_semi_sync_master_status", Value, 1]
+--let assert_cond= "$master_status" like "$master_status_expect"
+--let assert_text= Rpl_semi_sync_master_status should be OFF
+--source include/assert.inc
+
+
+--echo ########################################################################
+--echo # Coverage Test
+--echo ########################################################################
+set global rpl_semi_sync_master_enabled = OFF;
+
+# Ack array should be freed when uninstalling semisync master
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+--source include/uninstall_semisync_master.inc
+# end
+
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+drop database if exists abczyy1;
+DROP TABLE t1;
+CALL mtr.add_suppression(".* Timeout waiting for reply of binlog .*");
+CALL mtr.add_suppression(".* Failed to allocate memory for ack_array .*");
+--source include/rpl_end.inc

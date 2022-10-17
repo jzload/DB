@@ -1,0 +1,37 @@
+include/master-slave.inc
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+[connection master]
+call mtr.add_suppression("The semisync_master plugin is inline, can not install.");
+INSTALL PLUGIN rpl_semi_sync_master SONAME 'semisync_master.so';
+ERROR HY000: Plugin 'semisync_master.so' can not be install.
+UNINSTALL PLUGIN rpl_semi_sync_master;
+ERROR 42000: PLUGIN rpl_semi_sync_master does not exist
+call mtr.add_suppression("The semisync_slave plugin is inline, can not install.");
+INSTALL PLUGIN rpl_semi_sync_slave SONAME 'semisync_slave.so';
+ERROR HY000: Plugin 'semisync_slave.so' can not be install.
+UNINSTALL PLUGIN rpl_semi_sync_slave;
+ERROR 42000: PLUGIN rpl_semi_sync_slave does not exist
+CREATE TABLE t1(i int);
+INSERT INTO t1 values (1);
+DROP TABLE t1;
+include/install_semisync.inc
+call mtr.add_suppression("Plugin 'rpl_semi_sync_slave' cannot be uninstalled now");
+set global rpl_semi_sync_master_group1 = '2:1';
+call mtr.add_suppression("Plugin 'rpl_semi_sync_master' cannot be uninstalled now");
+CREATE TABLE t1(i int);
+INSERT INTO t1 values (2);
+DROP TABLE t1;
+include/assert.inc [semi sync slave status should be ON.]
+include/assert.inc [semi sync master status should be ON.]
+include/assert.inc [semi sync master clients should be 1.]
+SET GLOBAL rpl_semi_sync_master_enabled = OFF;
+include/assert.inc [semi sync master clients should be 1.]
+include/stop_slave.inc
+SET GLOBAL rpl_semi_sync_slave_enabled = OFF;
+include/start_slave.inc
+CREATE TABLE t1(i int);
+INSERT INTO t1 values (3);
+DROP TABLE t1;
+include/rpl_end.inc

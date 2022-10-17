@@ -1,0 +1,5 @@
+--skip-ssl
+--innodb_data_file_path=ibdata1:12M:autoextend
+--log-bin=master-bin
+--expire_logs_days=3
+--max_binlog_size=100K

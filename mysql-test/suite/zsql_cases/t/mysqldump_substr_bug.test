@@ -1,0 +1,31 @@
+--echo "###########################################################"
+--echo "# BUG: invalid parameters may lead to a crash for mysqldump"
+--echo "###########################################################"
+
+--disable_warnings
+drop database if exists dumpcrash;
+--enable_warnings
+create database dumpcrash;
+create table dumpcrash.test1 (id int);
+insert into dumpcrash.test1 values (1),(2);
+
+--exec $MYSQL_DUMP -uroot  --default-character-set=utf8 --databases dumpcrash >/dev/null 2>&1
+
+--exec $MYSQL_DUMP -uroot  --default-character-set=UTF8 --databases dumpcrash >/dev/null 2>&1
+
+--error 1
+--exec $MYSQL_DUMP -uroot  --default-character-set=utf-8 --databases dumpcrash >/dev/null 2>&1
+
+
+--error 1
+--exec $MYSQL_DUMP -uroot  --default-character-set= utf8 --databases dumpcrash >/dev/null 2>&1
+
+
+--error 1
+--exec $MYSQL_DUMP -uroot  --default-character-set =utf8 --databases dumpcrash >/dev/null 2>&1
+
+
+--error 1
+--exec $MYSQL_DUMP -uroot  --default-character-set = utf8 --databases dumpcrash >/dev/null 2>&1
+
+drop database dumpcrash;

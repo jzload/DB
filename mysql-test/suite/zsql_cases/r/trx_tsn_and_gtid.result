@@ -1,0 +1,328 @@
+CALL mtr.add_suppression(".* Timeout waiting for reply of binlog .*");
+#########################################################
+# prepare
+#########################################################
+show variables like 'transaction_isolation';
+Variable_name	Value
+transaction_isolation	REPEATABLE-READ
+set global transaction_isolation = 'READ-COMMITTED';
+set global innodb_lock_wait_timeout=3;
+set global rpl_semi_sync_master_timeout=4000;
+drop database if exists abczyy_hint;
+create database abczyy_hint;
+create table abczyy_hint.tb1(a int key, b int);
+create table abczyy_hint.tb2(a int key, b int);
+insert into abczyy_hint.tb1(a,b) values(1,1),(2,2),(3,3),(4,4),(5,5),(6,6),(7,7),(8,8),(9,9);
+#########################################################
+# Test 1 singal sql auto_commit without quick-sync
+#########################################################
+set global rpl_semi_sync_master_enabled=OFF;
+start transaction;
+select * from abczyy_hint.tb1 where a=1 for update;
+a	b
+1	1
+/*+GTID=1111*//*+TSN=goldendb_0001*/update abczyy_hint.tb1 set b=101 where a=1;;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_state = 'LOCK WAIT';
+trx_serial_num	trx_gtm_gtid
+goldendb_0001	1111
+commit;
+start transaction;
+select * from abczyy_hint.tb1 where a=1 for update;
+a	b
+1	101
+update abczyy_hint.tb1 set b=102 where a=1;;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_state = 'LOCK WAIT';
+trx_serial_num	trx_gtm_gtid
+NULL	NULL
+commit;
+#########################################################
+# Test 2 singal sql auto_rollback without quick-sync
+#########################################################
+set global rpl_semi_sync_master_enabled=OFF;
+start transaction;
+select * from abczyy_hint.tb1 where a=1 for update;
+a	b
+1	102
+/*+GTID=1112*//*+TSN=goldendb_0002*/update abczyy_hint.tb1 set b=103 where a=1;;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_state = 'LOCK WAIT';
+trx_serial_num	trx_gtm_gtid
+goldendb_0002	1112
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_state = 'LOCK WAIT';
+trx_serial_num	trx_gtm_gtid
+update abczyy_hint.tb1 set b=104 where a=1;;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_state = 'LOCK WAIT';
+trx_serial_num	trx_gtm_gtid
+NULL	NULL
+commit;
+#########################################################
+# Test 3 singal sql auto_commit with quick-sync
+#########################################################
+set global rpl_semi_sync_master_enabled=ON;
+start transaction;
+select * from abczyy_hint.tb1 where a=1 for update;
+a	b
+1	104
+/*+GTID=1113*//*+TSN=goldendb_0003*/update abczyy_hint.tb1 set b=105 where a=1;;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_state = 'LOCK WAIT';
+trx_serial_num	trx_gtm_gtid
+goldendb_0003	1113
+commit;
+start transaction;
+select * from abczyy_hint.tb1 where a=1 for update;
+a	b
+1	105
+update abczyy_hint.tb1 set b=106 where a=1;;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_state = 'LOCK WAIT';
+trx_serial_num	trx_gtm_gtid
+NULL	NULL
+commit;
+#########################################################
+# Test 4 DDL implicit commit other trx
+#########################################################
+set global rpl_semi_sync_master_enabled=OFF;
+start transaction;
+/*+GTID=1114*//*+TSN=goldendb_0004*/update abczyy_hint.tb1 set b=107 where a=1;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+goldendb_0004	1114
+truncate table abczyy_hint.tb1;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+insert into abczyy_hint.tb1(a,b) values(1,1),(2,2),(3,3),(4,4),(5,5),(6,6),(7,7),(8,8),(9,9);
+#########################################################
+# Test 5 trx commit without quick-sync
+#########################################################
+set global rpl_semi_sync_master_enabled=OFF;
+start transaction;
+/*+GTID=1115*//*+TSN=goldendb_0005*/update abczyy_hint.tb1 set b=108 where a=1;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+goldendb_0005	1115
+commit;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+#########################################################
+# Test 6 trx rollback without quick-sync
+#########################################################
+set global rpl_semi_sync_master_enabled=OFF;
+start transaction;
+/*+GTID=1116*//*+TSN=goldendb_0006*/update abczyy_hint.tb1 set b=109 where a=1;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+goldendb_0006	1116
+rollback;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+#########################################################
+# Test 7 trx commit with quick-sync
+#########################################################
+set global rpl_semi_sync_master_enabled=ON;
+start transaction;
+/*+GTID=1117*//*+TSN=goldendb_0007*/update abczyy_hint.tb1 set b=110 where a=1;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+goldendb_0007	1117
+commit;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+#########################################################
+# Test 8 DDL implicit commit other trx
+#########################################################
+set global rpl_semi_sync_master_enabled=OFF;
+set global rpl_semi_sync_master_enabled=ON;
+start transaction;
+/*+GTID=1118*//*+TSN=goldendb_0008*/update abczyy_hint.tb1 set b=111 where a=1;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+goldendb_0008	1118
+/*+GTID=1119*//*+TSN=goldendb_0009*/truncate table abczyy_hint.tb1;;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+goldendb_0008	1118
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+insert into abczyy_hint.tb1(a,b) values(1,1),(2,2),(3,3),(4,4),(5,5),(6,6),(7,7),(8,8),(9,9);
+#########################################################
+# Test 9 MAX LEN of TSN(64) and GTID(32)
+#########################################################
+set global rpl_semi_sync_master_enabled=OFF;
+set global rpl_semi_sync_master_enabled=ON;
+start transaction;
+/*+GTID=12345678901234567890123456789012*//*+TSN=1234567890123456789012345678901234567890123456789012345678901234*/update abczyy_hint.tb1 set b=112 where a=1;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+1234567890123456789012345678901234567890123456789012345678901234	12345678901234567890123456789012
+commit;
+#########################################################
+# Test 10 > MAX LEN of TSN(64) and GTID(32)
+#########################################################
+set global rpl_semi_sync_master_enabled=OFF;
+set global rpl_semi_sync_master_enabled=ON;
+start transaction;
+/*+GTID=1234567890123456789012345678901234*//*+TSN=123456789012345678901234567890123456789012345678901234567890123456*/update abczyy_hint.tb1 set b=113 where a=1;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+1234567890123456789012345678901234567890123456789012345678901234	12345678901234567890123456789012
+commit;
+#########################################################
+# Test 11  mutli-statement with TSN and GTID
+#########################################################
+set global rpl_semi_sync_master_enabled=OFF;
+/*+GTID=1120*/ /*+TSN=goldendb_0010*/start transaction;
+update abczyy_hint.tb1 set b=114 where a=1;
+//
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+goldendb_0010	1120
+commit;
+#########################################################
+# Test 12  mutli-statement with TSN and GTID
+#########################################################
+set global rpl_semi_sync_master_enabled=OFF;
+/*+GTID=1121*/ /*+TSN=goldendb_0011*/start transaction;
+update abczyy_hint.tb1 set b=115 where a=1;
+commit;
+start transaction;
+update abczyy_hint.tb1 set b=116 where a=1;
+//
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+commit;
+#########################################################
+# Test 13  mutli-statement with TSN and GTID
+#########################################################
+set global rpl_semi_sync_master_enabled=OFF;
+/*+GTID=1122*/start transaction;
+/*+TSN=goldendb_0013*/update abczyy_hint.tb1 set b=117 where a=1;
+//
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+goldendb_0013	1122
+commit;
+#########################################################
+# Test 14 lock table implicit commit other trx
+#########################################################
+set global rpl_semi_sync_master_enabled=OFF;
+set global rpl_semi_sync_master_enabled=ON;
+start transaction;
+/*+GTID=1123*//*+TSN=goldendb_0014*/update abczyy_hint.tb1 set b=118 where a=1;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+goldendb_0014	1123
+/*+GTID=1124*//*+TSN=goldendb_0015*/lock table abczyy_hint.tb2 read;;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+goldendb_0014	1123
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+#########################################################
+# Test 15 unlock tables implicit commit other trx
+#########################################################
+set global rpl_semi_sync_master_enabled=OFF;
+set global rpl_semi_sync_master_enabled=ON;
+set session autocommit=0;
+lock table abczyy_hint.tb1 write;
+/*+GTID=1125*//*+TSN=goldendb_0016*/update abczyy_hint.tb1 set b=119 where a=1;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+goldendb_0016	1125
+/*+GTID=1126*//*+TSN=goldendb_0017*/unlock tables;;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+goldendb_0016	1125
+set session autocommit=1;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+#########################################################
+# Test 16 alter table implicit commit other trx
+#########################################################
+set global rpl_semi_sync_master_enabled=OFF;
+set global rpl_semi_sync_master_enabled=ON;
+start transaction;
+/*+GTID=1127*//*+TSN=goldendb_0018*/update abczyy_hint.tb1 set b=120 where a=1;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+goldendb_0018	1127
+/*+GTID=1128*//*+TSN=goldendb_0019*/alter table abczyy_hint.tb2 engine innodb;;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+goldendb_0018	1127
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+#########################################################
+# Test 17 copy table implicit commit other trx
+#########################################################
+set global rpl_semi_sync_master_enabled=OFF;
+set global rpl_semi_sync_master_enabled=ON;
+start transaction;
+/*+GTID=1129*//*+TSN=goldendb_0020*/update abczyy_hint.tb1 set b=121 where a=1;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+goldendb_0020	1129
+/*+GTID=1130*//*+TSN=goldendb_0021*/copy table from abczyy_hint.tb1 to abczyy_hint.tb2;;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+goldendb_0020	1129
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+#########################################################
+# Test 18 optimize table implicit commit other trx
+#########################################################
+set global rpl_semi_sync_master_enabled=OFF;
+set global rpl_semi_sync_master_enabled=ON;
+start transaction;
+/*+GTID=1131*//*+TSN=goldendb_0022*/update abczyy_hint.tb1 set b=122 where a=1;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+goldendb_0022	1131
+/*+GTID=1132*//*+TSN=goldendb_0023*/optimize table abczyy_hint.tb2;;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+goldendb_0022	1131
+Table	Op	Msg_type	Msg_text
+abczyy_hint.tb2	optimize	note	Table does not support optimize, doing recreate + analyze instead
+abczyy_hint.tb2	optimize	status	OK
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+#########################################################
+# Test 19 create user implicit commit other trx
+#########################################################
+set global rpl_semi_sync_master_enabled=OFF;
+set global rpl_semi_sync_master_enabled=ON;
+start transaction;
+/*+GTID=1133*//*+TSN=goldendb_0024*/update abczyy_hint.tb1 set b=123 where a=1;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+goldendb_0024	1133
+/*+GTID=1134*//*+TSN=goldendb_0025*/CREATE USER 'zyy1'@'%' IDENTIFIED  BY '123456';;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+goldendb_0024	1133
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+#########################################################
+# Test 20 set password implicit commit other trx
+#########################################################
+set global rpl_semi_sync_master_enabled=OFF;
+set global rpl_semi_sync_master_enabled=ON;
+start transaction;
+/*+GTID=1135*//*+TSN=goldendb_0026*/update abczyy_hint.tb1 set b=124 where a=1;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+goldendb_0026	1135
+/*+GTID=1136*//*+TSN=goldendb_0027*/set password for zyy1 = "654321";;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+goldendb_0026	1135
+drop user zyy1;
+select trx_serial_num,trx_gtm_gtid from information_schema.innodb_trx where trx_gtm_gtid != 'NULL';
+trx_serial_num	trx_gtm_gtid
+#########################################################
+# end
+#########################################################
+set global transaction_isolation = 'REPEATABLE-READ';
+set global innodb_lock_wait_timeout=50;
+set global rpl_semi_sync_master_enabled=OFF;
+set global rpl_semi_sync_master_timeout=10000;
+drop database abczyy_hint;

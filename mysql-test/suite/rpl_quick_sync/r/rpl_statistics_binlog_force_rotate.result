@@ -1,0 +1,60 @@
+####################################################################
+# master install plugin
+####################################################################
+include/rpl_init.inc [topology=1->2]
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+CREATE TABLE t1(c1 INT);
+include/rpl_sync.inc
+[connection server_1]
+include/install_semisync_master.inc
+SET GLOBAL rpl_semi_sync_master_enabled = 0;
+set global rpl_semi_sync_master_timeout = 1000;
+create database if not exists linpin1;
+create table linpin1.tb1(a int key, b int);
+###################################################################
+# slave install plugin
+###################################################################
+[connection server_2]
+include/install_semisync_slave.inc
+[connection server_1]
+###################################################################
+# Master set hwm and lwm
+###################################################################
+set global rpl_semi_sync_master_wait_cond_lwm = '0:0';
+set global rpl_semi_sync_master_wait_cond_hwm = '1:1';
+###################################################################
+# check binlog statistics info
+###################################################################
+insert into linpin1.tb1 values(1,1);
+drop table if exists linpin1.tb1;
+flush logs;
+create table linpin1.tb1(a int key, b int);
+insert into linpin1.tb1 values(1,1);
+drop table if exists linpin1.tb1;
+flush logs;
+create table linpin1.tb1(a int key, b int);
+insert into linpin1.tb1 values(1,1);
+drop table if exists linpin1.tb1;
+flush logs;
+create table linpin1.tb1(a int key, b int);
+insert into linpin1.tb1 values(1,1);
+drop table if exists linpin1.tb1;
+flush logs;
+drop database linpin1;
+[connection server_2]
+# compare master_binlog_timestamp and slave_sync_timestamp ok
+# compare master_binlog_timestamp and slave_replay_timestamp ok
+###################################################################
+# test end
+###################################################################
+[connection server_2]
+include/uninstall_semisync_slave.inc
+[connection server_1]
+include/uninstall_semisync_master.inc
+[connection server_1]
+DROP TABLE t1;
+CALL mtr.add_suppression(".* Timeout waiting for reply of binlog .*");
+CALL mtr.add_suppression(".* Failed to allocate memory for ack_array .*");
+include/rpl_end.inc

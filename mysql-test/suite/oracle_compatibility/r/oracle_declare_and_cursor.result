@@ -1,0 +1,1074 @@
+create user 'yxx'@'localhost';
+grant all privileges on oracle_cursor.* to yxx@'localhost';
+set parse_mode=2;
+set @old_autocommit = @@autocommit;
+SET @old_lock_wait_timeout = @@global.lock_wait_timeout;
+SET @@global.lock_wait_timeout = 1;
+select "预置数据开始";
+预置数据开始
+预置数据开始
+create database if not exists oracle_cursor;
+use oracle_cursor;
+drop table if exists oracle_curs.emp;
+create table oracle_cursor.emp(empno int primary key,ename varchar(40),job varchar(40),sal int);
+start transaction;
+insert into oracle_cursor.emp(empno,ename,job,sal) values(1,'Iron man',  'engineer',1456);
+insert into oracle_cursor.emp(empno,ename,job,sal) values(2,'Captain of A.',   'manager',7456);
+insert into oracle_cursor.emp(empno,ename,job,sal) values(3,'Hulk', 'sales',9456);
+insert into oracle_cursor.emp(empno,ename,job,sal) values(4,'Thor',  'engineer',8914);
+insert into oracle_cursor.emp(empno,ename,job,sal) values(5,'Peter Park',   'manager',456);
+insert into oracle_cursor.emp(empno,ename,job,sal) values(6,'Star Lord', 'sales',3568);
+insert into oracle_cursor.emp(empno,ename,job,sal) values(7,'Deadpool', 'sales',8568);
+commit;
+drop table if exists oracle_cursor.employee;
+create table oracle_cursor.employee(empno int primary key,ename varchar(40),job varchar(40),sal int);
+start transaction;
+insert into oracle_cursor.employee(empno,ename,job,sal) values(1,'oracle_cursor',  'engineer',1456);
+insert into oracle_cursor.employee(empno,ename,job,sal) values(3,'LiSi', 'sales',9456);
+insert into oracle_cursor.employee(empno,ename,job,sal) values(5,'Thor',   'manager',4567);
+insert into oracle_cursor.employee(empno,ename,job,sal) values(7,'Deadpool', 'sales',3568);
+commit;
+drop table if exists mytest;
+create table mytest(id int, age int);
+insert into mytest values(1,1);
+insert into mytest values(2,2);
+insert into mytest values(3,3);
+drop table if exists tt;
+create table tt(id int primary key, age int);
+"预置数据完毕";
+#########################################################################
+#  test case 1: explicit cursor simple usage
+#########################################################################
+select(repeat('-', 80));/
+(repeat('-', 80))
+--------------------------------------------------------------------------------
+"(1) declare block should be support, and cursor can be open/fetch/close in it"
+declare
+cursor cur is
+SELECT empno, ename, job, sal FROM emp WHERE sal > 2000; 
+empno_ int;
+ename_ varchar(40);
+job_ varchar(40);
+sal_ int;
+begin
+open cur;
+for i in 1..5 loop
+fetch cur into empno_, ename_, job_, sal_;
+select concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_);
+end loop;
+close cur;
+end;
+/
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:2, ename:Captain of A., job:manager, sal:7456
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:3, ename:Hulk, job:sales, sal:9456
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:4, ename:Thor, job:engineer, sal:8914
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:6, ename:Star Lord, job:sales, sal:3568
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:7, ename:Deadpool, job:sales, sal:8568
+select(repeat('-', 80));/
+(repeat('-', 80))
+--------------------------------------------------------------------------------
+"(2) variables defined outside can be used in the cursor query string"
+declare
+min_sal int := 5000;
+factor int := 3;
+cursor cur is
+SELECT empno, ename, job, sal, sal*factor as multi_sal FROM emp WHERE sal > min_sal;
+empno_ int;
+ename_ varchar(40);
+job_ varchar(40);
+sal_ int;
+multi_sal_ int;
+begin
+open cur;
+loop
+fetch cur into empno_, ename_, job_, sal_, multi_sal_;
+exit when cur%notfound;
+select concat("empno:", empno_, ", ename:", ename_, ", job:", 
+job_, ", sal:", sal_, ", multi_sal:", multi_sal_);
+end loop;
+close cur;
+end;
+/
+concat("empno:", empno_, ", ename:", ename_, ", job:", 
+job_, ", sal:", sal_, ", multi_sal:", multi_sal_)
+empno:2, ename:Captain of A., job:manager, sal:7456, multi_sal:22368
+concat("empno:", empno_, ", ename:", ename_, ", job:", 
+job_, ", sal:", sal_, ", multi_sal:", multi_sal_)
+empno:3, ename:Hulk, job:sales, sal:9456, multi_sal:28368
+concat("empno:", empno_, ", ename:", ename_, ", job:", 
+job_, ", sal:", sal_, ", multi_sal:", multi_sal_)
+empno:4, ename:Thor, job:engineer, sal:8914, multi_sal:26742
+concat("empno:", empno_, ", ename:", ename_, ", job:", 
+job_, ", sal:", sal_, ", multi_sal:", multi_sal_)
+empno:7, ename:Deadpool, job:sales, sal:8568, multi_sal:25704
+select(repeat('-', 80));/
+(repeat('-', 80))
+--------------------------------------------------------------------------------
+"(3) changement of variables used in cursor query will not affect result set after open cursor"
+declare
+min_sal int := 5000;
+factor int := 3;
+cursor cur is
+SELECT empno, ename, job, sal, sal*factor as multi_sal FROM emp WHERE sal > min_sal;
+empno_ int;
+ename_ varchar(40);
+job_ varchar(40);
+sal_ int;
+multi_sal_ int;
+begin
+open cur;
+loop
+factor := factor +1;
+fetch cur into empno_, ename_, job_, sal_, multi_sal_;
+exit when cur%notfound;
+select concat("empno:", empno_, ", ename:", ename_, ", job:",
+job_, ", sal:", sal_, ", multi_sal:", multi_sal_);
+end loop;
+close cur;
+select "=== reopen the cursor ===";
+open cur;
+loop
+factor := factor +1;
+fetch cur into empno_, ename_, job_, sal_, multi_sal_;
+exit when cur%notfound;
+select concat("empno:", empno_, ", ename:", ename_, ", job:",
+job_, ", sal:", sal_, ", multi_sal:", multi_sal_);
+end loop;
+close cur;
+end;
+/
+concat("empno:", empno_, ", ename:", ename_, ", job:",
+job_, ", sal:", sal_, ", multi_sal:", multi_sal_)
+empno:2, ename:Captain of A., job:manager, sal:7456, multi_sal:22368
+concat("empno:", empno_, ", ename:", ename_, ", job:",
+job_, ", sal:", sal_, ", multi_sal:", multi_sal_)
+empno:3, ename:Hulk, job:sales, sal:9456, multi_sal:28368
+concat("empno:", empno_, ", ename:", ename_, ", job:",
+job_, ", sal:", sal_, ", multi_sal:", multi_sal_)
+empno:4, ename:Thor, job:engineer, sal:8914, multi_sal:26742
+concat("empno:", empno_, ", ename:", ename_, ", job:",
+job_, ", sal:", sal_, ", multi_sal:", multi_sal_)
+empno:7, ename:Deadpool, job:sales, sal:8568, multi_sal:25704
+=== reopen the cursor ===
+=== reopen the cursor ===
+concat("empno:", empno_, ", ename:", ename_, ", job:",
+job_, ", sal:", sal_, ", multi_sal:", multi_sal_)
+empno:2, ename:Captain of A., job:manager, sal:7456, multi_sal:59648
+concat("empno:", empno_, ", ename:", ename_, ", job:",
+job_, ", sal:", sal_, ", multi_sal:", multi_sal_)
+empno:3, ename:Hulk, job:sales, sal:9456, multi_sal:75648
+concat("empno:", empno_, ", ename:", ename_, ", job:",
+job_, ", sal:", sal_, ", multi_sal:", multi_sal_)
+empno:4, ename:Thor, job:engineer, sal:8914, multi_sal:71312
+concat("empno:", empno_, ", ename:", ename_, ", job:",
+job_, ", sal:", sal_, ", multi_sal:", multi_sal_)
+empno:7, ename:Deadpool, job:sales, sal:8568, multi_sal:68544
+#########################################################################
+#  test case 2: use subquery in cursor query string
+#########################################################################
+select(repeat('-', 80));/
+(repeat('-', 80))
+--------------------------------------------------------------------------------
+"(1) subquery can be used in cursor query string (where clause)"
+declare
+min_sal int := 5000;
+cursor cur is
+SELECT empno, ename, job, sal FROM emp WHERE sal>min_sal and empno in (select empno from employee);
+empno_ int;
+ename_ varchar(40);
+job_ varchar(40);
+sal_ int;
+begin
+open cur;
+loop
+fetch cur into empno_, ename_, job_, sal_;
+exit when cur%notfound;
+select concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_);
+end loop;
+close cur;
+end;
+/
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:3, ename:Hulk, job:sales, sal:9456
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:7, ename:Deadpool, job:sales, sal:8568
+select(repeat('-', 80));/
+(repeat('-', 80))
+--------------------------------------------------------------------------------
+"(2) subquery can be used in cursor query string (from clause)"
+declare
+cursor cur is
+SELECT empno, ename, job, sal FROM emp, (select avg(sal) as avg_sal from employee) as avgtable
+WHERE sal>avgtable.avg_sal;
+empno_ int;
+ename_ varchar(40);
+job_ varchar(40);
+sal_ int;
+begin
+select avg(sal) as avg_sal_of_employee from employee;
+open cur;
+loop
+fetch cur into empno_, ename_, job_, sal_;
+exit when cur%notfound;
+select concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_);
+end loop;
+close cur;
+end;
+/
+avg_sal_of_employee
+4761.7500
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:2, ename:Captain of A., job:manager, sal:7456
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:3, ename:Hulk, job:sales, sal:9456
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:4, ename:Thor, job:engineer, sal:8914
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:7, ename:Deadpool, job:sales, sal:8568
+select(repeat('-', 80));/
+(repeat('-', 80))
+--------------------------------------------------------------------------------
+"(3) cursor can be fetched to different variables"
+declare
+cursor cur is
+SELECT empno, ename FROM emp;
+empno_1 int;
+ename_1 varchar(40);
+empno_2 int;
+ename_2 varchar(40);
+empno_3 int;
+ename_3 varchar(40);
+empno_4 int;
+ename_4 varchar(40);
+empno_5 int;
+ename_5 varchar(40);
+begin
+open cur;
+fetch cur into empno_1, ename_1;
+fetch cur into empno_2, ename_2;
+fetch cur into empno_3, ename_3;
+fetch cur into empno_4, ename_4;
+fetch cur into empno_5, ename_5;
+select concat("empno:", empno_1, ", ename:", ename_1);
+select concat("empno:", empno_2, ", ename:", ename_2);
+select concat("empno:", empno_3, ", ename:", ename_3);
+select concat("empno:", empno_4, ", ename:", ename_4);
+select concat("empno:", empno_5, ", ename:", ename_5);
+close cur;
+end;
+/
+concat("empno:", empno_1, ", ename:", ename_1)
+empno:1, ename:Iron man
+concat("empno:", empno_2, ", ename:", ename_2)
+empno:2, ename:Captain of A.
+concat("empno:", empno_3, ", ename:", ename_3)
+empno:3, ename:Hulk
+concat("empno:", empno_4, ", ename:", ename_4)
+empno:4, ename:Thor
+concat("empno:", empno_5, ", ename:", ename_5)
+empno:5, ename:Peter Park
+#########################################################################
+#  test case 3: cursor access select for update statement
+#########################################################################
+select(repeat('-', 80));/
+(repeat('-', 80))
+--------------------------------------------------------------------------------
+"(1) cursor access select for update statement"
+declare
+cursor cur is
+SELECT * FROM emp for update;
+empno_ int;
+ename_ varchar(40);
+job_ varchar(40);
+sal_ int;
+begin
+open cur;
+loop
+fetch cur into empno_, ename_, job_, sal_;
+exit when cur%notfound;
+select concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_);
+end loop;
+close cur;
+end;
+/
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:1, ename:Iron man, job:engineer, sal:1456
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:2, ename:Captain of A., job:manager, sal:7456
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:3, ename:Hulk, job:sales, sal:9456
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:4, ename:Thor, job:engineer, sal:8914
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:5, ename:Peter Park, job:manager, sal:456
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:6, ename:Star Lord, job:sales, sal:3568
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:7, ename:Deadpool, job:sales, sal:8568
+select(repeat('-', 80));/
+(repeat('-', 80))
+--------------------------------------------------------------------------------
+"(2) cursor access select for update statement, SQL is executed while opening cursor"
+declare
+cursor cur is
+SELECT * FROM emp for update;
+empno_ int;
+ename_ varchar(40);
+job_ varchar(40);
+sal_ int;
+begin
+open cur;
+loop
+fetch cur into empno_, ename_, job_, sal_;
+exit when cur%notfound;
+update emp set sal = sal * 2;
+select concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_);
+end loop;
+close cur;
+rollback;
+end;
+/
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:1, ename:Iron man, job:engineer, sal:1456
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:2, ename:Captain of A., job:manager, sal:7456
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:3, ename:Hulk, job:sales, sal:9456
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:4, ename:Thor, job:engineer, sal:8914
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:5, ename:Peter Park, job:manager, sal:456
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:6, ename:Star Lord, job:sales, sal:3568
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:7, ename:Deadpool, job:sales, sal:8568
+select(repeat('-', 80));/
+(repeat('-', 80))
+--------------------------------------------------------------------------------
+"(3) cursor access select for update statement, cursor can be fetched normally after release lock"
+declare
+cursor cur is
+SELECT * FROM emp for update;
+empno_ int;
+ename_ varchar(40);
+job_ varchar(40);
+sal_ int;
+begin
+open cur;
+loop
+fetch cur into empno_, ename_, job_, sal_;
+exit when cur%notfound;
+select concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_);
+commit;
+end loop;
+close cur;
+end;
+/
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:1, ename:Iron man, job:engineer, sal:1456
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:2, ename:Captain of A., job:manager, sal:7456
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:3, ename:Hulk, job:sales, sal:9456
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:4, ename:Thor, job:engineer, sal:8914
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:5, ename:Peter Park, job:manager, sal:456
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:6, ename:Star Lord, job:sales, sal:3568
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:7, ename:Deadpool, job:sales, sal:8568
+#########################################################################
+#  test case 4: loop usage for cursor
+#########################################################################
+select(repeat('-', 80));/
+(repeat('-', 80))
+--------------------------------------------------------------------------------
+"(1) common loop usage for cursor"
+declare
+min_sal int := 5000;
+cursor cur is
+SELECT empno, ename, job, sal FROM emp WHERE sal>min_sal;
+empno_ int;
+ename_ varchar(40);
+job_ varchar(40);
+sal_ int;
+begin
+open cur;
+loop
+fetch cur into empno_, ename_, job_, sal_;
+exit when cur%notfound;
+select concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_);
+end loop;
+select("start to close cursor");
+close cur;
+end;
+/
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:2, ename:Captain of A., job:manager, sal:7456
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:3, ename:Hulk, job:sales, sal:9456
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:4, ename:Thor, job:engineer, sal:8914
+concat("empno:", empno_, ", ename:", ename_, ", job:", job_, ", sal:", sal_)
+empno:7, ename:Deadpool, job:sales, sal:8568
+start to close cursor
+start to close cursor
+select(repeat('-', 80));/
+(repeat('-', 80))
+--------------------------------------------------------------------------------
+"(2) explicit cursor for loop"
+declare
+min_sal int := 5000;
+cursor cur is
+SELECT empno, ename, job, sal FROM emp WHERE sal>min_sal;
+begin
+for r in cur loop
+select concat("empno:", r.empno, ", ename:", r.ename, ", job:", r.job, ", sal:", r.sal);
+end loop;
+select "no need to open and close cursor for explicit cursor for loop";
+end;
+/
+concat("empno:", r.empno, ", ename:", r.ename, ", job:", r.job, ", sal:", r.sal)
+empno:2, ename:Captain of A., job:manager, sal:7456
+concat("empno:", r.empno, ", ename:", r.ename, ", job:", r.job, ", sal:", r.sal)
+empno:3, ename:Hulk, job:sales, sal:9456
+concat("empno:", r.empno, ", ename:", r.ename, ", job:", r.job, ", sal:", r.sal)
+empno:4, ename:Thor, job:engineer, sal:8914
+concat("empno:", r.empno, ", ename:", r.ename, ", job:", r.job, ", sal:", r.sal)
+empno:7, ename:Deadpool, job:sales, sal:8568
+no need to open and close cursor for explicit cursor for loop
+no need to open and close cursor for explicit cursor for loop
+select(repeat('-', 80));/
+(repeat('-', 80))
+--------------------------------------------------------------------------------
+"(3) SQL cursor for loop"
+declare
+min_sal int := 5000;
+begin
+for r in (SELECT empno, ename, job, sal FROM emp WHERE sal>min_sal) loop
+select concat("empno:", r.empno, ", ename:", r.ename, ", job:", r.job, ", sal:", r.sal);
+end loop;
+select "no need to open and close cursor for SQL cursor for loop";
+end;
+/
+concat("empno:", r.empno, ", ename:", r.ename, ", job:", r.job, ", sal:", r.sal)
+empno:2, ename:Captain of A., job:manager, sal:7456
+concat("empno:", r.empno, ", ename:", r.ename, ", job:", r.job, ", sal:", r.sal)
+empno:3, ename:Hulk, job:sales, sal:9456
+concat("empno:", r.empno, ", ename:", r.ename, ", job:", r.job, ", sal:", r.sal)
+empno:4, ename:Thor, job:engineer, sal:8914
+concat("empno:", r.empno, ", ename:", r.ename, ", job:", r.job, ", sal:", r.sal)
+empno:7, ename:Deadpool, job:sales, sal:8568
+no need to open and close cursor for SQL cursor for loop
+no need to open and close cursor for SQL cursor for loop
+select(repeat('-', 80));/
+(repeat('-', 80))
+--------------------------------------------------------------------------------
+"(4) BugFix: cursor should be opened and closed automaticly"
+declare
+min_sal int := 5000;
+cursor cur is
+SELECT empno, ename, job, sal FROM emp WHERE sal>min_sal;
+begin
+select "open cursor before explicit cursor for loop will trigger error";
+open cur;
+for r in cur loop
+select concat("empno:", r.empno, ", ename:", r.ename, ", job:", r.job, ", sal:", r.sal);
+end loop;
+end;
+/
+open cursor before explicit cursor for loop will trigger error
+open cursor before explicit cursor for loop will trigger error
+ERROR 24000: Cursor is already open
+declare
+min_sal int := 5000;
+cursor cur is
+SELECT empno, ename, job, sal FROM emp WHERE sal>min_sal;
+begin
+select "close cursor after explicit cursor for loop will trigger error";
+for r in cur loop
+select concat("empno:", r.empno, ", ename:", r.ename, ", job:", r.job, ", sal:", r.sal);
+end loop;
+close cur;
+end;
+/
+close cursor after explicit cursor for loop will trigger error
+close cursor after explicit cursor for loop will trigger error
+concat("empno:", r.empno, ", ename:", r.ename, ", job:", r.job, ", sal:", r.sal)
+empno:2, ename:Captain of A., job:manager, sal:7456
+concat("empno:", r.empno, ", ename:", r.ename, ", job:", r.job, ", sal:", r.sal)
+empno:3, ename:Hulk, job:sales, sal:9456
+concat("empno:", r.empno, ", ename:", r.ename, ", job:", r.job, ", sal:", r.sal)
+empno:4, ename:Thor, job:engineer, sal:8914
+concat("empno:", r.empno, ", ename:", r.ename, ", job:", r.job, ", sal:", r.sal)
+empno:7, ename:Deadpool, job:sales, sal:8568
+ERROR 24000: Cursor is not open
+#########################################################################
+#  test case 5: cursor attributes
+#########################################################################
+select(repeat('-', 80));/
+(repeat('-', 80))
+--------------------------------------------------------------------------------
+"(1) %ISOPEN"
+declare
+min_sal int := 5000;
+cursor cur is
+SELECT empno, ename, sal FROM emp WHERE sal>min_sal;
+empno_ int;
+ename_ varchar(40);
+sal_ int;
+begin
+select "before open cursor";
+if cur%ISOPEN then select("cur%ISOPEN: true"); else select("cur%ISOPEN: false"); end if;
+open cur;
+select "after open cursor, before fetch";
+if cur%ISOPEN then select("cur%ISOPEN: true"); else select("cur%ISOPEN: false"); end if;
+loop
+fetch cur into empno_, ename_, sal_;
+select concat("empno:", empno_, ", ename:", ename_, ", sal:", sal_);
+exit when cur%NOTFOUND;
+select "after fetch";
+if cur%ISOPEN then select("cur%ISOPEN: true"); else select("cur%ISOPEN: false"); end if;
+end loop;
+select "before close cursor";
+if cur%ISOPEN then select("cur%ISOPEN: true"); else select("cur%ISOPEN: false"); end if;
+close cur;
+select "after close cursor";
+if cur%ISOPEN then select("cur%ISOPEN: true"); else select("cur%ISOPEN: false"); end if;
+end;
+/
+before open cursor
+before open cursor
+cur%ISOPEN: false
+cur%ISOPEN: false
+after open cursor, before fetch
+after open cursor, before fetch
+cur%ISOPEN: true
+cur%ISOPEN: true
+concat("empno:", empno_, ", ename:", ename_, ", sal:", sal_)
+empno:2, ename:Captain of A., sal:7456
+after fetch
+after fetch
+cur%ISOPEN: true
+cur%ISOPEN: true
+concat("empno:", empno_, ", ename:", ename_, ", sal:", sal_)
+empno:3, ename:Hulk, sal:9456
+after fetch
+after fetch
+cur%ISOPEN: true
+cur%ISOPEN: true
+concat("empno:", empno_, ", ename:", ename_, ", sal:", sal_)
+empno:4, ename:Thor, sal:8914
+after fetch
+after fetch
+cur%ISOPEN: true
+cur%ISOPEN: true
+concat("empno:", empno_, ", ename:", ename_, ", sal:", sal_)
+empno:7, ename:Deadpool, sal:8568
+after fetch
+after fetch
+cur%ISOPEN: true
+cur%ISOPEN: true
+concat("empno:", empno_, ", ename:", ename_, ", sal:", sal_)
+empno:7, ename:Deadpool, sal:8568
+before close cursor
+before close cursor
+cur%ISOPEN: true
+cur%ISOPEN: true
+after close cursor
+after close cursor
+cur%ISOPEN: false
+cur%ISOPEN: false
+select(repeat('-', 80));/
+(repeat('-', 80))
+--------------------------------------------------------------------------------
+"(2) %FOUND"
+declare
+min_sal int := 5000;
+cursor cur is
+SELECT empno, ename, sal FROM emp WHERE sal>min_sal;
+empno_ int;
+ename_ varchar(40);
+sal_ int;
+begin
+select "before open cursor";
+if cur%FOUND is null then select("cur%FOUND is null: true"); else select("cur%FOUND is null: false"); end if;if cur%FOUND then select("cur%FOUND: true"); else select("cur%FOUND: false"); end if;
+open cur;
+select "after open cursor, before fetch";
+if cur%FOUND is null then select("cur%FOUND is null: true"); else select("cur%FOUND is null: false"); end if;if cur%FOUND then select("cur%FOUND: true"); else select("cur%FOUND: false"); end if;
+loop
+fetch cur into empno_, ename_, sal_;
+select concat("empno:", empno_, ", ename:", ename_, ", sal:", sal_);
+exit when cur%NOTFOUND;
+select "after fetch";
+if cur%FOUND is null then select("cur%FOUND is null: true"); else select("cur%FOUND is null: false"); end if;if cur%FOUND then select("cur%FOUND: true"); else select("cur%FOUND: false"); end if;
+end loop;
+select "before close cursor";
+if cur%FOUND is null then select("cur%FOUND is null: true"); else select("cur%FOUND is null: false"); end if;if cur%FOUND then select("cur%FOUND: true"); else select("cur%FOUND: false"); end if;
+close cur;
+select "after close cursor";
+if cur%FOUND is null then select("cur%FOUND is null: true"); else select("cur%FOUND is null: false"); end if;if cur%FOUND then select("cur%FOUND: true"); else select("cur%FOUND: false"); end if;
+end;
+/
+before open cursor
+before open cursor
+cur%FOUND is null: true
+cur%FOUND is null: true
+cur%FOUND: false
+cur%FOUND: false
+after open cursor, before fetch
+after open cursor, before fetch
+cur%FOUND is null: true
+cur%FOUND is null: true
+cur%FOUND: false
+cur%FOUND: false
+concat("empno:", empno_, ", ename:", ename_, ", sal:", sal_)
+empno:2, ename:Captain of A., sal:7456
+after fetch
+after fetch
+cur%FOUND is null: false
+cur%FOUND is null: false
+cur%FOUND: true
+cur%FOUND: true
+concat("empno:", empno_, ", ename:", ename_, ", sal:", sal_)
+empno:3, ename:Hulk, sal:9456
+after fetch
+after fetch
+cur%FOUND is null: false
+cur%FOUND is null: false
+cur%FOUND: true
+cur%FOUND: true
+concat("empno:", empno_, ", ename:", ename_, ", sal:", sal_)
+empno:4, ename:Thor, sal:8914
+after fetch
+after fetch
+cur%FOUND is null: false
+cur%FOUND is null: false
+cur%FOUND: true
+cur%FOUND: true
+concat("empno:", empno_, ", ename:", ename_, ", sal:", sal_)
+empno:7, ename:Deadpool, sal:8568
+after fetch
+after fetch
+cur%FOUND is null: false
+cur%FOUND is null: false
+cur%FOUND: true
+cur%FOUND: true
+concat("empno:", empno_, ", ename:", ename_, ", sal:", sal_)
+empno:7, ename:Deadpool, sal:8568
+before close cursor
+before close cursor
+cur%FOUND is null: false
+cur%FOUND is null: false
+cur%FOUND: false
+cur%FOUND: false
+after close cursor
+after close cursor
+cur%FOUND is null: true
+cur%FOUND is null: true
+cur%FOUND: false
+cur%FOUND: false
+select(repeat('-', 80));/
+(repeat('-', 80))
+--------------------------------------------------------------------------------
+"(3) %NOTFOUND"
+declare
+min_sal int := 5000;
+cursor cur is
+SELECT empno, ename, sal FROM emp WHERE sal>min_sal;
+empno_ int;
+ename_ varchar(40);
+sal_ int;
+begin
+select "before open cursor";
+if cur%NOTFOUND is null then select("cur%NOTFOUND is null: true"); else select("cur%NOTFOUND is null: false"); end if;if cur%NOTFOUND then select("cur%NOTFOUND: true"); else select("cur%NOTFOUND: false"); end if;
+open cur;
+select "after open cursor, before fetch";
+if cur%NOTFOUND is null then select("cur%NOTFOUND is null: true"); else select("cur%NOTFOUND is null: false"); end if;if cur%NOTFOUND then select("cur%NOTFOUND: true"); else select("cur%NOTFOUND: false"); end if;
+loop
+fetch cur into empno_, ename_, sal_;
+select concat("empno:", empno_, ", ename:", ename_, ", sal:", sal_);
+exit when cur%NOTFOUND;
+select "after fetch";
+if cur%NOTFOUND is null then select("cur%NOTFOUND is null: true"); else select("cur%NOTFOUND is null: false"); end if;if cur%NOTFOUND then select("cur%NOTFOUND: true"); else select("cur%NOTFOUND: false"); end if;
+end loop;
+select "before close cursor";
+if cur%NOTFOUND is null then select("cur%NOTFOUND is null: true"); else select("cur%NOTFOUND is null: false"); end if;if cur%NOTFOUND then select("cur%NOTFOUND: true"); else select("cur%NOTFOUND: false"); end if;
+close cur;
+select "after close cursor";
+if cur%NOTFOUND is null then select("cur%NOTFOUND is null: true"); else select("cur%NOTFOUND is null: false"); end if;if cur%NOTFOUND then select("cur%NOTFOUND: true"); else select("cur%NOTFOUND: false"); end if;
+end;
+/
+before open cursor
+before open cursor
+cur%NOTFOUND is null: true
+cur%NOTFOUND is null: true
+cur%NOTFOUND: false
+cur%NOTFOUND: false
+after open cursor, before fetch
+after open cursor, before fetch
+cur%NOTFOUND is null: true
+cur%NOTFOUND is null: true
+cur%NOTFOUND: false
+cur%NOTFOUND: false
+concat("empno:", empno_, ", ename:", ename_, ", sal:", sal_)
+empno:2, ename:Captain of A., sal:7456
+after fetch
+after fetch
+cur%NOTFOUND is null: false
+cur%NOTFOUND is null: false
+cur%NOTFOUND: false
+cur%NOTFOUND: false
+concat("empno:", empno_, ", ename:", ename_, ", sal:", sal_)
+empno:3, ename:Hulk, sal:9456
+after fetch
+after fetch
+cur%NOTFOUND is null: false
+cur%NOTFOUND is null: false
+cur%NOTFOUND: false
+cur%NOTFOUND: false
+concat("empno:", empno_, ", ename:", ename_, ", sal:", sal_)
+empno:4, ename:Thor, sal:8914
+after fetch
+after fetch
+cur%NOTFOUND is null: false
+cur%NOTFOUND is null: false
+cur%NOTFOUND: false
+cur%NOTFOUND: false
+concat("empno:", empno_, ", ename:", ename_, ", sal:", sal_)
+empno:7, ename:Deadpool, sal:8568
+after fetch
+after fetch
+cur%NOTFOUND is null: false
+cur%NOTFOUND is null: false
+cur%NOTFOUND: false
+cur%NOTFOUND: false
+concat("empno:", empno_, ", ename:", ename_, ", sal:", sal_)
+empno:7, ename:Deadpool, sal:8568
+before close cursor
+before close cursor
+cur%NOTFOUND is null: false
+cur%NOTFOUND is null: false
+cur%NOTFOUND: true
+cur%NOTFOUND: true
+after close cursor
+after close cursor
+cur%NOTFOUND is null: true
+cur%NOTFOUND is null: true
+cur%NOTFOUND: false
+cur%NOTFOUND: false
+select(repeat('-', 80));/
+(repeat('-', 80))
+--------------------------------------------------------------------------------
+"(4) %ROWCOUNT"
+declare
+min_sal int := 5000;
+cursor cur is
+SELECT empno, ename, sal FROM emp WHERE sal>min_sal;
+empno_ int;
+ename_ varchar(40);
+sal_ int;
+begin
+select "before open cursor";
+select CONCAT("ROWCOUNT:", cur%ROWCOUNT);
+open cur;
+select "after open cursor, before fetch";
+select CONCAT("ROWCOUNT:", cur%ROWCOUNT);
+loop
+fetch cur into empno_, ename_, sal_;
+select concat("empno:", empno_, ", ename:", ename_, ", sal:", sal_);
+exit when cur%NOTFOUND;
+select "after fetch";
+select CONCAT("ROWCOUNT:", cur%ROWCOUNT);
+end loop;
+select "before close cursor";
+select CONCAT("ROWCOUNT:", cur%ROWCOUNT);
+close cur;
+select "after close cursor";
+select CONCAT("ROWCOUNT:", cur%ROWCOUNT);
+end;
+/
+before open cursor
+before open cursor
+CONCAT("ROWCOUNT:", cur%ROWCOUNT)
+ROWCOUNT:0
+after open cursor, before fetch
+after open cursor, before fetch
+CONCAT("ROWCOUNT:", cur%ROWCOUNT)
+ROWCOUNT:0
+concat("empno:", empno_, ", ename:", ename_, ", sal:", sal_)
+empno:2, ename:Captain of A., sal:7456
+after fetch
+after fetch
+CONCAT("ROWCOUNT:", cur%ROWCOUNT)
+ROWCOUNT:1
+concat("empno:", empno_, ", ename:", ename_, ", sal:", sal_)
+empno:3, ename:Hulk, sal:9456
+after fetch
+after fetch
+CONCAT("ROWCOUNT:", cur%ROWCOUNT)
+ROWCOUNT:2
+concat("empno:", empno_, ", ename:", ename_, ", sal:", sal_)
+empno:4, ename:Thor, sal:8914
+after fetch
+after fetch
+CONCAT("ROWCOUNT:", cur%ROWCOUNT)
+ROWCOUNT:3
+concat("empno:", empno_, ", ename:", ename_, ", sal:", sal_)
+empno:7, ename:Deadpool, sal:8568
+after fetch
+after fetch
+CONCAT("ROWCOUNT:", cur%ROWCOUNT)
+ROWCOUNT:4
+concat("empno:", empno_, ", ename:", ename_, ", sal:", sal_)
+empno:7, ename:Deadpool, sal:8568
+before close cursor
+before close cursor
+CONCAT("ROWCOUNT:", cur%ROWCOUNT)
+ROWCOUNT:4
+after close cursor
+after close cursor
+CONCAT("ROWCOUNT:", cur%ROWCOUNT)
+ROWCOUNT:0
+#########################################################################
+#  test case 6: commit pattern of declare block
+#########################################################################
+select(repeat('-', 80));/
+(repeat('-', 80))
+--------------------------------------------------------------------------------
+"(1) with autocommit ON, declare block will be committed at the end"
+set autocommit = 1;/
+declare
+a int;
+begin
+for i in 1..3 loop
+update mytest set age=age+1;
+end loop;
+end;
+/
+rollback;/
+select * from mytest;/
+id	age
+1	4
+2	5
+3	6
+"restore data..."
+update mytest set age=id;
+select(repeat('-', 80));/
+(repeat('-', 80))
+--------------------------------------------------------------------------------
+"(2) with autocommit ON, rollback can work at the end of declare block"
+set autocommit = 1;/
+declare
+a int;
+begin
+for i in 1..3 loop
+update mytest set age=age+1;
+end loop;
+rollback;
+end;
+/
+select * from mytest;/
+id	age
+1	1
+2	2
+3	3
+select(repeat('-', 80));/
+(repeat('-', 80))
+--------------------------------------------------------------------------------
+"(3) with autocommit OFF, explicit commit statement is needed to commit declare block"
+set autocommit = 0;/
+declare
+a int;
+begin
+for i in 1..3 loop
+update mytest set age=age+1;
+end loop;
+end;
+/
+select * from mytest;/
+id	age
+1	4
+2	5
+3	6
+rollback;/
+select * from mytest;/
+id	age
+1	1
+2	2
+3	3
+set autocommit = 0;/
+declare
+a int;
+begin
+for i in 1..3 loop
+update mytest set age=age+1;
+end loop;
+commit;
+end;
+/
+rollback;/
+select * from mytest;/
+id	age
+1	4
+2	5
+3	6
+"restore data..."
+update mytest set age=id;/
+commit;/
+select(repeat('-', 80));/
+(repeat('-', 80))
+--------------------------------------------------------------------------------
+"(4) with autocommit OFF, rollback can work the end of declare block"
+set autocommit = 0;/
+declare
+a int;
+begin
+for i in 1..3 loop
+update mytest set age=age+1;
+end loop;
+rollback;
+end;
+/
+select * from mytest;/
+id	age
+1	1
+2	2
+3	3
+#########################################################################
+#  test case 7: rollback position alter failure test, and mdl release test
+#########################################################################
+"(1) autocommit is ON, and not in transaction"
+set @@autocommit = ON;/
+insert into tt values (1,1),(3,3);/
+declare
+a int := 2;
+b int := 3;
+begin
+insert into tt values (a,a);
+insert into tt values (b,b);
+end;
+/
+ERROR 23000: Duplicate entry '3' for key 'PRIMARY'
+select count(*)=2 from tt;/
+count(*)=2
+1
+lock table oracle_cursor.tt write;/
+unlock tables;/
+delete from tt;/
+commit;/
+"(2) autocommit is ON, and in transaction"
+set @@autocommit=ON;/
+insert into tt values (1,1),(3,3);/
+begin;/
+insert into tt values (4,4);/
+declare
+a int := 2;
+b int := 3;
+begin
+insert into tt values (a,a);
+insert into tt values (b,b);
+end;
+/
+ERROR 23000: Duplicate entry '3' for key 'PRIMARY'
+select count(*)=3 from tt;/
+count(*)=3
+1
+lock table oracle_cursor.tt write;/
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+unlock tables;/
+rollback;/
+select count(*)=2 from tt;/
+count(*)=2
+1
+lock table oracle_cursor.tt write;/
+unlock tables;/
+delete from tt;/
+commit;/
+"(3) autocommit is OFF, and not in transaction"
+set @@autocommit=OFF;/
+insert into tt values (1,1),(3,3);/
+commit;/
+insert into tt values (4,4);/
+declare
+a int := 2;
+b int := 3;
+begin
+insert into tt values (a,a);
+insert into tt values (b,b);
+end;
+/
+ERROR 23000: Duplicate entry '3' for key 'PRIMARY'
+select count(*)=3 from tt;/
+count(*)=3
+1
+lock table oracle_cursor.tt write;/
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+unlock tables;/
+rollback;/
+select count(*)=2 from tt;/
+count(*)=2
+1
+commit;/
+lock table oracle_cursor.tt write;/
+unlock tables;/
+delete from tt;/
+commit;/
+"(4) autocommit is OFF, and in transaction"
+set @@autocommit=OFF;/
+insert into tt values (1,1),(3,3);/
+commit;/
+begin;/
+insert into tt values (4,4);/
+declare
+a int := 2;
+b int := 3;
+begin
+insert into tt values (a,a);
+insert into tt values (b,b);
+end;
+/
+ERROR 23000: Duplicate entry '3' for key 'PRIMARY'
+select count(*)=3 from tt;/
+count(*)=3
+1
+lock table oracle_cursor.tt write;/
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+unlock tables;/
+rollback;/
+select count(*)=2 from tt;/
+count(*)=2
+1
+commit;/
+lock table oracle_cursor.tt write;/
+unlock tables;/
+delete from tt;/
+commit;/
+#########################################################################
+#  test case 9: a create-procedure statement following declare block works well
+#########################################################################
+CREATE DEFINER=`yxx`@`localhost` PROCEDURE `testproc1`()
+as
+a int := 666;
+begin
+select a;
+end;
+/
+call testproc1();/
+a
+666
+select DEFINER from information_schema.routines where ROUTINE_NAME = 'testproc1'/
+DEFINER
+yxx@localhost
+"restore session variables..."
+drop user 'yxx'@'localhost';
+set @@autocommit = @old_autocommit;
+drop database oracle_cursor;
+set parse_mode = 1;
+SET @@global.lock_wait_timeout = @old_lock_wait_timeout;

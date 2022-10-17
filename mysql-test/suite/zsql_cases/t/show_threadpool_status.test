@@ -1,0 +1,148 @@
+##########################################################
+# test cases for "show threadpool status"
+##########################################################
+
+--source include/not_windows.inc
+
+SELECT @@GLOBAL.thread_handling;
+
+--echo ##########################################################
+--echo # test case 1: grammer error
+--echo ##########################################################
+--disable_abort_on_error
+show thread pool status;
+--enable_abort_on_error
+
+
+--echo ##########################################################
+--echo #  test case 2: allow in transaction
+--echo ##########################################################
+--disable_warnings
+drop database if exists test_db;
+--disable_warnings
+create database test_db;
+create table test_db.tb1(id int primary key, c1 int);
+start transaction ;
+insert into test_db.tb1 values(1,1);
+insert into test_db.tb1 values(2,2);
+show threadpool status;
+commit;
+
+--echo ##########################################################
+--echo #  test case 2: test  thread status
+--echo ##########################################################
+
+--echo ##########################################################
+--echo #  test case 2.1: test  thread status-innodb lock wait
+--echo ##########################################################
+connect (conn1, localhost, root,,);
+connect (conn2, localhost, root,,);
+connect (conn3, localhost, root,,);
+
+connection conn1;
+--echo # active:1 waiting:0 idle:1
+show threadpool status;
+show status like '%threadpool%';
+start transaction ;
+update test_db.tb1 set c1=2 where id=1;
+
+connection conn2;
+--send
+update test_db.tb1 set c1=3 where id=1;
+
+connection conn3;
+--send
+update test_db.tb1 set c1=4 where id=1;
+
+connection conn1;
+--echo # active:1 waiting:2 idle:0
+sleep 5;
+show threadpool status;
+show status like '%threadpool%';
+commit;
+sleep 1;
+
+--echo # active:1 waiting:0 idle:2
+show threadpool status;
+show status like '%threadpool%';
+
+disconnect conn2;
+disconnect conn3;
+sleep 2;
+
+--echo # active:1 waiting:0 idle:0
+connection conn1;
+show threadpool status;
+show status like '%threadpool%';
+
+
+--echo ##########################################################
+--echo #  test case 2.2: test  thread status-MDL lock wait
+--echo ##########################################################
+connect (conn2, localhost, root,,);
+connect (conn3, localhost, root,,);
+
+connection conn1;
+--echo # active:1 waiting:0 idle:1
+show threadpool status;
+show status like '%threadpool%';
+start transaction ;
+select count(*) from test_db.tb1;
+
+
+connection conn2;
+--send
+alter table test_db.tb1 add column c2 int;
+
+connection conn3;
+--send
+alter table test_db.tb1 add column c3 int;
+
+connection conn1;
+--echo # active:1 waiting:2 idle:0
+sleep 5;
+show threadpool status;
+show status like '%threadpool%';
+commit;
+sleep 1;
+
+--echo # active:1 waiting:0 idle:2
+show threadpool status;
+show status like '%threadpool%';
+
+disconnect conn2;
+disconnect conn3;
+sleep 2;
+
+--echo # active:1 waiting:0 idle:0
+connection conn1;
+show threadpool status;
+show status like '%threadpool%';
+
+
+--echo ##########################################################
+--echo #  test case 3: change the size of threadpool 
+--echo ##########################################################
+set global thread_pool_size=4;
+--let $cnt1 = query_get_value(show threadpool status, Threadpool_active_threads, 1)
+--let $cnt2 = query_get_value(show threadpool status, Threadpool_active_threads, 2)
+--let $cnt3 = query_get_value(show threadpool status, Threadpool_active_threads, 3)
+--let $cnt4 = query_get_value(show threadpool status, Threadpool_active_threads, 4)
+--let $assert_text = show threadpool status: sum of Threadpool_active_threads must be 1
+--let $assert_cond = [select $cnt1 + $cnt2 + $cnt3 + $cnt4 as cnt, cnt, 1] = 1
+--source include/assert.inc
+
+--let $assert_text = show status like '%threadpool%': Threadpool_active_threads must be 1
+--let $assert_cond = [show status like \'%threadpool%\', Value, 2] = 1
+--source include/assert.inc
+
+set global thread_pool_size=0;
+show threadpool status;
+--let $assert_text = show status like '%threadpool%': Threadpool_active_threads must be 1
+--let $assert_cond = [show status like \'%threadpool%\', Value, 2] = 1
+--source include/assert.inc
+#show status like '%threadpool%';
+
+--enable_warnings
+drop database test_db;
+

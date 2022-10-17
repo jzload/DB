@@ -1,0 +1,8 @@
+"###########################################################"
+"# BUG: invalid parameters may lead to a crash for mysqldump"
+"###########################################################"
+drop database if exists dumpcrash;
+create database dumpcrash;
+create table dumpcrash.test1 (id int);
+insert into dumpcrash.test1 values (1),(2);
+drop database dumpcrash;

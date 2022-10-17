@@ -1,0 +1,99 @@
+create database yxx;
+use yxx;
+###############################################################################
+#              BUG-1: call procedure with params and give no param
+###############################################################################
+set @old_parse_mode = @@parse_mode;
+set @@parse_mode = 2;
+create procedure teststart(param int) as   begin   end;
+call teststart();
+ERROR 42000: Incorrect number of arguments for PROCEDURE yxx.teststart; expected 1, got 0
+###############################################################################
+#        BUG-2: aborting of parsing under declare block leads to crashing 
+#                of next create function with begin block
+################################################################################
+set @@parse_mode = 2;
+declare   start int := 1; begin  select start; end; /
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'start int := 1; begin  select start; end' at line 1
+create function start1(x int)
+returns int reads sql data
+begin
+return 0;
+end
+/
+select start1(5);
+start1(5)
+0
+###############################################################################
+#        BUG-3: access a select statement with derived table leads to  
+#                               mysqld crash
+################################################################################
+create table rttest (rrr int, ttt int);
+insert into rttest values (111,111), (222,222);
+set @old_parse_mode = @@parse_mode;
+set @@parse_mode = 2;
+declare
+a int;
+begin
+for rc in (select * from (select * from rttest) t) loop
+select concat("info:", rc.rrr, ";", rc.ttt);
+end loop;
+end;
+/
+concat("info:", rc.rrr, ";", rc.ttt)
+info:111;111
+concat("info:", rc.rrr, ";", rc.ttt)
+info:222;222
+set @@parse_mode = @old_parse_mode;
+###############################################################################
+#        BUG-4: access fields not using alias in sql-cursor-for-loop leads to
+#                               mysqld crash
+################################################################################
+set @old_parse_mode = @@parse_mode;
+set @@parse_mode = 2;
+declare
+a int;
+begin
+for rc in (select rttest.* from rttest t) loop
+select concat("info:", rc.rrr, ";", rc.ttt);
+end loop;
+end;
+/
+ERROR HY000: failed to execute procedure, detail: unknown variable: rttest.*
+set @@parse_mode = @old_parse_mode;
+###############################################################################
+#        BUG-5: unknown variable in sql-cursor-for-loop doesn't show detail
+################################################################################
+create table nums(pid int, ppid int);
+insert into nums values (1,0), (2,0), (3,1),(4,2),(5,3),(6,3);
+set @old_parse_mode = @@parse_mode;
+set @@parse_mode = 2;
+declare
+a int;
+begin
+for c in (select * from nums) loop
+select c.uuu;
+end loop;
+end;
+/
+ERROR 42000: Undeclared variable: c.uuu
+set @@parse_mode = @old_parse_mode;
+###############################################################################
+#        BUG-6: access field with wrong table name in sql-cursor-for-loop 
+#                        leads to mysqld crash
+################################################################################
+set @old_parse_mode = @@parse_mode;
+set @@parse_mode = 2;
+declare
+a int;
+begin
+for rc in (select r.* from rttest t) loop
+select concat("info:", rc.rrr, ";", rc.ttt);
+end loop;
+end;
+/
+ERROR HY000: failed to execute procedure, detail: unknown variable: r.*
+set @@parse_mode = @old_parse_mode;
+"restore..."
+drop database yxx;
+set @@parse_mode = @old_parse_mode;

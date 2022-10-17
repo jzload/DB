@@ -1,0 +1,1787 @@
+create database yxx;
+use yxx;
+create table nums (pid int primary key, ppid int);
+insert into nums values (1, 0);
+insert into nums values (2, 0);
+insert into nums values (3, 2);
+insert into nums values (4, 2);
+insert into nums values (5, 2);
+insert into nums values (6, 1);
+insert into nums values (7, 1);
+insert into nums values (8, 2);
+insert into nums values (9, 6);
+insert into nums values (10,6);
+create table tab1 (c1 int, c2 int);
+insert into tab1 values (66, 66);
+insert into tab1 values (99, 99);
+#########################################################################
+#  test case 1: basic usage
+#########################################################################
+select * from nums start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+#########################################################################
+#  test case 2: basic usage with db or table name
+#########################################################################
+"********** combinations for different places of table_name **********"
+select * from nums start with pid = 1 connect by ppid = prior nums.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from nums start with pid = 1 connect by nums.ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from nums start with pid = 1 connect by nums.ppid = prior nums.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from nums start with nums.pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from nums start with nums.pid = 1 connect by ppid = prior nums.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from nums start with nums.pid = 1 connect by nums.ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from nums start with nums.pid = 1 connect by nums.ppid = prior nums.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+"********** combinations for different places of db_table_name **********"
+select * from nums start with pid = 1 connect by ppid = prior yxx.nums.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from nums start with pid = 1 connect by yxx.nums.ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from nums start with pid = 1 connect by yxx.nums.ppid = prior yxx.nums.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from nums start with yxx.nums.pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from nums start with yxx.nums.pid = 1 connect by ppid = prior yxx.nums.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from nums start with yxx.nums.pid = 1 connect by yxx.nums.ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from nums start with yxx.nums.pid = 1 connect by yxx.nums.ppid = prior yxx.nums.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+"********** combinations while selecting from db_table **********"
+select * from yxx.nums start with pid = 1 connect by ppid = prior nums.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from yxx.nums start with pid = 1 connect by nums.ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from yxx.nums start with pid = 1 connect by nums.ppid = prior nums.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from yxx.nums start with nums.pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from yxx.nums start with nums.pid = 1 connect by ppid = prior nums.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from yxx.nums start with nums.pid = 1 connect by nums.ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from yxx.nums start with nums.pid = 1 connect by nums.ppid = prior nums.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from yxx.nums start with pid = 1 connect by ppid = prior yxx.nums.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from yxx.nums start with pid = 1 connect by yxx.nums.ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from yxx.nums start with pid = 1 connect by yxx.nums.ppid = prior yxx.nums.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from yxx.nums start with yxx.nums.pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from yxx.nums start with yxx.nums.pid = 1 connect by ppid = prior yxx.nums.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from yxx.nums start with yxx.nums.pid = 1 connect by yxx.nums.ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from yxx.nums start with yxx.nums.pid = 1 connect by yxx.nums.ppid = prior yxx.nums.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from yxx.nums start with yxx.nums.pid = 1 connect by nums.ppid = prior yxx.nums.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from yxx.nums start with yxx.nums.pid = 1 connect by yxx.nums.ppid = prior nums.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from yxx.nums start with nums.pid = 1 connect by yxx.nums.ppid = prior yxx.nums.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+"********** select_list with db_table_name **********"
+select nums.* from nums start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select yxx.nums.* from nums start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select nums.* from yxx.nums start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select yxx.nums.* from yxx.nums start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select nums.* from nums start with nums.pid = 1 connect by nums.ppid = prior nums.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select yxx.nums.* from nums start with nums.pid = 1 connect by nums.ppid = prior nums.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select nums.* from yxx.nums start with nums.pid = 1 connect by nums.ppid = prior nums.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select yxx.nums.* from yxx.nums start with nums.pid = 1 connect by nums.ppid = prior nums.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select nums.* from nums start with yxx.nums.pid = 1 connect by yxx.nums.ppid = prior yxx.nums.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select yxx.nums.* from nums start with yxx.nums.pid = 1 connect by yxx.nums.ppid = prior yxx.nums.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select nums.* from yxx.nums start with yxx.nums.pid = 1 connect by yxx.nums.ppid = prior yxx.nums.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select yxx.nums.* from yxx.nums start with yxx.nums.pid = 1 connect by yxx.nums.ppid = prior yxx.nums.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+#########################################################################
+#  test case 3: basic usage with table_name alias
+#########################################################################
+"********** with alias **********"
+select * from nums t start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from nums t start with t.pid = 1 connect by t.ppid = prior t.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select t.* from nums t start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select t.* from nums t start with t.pid = 1 connect by t.ppid = prior t.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from yxx.nums t start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from yxx.nums t start with t.pid = 1 connect by t.ppid = prior t.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select t.* from yxx.nums t start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select t.* from yxx.nums t start with t.pid = 1 connect by t.ppid = prior t.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select t.* from yxx.nums t start with yxx.t.pid = 1 connect by yxx.t.ppid = prior yxx.t.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+"********** with as alias**********"
+select * from nums as t start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from nums as t start with t.pid = 1 connect by t.ppid = prior t.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select t.* from nums as t start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select t.* from nums as t start with t.pid = 1 connect by t.ppid = prior t.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from yxx.nums as t start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from yxx.nums as t start with t.pid = 1 connect by t.ppid = prior t.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select t.* from yxx.nums as t start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select t.* from yxx.nums as t start with t.pid = 1 connect by t.ppid = prior t.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select t.* from yxx.nums as t start with yxx.t.pid = 1 connect by yxx.t.ppid = prior yxx.t.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+"********** access fields with actual tablename when alias exists **********"
+select * from nums t start with nums.pid = 1 connect by ppid = prior pid;
+ERROR 42S22: Unknown column 'nums.pid' in 'where clause'
+select * from nums t start with pid = 1 connect by nums.ppid = prior pid;
+ERROR 42S22: Unknown column 'nums.ppid' in 'on clause'
+select * from nums t start with pid = 1 connect by ppid = prior nums.pid;
+ERROR 42S22: Unknown column 'nums.pid' in 'on clause'
+select nums.* from nums t start with pid = 1 connect by ppid = prior pid;
+ERROR 42S22: Unknown column 'nums.pid' in 'on clause'
+select * from nums t start with yxx.nums.pid = 1 connect by ppid = prior pid;
+ERROR 42S22: Unknown column 'yxx.nums.pid' in 'where clause'
+select * from nums t start with pid = 1 connect by yxx.nums.ppid = prior pid;
+ERROR 42S22: Unknown column 'yxx.nums.ppid' in 'on clause'
+select * from nums t start with pid = 1 connect by ppid = prior yxx.nums.pid;
+ERROR 42S22: Unknown column 'yxx.nums.pid' in 'on clause'
+select yxx.nums.* from nums t start with pid = 1 connect by ppid = prior pid;
+ERROR 42S22: Unknown column 'yxx.nums.pid' in 'on clause'
+#########################################################################
+#  test case 4: select many fields
+#########################################################################
+select pid, ppid from nums start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select nums.pid, nums.ppid from nums start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select yxx.nums.pid, yxx.nums.ppid from nums start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select pid, ppid from nums t start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select t.pid, t.ppid from nums t start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+"field with alias"
+select pid as c1, ppid as c2 from nums start with pid = 1 connect by ppid = prior pid;
+c1	c2
+1	0
+6	1
+7	1
+9	6
+10	6
+select pid as c1, ppid as c2 from nums start with c1 = 1 connect by c2 = prior c1;
+ERROR 42S22: Unknown column 'c1' in 'where clause'
+#########################################################################
+#  test case 5: test different parts of query_expression
+#########################################################################
+########## select_list ##########
+select (select pid from nums start with pid = 1 connect by ppid = prior pid order by pid desc limit 1) from dual;
+(select pid from nums start with pid = 1 connect by ppid = prior pid order by pid desc limit 1)
+10
+########## where_clause ##########
+select * from nums t where pid > 0 start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from nums t where pid > 1 start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+6	1
+7	1
+9	6
+10	6
+select * from nums t where pid > 6 start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+7	1
+9	6
+10	6
+select * from nums t where 1 start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from nums t where 0 start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+select * from nums t where 1 = 1 start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from nums t where 1 = 0 start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+select * from nums t where 0 != 1 start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+########## outfile ##########
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile.log"))
+1	0
+6	1
+7	1
+9	6
+10	6
+
+########## order by limit ##########
+select t.pid, t.ppid from nums t start with pid = 1 connect by ppid = prior pid order by pid desc limit 3;
+pid	ppid
+10	6
+9	6
+7	1
+select t.pid, t.ppid from nums t start with pid = 1 connect by ppid = prior pid order by ppid desc limit 3;
+pid	ppid
+10	6
+9	6
+6	1
+########## with clause ##########
+with recursive sub as (select * from nums start with pid = 1 connect by ppid = prior pid) select * from sub;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+########## window clause ##########
+########## aggregate ##########
+select count(*) from nums start with pid = 1 connect by ppid = prior pid;
+count(*)
+5
+select sum(pid), sum(ppid) from nums start with pid = 1 connect by ppid = prior pid;
+sum(pid)	sum(ppid)
+33	14
+select min(pid), min(ppid) from nums start with pid = 1 connect by ppid = prior pid;
+min(pid)	min(ppid)
+1	0
+select max(pid), max(ppid) from nums start with pid = 1 connect by ppid = prior pid;
+max(pid)	max(ppid)
+10	6
+select avg(pid), avg(ppid) from nums start with pid = 1 connect by ppid = prior pid;
+avg(pid)	avg(ppid)
+6.6000	2.8000
+select avg(distinct pid), avg(distinct ppid) from nums start with pid = 1 connect by ppid = prior pid;
+avg(distinct pid)	avg(distinct ppid)
+6.6000	2.3333
+########## aggregate with operations ##########
+select min(pid), min(ppid), max(pid), max(ppid), avg(pid), avg(ppid)
+from nums start with pid = 1 connect by ppid = prior pid;
+min(pid)	min(ppid)	max(pid)	max(ppid)	avg(pid)	avg(ppid)
+1	0	10	6	6.6000	2.8000
+select min(pid)+1, min(ppid)+1, max(pid)+1, max(ppid)+1, avg(pid)+1, avg(ppid)+1
+from nums start with pid = 1 connect by ppid = prior pid;
+min(pid)+1	min(ppid)+1	max(pid)+1	max(ppid)+1	avg(pid)+1	avg(ppid)+1
+2	1	11	7	7.6000	3.8000
+select min(pid)-1, min(ppid)-1, max(pid)-1, max(ppid)-1, avg(pid)-1, avg(ppid)-1
+from nums start with pid = 1 connect by ppid = prior pid;
+min(pid)-1	min(ppid)-1	max(pid)-1	max(ppid)-1	avg(pid)-1	avg(ppid)-1
+0	-1	9	5	5.6000	1.8000
+select min(pid)*2, min(ppid)*2, max(pid)*2, max(ppid)*2, avg(pid)*2, avg(ppid)*2
+from nums start with pid = 1 connect by ppid = prior pid;
+min(pid)*2	min(ppid)*2	max(pid)*2	max(ppid)*2	avg(pid)*2	avg(ppid)*2
+2	0	20	12	13.2000	5.6000
+select min(pid)/2, min(ppid)/2, max(pid)/2, max(ppid)/2, avg(pid)/2, avg(ppid)/2
+from nums start with pid = 1 connect by ppid = prior pid;
+min(pid)/2	min(ppid)/2	max(pid)/2	max(ppid)/2	avg(pid)/2	avg(ppid)/2
+0.5000	0.0000	5.0000	3.0000	3.30000000	1.40000000
+select min(pid)%2, min(ppid)%2, max(pid)%2, max(ppid)%2, avg(pid)%2, avg(ppid)%2
+from nums start with pid = 1 connect by ppid = prior pid;
+min(pid)%2	min(ppid)%2	max(pid)%2	max(ppid)%2	avg(pid)%2	avg(ppid)%2
+1	0	0	0	0.6000	0.8000
+select count(*) from nums where pid > 5 start with pid = 1 connect by ppid = prior pid;
+count(*)
+4
+select sum(pid), sum(ppid) from nums where pid > 5 start with pid = 1 connect by ppid = prior pid;
+sum(pid)	sum(ppid)
+32	14
+select min(pid), min(ppid) from nums where pid > 5 start with pid = 1 connect by ppid = prior pid;
+min(pid)	min(ppid)
+6	1
+select max(pid), max(ppid) from nums where pid > 5 start with pid = 1 connect by ppid = prior pid;
+max(pid)	max(ppid)
+10	6
+select avg(pid), avg(ppid) from nums where pid > 5 start with pid = 1 connect by ppid = prior pid;
+avg(pid)	avg(ppid)
+8.0000	3.5000
+select avg(distinct pid), avg(distinct ppid) from nums where pid > 5 start with pid = 1 connect by ppid = prior pid;
+avg(distinct pid)	avg(distinct ppid)
+8.0000	3.5000
+########## test select options ##########
+select distinct(pid) from nums start with pid <= 3 connect by ppid = prior pid;
+pid
+1
+2
+3
+6
+7
+4
+5
+8
+9
+10
+select STRAIGHT_JOIN pid from nums start with pid = 1 connect by ppid = prior pid;
+pid
+1
+6
+7
+9
+10
+select HIGH_PRIORITY pid from nums start with pid = 1 connect by ppid = prior pid;
+pid
+1
+6
+7
+9
+10
+########## from_clause ##########
+select 1,2,3 from dual start with 1 connect by 0;
+1	2	3
+1	2	3
+select 1,2,3 from dual where 1 start with 1 connect by 0;
+1	2	3
+1	2	3
+select 1,2,3 from dual where 1 = 1 start with 1 connect by 0;
+1	2	3
+1	2	3
+#########################################################################
+#  test case 6: use `start with connect by` as derived table
+#########################################################################
+select * from (select * from nums start with pid = 1 connect by ppid = prior pid) t;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from (select nums.* from nums start with pid = 1 connect by ppid = prior pid) t;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from (select yxx.nums.* from nums start with pid = 1 connect by ppid = prior pid) t;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from (select * from nums t start with pid = 1 connect by ppid = prior pid) t;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from (select t.* from nums t start with pid = 1 connect by ppid = prior pid) t;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from (select pid, ppid from nums start with pid = 1 connect by ppid = prior pid) t;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from (select nums.pid, nums.ppid from nums start with pid = 1 connect by ppid = prior pid) t;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from (select yxx.nums.pid, yxx.nums.ppid from nums start with pid = 1 connect by ppid = prior pid) t;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from (select pid, ppid from nums t start with pid = 1 connect by ppid = prior pid) t;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from (select t.pid, t.ppid from nums t start with pid = 1 connect by ppid = prior pid) t;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+#########################################################################
+#  test case 7: use `start with connect by` in subquery
+#########################################################################
+select * from nums where pid in (select pid from nums start with pid = 1 connect by ppid = prior pid);
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from nums t where exists (select * from nums start with pid = t.pid connect by ppid = prior pid);
+pid	ppid
+1	0
+2	0
+3	2
+4	2
+5	2
+6	1
+7	1
+8	2
+9	6
+10	6
+create table nums1 like nums;
+insert into nums1 select * from nums;
+select pid from nums where exists (select * from nums1 where nums1.pid > nums.pid and nums.pid % 2 = 0 start with 1 connect by 0);
+ERROR 42S22: Unknown column 'nums.pid' in 'where clause'
+drop table nums1;
+#########################################################################
+#  test case 8: use `start with connect by` in join_list
+#########################################################################
+select * from (select t.* from nums t start with pid = 1 connect by ppid = prior pid) t, tab1;
+pid	ppid	c1	c2
+1	0	66	66
+6	1	66	66
+7	1	66	66
+9	6	66	66
+10	6	66	66
+1	0	99	99
+6	1	99	99
+7	1	99	99
+9	6	99	99
+10	6	99	99
+select * from tab1, (select t.* from nums t start with pid = 1 connect by ppid = prior pid) t;
+c1	c2	pid	ppid
+66	66	1	0
+66	66	6	1
+66	66	7	1
+66	66	9	6
+66	66	10	6
+99	99	1	0
+99	99	6	1
+99	99	7	1
+99	99	9	6
+99	99	10	6
+select * from (select t.* from nums t start with pid = 1 connect by ppid = prior pid) t join tab1 on t.pid < tab1.c1;
+pid	ppid	c1	c2
+1	0	66	66
+6	1	66	66
+7	1	66	66
+9	6	66	66
+10	6	66	66
+1	0	99	99
+6	1	99	99
+7	1	99	99
+9	6	99	99
+10	6	99	99
+select * from tab1 join (select t.* from nums t start with pid = 1 connect by ppid = prior pid) t on t.pid < tab1.c1;
+c1	c2	pid	ppid
+66	66	1	0
+66	66	6	1
+66	66	7	1
+66	66	9	6
+66	66	10	6
+99	99	1	0
+99	99	6	1
+99	99	7	1
+99	99	9	6
+99	99	10	6
+select * from (select * from nums start with pid = 1 connect by ppid = prior pid) t1 join (select * from nums start with pid = 1 connect by ppid = prior pid) t2 on t1.pid = t2.pid;
+pid	ppid	pid	ppid
+1	0	1	0
+6	1	6	1
+7	1	7	1
+9	6	9	6
+10	6	10	6
+select * from (select * from nums where pid > 1 start with pid = 1 connect by ppid = prior pid) t1 left join (select * from nums where pid > 6 start with pid = 1 connect by ppid = prior pid) t2 on t1.pid = t2.pid;
+pid	ppid	pid	ppid
+6	1	NULL	NULL
+7	1	7	1
+9	6	9	6
+10	6	10	6
+select * from (select * from nums where pid > 6 start with pid = 1 connect by ppid = prior pid) t1 right join (select * from nums where pid > 1 start with pid = 1 connect by ppid = prior pid) t2 on t1.pid = t2.pid;
+pid	ppid	pid	ppid
+NULL	NULL	6	1
+7	1	7	1
+9	6	9	6
+10	6	10	6
+select * from (select * from nums where pid >= 6 start with pid = 1 connect by ppid = prior pid) t1 full join (select * from nums where pid <= 7 start with pid = 1 connect by ppid = prior pid) t2 on t1.pid = t2.pid;
+pid	ppid	pid	ppid
+9	6	NULL	NULL
+10	6	NULL	NULL
+NULL	NULL	1	0
+6	1	6	1
+7	1	7	1
+select * from nums t1 natural join nums t2;
+pid	ppid
+1	0
+2	0
+3	2
+4	2
+5	2
+6	1
+7	1
+8	2
+9	6
+10	6
+create table nums1 (pid int primary key, c1 int);
+insert into nums1 select * from nums;
+select * from nums natural join nums1;
+pid	ppid	c1
+1	0	0
+2	0	0
+3	2	2
+4	2	2
+5	2	2
+6	1	1
+7	1	1
+8	2	2
+9	6	6
+10	6	6
+select * from nums t1 natural join nums1 t2;
+pid	ppid	c1
+1	0	0
+2	0	0
+3	2	2
+4	2	2
+5	2	2
+6	1	1
+7	1	1
+8	2	2
+9	6	6
+10	6	6
+drop table nums1;
+#########################################################################
+#  test case 9: use `start with connect by` in union
+#########################################################################
+select t.* from nums t start with pid = 1 connect by ppid = prior pid union select * from tab1;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+66	66
+99	99
+select * from tab1 union select t.* from nums t start with pid = 1 connect by ppid = prior pid;
+c1	c2
+66	66
+99	99
+1	0
+6	1
+7	1
+9	6
+10	6
+select t.* from nums t start with pid = 1 connect by ppid = prior pid union all select * from tab1;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+66	66
+99	99
+select * from tab1 union all select t.* from nums t start with pid = 1 connect by ppid = prior pid;
+c1	c2
+66	66
+99	99
+1	0
+6	1
+7	1
+9	6
+10	6
+(select t.* from nums t where pid % 2 = 1 start with pid = 1 connect by ppid = prior pid)
+union all
+(select t.* from nums t where pid % 2 = 0 start with pid = 1 connect by ppid = prior pid);
+pid	ppid
+1	0
+7	1
+9	6
+6	1
+10	6
+#########################################################################
+#  test case 10: data with null field
+#########################################################################
+create table nulltest(id int, nid int);
+insert into nulltest values (NULL, 1);
+insert into nulltest values (NULL, 2);
+insert into nulltest values (1, 3);
+insert into nulltest values (1, 4);
+insert into nulltest values (2, 5);
+insert into nulltest values (5, 6);
+select * from nulltest start with id is null connect by id = prior nid;
+id	nid
+NULL	1
+NULL	2
+1	3
+1	4
+2	5
+5	6
+select * from nulltest start with id is null connect by id = prior id;
+id	nid
+NULL	1
+NULL	2
+#########################################################################
+#  test case 11: result set is empty
+#########################################################################
+select * from nums t start with pid = 11111 connect by ppid = prior pid;
+pid	ppid
+#########################################################################
+#  test case 12: part of used items are not in select_list
+#########################################################################
+create table test1 (id char(10), pid char(10), c1 char(10));
+insert into test1 values('002', '000', '111');
+insert into test1 values('003', '002', '222');
+insert into test1 values('010', '003', '333');
+select * from test1 start with id='002' connect by 0;
+id	pid	c1
+002	000	111
+select * from test1 start with id='002' connect by pid = prior id;
+id	pid	c1
+002	000	111
+003	002	222
+010	003	333
+select c1 from test1 start with id='002' connect by pid = prior id;
+c1
+111
+222
+333
+select pid, c1 from test1 start with id='002' connect by pid = prior id;
+pid	c1
+000	111
+002	222
+003	333
+select id, pid, c1 from test1 start with id='002' connect by pid = prior id;
+id	pid	c1
+002	000	111
+003	002	222
+010	003	333
+select test1.id, pid, test1.c1 from test1 start with id='002' connect by pid = prior id;
+id	pid	c1
+002	000	111
+003	002	222
+010	003	333
+select yxx.test1.id, pid, yxx.test1.c1 from test1 start with id='002' connect by pid = prior id;
+id	pid	c1
+002	000	111
+003	002	222
+010	003	333
+select id, pid, c1 from test1 t start with id='002' connect by pid = prior id;
+id	pid	c1
+002	000	111
+003	002	222
+010	003	333
+select t.id, pid, t.c1 from test1 t start with id='002' connect by pid = prior id;
+id	pid	c1
+002	000	111
+003	002	222
+010	003	333
+#########################################################################
+#  test case 13: transaction test
+#########################################################################
+"`start with connect by` in transaction"
+start transaction;
+select pid, ppid from nums where pid > 1 start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+6	1
+7	1
+9	6
+10	6
+commit;
+start transaction;
+select pid, ppid from nums where pid > 6  start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+7	1
+9	6
+10	6
+select pid, ppid from nums where pid <= 6 start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+commit;
+"`start with connect by` mixed with other sql in transaction"
+create table tt(id int, age int);
+insert into tt values (1,1), (5,5), (10,10);
+# `start with connect by` mixed with select in transaction
+start transaction;
+select * from tt;
+id	age
+1	1
+5	5
+10	10
+select pid, ppid from nums where pid > 0 start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from tt;
+id	age
+1	1
+5	5
+10	10
+select pid, ppid from nums where pid > 0 start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from tt;
+id	age
+1	1
+5	5
+10	10
+commit;
+# `start with connect by` mixed with dml in transaction
+start transaction;
+select * from tt;
+id	age
+1	1
+5	5
+10	10
+select pid, ppid from nums where pid > 0 start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+update tt set age = age + 1;
+select * from tt;
+id	age
+1	2
+5	6
+10	11
+select pid, ppid from nums where pid > 0 start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+update tt set age = age + 1;
+select * from tt;
+id	age
+1	3
+5	7
+10	12
+commit;
+select * from tt;
+id	age
+1	3
+5	7
+10	12
+# `start with connect by` mixed with ddl in transaction
+start transaction;
+select * from tt;
+id	age
+1	3
+5	7
+10	12
+select pid, ppid from nums where pid > 0 start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+alter table tt add column c int;
+update tt set c = 666;
+commit;
+select * from tt;
+id	age	c
+1	3	666
+5	7	666
+10	12	666
+#########################################################################
+#  test case 14: prepare statement
+#########################################################################
+prepare ps1 from "select pid, id from test1 start with id=? connect by pid = prior id;";
+set @a = '002';
+execute ps1 using @a;
+pid	id
+000	002
+002	003
+003	010
+prepare ps2 from "select * from nums start with pid = ? connect by ppid = prior pid;";
+set @b = 1;
+execute ps2 using @b;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+#########################################################################
+#  test case 15: failed cases from other tests
+#########################################################################
+(SELECT 1 UNION SELECT 2) ORDER BY 1;
+1
+1
+2
+(SELECT 1 as c1, 2 as c2 UNION SELECT * from nums start with pid = 1 connect by ppid = prior pid) ORDER BY 1;
+c1	c2
+1	2
+1	0
+6	1
+7	1
+9	6
+10	6
+(SELECT * from nums start with pid = 1 connect by ppid = prior pid UNION SELECT 1, 2 ) ORDER BY 1;
+pid	ppid
+1	0
+1	2
+6	1
+7	1
+9	6
+10	6
+create table t1 (c1 int, c2 int);
+insert into t1 values (1,1), (2,2);
+create table t2 like t1;
+insert into t2 values (3,3),(4,4);
+SELECT c1, c2 FROM ( ( (SELECT c1, c2 FROM t1) UNION (SELECT c1, c2 FROM t2) ) ORDER BY c2 DESC, c1 ASC LIMIT 1 ) AS res;
+c1	c2
+4	4
+with cte as (select * from t1) (select * from cte UNION select * from cte) ORDER BY c1;
+c1	c2
+1	1
+2	2
+select * from nums start with pid = 1 connect by ppid*1 = prior (pid*pid);
+pid	ppid
+1	0
+6	1
+7	1
+select * from nums start with pid = 1 connect by ppid*1 = prior pid*pid;
+pid	ppid
+1	0
+#########################################################################
+#  test case 16: access view with `start with connect by`
+#########################################################################
+"(1) `start with connect by` in view"
+create view v_1 as select * from nums start with pid = 1 connect by ppid = prior pid;
+select * from v_1;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select pid, ppid from v_1;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+create view v_2 as select pid, ppid from nums start with pid = 1 connect by ppid = prior pid;
+select * from v_2;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select pid, ppid from v_2;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+"(2) view in `start with connect by`"
+create view qv as select * from nums;
+select * from qv start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select pid from qv start with pid = 1 connect by ppid = prior pid;
+pid
+1
+6
+7
+9
+10
+select pid, ppid from qv start with pid = 1 connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select qv.* from qv start with qv.pid = 1 connect by qv.ppid = prior qv.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select qv.pid from qv start with qv.pid = 1 connect by qv.ppid = prior qv.pid;
+pid
+1
+6
+7
+9
+10
+select qv.pid, qv.ppid from qv start with qv.pid = 1 connect by qv.ppid = prior qv.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select yxx.qv.* from yxx.qv start with yxx.qv.pid = 1 connect by yxx.qv.ppid = prior yxx.qv.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select yxx.qv.pid from yxx.qv start with yxx.qv.pid = 1 connect by yxx.qv.ppid = prior yxx.qv.pid;
+pid
+1
+6
+7
+9
+10
+select yxx.qv.pid, yxx.qv.ppid from yxx.qv start with yxx.qv.pid = 1 connect by yxx.qv.ppid = prior yxx.qv.pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select min(pid), min(ppid), max(pid), max(ppid), avg(pid), avg(ppid) from qv where pid > 5 start with pid = 1 connect by ppid = prior pid;
+min(pid)	min(ppid)	max(pid)	max(ppid)	avg(pid)	avg(ppid)
+6	1	10	6	8.0000	3.5000
+select a from qv start with pid = 1 connect by ppid = prior pid;
+ERROR 42S22: Unknown column 'a' in 'field list'
+select * from qv1 start with pid = 1 connect by ppid = prior pid;
+ERROR 42S02: Table 'yxx.qv1' doesn't exist
+select * from qv start with pid1 = 1 connect by ppid = prior pid;
+ERROR 42S22: Unknown column 'pid1' in 'where clause'
+select * from qv start with pid = 1 connect by ppid1 = prior pid;
+ERROR 42S22: Unknown column 'qv.ppid1' in 'on clause'
+select * from qv start with pid = 1 connect by ppid = prior pid1;
+ERROR 42S22: Unknown column '#tmp_inner_cte_xxxx.pid1' in 'on clause'
+select qv1.* from qv start with qv.pid = 1 connect by qv.ppid = prior qv.pid;
+ERROR 42S22: Unknown column 'qv1.pid' in 'on clause'
+select qv1.* from qv1 start with qv.pid = 1 connect by qv.ppid = prior qv.pid;
+ERROR 42S02: Table 'yxx.qv1' doesn't exist
+select qv.* from qv start with qv1.pid = 1 connect by qv.ppid = prior qv.pid;
+ERROR 42S22: Unknown column 'qv1.pid' in 'where clause'
+select qv.* from qv start with qv.pid = 1 connect by qv1.ppid = prior qv.pid;
+ERROR 42S22: Unknown column 'qv1.ppid' in 'on clause'
+select qv.* from qv start with qv.pid = 1 connect by qv.ppid = prior qv1.pid;
+ERROR 42S22: Unknown column 'qv1.pid' in 'on clause'
+select yxx1.qv.* from yxx.qv start with yxx.qv.pid = 1 connect by yxx.qv.ppid = prior yxx.qv.pid;
+ERROR 42S22: Unknown column 'yxx1.qv.pid' in 'on clause'
+select yxx.qv1.* from yxx.qv start with yxx.qv.pid = 1 connect by yxx.qv.ppid = prior yxx.qv.pid;
+ERROR 42S22: Unknown column 'yxx.qv1.pid' in 'on clause'
+select yxx.qv1.a from yxx.qv start with yxx.qv.pid = 1 connect by yxx.qv.ppid = prior yxx.qv.pid;
+ERROR 42S22: Unknown column '#tmp_inner_cte_xxxx.a' in 'field list'
+select yxx.qv.* from yxx1.qv start with yxx.qv.pid = 1 connect by yxx.qv.ppid = prior yxx.qv.pid;
+ERROR 42000: Unknown database 'yxx1'
+select yxx.qv.* from yxx.qv1 start with yxx.qv.pid = 1 connect by yxx.qv.ppid = prior yxx.qv.pid;
+ERROR 42S02: Table 'yxx.qv1' doesn't exist
+select yxx.qv.* from yxx.qv start with yxx1.qv.pid = 1 connect by yxx.qv.ppid = prior yxx.qv.pid;
+ERROR 42S22: Unknown column 'yxx1.qv.pid' in 'where clause'
+select yxx.qv.* from yxx.qv start with yxx.qv1.pid = 1 connect by yxx.qv.ppid = prior yxx.qv.pid;
+ERROR 42S22: Unknown column 'yxx.qv1.pid' in 'where clause'
+select yxx.qv.* from yxx.qv start with yxx.qv.pid1 = 1 connect by yxx.qv.ppid = prior yxx.qv.pid;
+ERROR 42S22: Unknown column 'yxx.qv.pid1' in 'where clause'
+select yxx.qv.* from yxx.qv start with yxx.qv.pid = 1 connect by yxx1.qv.ppid = prior yxx.qv.pid;
+ERROR 42S22: Unknown column 'yxx1.qv.ppid' in 'on clause'
+select yxx.qv.* from yxx.qv start with yxx.qv.pid = 1 connect by yxx.qv1.ppid = prior yxx.qv.pid;
+ERROR 42S22: Unknown column 'yxx.qv1.ppid' in 'on clause'
+select yxx.qv.* from yxx.qv start with yxx.qv.pid = 1 connect by yxx.qv.ppid1 = prior yxx.qv.pid;
+ERROR 42S22: Unknown column 'yxx.qv.ppid1' in 'on clause'
+select yxx.qv.* from yxx.qv start with yxx.qv.pid = 1 connect by yxx.qv.ppid = prior yxx1.qv.pid;
+ERROR 42S22: Unknown column 'yxx1.qv.pid' in 'on clause'
+select yxx.qv.* from yxx.qv start with yxx.qv.pid = 1 connect by yxx.qv.ppid = prior yxx.qv1.pid;
+ERROR 42S22: Unknown column 'yxx.qv1.pid' in 'on clause'
+select yxx.qv.* from yxx.qv start with yxx.qv.pid = 1 connect by yxx.qv.ppid = prior yxx.qv.pid1;
+ERROR 42S22: Unknown column '#tmp_inner_cte_xxxx.pid1' in 'on clause'
+drop view qv;
+#########################################################################
+#  test case 17: use items of different sources in `start with connect by`
+#########################################################################
+"use local variable"
+set @p = 1;
+select pid, ppid from nums start with pid = @p connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select pid, ppid from nums where pid > @p start with pid = @p connect by ppid = prior pid;
+pid	ppid
+6	1
+7	1
+9	6
+10	6
+set @p = 5;
+select pid, ppid from nums start with pid = @p connect by ppid = prior pid;
+pid	ppid
+5	2
+select pid, ppid from nums where pid > @p start with pid = @p connect by ppid = prior pid;
+pid	ppid
+#########################################################################
+#  test case 18: test `start with connect by` in non-select
+#########################################################################
+"create as select"
+create table nums_bak as select * from nums where pid > 1 start with pid = 1 connect by ppid = prior pid;
+select * from nums_bak;
+pid	ppid
+6	1
+7	1
+9	6
+10	6
+drop table nums_bak;
+"insert into select"
+create table nums_insert like nums;
+insert into nums_insert select * from nums start with pid = 1 connect by ppid = prior pid;
+select * from nums_insert;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+drop table nums_insert;
+#########################################################################
+#  test case 19: nested `start with connect by`
+#########################################################################
+select * from nums 
+start with pid in (select pid from nums start with pid = 1 connect by ppid = prior pid)
+connect by 0;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from nums where pid > 5
+start with pid in (select pid from nums start with pid = 1 connect by ppid = prior pid)
+connect by 0;
+pid	ppid
+6	1
+7	1
+9	6
+10	6
+select * from nums 
+start with  pid in (select pid from nums  start with pid = 1 connect by 0) 
+connect by ppid = prior pid;
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+select * from nums where pid > 5 
+start with  pid in (select pid from nums  start with pid = 1 connect by 0) 
+connect by ppid = prior pid;
+pid	ppid
+6	1
+7	1
+9	6
+10	6
+#########################################################################
+#  test case 20: use `start with connect by` in routines
+#########################################################################
+"(1) in procedure"
+create procedure proc_swcb() 
+begin
+select * from nums start with pid = 1 connect by ppid = prior pid;
+end;
+/
+call proc_swcb();/
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+drop procedure proc_swcb;/
+set @@parse_mode = 2;
+create procedure proc_swcb()
+as
+begin
+select * from nums start with pid = 1 connect by ppid = prior pid;
+end;
+/
+call proc_swcb();/
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+drop procedure proc_swcb;/
+set @@parse_mode = 1;
+set @@parse_mode = 2;
+declare
+a int :=1;
+begin
+select * from nums start with pid = a connect by ppid = prior pid;
+end;
+/
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+set @@parse_mode = 1;
+# execute `start with connet by` sql repeatly in procedure
+create or replace procedure proc_repeat()
+begin
+DECLARE t INT DEFAULT 0;
+WHILE t < 8 DO
+select * from nums where pid > t start with pid = 1 connect by ppid = prior pid;
+SET t = t + 1;
+END WHILE;
+end;
+/
+call proc_repeat();
+pid	ppid
+1	0
+6	1
+7	1
+9	6
+10	6
+pid	ppid
+6	1
+7	1
+9	6
+10	6
+pid	ppid
+6	1
+7	1
+9	6
+10	6
+pid	ppid
+6	1
+7	1
+9	6
+10	6
+pid	ppid
+6	1
+7	1
+9	6
+10	6
+pid	ppid
+6	1
+7	1
+9	6
+10	6
+pid	ppid
+7	1
+9	6
+10	6
+pid	ppid
+9	6
+10	6
+drop procedure proc_repeat;
+#########################################################################
+#  test case 21: keywords test
+#########################################################################
+create database start;
+use start;
+create table start.start (id int, start int);
+insert into start.start values (1,1);
+select id, start from start.start;
+id	start
+1	1
+select id as start from start.start;
+start
+1
+select * from start.start as start;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'start' at line 1
+drop database start;
+use yxx;
+set @@parse_mode = 2;
+create procedure start()
+as
+begin
+end;
+/
+create procedure teststart1(start int)
+as
+a int := start;
+begin
+end;
+/
+call teststart1(1);/
+create procedure teststart2()
+as
+a int := 1;
+begin
+start:
+begin
+select a;
+end;
+end;
+/
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ':
+begin
+select a;
+end;
+end' at line 5
+declare
+start int := 1;
+begin
+select start;
+end;
+/
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'start int := 1;
+begin
+select start;
+end' at line 2
+create role start;
+drop role start;
+create user start;
+drop user start;
+set @start = 1;
+select @start;
+@start
+1
+create view start as select * from nums;
+select * from start join nums on start.pid = nums.pid;
+pid	ppid	pid	ppid
+1	0	1	0
+2	0	2	0
+3	2	3	2
+4	2	4	2
+5	2	5	2
+6	1	6	1
+7	1	7	1
+8	2	8	2
+9	6	9	6
+10	6	10	6
+drop view start;
+create function start1(x int)
+returns int reads sql data
+begin
+declare ret int;
+return ret;
+end//
+select start1(5);
+start1(5)
+NULL
+drop function if exists start1;
+create table nums1 like nums;
+create trigger start before insert on nums1
+for each row
+begin
+end;
+/
+insert into nums1 select * from nums;
+drop trigger start;
+drop table nums1;
+drop event if exists start;
+Warnings:
+Note	1305	Event start does not exist
+create event start
+on schedule at current_timestamp+interval 1 second
+do
+select 1;
+#########################################################################
+#  test case 22: `start with connect by` support distributed mvcc
+#########################################################################
+set @@global.innodb_purge_stop_now = ON;
+set @transaction_isolation_session_orig = @@global.transaction_isolation;
+set @@session.transaction_isolation= 'READ-COMMITTED';
+create table dmvcc (id int primary key, c1 int, GTID bigint);
+insert into dmvcc values (1, 10000, 10000), (2, 10000, 10000), (3, 10000, 10000), (4, 10000, 10000);
+select * from dmvcc;
+id	c1	GTID
+1	10000	10000
+2	10000	10000
+3	10000	10000
+4	10000	10000
+update dmvcc set c1 = 10001, GTID = 10001;
+update dmvcc set c1 = 10002, GTID = 10002;
+update dmvcc set c1 = 10003, GTID = 10003;
+update dmvcc set c1 = 10004, GTID = 10004;
+update dmvcc set c1 = 10005, GTID = 10005;
+select * from dmvcc;
+id	c1	GTID
+1	10005	10005
+2	10005	10005
+3	10005	10005
+4	10005	10005
+select * from dmvcc start with id = 1 connect by id = 2*(prior id);
+id	c1	GTID
+1	10005	10005
+2	10005	10005
+4	10005	10005
+select /*+ SET_VAR(active_gtm_gtid_list=' ') SET_VAR(next_gtm_gtid=10001)*/ * from dmvcc 
+start with id = 1 connect by id = 2*(prior id);
+id	c1	GTID
+1	10000	10000
+2	10000	10000
+4	10000	10000
+select /*+ SET_VAR(active_gtm_gtid_list=' ') SET_VAR(next_gtm_gtid=10003)*/ * from dmvcc 
+start with id = 1 connect by id = 2*(prior id);
+id	c1	GTID
+1	10002	10002
+2	10002	10002
+4	10002	10002
+select /*+ SET_VAR(active_gtm_gtid_list=' ') SET_VAR(next_gtm_gtid=10005)*/ * from dmvcc 
+start with id = 1 connect by id = 2*(prior id);
+id	c1	GTID
+1	10004	10004
+2	10004	10004
+4	10004	10004
+select /*+ SET_VAR(active_gtm_gtid_list=' ') SET_VAR(next_gtm_gtid=10005)*/ c1 from dmvcc
+start with id = 1 connect by id = 2*(prior id);
+c1
+10004
+10004
+10004
+select /*+ SET_VAR(active_gtm_gtid_list=' ') SET_VAR(next_gtm_gtid=10005)*/ c1 from dmvcc
+where id > 1 start with id = 1 connect by id = 2*(prior id);
+c1
+10004
+10004
+set @@global.innodb_purge_run_now = ON;
+set @@session.transaction_isolation= @transaction_isolation_session_orig;
+#########################################################################
+#  test case 23: some bad cases
+#########################################################################
+"`group by` cannot be used together with `start with connect by`"
+select t.* from nums t start with pid = 1 connect by ppid = prior pid group by pid;
+ERROR HY000: error occurs while handling `start with connect by`, detail: no usage for window/group/having in `start with connect by`
+"`having` cannot be used together with `start with connect by`"
+select t.* from nums t start with pid = 1 connect by ppid = prior pid having pid > 1;
+ERROR HY000: error occurs while handling `start with connect by`, detail: no usage for window/group/having in `start with connect by`
+"`group by` and `having` cannot be used together with `start with connect by`"
+select t.* from nums t start with pid = 1 connect by ppid = prior pid group by pid having pid > 1;
+ERROR HY000: error occurs while handling `start with connect by`, detail: no usage for window/group/having in `start with connect by`
+"multiple tables are not supported currently"
+select * from nums, tab1 start with pid = 1 connect by ppid = prior pid;
+ERROR HY000: error occurs while handling `start with connect by`, detail: single table supported
+select * from nums join tab1 on pid < id start with pid = 1 connect by ppid = prior pid;
+ERROR HY000: error occurs while handling `start with connect by`, detail: single table supported
+"table of select_list not exists"
+select a.id, pid, c1 from test1 start with id='002' connect by pid = prior id;
+ERROR 42S22: Unknown column 'a.id' in 'field list'
+select id, a.pid, c1 from test1 start with id='002' connect by pid = prior id;
+ERROR 42S22: Unknown column 'a.pid' in 'field list'
+select id, pid, a.c1 from test1 start with id='002' connect by pid = prior id;
+ERROR 42S22: Unknown column 'a.c1' in 'field list'
+select a.a.id, pid, c1 from test1 start with id='002' connect by pid = prior id;
+ERROR 42S22: Unknown column 'a.a.id' in 'field list'
+select id, a.a.pid, c1 from test1 t start with id='002' connect by pid = prior id;
+ERROR 42S22: Unknown column 'a.a.pid' in 'field list'
+select id, pid, a.a.c1 from test1 t start with id='002' connect by pid = prior id;
+ERROR 42S22: Unknown column 'a.a.c1' in 'field list'
+select a.id, a.pid, a.c1 from test1 t start with id='002' connect by pid = prior id;
+ERROR 42S22: Unknown column 'a.id' in 'field list'
+select a.a.id, a.a.pid, a.a.c1 from test1 t start with id='002' connect by pid = prior id;
+ERROR 42S22: Unknown column 'a.a.id' in 'field list'
+"table of conditions not exists"
+select id, pid, c1 from test1 start with a.id='002' connect by pid = prior id;
+ERROR 42S22: Unknown column 'a.id' in 'where clause'
+select id, pid, c1 from test1 start with id='002' connect by a.pid = prior id;
+ERROR 42S22: Unknown column 'a.pid' in 'on clause'
+select id, pid, c1 from test1 start with id='002' connect by pid = prior a.id;
+ERROR 42S22: Unknown column 'a.id' in 'on clause'
+select id, pid, c1 from test1 start with a.a.id='002' connect by pid = prior id;
+ERROR 42S22: Unknown column 'a.a.id' in 'where clause'
+select id, pid, c1 from test1 start with id='002' connect by a.a.pid = prior id;
+ERROR 42S22: Unknown column 'a.a.pid' in 'on clause'
+select id, pid, c1 from test1 start with id='002' connect by pid = prior a.a.id;
+ERROR 42S22: Unknown column 'a.a.id' in 'on clause'
+"fields not exist"
+select id___, pid, c1 from test1 start with id='002' connect by pid = prior id;
+ERROR 42S22: Unknown column 'id___' in 'field list'
+select id, pid___, c1 from test1 start with id='002' connect by pid = prior id;
+ERROR 42S22: Unknown column 'pid___' in 'field list'
+select id, pid, c1___ from test1 start with id='002' connect by pid = prior id;
+ERROR 42S22: Unknown column 'c1___' in 'field list'
+select id, pid, c1 from test1 start with id___='002' connect by pid = prior id;
+ERROR 42S22: Unknown column 'id___' in 'where clause'
+select id, pid, c1 from test1 start with id='002' connect by pid___ = prior id;
+ERROR 42S22: Unknown column 'test1.pid___' in 'on clause'
+select id, pid, c1 from test1 start with id='002' connect by pid = prior id___;
+ERROR 42S22: Unknown column '#tmp_inner_cte_xxxx.id___' in 'on clause'
+"restore..."
+drop database yxx;

@@ -1,0 +1,77 @@
+include/rpl_init.inc [topology=1->2]
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+include/rpl_sync.inc
+[connection server_1]
+include/install_semisync_master.inc
+####################################################################
+# Test Case: check the thread_pool_size of threadpool mode
+####################################################################
+include/assert.inc [ should be 4]
+SET GLOBAL rpl_semi_sync_master_enabled = 0;
+set global rpl_semi_sync_master_timeout = 1000;
+###################################################################
+# Test Case: add slave 2
+###################################################################
+[connection server_2]
+include/install_semisync_slave.inc
+[connection server_1]
+###################################################################
+# the base config and status for quick sync
+###################################################################
+set global rpl_semi_sync_master_wait_cond_hwm = '2:1';
+set global rpl_semi_sync_master_wait_cond_lwm = '1:0';
+set global rpl_semi_sync_master_group1 = '2,3:1';
+set global rpl_semi_sync_master_group2 = '1,4:1';
+set global rpl_semi_sync_master_enabled = ON;
+include/assert.inc [Rpl_semi_sync_master_active_groups should be 2]
+include/assert.inc [Rpl_semi_sync_master_current_stat_master_flag should be 1]
+include/assert.inc [Rpl_semi_sync_master_current_wait_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_err_flag should be 0]
+include/assert.inc [Rpl_semi_sync_master_group1_status should be 1:GROUP_ACTIVE]
+include/assert.inc [Rpl_semi_sync_master_group2_status should be 0:GROUP_ACTIVE]
+###################################################################
+# test ddl
+###################################################################
+drop database if exists it_quick_sync_prep;
+Warnings:
+Note	1008	Can't drop database 'it_quick_sync_prep'; database doesn't exist
+create database it_quick_sync_prep;
+use it_quick_sync_prep;
+drop table if exists t7;
+Warnings:
+Note	1051	Unknown table 'it_quick_sync_prep.t7'
+create table t7(id int);
+prepare insert_stmt from 'insert into t7 values(?)';
+set @var1 = 1;
+execute insert_stmt using @var1;
+prepare update_stmt from 'update t7 set id = ? where id = ?';
+set @var1 = 2;
+set @var2 = 1;
+execute update_stmt using @var1,@var2;
+prepare select_stmt from 'select * from  t7';
+execute select_stmt;
+id
+2
+prepare drop_stmt from 'drop table if exists t8';
+execute drop_stmt;
+Warnings:
+Note	1051	Unknown table 'it_quick_sync_prep.t8'
+prepare create_stmt from 'create table t8(id int)';
+execute create_stmt;
+execute drop_stmt;
+########################################################################
+# Coverage Test
+########################################################################
+SET GLOBAL rpl_semi_sync_master_enabled= OFF;
+[connection server_2]
+include/uninstall_semisync_slave.inc
+[connection server_1]
+[connection server_1]
+include/uninstall_semisync_master.inc
+[connection server_1]
+drop database if exists it_quick_sync_prep;
+CALL mtr.add_suppression(".* Timeout waiting for reply of binlog .*");
+CALL mtr.add_suppression(".* Failed to allocate memory for ack_array .*");
+include/rpl_end.inc

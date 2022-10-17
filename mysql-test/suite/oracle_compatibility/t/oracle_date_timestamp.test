@@ -1,0 +1,1239 @@
+#
+# to_date and to_timestamp supplement.
+#  
+# Test: TO_DATE()  TO_TIMESTAMP()
+#
+# Syntax:
+#    TO_DATE(date_string, format_string)
+#    TO_TIMESTAMP(date_string, format_string)
+#
+
+# errorcode
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('10', 'Y') from dual;
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('10', 'Y') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('10-11', 'Yyyy-mm--dd') from dual;
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('10-11', 'Yyyy-mm--dd') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('-2220', 'YYYY') from dual;
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('-2220', 'YYYY') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('0', 'MM') from dual;
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('0', 'MM') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('10-1-1', 'Yyyy-mmdd') from dual;
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('10-1-1', 'Yyyy-mmdd') from dual;
+
+-- error ER_INVALID_VALUE_FOR_FORMAT
+select to_date('a20', 'Y,YYY') from dual;
+-- error ER_INVALID_VALUE_FOR_FORMAT
+select to_timestamp('a20', 'Y,YYY') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('1-10-100','y-mm-ddd') from dual;
+
+-- error ER_INVALID_FORMAT
+select to_date('1-10-100','y-月-mm-ddd') from dual;
+
+-- error ER_INVALID_FORMAT
+select to_date('1-10-100','y月mm-ddd') from dual;
+
+# 空格
+select to_date('20200120 ','yyyy-mm-dd') from dual;
+select to_date('    20200120 ','yyyy-mm-dd') from dual;
+select to_date('    2020      01   20 ','yyyy-mm-dd') from dual;
+select to_date('    2020 01   20 ','  yyyy -mm -  dd  ') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-07-\3/
+select to_date('   ', '  ') from dual;
+
+select to_date('', ' ') from dual;
+select to_date('', '') from dual;
+select to_timestamp('20200120 ','yyyy-mm-dd') from dual;
+select to_timestamp('    20200120 ','yyyy-mm-dd') from dual;
+select to_timestamp('    2020      01   20 ','yyyy-mm-dd') from dual;
+select to_timestamp('    2020 01   20 ','  yyyy -mm -  dd  ') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-07-\3/
+select to_timestamp('   ', '  ') from dual;
+
+select to_timestamp('', ' ') from dual;
+select to_timestamp('', '') from dual;
+
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('201   05010', 'yyyymmdd') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('2010501', 'yyyymmdd') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('201   05010', 'yyyymmdd') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('2010501', 'yyyymmdd') from dual;
+
+
+# DDD
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('0','ddd') from dual;
+
+select to_date('1','ddd') from dual;
+select to_date('365','ddd') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('367','ddd') from dual;
+
+select to_date('36012','dddYY') from dual;
+select to_date('36012','ddd-YY') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('3601210','ddd-YY-MM') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('3601210','ddd-YY-DD') from dual;
+
+select to_date('21-100','yy-ddd') from dual;
+select to_date('21100','yy-Ddd') from dual;
+
+select to_date('20-100','yy-DDD') from dual;
+select to_date('20100','yy-dDd') from dual;
+
+select to_date('21100','yy-ddd') from dual;
+select to_date('21100','yyddd') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('21100','yymmddd') from dual;
+
+select to_date('21365','yy-ddd') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('21366','yy-ddd') from dual;
+
+select to_date('21-1','yy-ddd') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('21--1','yy-ddd') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('21-0','yy-ddd') from dual;
+
+select to_date('21','ddd') from dual;
+select to_date('40','ddd') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('211001','yyddddd') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('21-10-01','yy-ddd-dd') from dual;
+
+select to_date('3-10 14:12:24', 'Yy-DDd HH24:MI:SS') from dual;
+select to_date('3-10 11:12:24', 'Yy-DDd HH:MI:SS') from dual;
+select to_date('3-10 4:12:24', 'Yy-DDd HH12:MI:SS') from dual;
+#---------------------------------------------------------
+select to_timestamp('21-100','yy-ddd') from dual;
+select to_timestamp('21100','yy-Ddd') from dual;
+
+select to_timestamp('20-100','yy-DDD') from dual;
+select to_timestamp('20100','yy-dDd') from dual;
+
+select to_timestamp('21100','yy-ddd') from dual;
+select to_timestamp('21100','yyddd') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('21100','yymmddd') from dual;
+
+select to_timestamp('21365','yy-ddd') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('21366','yy-ddd') from dual;
+
+select to_timestamp('21-1','yy-ddd') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('21--1','yy-ddd') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('21-0','yy-ddd') from dual;
+
+select to_timestamp('21','ddd') from dual;
+select to_timestamp('40','ddd') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('211001','yyddddd') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('21-10-01','yy-ddd-dd') from dual;
+
+select to_timestamp('3-10 14:12:24', 'Yy-DDd HH24:MI:SS') from dual;
+select to_timestamp('3-10 11:12:24', 'Yy-DDd HH:MI:SS') from dual;
+select to_timestamp('3-10 4:12:24', 'Yy-DDd HH12:MI:SS') from dual;
+
+# 月份
+select to_date('2020-Jan-20','yyyy-Mon-dd') from dual;
+select to_date('2020-January-20','yyyy-Month-dd') from dual;
+select to_date('2020-January-20','yyyy-Month-dd') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('2020-Januaryabcd11455-20','yyyy-Month-dd') from dual;
+
+select to_date('2020-January-20','yyyy-Month-dd') from dual;
+select to_date('2020-Feb2','yyyy-Monthdd') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('2020-Feb100sdgagdg22uray-20','yyyy-Month-dd') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('2020-Febsdgagdg22uray-20','yyyy-Month-dd') from dual;
+select to_date('Jan','Mon') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('febu', 'mon') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('2020-Novemb-20','yyyy-Month-dd') from dual;
+
+#---------------------------------------------------------
+select to_timestamp('2020-Jan-20','yyyy-Mon-dd') from dual;
+select to_timestamp('2020-january-20','yyyy-moNth-dd') from dual;
+select to_timestamp('2020-JanUary-20','yyyy-Month-dd') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('2020-Januaryabcd11455-20','yyyy-Month-dd') from dual;
+
+select to_timestamp('2020-January-20','yyyy-Month-dd') from dual;
+select to_timestamp('2020-Feb2','yyyy-Monthdd') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('2020-Feb100sdgagdg22uray-20','yyyy-Month-dd') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('2020-Febsdgagdg22uray-20','yyyy-Month-dd') from dual;
+select to_timestamp('Jan','Mon') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('febu', 'mon') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('2020-Novemb-20','yyyy-Month-dd') from dual;
+
+#### 1. 参数1是字符串
+#**********************************************************************************
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-06-\3/
+select to_date('0', 'Y') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_date('0', 'YY') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_date('0', 'YYY') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-06-\3/
+select to_timestamp('0', 'Y') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_timestamp('0', 'YY') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_timestamp('0', 'YYY') from dual;
+#**********************************************************************************
+
+#**********************************************************************************
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2021-06-\3/
+select to_date('1', 'Y') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_date('1', 'YY') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_date('1', 'YYY') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2021-06-\3/
+select to_timestamp('1', 'Y') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_timestamp('1', 'YY') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_timestamp('1', 'YYY') from dual;
+#**********************************************************************************
+
+#**********************************************************************************
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2029-06-\3/
+select to_date('9', 'Y') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_date('99', 'YY') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_date('999', 'YYY') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2029-06-\3/
+select to_timestamp('9', 'Y') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_timestamp('99', 'YY') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_timestamp('999', 'YYY') from dual;
+#**********************************************************************************
+
+#**********************************************************************************
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('10', 'Y') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('10000', 'YY') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('1000', 'YYY') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('10', 'Y') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('10000', 'YY') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('1000', 'YYY') from dual;
+#**********************************************************************************
+
+#**********************************************************************************
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('100000', 'Y') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('100000', 'YY') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('100000', 'YYy') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('100000', 'Y') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('100000', 'YY') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('100000', 'YYy') from dual;
+#**********************************************************************************
+
+#**********************************************************************************
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('-1', 'Y') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('-1', 'YY') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('-1', 'YYY') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('-1', 'Y') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('-1', 'YY') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('-1', 'YYY') from dual;
+#**********************************************************************************
+
+#### 2. 参数1是整数
+#**********************************************************************************
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-06-\3/
+select to_date(0, 'Y') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_date(0, 'YY') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_date(0, 'YYY') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-06-\3/
+select to_timestamp(0, 'Y') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_timestamp(0, 'YY') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_timestamp(0, 'YYY') from dual;
+#**********************************************************************************
+
+#**********************************************************************************
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2021-06-\3/
+select to_date(1, 'Y') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_date(1, 'YY') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_date(1, 'YYY') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2021-06-\3/
+select to_timestamp(1, 'Y') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_timestamp(1, 'YY') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_timestamp(1, 'YYY') from dual;
+#**********************************************************************************
+
+#**********************************************************************************
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2029-06-\3/
+select to_date(9, 'Y') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_date(99, 'YY') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_date(999, 'YYY') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2029-06-\3/
+select to_timestamp(9, 'Y') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_timestamp(99, 'YY') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_timestamp(999, 'YYY') from dual;
+#**********************************************************************************
+
+#**********************************************************************************
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date(10, 'Y') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date(10000, 'Yy') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date(1000, 'YYY') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp(10, 'Y') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp(10000, 'YY') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp(1000, 'YYY') from dual;
+#**********************************************************************************
+
+#**********************************************************************************
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date(100000, 'Y') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date(100000, 'YY') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date(100000, 'YYy') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp(100000, 'Y') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp(100000, 'YY') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp(100000, 'YYy') from dual;
+#**********************************************************************************
+
+#**********************************************************************************
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date(-1, 'Y') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date(-1, 'YY') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date(-1, 'YYY') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp(-1, 'Y') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp(-1, 'YY') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp(-1, 'YYY') from dual;
+#**********************************************************************************
+
+#### 3.闰年与平年
+# 闰年有2月29号 10年以后这个测试用例就报错了，当前是2020年
+#**********************************************************************************
+select to_date('0-02-29', 'Y-MM-DD') from dual;
+
+# 当前是21世纪20年代，下面两个查询，返回结果都是2000年2月29号，百年以后（准确说80年后），这个测试用例就过不了 
+select to_date('0-02-29', 'Yy-MM-DD') from dual;
+select to_date('00-02-29', 'Yy-MM-DD') from dual;
+
+# 当前是21世纪20年代，下面三个查询，返回结果都是2000年2月29号，千年以后（准确说980年后），这个测试用例就过不了 
+select to_date('0-02-29', 'YyY-MM-DD') from dual;
+select to_date('00-02-29', 'YyY-MM-DD') from dual;
+select to_date('000-02-29', 'YyY-MM-DD') from dual;
+
+select to_timestamp('0-02-29', 'Y-MM-DD') from dual;
+
+# 当前是21世纪20年代，下面两个查询，返回结果都是2000年2月29号，百年以后（准确说80年后），这个测试用例就过不了 
+select to_timestamp('0-02-29', 'Yy-MM-DD') from dual;
+select to_timestamp('00-02-29', 'Yy-MM-DD') from dual;
+
+# 当前是21世纪20年代，下面三个查询，返回结果都是2000年2月29号，千年以后（准确说980年后），这个测试用例就过不了 
+select to_timestamp('0-02-29', 'YyY-MM-DD') from dual;
+select to_timestamp('00-02-29', 'YyY-MM-DD') from dual;
+select to_timestamp('000-02-29', 'YyY-MM-DD') from dual;
+#**********************************************************************************
+
+# 闰年没有2月29号
+#**********************************************************************************
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('1-02-29', 'Y-MM-DD') from dual;
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('1-02-29', 'Yy-MM-DD') from dual;
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('1-02-29', 'Yyy-MM-DD') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('1-02-29', 'Y-MM-DD') from dual;
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('1-02-29', 'Yy-MM-DD') from dual;
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('1-02-29', 'Yyy-MM-DD') from dual;
+#**********************************************************************************
+
+# 拷贝太累了，下面都是to_date，to_timestamp 重新全部拷贝
+#### 4.分割符
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-\3/
+select to_date('0-1-1', 'Y-MM-DD') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-\3/
+select to_date('0 1 1', 'Yy MM DD') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-\3/
+select to_date('0/1/1', 'Yyy/MM/DD') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-\3/
+select to_date('0,01,1', 'Y,MM,DD') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-\3/
+select to_date('0.12.01', 'yY.MM.DD') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-\3/
+select to_date('0;12;01', 'Yyy;MM;DD') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-\3/
+select to_date('01201', 'YMMDD') from dual;
+
+# 80年以后才会与result结果集不一致
+select to_date('011201', 'YyMMDD') from dual;
+select to_date('0111201', 'YyyMMDD') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-06-\3/
+select to_date('012', 'YDD') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-07-\3/
+select to_date('0121', 'YyDD') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-06-\3/
+select to_date('0121', 'YyyDD') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('0821', 'YMMDD') from dual; 
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-\3/
+select to_date('0_1_1', 'Y_MM_DD') from dual;
+
+select to_date('0+1+1', 'Yy+MM+DD') from dual;
+
+select to_date('0?1%1', 'Yyy#MM@DD') from dual;
+
+-- error ER_INVALID_VALUE_FOR_FORMAT
+select to_date('0??1--1', 'Y#MM@DD') from dual;
+
+select to_date('0??1--1', 'Yy??MM--DD') from dual;
+
+select to_date('0??1--1', 'Yyy?#MM$-DD') from dual;
+
+-- error ER_INVALID_VALUE_FOR_FORMAT
+select to_date('0??1-1', 'Y?MM-DD') from dual;
+
+-- error ER_INVALID_VALUE_FOR_FORMAT
+select to_date('0??1-1', 'Yy?MM-DD') from dual;
+
+-- error ER_INVALID_VALUE_FOR_FORMAT
+select to_date('0??1-1', 'Yyy?MM-DD') from dual;
+
+-- error ER_INVALID_FORMAT
+select to_date('0??1-1', 'YcMM-DD') from dual;
+
+#### 5.顺序
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-\3/
+select to_date('1 12 0', 'MM DD Y') from dual;
+
+select to_date('01 12 0', 'MM DD Yy') from dual;
+
+select to_date('11 22 0', 'MM DD Yyy') from dual;
+
+select to_date('11/02/0', 'MM/DD/Y') from dual;
+
+select to_date('11/2/0', 'MM/DD/Yy') from dual;
+
+select to_date('2-11-0', 'MM-DD-yyY') from dual;
+
+select to_date('0.11.2', 'Y.DD.MM') from dual;
+
+#### 6.am和pm 
+#**********************************************************************************
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('1 am', 'Y p.m.') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('1 am', 'yY p.m.') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('11 am', 'Yyy p.m.') from dual;
+#**********************************************************************************
+
+#**********************************************************************************
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2021-06-\3/
+select to_date('1 a.m.', 'Y p.m.') from dual;
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2011-06-\3/
+select to_date('11 a.m.', 'yY p.m.') from dual;
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2111-06-\3/
+select to_date('111 a.m.', 'yyY p.m.') from dual;
+#**********************************************************************************
+
+#### 7.test time & am pm
+##### 测试年中用间隔符'-'，时间的间隔符用':'
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2023-\2-\3/
+select to_date('3-02-10 14:12:24', 'Y-MM-DD HH24:MI:SS') from dual;
+
+##### 测试年中用其它间隔符' '， ',' 等
+select to_date('3 02,10 14.12.24', 'Yy MM,DD HH24.MI.SS') from dual;
+
+##### 测试年中用非官方公布的间隔符
+select to_date('3-02-10 14:12:24', 'Yyy-MM-DD HH24:MI:SS') from dual;
+
+##### 没有月份
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2023-06-\3/
+select to_date('3-10 14:12:24', 'Y-DD HH24:MI:SS') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_date('3-10 14:12:24', 'Yy-DD HH24:MI:SS') from dual;
+
+##### 没有天信息
+select to_date('3 10 14:12:24', 'yyY MM HH24:MI:SS') from dual;
+
+#### 8.test format chars
+##### 测试没有用引号起来的多个个字母
+-- error ER_INVALID_FORMAT
+select to_date('aa3', 'aaY') from dual;
+
+-- error ER_INVALID_FORMAT
+select to_date('aa33', 'aaYy') from dual;
+
+-- error ER_INVALID_FORMAT
+select to_date('aa333', 'aaYyy') from dual;
+
+##### 测试用引号引起来的多个字母
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2023-06-\3/
+select to_date('aa3', '"aa"Y') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_date('aa33', '"aa"Yy') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_date('aa333', '"aa"Yyy') from dual;
+
+##### 测试用引号引起来的多个字母，格式中的与字符串中的大小写不一致
+#**********************************************************************************
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2023-06-\3/
+select to_date('aa3', '"AA"Y') from dual;
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2023-06-\3/
+select to_date('aa3', '"AA"Yy') from dual;
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_date('aa3', '"AA"Yyy') from dual;
+#**********************************************************************************
+
+##### 测试用引号引起来的多个字母，引号不完整
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('aa3', '"aaY') from dual;
+
+#### 9 测试字符串与格式串
+##### 测试format为空串：
+select to_date('', 'Y') from dual;
+select to_date('', 'Yy') from dual;
+select to_date('', 'Yyy') from dual;
+
+##### 测试字符串与格式不一致：字符串较短
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('2020', 'Y-MM') from dual;
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('2020', 'YY-MM') from dual;
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('2020', 'YYY-MM') from dual;
+
+##### 测试字符串与格式不一致：字符串较长
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('2020-15', 'Y') from dual;
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('2020-15', 'YY') from dual;
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('2020-15', 'Yyy') from dual;
+
+##### 测试第一个参数为NULL：
+select to_date(NULL, 'Y-MM-DD') from dual;
+select to_date(NULL, 'Yy-MM-DD') from dual;
+select to_date(NULL, 'yyY-MM-DD') from dual;
+
+#### 10 test args is NULL field
+--disable_warnings
+drop database if exists testdb_to_date;
+create database testdb_to_date;
+use testdb_to_date;
+
+create table TEST_TBL_1(a varchar(100), b varchar(50));
+insert into TEST_TBL_1 values (NULL, NULL);
+
+##### 测试第一个参数为 NULL field
+select to_date(TEST_TBL_1.a, 'Y-MM-DD') from TEST_TBL_1;
+select to_date(TEST_TBL_1.a, 'Yy-MM-DD') from TEST_TBL_1;
+select to_date(TEST_TBL_1.a, 'Yyy-MM-DD') from TEST_TBL_1;
+
+##### 测试多行数据中包含NULL 时间串
+truncate table TEST_TBL_1;
+insert into TEST_TBL_1 values ('2-05-21', 'Y-MM-DD');
+insert into TEST_TBL_1 values ('21-05-21', 'Yy-MM-DD');
+insert into TEST_TBL_1 values ('210-05-21', 'yyY-MM-DD');
+insert into TEST_TBL_1 values (NULL, 'Y-MM-DD');
+insert into TEST_TBL_1 values ('0-05-27', 'yY-MM-DD');
+
+select to_date(TEST_TBL_1.a, TEST_TBL_1.b) from TEST_TBL_1 order by a limit 1;
+select to_date(TEST_TBL_1.a, TEST_TBL_1.b) from TEST_TBL_1 order by a limit 1,1;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2022-\2-\3/
+select to_date(TEST_TBL_1.a, TEST_TBL_1.b) from TEST_TBL_1 order by a limit 2,1;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2021-\2-\3/
+select to_date(TEST_TBL_1.a, TEST_TBL_1.b) from TEST_TBL_1 order by a limit 3,1;
+
+select to_date(TEST_TBL_1.a, TEST_TBL_1.b) from TEST_TBL_1 order by a limit 4,1;
+
+##### 测试多行数据中包含NULL 格式串
+truncate table TEST_TBL_1;
+insert into TEST_TBL_1 values ('0-05-21', 'yY-MM-DD');
+insert into TEST_TBL_1 values ('1-05-23', NULL);
+insert into TEST_TBL_1 values ('2-05-27', 'Yyy-MM-DD');
+insert into TEST_TBL_1 values ('2020100', 'YyyyDDd');
+insert into TEST_TBL_1 values ('2021100', 'Yyyy-DDd');
+
+select to_date(TEST_TBL_1.a, TEST_TBL_1.b) from TEST_TBL_1;
+
+drop database testdb_to_date;
+--enable_warnings
+
+#### 11 test format FF
+
+##### TO_DATE() 中不支持FF，而TO_TIMESTAMP()中支持
+--error ER_INVALID_FORMAT
+select to_date('0-05-11 13:14:15.1234', 'Y-MM-DD HH24:MI:SS.FF') from dual;
+
+--error ER_INVALID_FORMAT
+select to_date('0-05-11 13:14:15.1234', 'yY-MM-DD HH24:MI:SS.ff') from dual;
+
+--error ER_INVALID_FORMAT
+select to_date('0-05-11 13:14:15.1234', 'Yyy-MM-DD HH24:MI:SS.ff5') from dual;
+
+#### 11 input value not long enough for date format
+
+##### 格式串中多出年、月、日格式
+--error ER_CONVERT_DATETIME_FAIL
+select to_date('11', 'MM Y') from dual;
+
+--error ER_CONVERT_DATETIME_FAIL
+select to_date('11', 'MM Yy') from dual;
+
+--error ER_CONVERT_DATETIME_FAIL
+select to_date('11', 'MM Yyy') from dual;
+
+
+--error ER_CONVERT_DATETIME_FAIL
+select to_date('2020', 'Y MM') from dual;
+
+--error ER_CONVERT_DATETIME_FAIL
+select to_date('2020', 'Yyy DD') from dual;
+
+
+--error ER_CONVERT_DATETIME_FAIL
+select to_date('11', 'HH24 Yy') from dual;
+
+
+#####  综合 
+--error ER_CONVERT_DATETIME_FAIL
+select to_date('0-04-10', 'Y-MM-DD Y-MM') from dual;
+
+--error ER_CONVERT_DATETIME_FAIL
+select to_date('0-04-10', 'Yy-MM-DD Yyyy-MM') from dual;
+
+--error ER_CONVERT_DATETIME_FAIL
+select to_date('0-04-10', 'Y-MM-DD Yyyy-MM') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-\3/
+select to_date('0-04-10', 'Y-MM-DD HH:MI:SS') from dual;
+select to_date('0-04-10', 'Yy-MM-DD HH:MI:SS') from dual;
+select to_date('0-04-10', 'Yyy-MM-DD HH:MI:SS') from dual;
+
+#### 12 input value is longer than date format
+--error ER_CONVERT_DATETIME_FAIL
+select to_date('0-04-10 10:10:10', 'Y-MM-DD') from dual;
+
+--error ER_CONVERT_DATETIME_FAIL
+select to_date('0-04-10 10:10:10', 'Yy-MM-DD') from dual;
+
+--error ER_CONVERT_DATETIME_FAIL
+select to_date('0-04-10 10:10:10', 'Yyy-MM-DD') from dual;
+
+####################################################################################
+####################################################################################
+####################################################################################
+####################################################################################
+####################################################################################
+# 下面都是to_timestamp 
+#### 4.分割符
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-\3/
+select to_timestamp('0-1-1', 'Y-MM-DD') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-\3/
+select to_timestamp('0 1 1', 'Yy MM DD') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-\3/
+select to_timestamp('0/1/1', 'Yyy/MM/DD') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-\3/
+select to_timestamp('0,01,1', 'Y,MM,DD') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-\3/
+select to_timestamp('0.12.01', 'yY.MM.DD') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-\3/
+select to_timestamp('0;12;01', 'Yyy;MM;DD') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-\3/
+select to_timestamp('01201', 'YMMDD') from dual;
+
+# 80年以后才会与result结果集不一致
+select to_timestamp('011201', 'YyMMDD') from dual;
+select to_timestamp('0111201', 'YyyMMDD') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-06-\3/
+select to_timestamp('012', 'YDD') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-07-\3/
+select to_timestamp('0121', 'YyDD') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-06-\3/
+select to_timestamp('0121', 'YyyDD') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('0821', 'YMMDD') from dual; 
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-\3/
+select to_timestamp('0_1_1', 'Y_MM_DD') from dual;
+
+select to_timestamp('0+1+1', 'Yy+MM+DD') from dual;
+
+select to_timestamp('0?1%1', 'Yyy#MM@DD') from dual;
+
+-- error ER_INVALID_VALUE_FOR_FORMAT
+select to_timestamp('0??1--1', 'Y#MM@DD') from dual;
+
+select to_timestamp('0??1--1', 'Yy??MM--DD') from dual;
+
+select to_timestamp('0??1--1', 'Yyy?#MM$-DD') from dual;
+
+-- error ER_INVALID_VALUE_FOR_FORMAT
+select to_timestamp('0??1-1', 'Y?MM-DD') from dual;
+
+-- error ER_INVALID_VALUE_FOR_FORMAT
+select to_timestamp('0??1-1', 'Yy?MM-DD') from dual;
+
+-- error ER_INVALID_VALUE_FOR_FORMAT
+select to_timestamp('0??1-1', 'Yyy?MM-DD') from dual;
+
+-- error ER_INVALID_FORMAT
+select to_timestamp('0??1-1', 'YcMM-DD') from dual;
+
+#### 5.顺序
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-\3/
+select to_timestamp('1 12 0', 'MM DD Y') from dual;
+
+select to_timestamp('01 12 0', 'MM DD Yy') from dual;
+
+select to_timestamp('11 22 0', 'MM DD Yyy') from dual;
+
+select to_timestamp('11/02/0', 'MM/DD/Y') from dual;
+
+select to_timestamp('11/2/0', 'MM/DD/Yy') from dual;
+
+select to_timestamp('2-11-0', 'MM-DD-yyY') from dual;
+
+select to_timestamp('0.11.2', 'Y.DD.MM') from dual;
+
+#### 6.am和pm 
+#**********************************************************************************
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('1 am', 'Y p.m.') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('1 am', 'yY p.m.') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('11 am', 'Yyy p.m.') from dual;
+#**********************************************************************************
+
+#**********************************************************************************
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2021-06-\3/
+select to_timestamp('1 a.m.', 'Y p.m.') from dual;
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2011-06-\3/
+select to_timestamp('11 a.m.', 'yY p.m.') from dual;
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2111-06-\3/
+select to_timestamp('111 a.m.', 'yyY p.m.') from dual;
+#**********************************************************************************
+
+#### 7.test time & am pm
+##### 测试年中用间隔符'-'，时间的间隔符用':'
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2023-\2-\3/
+select to_timestamp('3-02-10 14:12:24', 'Y-MM-DD HH24:MI:SS') from dual;
+
+##### 测试年中用其它间隔符' '， ',' 等
+select to_timestamp('3 02,10 14.12.24', 'Yy MM,DD HH24.MI.SS') from dual;
+
+##### 测试年中用非官方公布的间隔符
+select to_timestamp('3-02-10 14:12:24', 'Yyy-MM-DD HH24:MI:SS') from dual;
+
+##### 没有月份
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2023-06-\3/
+select to_timestamp('3-10 14:12:24', 'Y-DD HH24:MI:SS') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_timestamp('3-10 14:12:24', 'Yy-DD HH24:MI:SS') from dual;
+
+##### 没有天信息
+select to_timestamp('3 10 14:12:24', 'yyY MM HH24:MI:SS') from dual;
+
+#### 8.test format chars
+##### 测试没有用引号起来的多个个字母
+-- error ER_INVALID_FORMAT
+select to_timestamp('aa3', 'aaY') from dual;
+
+-- error ER_INVALID_FORMAT
+select to_timestamp('aa33', 'aaYy') from dual;
+
+-- error ER_INVALID_FORMAT
+select to_timestamp('aa333', 'aaYyy') from dual;
+
+##### 测试用引号引起来的多个字母
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2023-06-\3/
+select to_timestamp('aa3', '"aa"Y') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_timestamp('aa33', '"aa"Yy') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_timestamp('aa333', '"aa"Yyy') from dual;
+
+##### 测试用引号引起来的多个字母，格式中的与字符串中的大小写不一致
+#**********************************************************************************
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2023-06-\3/
+select to_timestamp('aa3', '"AA"Y') from dual;
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2023-06-\3/
+select to_timestamp('aa3', '"AA"Yy') from dual;
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-06-\3/
+select to_timestamp('aa3', '"AA"Yyy') from dual;
+#**********************************************************************************
+
+##### 测试用引号引起来的多个字母，引号不完整
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('aa3', '"aaY') from dual;
+
+#### 9 测试字符串与格式串
+##### 测试format为空串：
+select to_timestamp('', 'Y') from dual;
+select to_timestamp('', 'Yy') from dual;
+select to_timestamp('', 'Yyy') from dual;
+
+##### 测试字符串与格式不一致：字符串较短
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('2020', 'Y-MM') from dual;
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('2020', 'YY-MM') from dual;
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('2020', 'YYY-MM') from dual;
+
+##### 测试字符串与格式不一致：字符串较长
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('2020-15', 'Y') from dual;
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('2020-15', 'YY') from dual;
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('2020-15', 'Yyy') from dual;
+
+##### 测试第一个参数为NULL：
+select to_timestamp(NULL, 'Y-MM-DD') from dual;
+select to_timestamp(NULL, 'Yy-MM-DD') from dual;
+select to_timestamp(NULL, 'yyY-MM-DD') from dual;
+
+#### 10 test args is NULL field
+--disable_warnings
+drop database if exists testdb_to_timestamp;
+create database testdb_to_timestamp;
+use testdb_to_timestamp;
+
+create table TEST_TBL_1(a varchar(100), b varchar(50));
+insert into TEST_TBL_1 values (NULL, NULL);
+
+##### 测试第一个参数为 NULL field
+select to_timestamp(TEST_TBL_1.a, 'Y-MM-DD') from TEST_TBL_1;
+select to_timestamp(TEST_TBL_1.a, 'Yy-MM-DD') from TEST_TBL_1;
+select to_timestamp(TEST_TBL_1.a, 'Yyy-MM-DD') from TEST_TBL_1;
+
+##### 测试多行数据中包含NULL 时间串
+truncate table TEST_TBL_1;
+insert into TEST_TBL_1 values ('2-05-21', 'Y-MM-DD');
+insert into TEST_TBL_1 values ('21-05-21', 'Yy-MM-DD');
+insert into TEST_TBL_1 values ('210-05-21', 'yyY-MM-DD');
+insert into TEST_TBL_1 values (NULL, 'Y-MM-DD');
+insert into TEST_TBL_1 values ('0-05-27', 'yY-MM-DD');
+
+select to_timestamp(TEST_TBL_1.a, TEST_TBL_1.b) from TEST_TBL_1 order by a limit 1;
+select to_timestamp(TEST_TBL_1.a, TEST_TBL_1.b) from TEST_TBL_1 order by a limit 1,1;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2022-\2-\3/
+select to_timestamp(TEST_TBL_1.a, TEST_TBL_1.b) from TEST_TBL_1 order by a limit 2,1;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2021-\2-\3/
+select to_timestamp(TEST_TBL_1.a, TEST_TBL_1.b) from TEST_TBL_1 order by a limit 3,1;
+
+select to_timestamp(TEST_TBL_1.a, TEST_TBL_1.b) from TEST_TBL_1 order by a limit 4,1;
+
+##### 测试多行数据中包含NULL 格式串
+truncate table TEST_TBL_1;
+insert into TEST_TBL_1 values ('0-05-21', 'yY-MM-DD');
+insert into TEST_TBL_1 values ('1-05-23', NULL);
+insert into TEST_TBL_1 values ('2-05-27', 'Yyy-MM-DD');
+insert into TEST_TBL_1 values ('2020100', 'YyyyDDd');
+insert into TEST_TBL_1 values ('2021100', 'Yyyy-DDd');
+
+select to_timestamp(TEST_TBL_1.a, TEST_TBL_1.b) from TEST_TBL_1;
+
+drop database testdb_to_timestamp;
+--enable_warnings
+
+#### 11 test format FF
+
+##### to_timestamp() 中不支持FF，而TO_TIMESTAMP()中支持
+select to_timestamp('0-05-11 13:14:15.1234', 'Y-MM-DD HH24:MI:SS.FF') from dual;
+
+select to_timestamp('0-05-11 13:14:15.1234', 'yY-MM-DD HH24:MI:SS.ff') from dual;
+
+select to_timestamp('0-05-11 13:14:15.1234', 'Yyy-MM-DD HH24:MI:SS.ff5') from dual;
+
+#### 11 input value not long enough for date format
+
+##### 格式串中多出年、月、日格式
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('11', 'MM Y') from dual;
+
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('11', 'MM Yy') from dual;
+
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('11', 'MM Yyy') from dual;
+
+
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('2020', 'Y MM') from dual;
+
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('2020', 'Yyy DD') from dual;
+
+
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('11', 'HH24 Yy') from dual;
+
+
+#####  综合 
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('0-04-10', 'Y-MM-DD Y-MM') from dual;
+
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('0-04-10', 'Yy-MM-DD Yyyy-MM') from dual;
+
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('0-04-10', 'Y-MM-DD Yyyy-MM') from dual;
+
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/2020-\2-\3/
+select to_timestamp('0-04-10', 'Y-MM-DD HH:MI:SS') from dual;
+select to_timestamp('0-04-10', 'Yy-MM-DD HH:MI:SS') from dual;
+select to_timestamp('0-04-10', 'Yyy-MM-DD HH:MI:SS') from dual;
+
+#### 12 input value is longer than date format
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('0-04-10 10:10:10', 'Y-MM-DD') from dual;
+
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('0-04-10 10:10:10', 'Yy-MM-DD') from dual;
+
+--error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('0-04-10 10:10:10', 'Yyy-MM-DD') from dual;
+
+
+
+create database ttt;
+use ttt;
+
+drop table if exists TEST_TBL_1;
+create table TEST_TBL_1(a varchar(100), b varchar(50));
+drop table if exists TEST_TBL_2;
+create table TEST_TBL_2(a varchar(100));
+
+#### 15.1 procedure
+
+delimiter $$;
+drop procedure if exists within;
+create procedure within (in within int, out result int)
+within1:begin
+declare within int default 1;
+
+while within < 2 do
+set within=within+1;
+select to_date('520-12-14', 'yyy-mm-dd') from dual;
+select to_timestamp('520-12-14', 'yyy-mm-dd') from dual;
+end while;
+
+set result=within;
+end within1 $$
+delimiter ;$$
+
+set @within=1;
+
+call within(8, @within);
+
+select @within as within;
+
+drop procedure within;
+
+
+#### 15.2 triger
+drop trigger if exists within; 
+
+delimiter $$;
+create trigger within after insert on TEST_TBL_1 for each row begin insert into TEST_TBL_2 select to_timestamp(TEST_TBL_1.a, 'Yyy-MM-DD') from TEST_TBL_1; 
+end $$
+delimiter ;$$
+
+insert into TEST_TBL_1 values ('2-05-21', 'Y-MM-DD');
+select * from TEST_TBL_2;
+
+drop trigger within;
+
+#### 15.3 event
+
+truncate TEST_TBL_2;
+
+drop event if exists within; 
+
+create event if not exists within on schedule every 1 minute on completion preserve do insert into TEST_TBL_2 select to_timestamp(TEST_TBL_1.a, 'Yyy-MM-DD') from TEST_TBL_1;
+
+alter event within on completion preserve enable; 
+
+alter event within on completion  preserve disable;
+
+drop event within; 
+
+
+#### 15.4 prepare
+
+prepare pron from 'select to_date(?, ?) from dual';
+set @p = '222-10-11';
+set @q = 'yyy-mm-dd';
+ 
+execute pron using @p, @q;
+
+drop table TEST_TBL_1;
+drop table TEST_TBL_2;
+
+drop database ttt;
+
+# 正号
+select to_date('2020+200', 'yyyy-ddd') from dual;
+select to_date('2020-+200', 'yyyy-ddd') from dual;
+select to_date('2020++200', 'yyyy-ddd') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('2020--200', 'yyyy-ddd') from dual;
+
+# ----------------------------------------------------------------
+# yy补充: yy一定要占2个字节，除非有分隔符或者到末尾。
+# 因设计原因，不会像ORACLE那样再使用4个字节去解析。
+# ----------------------------------------------------------------
+select to_date('91051','yy-ddd') from dual;
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-07-\3/
+select to_date('12', 'YY') from dual;
+select to_timestamp('123', 'YYMM') from dual;
+select to_timestamp('1204', 'YYMM') from dual;
+select to_date('123-12', 'YY-MM') from dual;
+select to_timestamp('1234-12', 'YY-MM') from dual;
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-07-\3/
+select to_date('123', 'YY') from dual;
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-07-\3/
+select to_date('1204', 'YY') from dual;
+select to_date('111204', 'MMYY') from dual;
+select to_date('111204', 'MM-YY') from dual;
+select to_date('11-1204', 'MM-YY') from dual;
+select to_date(' 111204', '     MMYY   ') from dual;
+select to_date(' 11 -1204   ', '  MM-YY         ') from dual;
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-07-\3/
+select to_date('+1', 'YY') from dual;
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-07-\3/
+select to_date('+11', 'YY') from dual;
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-07-\3/
+select to_date('+111', 'YY') from dual;
+--replace_regex /([0-9]{4})-([0-9]{2})-([0-9]{2})/\1-07-\3/
+select to_date('+1204', 'YY') from dual;
+select to_date('+1201-+11-+12', 'YY-MM-DD') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('0021365','yy-ddd') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_timestamp('021365','yy-ddd') from dual;
+
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('-1204', 'YY') from dual;
+
+-- error ER_INVALID_FORMAT
+select to_date('1204-01', 'YY中MM') from dual;
+select to_date('1204-中01', 'YY-"中"MM') from dual;
+select to_date('1204-中国01', 'YY-"中国"MM') from dual;
+-- error ER_CONVERT_DATETIME_FAIL
+select to_date('1204-中国01', 'YY-"中国 "MM') from dual;
+
+select to_date('1204-01', 'YY\nMM') from dual;
+select to_date('1204-01', 'YY
+MM') from dual;
+
+select to_date('1204-01', 'YY\tMM') from dual;
+select to_date('1204-01', 'YY\rMM') from dual;

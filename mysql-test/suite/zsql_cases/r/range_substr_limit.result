@@ -1,0 +1,579 @@
+create database if not exists test_ra_sub;
+use test_ra_sub;
+substr limit column value test
+CREATE TABLE test (
+id INT,
+name char(10),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name,1,3)) partitions 2
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('')
+(subpartition s0, subpartition s1),
+PARTITION p_kkk VALUES LESS THAN ('kkk')
+(subpartition s2, subpartition s3));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(10) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1,3))
+SUBPARTITION BY HASH (`id`)
+(PARTITION p_ccc VALUES LESS THAN ('')
+ (SUBPARTITION s0 ENGINE = InnoDB,
+  SUBPARTITION s1 ENGINE = InnoDB),
+ PARTITION p_kkk VALUES LESS THAN ('kkk')
+ (SUBPARTITION s2 ENGINE = InnoDB,
+  SUBPARTITION s3 ENGINE = InnoDB)) */
+drop table test;
+substr less then  column value test
+CREATE TABLE test (
+id INT,
+name char(10),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name,1,3)) partitions 2
+subpartition by hash (id) subpartitions 2
+(PARTITION p_ccc VALUES LESS THAN ('')
+(subpartition s0, subpartition s1),
+PARTITION p_kkk VALUES LESS THAN ('kkkk')
+(subpartition s2, subpartition s3));
+ERROR HY000: Partition column values of incorrect type
+substr(x,9) out string long output
+CREATE TABLE test (
+id INT,
+name char(10),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name,9)) partitions 2
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('')
+(subpartition s0, subpartition s1),
+PARTITION p_kkk VALUES LESS THAN ('kk')
+(subpartition s2, subpartition s3));
+show create table test ;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(10) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,9))
+SUBPARTITION BY HASH (`id`)
+(PARTITION p_ccc VALUES LESS THAN ('')
+ (SUBPARTITION s0 ENGINE = InnoDB,
+  SUBPARTITION s1 ENGINE = InnoDB),
+ PARTITION p_kkk VALUES LESS THAN ('kk')
+ (SUBPARTITION s2 ENGINE = InnoDB,
+  SUBPARTITION s3 ENGINE = InnoDB)) */
+drop table test;
+CREATE TABLE test (
+id INT,
+name char(10),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name,9)) partitions 2
+subpartition by hash (id) subpartitions 2
+(PARTITION p_ccc VALUES LESS THAN ('')
+(subpartition s0, subpartition s1),
+PARTITION p_kkk VALUES LESS THAN ('kkk')
+(subpartition s2, subpartition s3));
+ERROR HY000: Partition column values of incorrect type
+substr char columns value ignore space at laste of string
+CREATE TABLE test (
+id INT,
+name char(10),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name,1,3)) partitions 2
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN (' 1')
+(subpartition s0, subpartition s1),
+PARTITION p_kkk VALUES LESS THAN ('kkk     ')
+(subpartition s2, subpartition s3));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(10) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1,3))
+SUBPARTITION BY HASH (`id`)
+(PARTITION p_ccc VALUES LESS THAN (' 1')
+ (SUBPARTITION s0 ENGINE = InnoDB,
+  SUBPARTITION s1 ENGINE = InnoDB),
+ PARTITION p_kkk VALUES LESS THAN ('kkk     ')
+ (SUBPARTITION s2 ENGINE = InnoDB,
+  SUBPARTITION s3 ENGINE = InnoDB)) */
+drop table test;
+CREATE TABLE test (
+id INT,
+name char(10),
+unique key(id,name))
+PARTITION BY RANGE (substr(name,1,3)) partitions 2
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN (' 1')
+(subpartition s0, subpartition s1),
+PARTITION p_kkk VALUES LESS THAN ('kkk     ')
+(subpartition s2, subpartition s3));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(10) DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+/*!50100 PARTITION BY RANGE (substr(`name`,1,3))
+SUBPARTITION BY HASH (`id`)
+(PARTITION p_ccc VALUES LESS THAN (' 1')
+ (SUBPARTITION s0 ENGINE = InnoDB,
+  SUBPARTITION s1 ENGINE = InnoDB),
+ PARTITION p_kkk VALUES LESS THAN ('kkk     ')
+ (SUBPARTITION s2 ENGINE = InnoDB,
+  SUBPARTITION s3 ENGINE = InnoDB)) */
+drop table test;
+substr varchar columns value not ignore space at laste of string
+CREATE TABLE test (
+id INT,
+name varchar(10),
+unique key(id,name))
+PARTITION BY RANGE (substr(name,1,3)) partitions 2
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN (' 1')
+(subpartition s0, subpartition s1),
+PARTITION p_kkk VALUES LESS THAN ('kkk     ')
+(subpartition s2, subpartition s3));
+ERROR HY000: Partition column values of incorrect type
+CREATE TABLE test (
+id INT,
+name varchar(10),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name,1,3)) partitions 2
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN (' 1')
+(subpartition s0, subpartition s1),
+PARTITION p_kkk VALUES LESS THAN ('kkk     ')
+(subpartition s2, subpartition s3));
+ERROR HY000: Partition column values of incorrect type
+substr …… from
+CREATE TABLE test (
+id INT,
+name char(10),
+unique key(id,name))
+PARTITION BY RANGE (substr(name from 1)) partitions 2
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN (' 1')
+(subpartition s0, subpartition s1),
+PARTITION p_kkk VALUES LESS THAN ('kk')
+(subpartition s2, subpartition s3));
+explain insert into test values (1,'b  1243');
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	test	p_kkk_s3	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+Warnings:
+Note	1003	insert into `test_ra_sub`.`test` values (1,'b  1243')
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(10) DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+SUBPARTITION BY HASH (`id`)
+(PARTITION p_ccc VALUES LESS THAN (' 1')
+ (SUBPARTITION s0 ENGINE = InnoDB,
+  SUBPARTITION s1 ENGINE = InnoDB),
+ PARTITION p_kkk VALUES LESS THAN ('kk')
+ (SUBPARTITION s2 ENGINE = InnoDB,
+  SUBPARTITION s3 ENGINE = InnoDB)) */
+drop table test;
+substr …… from …… for
+CREATE TABLE test (
+id INT,
+name char(10),
+unique key(id,name))
+PARTITION BY RANGE (substr(name from 1 for 3)) partitions 2
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN (' 1')
+(subpartition s0, subpartition s1),
+PARTITION p_kkk VALUES LESS THAN ('kkd3')
+(subpartition s2, subpartition s3));
+ERROR HY000: Partition column values of incorrect type
+CREATE TABLE test (
+id INT,
+name char(10),
+unique key(id,name))
+PARTITION BY RANGE (substr(name from 1 for 3)) partitions 2
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN (' 1')
+(subpartition s0, subpartition s1),
+PARTITION p_kkk VALUES LESS THAN ('kkd')
+(subpartition s2, subpartition s3));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(10) DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+/*!50100 PARTITION BY RANGE (substr(`name`,1,3))
+SUBPARTITION BY HASH (`id`)
+(PARTITION p_ccc VALUES LESS THAN (' 1')
+ (SUBPARTITION s0 ENGINE = InnoDB,
+  SUBPARTITION s1 ENGINE = InnoDB),
+ PARTITION p_kkk VALUES LESS THAN ('kkd')
+ (SUBPARTITION s2 ENGINE = InnoDB,
+  SUBPARTITION s3 ENGINE = InnoDB)) */
+drop table test;
+substr  max char
+CREATE TABLE test (
+id INT,
+name char(255),
+unique key(id,name))
+PARTITION BY RANGE (substr(name from 1)) partitions 2
+subpartition by hash (id) subpartitions 2
+(PARTITION p_ccc VALUES LESS THAN (' 1')
+(subpartition s0, subpartition s1),
+PARTITION p_kkk VALUES LESS THAN ('kk')
+(subpartition s2, subpartition s3));
+drop table test;
+substr max varchar
+CREATE TABLE test (   id INT,
+name varchar(768),
+primary key(name)) COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1, 3))
+( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+PARTITION p_ddd VALUES LESS THAN ('ddd'),
+PARTITION p_fff VALUES LESS THAN ('fff'),
+PARTITION p_iii VALUES LESS THAN ('iii'),
+PARTITION p_mmm VALUES LESS THAN ('mmm'));
+ERROR HY000: The total length of the partitioning fields is too large
+CREATE TABLE test (   id INT,
+name varchar(767),
+primary key(name)) COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1, 3))
+( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+PARTITION p_ddd VALUES LESS THAN ('ddd'),
+PARTITION p_fff VALUES LESS THAN ('fff'),
+PARTITION p_iii VALUES LESS THAN ('iii'),
+PARTITION p_mmm VALUES LESS THAN maxvalue);
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` varchar(767) COLLATE utf8mb4_bin NOT NULL,
+  PRIMARY KEY (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1,3))
+(PARTITION p_bbb VALUES LESS THAN ('bbb') ENGINE = InnoDB,
+ PARTITION p_ddd VALUES LESS THAN ('ddd') ENGINE = InnoDB,
+ PARTITION p_fff VALUES LESS THAN ('fff') ENGINE = InnoDB,
+ PARTITION p_iii VALUES LESS THAN ('iii') ENGINE = InnoDB,
+ PARTITION p_mmm VALUES LESS THAN MAXVALUE ENGINE = InnoDB) */
+insert into test values (1,'👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲');
+select (length(name)) from test;
+(length(name))
+3068
+drop table test;
+emoji do as columns vlaues
+CREATE TABLE test (   id INT,
+name varchar(767),
+primary key(name)) COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1))
+( PARTITION p_bbb VALUES LESS THAN ('aaaaaaaaaaaa'),
+PARTITION p_ddd VALUES LESS THAN ('ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'),
+PARTITION p_fff VALUES LESS THAN ('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'),
+PARTITION p_iii VALUES LESS THAN ('👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲'));
+insert into test values (1,'👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲');
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` varchar(767) COLLATE utf8mb4_bin NOT NULL,
+  PRIMARY KEY (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+(PARTITION p_bbb VALUES LESS THAN ('aaaaaaaaaaaa') ENGINE = InnoDB,
+ PARTITION p_ddd VALUES LESS THAN ('ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc') ENGINE = InnoDB,
+ PARTITION p_fff VALUES LESS THAN ('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx') ENGINE = InnoDB,
+ PARTITION p_iii VALUES LESS THAN (_utf8mb4 0xF09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2F09F91B2) ENGINE = InnoDB) */
+drop table test;
+substr support from end of string
+CREATE TABLE test (   id INT,
+name varchar(10),
+primary key(name)) COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, -10))
+( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+PARTITION p_ddd VALUES LESS THAN ('ddd'),
+PARTITION p_fff VALUES LESS THAN ('fff'),
+PARTITION p_iii VALUES LESS THAN ('iii'),
+PARTITION p_mmm VALUES LESS THAN ('mmm'));
+explain insert into test values (1,'bbb');
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	test	p_bbb	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+Warnings:
+Note	1003	insert into `test_ra_sub`.`test` values (1,'bbb')
+explain insert into test values (1,'bbbbbbbbbb');
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	test	p_ddd	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+Warnings:
+Note	1003	insert into `test_ra_sub`.`test` values (1,'bbbbbbbbbb')
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` varchar(10) COLLATE utf8mb4_bin NOT NULL,
+  PRIMARY KEY (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,-(10)))
+(PARTITION p_bbb VALUES LESS THAN ('bbb') ENGINE = InnoDB,
+ PARTITION p_ddd VALUES LESS THAN ('ddd') ENGINE = InnoDB,
+ PARTITION p_fff VALUES LESS THAN ('fff') ENGINE = InnoDB,
+ PARTITION p_iii VALUES LESS THAN ('iii') ENGINE = InnoDB,
+ PARTITION p_mmm VALUES LESS THAN ('mmm') ENGINE = InnoDB) */
+drop table test;
+CREATE TABLE test (   id INT,
+name char(10),
+primary key(name)) COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, -10))
+( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+PARTITION p_ddd VALUES LESS THAN ('ddd'),
+PARTITION p_fff VALUES LESS THAN ('fff'),
+PARTITION p_iii VALUES LESS THAN ('iii'),
+PARTITION p_mmm VALUES LESS THAN ('mmm'));
+explain insert into test values (1,'bbb');
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	test	p_bbb	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+Warnings:
+Note	1003	insert into `test_ra_sub`.`test` values (1,'bbb')
+explain insert into test values (1,'bbbbbbbbbb');
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	test	p_ddd	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+Warnings:
+Note	1003	insert into `test_ra_sub`.`test` values (1,'bbbbbbbbbb')
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(10) COLLATE utf8mb4_bin NOT NULL,
+  PRIMARY KEY (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,-(10)))
+(PARTITION p_bbb VALUES LESS THAN ('bbb') ENGINE = InnoDB,
+ PARTITION p_ddd VALUES LESS THAN ('ddd') ENGINE = InnoDB,
+ PARTITION p_fff VALUES LESS THAN ('fff') ENGINE = InnoDB,
+ PARTITION p_iii VALUES LESS THAN ('iii') ENGINE = InnoDB,
+ PARTITION p_mmm VALUES LESS THAN ('mmm') ENGINE = InnoDB) */
+drop table test;
+substr start pos longer than string output
+CREATE TABLE test (   id INT,
+name char(10),
+primary key(name)) COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, -11))
+( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+PARTITION p_ddd VALUES LESS THAN ('ddd'),
+PARTITION p_fff VALUES LESS THAN ('fff'),
+PARTITION p_iii VALUES LESS THAN ('iii'),
+PARTITION p_mmm VALUES LESS THAN ('mmm'));
+ERROR HY000: Partition column values of incorrect type
+CREATE TABLE test (   id INT,
+name varchar(10),
+primary key(name)) COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, -11))
+( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+PARTITION p_ddd VALUES LESS THAN ('ddd'),
+PARTITION p_fff VALUES LESS THAN ('fff'),
+PARTITION p_iii VALUES LESS THAN ('iii'),
+PARTITION p_mmm VALUES LESS THAN ('mmm'));
+ERROR HY000: Partition column values of incorrect type
+substr start pos longer than string output
+CREATE TABLE test (   id INT,
+name char(10),
+primary key(name)) COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, -10, 3))
+( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+PARTITION p_ddd VALUES LESS THAN ('ddd'),
+PARTITION p_fff VALUES LESS THAN ('fff'),
+PARTITION p_iii VALUES LESS THAN ('iii'),
+PARTITION p_mmm VALUES LESS THAN ('mmm'));
+explain insert into test values (1,'bbb');
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	test	p_bbb	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+Warnings:
+Note	1003	insert into `test_ra_sub`.`test` values (1,'bbb')
+explain insert into test values (1,'bbbbbbbbbb');
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	test	p_ddd	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+Warnings:
+Note	1003	insert into `test_ra_sub`.`test` values (1,'bbbbbbbbbb')
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(10) COLLATE utf8mb4_bin NOT NULL,
+  PRIMARY KEY (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,-(10),3))
+(PARTITION p_bbb VALUES LESS THAN ('bbb') ENGINE = InnoDB,
+ PARTITION p_ddd VALUES LESS THAN ('ddd') ENGINE = InnoDB,
+ PARTITION p_fff VALUES LESS THAN ('fff') ENGINE = InnoDB,
+ PARTITION p_iii VALUES LESS THAN ('iii') ENGINE = InnoDB,
+ PARTITION p_mmm VALUES LESS THAN ('mmm') ENGINE = InnoDB) */
+drop table test;
+substr support find from end and limit string length
+CREATE TABLE test (   id INT,
+name varchar(10),
+primary key(name)) COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, -10, 3))
+( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+PARTITION p_ddd VALUES LESS THAN ('ddd'),
+PARTITION p_fff VALUES LESS THAN ('fff'),
+PARTITION p_iii VALUES LESS THAN ('iii'),
+PARTITION p_mmm VALUES LESS THAN ('mmm'));
+explain insert into test values (1,'bbb');
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	test	p_bbb	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+Warnings:
+Note	1003	insert into `test_ra_sub`.`test` values (1,'bbb')
+explain insert into test values (1,'bbbbbbbbbb');
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	test	p_ddd	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+Warnings:
+Note	1003	insert into `test_ra_sub`.`test` values (1,'bbbbbbbbbb')
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` varchar(10) COLLATE utf8mb4_bin NOT NULL,
+  PRIMARY KEY (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,-(10),3))
+(PARTITION p_bbb VALUES LESS THAN ('bbb') ENGINE = InnoDB,
+ PARTITION p_ddd VALUES LESS THAN ('ddd') ENGINE = InnoDB,
+ PARTITION p_fff VALUES LESS THAN ('fff') ENGINE = InnoDB,
+ PARTITION p_iii VALUES LESS THAN ('iii') ENGINE = InnoDB,
+ PARTITION p_mmm VALUES LESS THAN ('mmm') ENGINE = InnoDB) */
+drop table test;
+CREATE TABLE test (   id INT,
+name varchar(10),
+primary key(name)) COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, -10, 3))
+( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+PARTITION p_ddd VALUES LESS THAN ('ddd'),
+PARTITION p_fff VALUES LESS THAN ('fff'),
+PARTITION p_iii VALUES LESS THAN ('iii'),
+PARTITION p_mmm VALUES LESS THAN ('mmm'));
+insert into test values (1,'bbb');
+insert into test values (1,'bbbbbbbbbb');
+select * from test PARTITION (p_bbb);
+id	name
+1	bbb
+select * from test PARTITION (p_ddd);
+id	name
+1	bbbbbbbbbb
+range partition substr support alter
+alter table test modify name varchar(9);
+ERROR HY000: Partition column values of incorrect type
+alter table test modify name char(10);
+select * from test PARTITION (p_bbb);
+id	name
+1	bbb
+select * from test PARTITION (p_ddd);
+id	name
+1	bbbbbbbbbb
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(10) COLLATE utf8mb4_bin NOT NULL,
+  PRIMARY KEY (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,-(10),3))
+(PARTITION p_bbb VALUES LESS THAN ('bbb') ENGINE = InnoDB,
+ PARTITION p_ddd VALUES LESS THAN ('ddd') ENGINE = InnoDB,
+ PARTITION p_fff VALUES LESS THAN ('fff') ENGINE = InnoDB,
+ PARTITION p_iii VALUES LESS THAN ('iii') ENGINE = InnoDB,
+ PARTITION p_mmm VALUES LESS THAN ('mmm') ENGINE = InnoDB) */
+drop table test;
+range substr support differ sql_mode
+set sql_mode = 'PAD_CHAR_TO_FULL_LENGTH';
+Warnings:
+Warning	3090	Changing sql mode 'PAD_CHAR_TO_FULL_LENGTH' is deprecated. It will be removed in a future release.
+CREATE TABLE test (   id INT,
+name char(10),
+primary key(name)) COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, -10, 3))
+( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+PARTITION p_ddd VALUES LESS THAN ('ddd'),
+PARTITION p_fff VALUES LESS THAN ('fff'),
+PARTITION p_iii VALUES LESS THAN ('iii'),
+PARTITION p_mmm VALUES LESS THAN ('mmm'));
+explain insert into test values (1,'bbb');
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	test	p_ddd	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+Warnings:
+Note	1003	insert into `test_ra_sub`.`test` values (1,'bbb')
+explain insert into test values (1,'bbbbbbbbbb');
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	test	p_ddd	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+Warnings:
+Note	1003	insert into `test_ra_sub`.`test` values (1,'bbbbbbbbbb')
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(10) COLLATE utf8mb4_bin NOT NULL,
+  PRIMARY KEY (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,-(10),3))
+(PARTITION p_bbb VALUES LESS THAN ('bbb') ENGINE = InnoDB,
+ PARTITION p_ddd VALUES LESS THAN ('ddd') ENGINE = InnoDB,
+ PARTITION p_fff VALUES LESS THAN ('fff') ENGINE = InnoDB,
+ PARTITION p_iii VALUES LESS THAN ('iii') ENGINE = InnoDB,
+ PARTITION p_mmm VALUES LESS THAN ('mmm') ENGINE = InnoDB) */
+drop table test;
+CREATE TABLE test (   id INT,
+name varchar(10),
+primary key(name)) COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, -10, 3))
+( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+PARTITION p_ddd VALUES LESS THAN ('ddd'),
+PARTITION p_fff VALUES LESS THAN ('fff'),
+PARTITION p_iii VALUES LESS THAN ('iii'),
+PARTITION p_mmm VALUES LESS THAN ('mmm'));
+explain insert into test values (1,'bbb');
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	test	p_bbb	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+Warnings:
+Note	1003	insert into `test_ra_sub`.`test` values (1,'bbb')
+explain insert into test values (1,'bbbbbbbbbb');
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	test	p_ddd	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+Warnings:
+Note	1003	insert into `test_ra_sub`.`test` values (1,'bbbbbbbbbb')
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` varchar(10) COLLATE utf8mb4_bin NOT NULL,
+  PRIMARY KEY (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,-(10),3))
+(PARTITION p_bbb VALUES LESS THAN ('bbb') ENGINE = InnoDB,
+ PARTITION p_ddd VALUES LESS THAN ('ddd') ENGINE = InnoDB,
+ PARTITION p_fff VALUES LESS THAN ('fff') ENGINE = InnoDB,
+ PARTITION p_iii VALUES LESS THAN ('iii') ENGINE = InnoDB,
+ PARTITION p_mmm VALUES LESS THAN ('mmm') ENGINE = InnoDB) */
+drop table test;
+range substr first parameter not support function
+CREATE TABLE test (
+id INT,
+name varchar(10),
+primary key(name)) COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(substr(name, 1), -10, 3))
+( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+PARTITION p_ddd VALUES LESS THAN ('ddd'),
+PARTITION p_fff VALUES LESS THAN ('fff'),
+PARTITION p_iii VALUES LESS THAN ('iii'),
+PARTITION p_mmm VALUES LESS THAN ('mmm'));
+ERROR HY000: Partition function input parameter type is incorrect
+CLEAR TEST DATA
+drop database test_ra_sub;

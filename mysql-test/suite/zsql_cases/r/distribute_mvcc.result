@@ -1,0 +1,233 @@
+SET @transaction_isolation_session_orig = @@global.transaction_isolation;
+SET global transaction_isolation= 'READ-COMMITTED';
+SET session transaction_isolation= 'READ-COMMITTED';
+# Test Create table
+CREATE TABLE t (  a int,  GTID bigint) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+show create table t;
+Table	Create Table
+t	CREATE TABLE `t` (
+  `a` int(11) DEFAULT NULL,
+  `GTID` bigint(20) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+nice,create conntain GTID success
+CREATE TABLE tt  (  a int,  GTID varchar(20)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+nice, flags2 less then 2048
+# when gtid is not last column, no change flags2
+create table t8(a int, GTID bigint, c2 varchar(20));
+nice,flags2 not set
+# when gtid is not last column, no change flags2
+create table t88( GTID bigint);
+nice,flags2 not set
+# create table with gtid int
+drop table t88;
+create table t88(a int, GTID int);
+nice,flags2 not set
+# TEST THE ALTER TABLE 
+# test alter table 
+create table t3(a int);
+insert into t3 values(1),(2),(3);
+alter table t3 add GTID bigint;
+# check flags2 
+nice,alter GTID add success
+alter table t3 drop GTID ;
+# check flags2 
+nice,alter GTID drop success
+# test alter table  INPLACE
+create table t4(a int);
+insert into t4 values(1),(2),(3);
+alter table t4 add GTID bigint , ALGORITHM=INPLACE;
+# check flags2 
+nice,alter GTID ALGORITHM=INPLACE add success
+alter table t4 drop GTID , ALGORITHM=INPLACE;
+# check flags2 
+nice,alter GTID ALGORITHM=INPLACE  drop success
+# test alter table  COPY
+create table t5(a int);
+insert into t5 values(1),(2),(3);
+alter table t5 add GTID bigint , ALGORITHM=COPY;
+# check flags2 
+nice,alter GTID ALGORITHM=COPY add  success
+alter table t5 drop GTID , ALGORITHM=COPY;
+# check flags2 
+nice,alter GTID ALGORITHM=COPY drop success
+# test alter table  INSTANT
+create table t6(a int);
+insert into t6 values(1),(2),(3);
+alter table t6 add GTID bigint , ALGORITHM=INSTANT ;
+# check flags2 
+nice,alter GTID ALGORITHM=INSTANT add success
+alter table t6 drop GTID, ALGORITHM=INSTANT ;
+ERROR 0A000: ALGORITHM=INSTANT is not supported for this operation. Try ALGORITHM=COPY/INPLACE.
+# test alter table  DEFAULT
+create table t7(a int);
+insert into t7 values(1),(2),(3);
+alter table t7 add GTID bigint , ALGORITHM=DEFAULT ;
+# check flags2 
+nice,alter GTID ALGORITHM=DEFAULT add success
+alter table t7 drop GTID, ALGORITHM=DEFAULT ;
+# check flags2 
+nice,alter GTID ALGORITHM=DEFAULT drop success
+# add two column
+alter table t7 add GTID bigint;
+alter table t7 add c2 int;
+# check flags2 
+nice,alter GTID  t7 success
+rename to gtid
+create table t9(c1 int, c2 bigint);
+nice, t9 do not has gtid column
+alter table t9 RENAME COLUMN c2 to GTID;
+nice, t9  has gtid column now
+alter table t9 RENAME COLUMN GTID to c22;
+nice, t9  has no gtid column now
+modify gtid to other type
+alter table t9 RENAME COLUMN c22 to GTID;
+alter table t9 MODIFY   GTID varchar(200);
+nice, t9  has no gtid column now
+# Connection con1:
+insert into t values(1,9);
+insert into t values(2,10);
+insert into t values(3,11);
+insert into t values(4,12);
+insert into t values(6,13);
+insert into t values(7,20);
+insert into t values(8,21);
+select * from t;
+a	GTID
+1	9
+2	10
+3	11
+4	12
+6	13
+7	20
+8	21
+select /*+ SET_VAR(active_gtm_gtid_list='CwAAAAAAAAANAAAAAAAAAA==') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t;
+a	GTID
+1	9
+2	10
+4	12
+begin;
+# update then delete ,should has 1, 9
+update t set GTID=21 where a = 1;
+delete from t where a = 1;
+select /*+ SET_VAR(active_gtm_gtid_list='CwAAAAAAAAANAAAAAAAAAA==') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t;
+a	GTID
+1	9
+2	10
+4	12
+commit;
+CREATE TABLE t2 (  a int,  GTID bigint) ENGINE=InnoDB;
+# test the self trans
+insert into t2 values(1,9);
+insert into t2 values(2,10);
+insert into t2 values(3,11);
+insert into t2 values(4,12);
+insert into t2 values(6,13);
+insert into t2 values(7,20);
+insert into t2 values(8,21);
+select * from t2;
+a	GTID
+1	9
+2	10
+3	11
+4	12
+6	13
+7	20
+8	21
+begin;
+/*+GTID=13*/update t2 set GTID=13 where a = 1;
+select /*+ SET_VAR(active_gtm_gtid_list='CwAAAAAAAAANAAAAAAAAAA==') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t2;
+a	GTID
+1	13
+2	10
+4	12
+6	13
+commit;
+# empty gtmtid
+begin;
+select /*+ SET_VAR(active_gtm_gtid_list=' ') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t2;
+a	GTID
+1	13
+2	10
+3	11
+4	12
+6	13
+commit;
+# Connection default
+start TRANSACTION;
+select /*+ SET_VAR(active_gtm_gtid_list='CwAAAAAAAAANAAAAAAAAAA==') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t2;
+ERROR HY000: Table definition has changed, please retry transaction
+commit;
+# has the primary key
+truncate table t2;
+insert into t2 values(1,9);
+insert into t2 values(2,10);
+insert into t2 values(3,11);
+insert into t2 values(4,12);
+insert into t2 values(6,13);
+insert into t2 values(7,20);
+insert into t2 values(8,21);
+alter table t2 add primary key PI(a);
+select /*+ SET_VAR(active_gtm_gtid_list='CwAAAAAAAAANAAAAAAAAAA==') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t2;
+a	GTID
+1	9
+2	10
+4	12
+# has secord primary key
+CREATE INDEX idx1 ON t (a);
+select /*+ SET_VAR(active_gtm_gtid_list='CwAAAAAAAAANAAAAAAAAAA==') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t where a = 1;
+a	GTID
+# use two session, one not commit, other select with gtmgtid
+begin;
+/*+GTID=13*/update t2 set GTID=14 where a = 2;
+select /*+ SET_VAR(active_gtm_gtid_list='CwAAAAAAAAANAAAAAAAAAA==') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t where a = 2;
+a	GTID
+2	10
+commit;
+# test set var error
+select /*+ SET_VAR(active_gtm_gtid_list='A') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t;
+ERROR HY000: Decoding of base64 string failed
+select /*+ SET_VAR(active_gtm_gtid_list='AV') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t;
+ERROR HY000: Decoding of base64 string failed
+select /*+ SET_VAR(active_gtm_gtid_list=' ') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t;
+a	GTID
+2	10
+3	11
+4	12
+6	13
+select /*+ SET_VAR(active_gtm_gtid_list='AAAA') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t;
+ERROR HY000: Decoding of base64 string failed
+select /*+ SET_VAR(active_gtm_gtid_list='~~~~') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t;
+ERROR HY000: Decoding of base64 string failed
+select /*+ SET_VAR(active_gtm_gtid_list='CwAAAAAAAAANAAAAAAAAAA==') SET_VAR(next_gtm_gtid=10)*/ a, GTID from t;
+ERROR HY000: error occurs in distributed mvcc , detail :the next gtmgtid must be greater than max gtmgtid in active list
+"all row are same gtmgtid"
+begin;
+select * from t;
+a	GTID
+2	10
+3	11
+4	12
+6	13
+7	20
+8	21
+update t set gtid=20;
+select * from t;
+a	GTID
+2	20
+3	20
+4	20
+6	20
+7	20
+8	20
+select /*+ SET_VAR(active_gtm_gtid_list=' ') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t;
+a	GTID
+2	10
+3	11
+4	12
+6	13
+commit;
+SET global transaction_isolation= @transaction_isolation_session_orig;
+set session transaction_isolation= @transaction_isolation_session_orig;
+select /*+ SET_VAR(active_gtm_gtid_list=' ') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t;
+ERROR HY000: error occurs in distributed mvcc , detail :gtmgtid active list can only be set in RC isolation
+DROP TABLE t,tt,t2,t3,t4, t5, t6,t7,t8, t88,t9;

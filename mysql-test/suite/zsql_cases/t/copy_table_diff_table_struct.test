@@ -1,0 +1,214 @@
+##########################################################
+# Test cases of copy table from A to B in case of diffirent 
+# table structure 
+# we test the function in master as well as  the success or failure in slave in quick sync replication situation
+##########################################################
+
+--source include/have_log_bin.inc
+--source include/not_group_replication_plugin.inc
+--source include/master-slave.inc
+#semisync plugine has built in ,we do not need to install it
+
+--source include/rpl_connection_slave.inc
+--source include/stop_slave.inc
+--source include/start_slave.inc
+
+#########################################################
+#prepare table A
+#########################################################
+--source include/rpl_connection_master.inc
+#set global rpl_semi_sync_master_enabled = OFF; 
+#set global rpl_semi_sync_master_wait_cond_hwm = '1:0';
+#set global rpl_semi_sync_master_wait_cond_lwm = '1:0';
+#set global rpl_semi_sync_master_group1 = '1,2:1';
+#set global rpl_semi_sync_master_quick_sync_enabled=ON;
+#set global rpl_semi_sync_master_enabled = ON; 
+#--let $assert_status_name= Rpl_semi_sync_master_current_wait_groups
+#--let $assert_status_value= 1
+#--source include/assert_status.inc
+
+--disable_warnings
+drop database if exists test_db;
+create database if not exists test_db;
+--enable_warnings
+use test_db;
+create table tb1 (id int primary key , c1 int)ENGINE=InnoDB;
+insert into tb1 values(1,1);
+insert into tb1 values(2,2);
+
+--echo #########################################################
+--echo #CASE 1 normal test: table A and B have the same table structure
+--echo #########################################################
+
+create table tb0 (id int primary key , c1 int)ENGINE=InnoDB;
+copy table from tb1 to tb0;
+select * from tb1 for update;
+select * from tb0 for update;
+
+--source include/rpl_sync.inc
+
+--source include/rpl_connection_slave.inc
+use test_db;
+select * from tb1 for update;
+select * from tb0 for update;
+
+--echo #########################################################
+--echo #CASE 2: table A and B have the diff engine
+--echo #########################################################
+
+--source include/rpl_connection_master.inc
+#--let $assert_status_name= Rpl_semi_sync_master_current_wait_groups
+#--let $assert_status_value= 1
+#--source include/assert_status.inc
+
+create table tb2 (id int primary key , c1 int)ENGINE=MEMORY;
+create table tb3 (id int primary key , c1 int)ENGINE=MyISAM;
+--disable_abort_on_error
+copy table from tb1 to tb2; 
+--enable_abort_on_error
+select * from tb1 for update;
+select * from tb2 for update;
+--disable_abort_on_error
+copy table from tb1 to tb3;
+--enable_abort_on_error 
+select * from tb1 for update;
+select * from tb3 for update;
+
+--source include/rpl_sync.inc
+
+--source include/rpl_connection_slave.inc
+use test_db;
+select * from tb1 for update;
+select * from tb2 for update;
+select * from tb3 for update;
+
+
+--echo #########################################################
+--echo #CASE 3: table A and B have different index
+--echo #########################################################
+
+--source include/rpl_connection_master.inc
+#--let $assert_status_name= Rpl_semi_sync_master_current_wait_groups
+#--let $assert_status_value= 1
+#--source include/assert_status.inc
+
+create table tb4 (id int , c1 int)ENGINE=InnoDB;
+--disable_abort_on_error
+copy table from tb1 to tb4;
+--enable_abort_on_error
+select * from tb1 for update;
+select * from tb4 for update;
+
+--source include/rpl_sync.inc
+
+--source include/rpl_connection_slave.inc
+use test_db;
+select * from tb1 for update;
+select * from tb4 for update;
+
+
+--echo #########################################################
+--echo #CASE 4: table A and B have different column numbers
+--echo #########################################################
+
+--source include/rpl_connection_master.inc
+#--let $assert_status_name= Rpl_semi_sync_master_current_wait_groups
+#--let $assert_status_value= 1
+#--source include/assert_status.inc
+
+create table tb5 (id int primary key , c1 int,c2 int)ENGINE=InnoDB;
+--disable_abort_on_error
+copy table from tb1 to tb5; 
+--disable_abort_on_error
+select * from tb1 for update;
+select * from tb5 for update;
+
+--source include/rpl_sync.inc
+
+--source include/rpl_connection_slave.inc
+use test_db;
+select * from tb1 for update;
+select * from tb5 for update;
+
+--echo #########################################################
+--echo #CASE 5: table A and B have different column types
+--echo #########################################################
+
+--source include/rpl_connection_master.inc
+#--let $assert_status_name= Rpl_semi_sync_master_current_wait_groups
+#--let $assert_status_value= 1
+#--source include/assert_status.inc
+
+create table tb6 (id int primary key , c1 varchar(10))ENGINE=InnoDB;
+--disable_abort_on_error
+copy table from tb1 to tb6; 
+--enable_abort_on_error
+select * from tb1 for update;
+select * from tb6 for update;
+
+--source include/rpl_sync.inc
+
+--source include/rpl_connection_slave.inc
+use test_db;
+select * from tb1 for update;
+select * from tb5 for update;
+
+--echo #########################################################
+--echo #CASE 6: table A and B have different row_format
+--echo #########################################################
+
+--source include/rpl_connection_master.inc
+#--let $assert_status_name= Rpl_semi_sync_master_current_wait_groups
+#--let $assert_status_value= 1
+#--source include/assert_status.inc
+
+create table tb8 (id int primary key , c1 int)ENGINE=InnoDB, row_format=compact;
+insert into tb8 values(1,1);
+insert into tb8 values(2,2);
+create table tb9 (id int primary key , c1 int)ENGINE=InnoDB, row_format=dynamic;
+create table tb10 (id int primary key , c1 int)ENGINE=InnoDB, row_format=Redundant;
+create table tb11 (id int primary key , c1 int)ENGINE=InnoDB, row_format=Compressed;
+
+--disable_abort_on_error
+copy table from tb8 to tb9;
+--enable_abort_on_error
+select * from tb8 for update;
+select * from tb9 for update;
+
+--disable_abort_on_error
+copy table from tb8 to tb10;
+--enable_abort_on_error
+select * from tb8 for update;
+select * from tb10 for update;
+
+--disable_abort_on_error
+copy table from tb8 to tb11;
+--enable_abort_on_error 
+select * from tb8 for update;
+select * from tb11 for update;
+
+--source include/rpl_sync.inc
+
+--source include/rpl_connection_slave.inc
+use test_db;
+select * from tb8 for update;
+select * from tb9 for update;
+select * from tb10 for update;
+select * from tb11 for update;
+#--source include/uninstall_semisync_slave.inc
+
+
+--source include/rpl_connection_master.inc
+drop database test_db;
+#--source include/uninstall_semisync_master.inc
+#CALL mtr.add_suppression(".* Timeout waiting for reply of binlog .*");
+
+--source include/rpl_end.inc
+
+
+
+
+ 
+
+
+

@@ -1,0 +1,144 @@
+SET @old_log_output=          @@global.log_output;
+SET @old_slow_query_log=      @@global.slow_query_log;
+SET @old_slow_query_log_file= @@global.slow_query_log_file;
+SET @old_autocommit= @@global.autocommit;
+show variables like '%thread_handling%';
+Variable_name	Value
+thread_handling	pool-of-threads
+SET GLOBAL slow_query_log_file= '.../log/slow_query_temp.log';
+SET GLOBAL log_output=       'FILE';
+SET GLOBAL slow_query_log=   'ON';
+SET SESSION long_query_time=  0;
+SET GLOBAL autocommit=        0;
+drop database if exists slow_log_test1;
+create database slow_log_test1;
+use slow_log_test1;
+create table t1(id int);
+insert into t1 values(10);
+insert into t1 values(11);
+update t1 set id=12 where id=11;
+select * from t1;
+id
+10
+12
+delete from t1 where id=10;
+create table t2(time_string varchar(20));
+SET SESSION long_query_time=  10;
+SET SESSION long_query_time=  0;
+select * from t2;
+time_string
+ 0
+ 0
+ 0
+ 0
+ 0
+ 0
+ 0
+ 0
+ 0
+ 0
+ 0
+ 0
+SET GLOBAL autocommit=        1;
+"Multi-statements slow log test"
+insert into t1 values(20);
+insert into t1 values(21);
+select * from t1;
+insert into t1 values(22); 
+//
+id
+12
+20
+21
+"prepare-statements slow log test"
+prepare prod from "insert into t1 values(?)";
+set @p = '23';
+execute prod using @p;
+set @p = '24';
+execute prod using @p;
+deallocate prepare prod;
+select * from t1;
+id
+12
+20
+21
+22
+23
+24
+drop table t2;
+drop table t1;
+drop database slow_log_test1;
+"Running mysqldumpslow on the slow-query-log"
+Count: 3    select * from t1
+
+Count: 2    SET SESSION long_query_time=  0
+
+Count: 1    use slow_log_test1
+
+Count: 1    update t1 set id=12 where id=11
+
+Count: 1    set @p = '24'
+
+Count: 1    set @p = '23'
+
+Count: 1    select * from t2
+
+Count: 1    insert into t1 values(22)
+
+Count: 1    insert into t1 values(21)
+
+Count: 1    insert into t1 values(20)
+
+Count: 1    insert into t1 values(11)
+
+Count: 1    insert into t1 values(10)
+
+Count: 1    insert into t1 values('24')
+
+Count: 1    insert into t1 values('23')
+
+Count: 1    drop table t2
+
+Count: 1    drop table t1
+
+Count: 1    drop database slow_log_test1
+
+Count: 1    drop database if exists slow_log_test1
+
+Count: 1    delete from t1 where id=10
+
+Count: 1    deallocate prepare prod
+
+Count: 1    create table t2(time_string varchar(20))
+
+Count: 1    create table t1(id int)
+
+Count: 1    create database slow_log_test1
+
+Count: 1    SET GLOBAL autocommit=        1
+
+Count: 1    SET GLOBAL autocommit=        0
+
+Count: 1    PREPARE prod FROM ...
+
+"Test long_query_time"
+SET SESSION long_query_time=  10;
+drop database if exists slow_log_test1;
+create database slow_log_test1;
+use slow_log_test1;
+create table t1(id int);
+insert into t1 values(10);
+insert into t1 values(11);
+update t1 set id=12 where id=11;
+select * from t1;
+id
+10
+12
+delete from t1 where id=10;
+drop table t1;
+drop database slow_log_test1;
+SET GLOBAL  log_output=         @old_log_output;
+SET GLOBAL  slow_query_log=     @old_slow_query_log;
+SET GLOBAL  slow_query_log_file=@old_slow_query_log_file;
+SET GLOBAL  autocommit=@old_autocommit;
+End of test!

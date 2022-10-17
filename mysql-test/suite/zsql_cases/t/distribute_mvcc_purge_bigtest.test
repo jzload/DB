@@ -1,0 +1,30 @@
+--source include/big_test.inc
+
+SET @transaction_isolation_session_orig = @@global.transaction_isolation;
+SET global transaction_isolation= 'READ-COMMITTED';
+SET session transaction_isolation= 'READ-COMMITTED';
+set @old_mvcc_purge = @@global.innodb_distributed_mvcc_purge;
+set @old_purge_gtmgtid = @@global.innodb_distributed_mvcc_purge_gtmgtid;
+CREATE TABLE t (  a int,  GTID bigint) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+set global innodb_distributed_mvcc_purge = on;
+set global innodb_distributed_mvcc_purge_gtmgtid = 8;
+
+--exec_in_background $MYSQL_SLAP --create-schema=test --delimiter=";" --iterations=100 --query="/*+GTID=7*/INSERT INTO t values (1, 7);/*+GTID=7*/delete from t" --concurrency=10 --silent 2>&1
+--sleep 5
+--echo
+--echo ############################################################
+--echo # 1. prepare the data
+--echo # set the variables
+
+show status like 'Innodb_distributed_mvcc_purge_at%';
+
+--echo
+--echo ############################################################
+--echo #  clean up
+--echo #  
+connection default;
+SET global transaction_isolation= @transaction_isolation_session_orig;
+set session transaction_isolation= @transaction_isolation_session_orig;
+set global  innodb_distributed_mvcc_purge = @old_mvcc_purge;
+set global innodb_distributed_mvcc_purge_gtmgtid = @old_purge_gtmgtid;
+DROP TABLE t;

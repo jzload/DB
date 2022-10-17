@@ -1,0 +1,26 @@
+!include ../my.cnf
+
+[mysqld.1]
+log-slave-updates
+server_id=1
+thread_pool_max_threads = 1000
+thread_handling = pool-of-threads
+thread_pool_size = 24
+thread_pool_idle_timeout = 60
+thread_pool_oversubscribe = 3
+thread_pool_high_prio_mode = transactions
+
+[mysqld.2]
+log-slave-updates
+server_id=2
+thread_pool_max_threads = 100
+thread_handling = pool-of-threads
+thread_pool_size = 4
+thread_pool_idle_timeout = 60
+thread_pool_oversubscribe = 3
+thread_pool_high_prio_mode = transactions
+
+
+
+[ENV]
+

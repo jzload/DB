@@ -1,0 +1,2 @@
+$MYSQL_AUDIT_PLUGIN_OPT
+--force-restart

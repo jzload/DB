@@ -1,0 +1,49 @@
+create database sysdate;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sysdate' at line 1
+create database `sysdate`;
+use `sysdate`;
+create table  sysdate  (a int);
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sysdate  (a int)' at line 1
+create table `sysdate` (sysdate int);
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sysdate int)' at line 1
+create table `sysdate` (`sysdate` int);
+select sysdate;
+sysdate
+20XX-XX-XX XX:XX:XX
+select sysdate from dual;
+sysdate
+20XX-XX-XX XX:XX:XX
+select sysdate() from dual;
+sysdate()
+20XX-XX-XX XX:XX:XX
+select length(sysdate) from dual;
+length(sysdate)
+19
+select length(sysdate) = length(sysdate()) from dual;
+length(sysdate) = length(sysdate())
+1
+select * from (select sysdate from dual) tmp;
+sysdate
+20XX-XX-XX XX:XX:XX
+create table test (a int);
+insert into test values (1), (2), (3);
+select a as  sysdate  from test;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sysdate  from test' at line 1
+select a as `sysdate` from test;
+sysdate
+1
+2
+3
+select * from test where a != sysdate order by a;
+a
+1
+2
+3
+select * from test order by sysdate;
+a
+1
+2
+3
+drop database sysdate;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'sysdate' at line 1
+drop database `sysdate`;

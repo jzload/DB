@@ -1,0 +1,128 @@
+##########################################################
+# test case 1:  configuration  transaction_max_binlog_size
+##########################################################
+show variables like 'transaction_max_binlog_size';
+Variable_name	Value
+transaction_max_binlog_size	0
+set transaction_max_binlog_size=18446744073709551615;
+show variables like '%transaction_max_binlog_size%';
+Variable_name	Value
+transaction_max_binlog_size	18446744073709551615
+set transaction_max_binlog_size=18446744073709551615+1;
+ERROR 22003: BIGINT UNSIGNED value is out of range in '(18446744073709551615 + 1)'
+show variables like '%transaction_max_binlog_size%';
+Variable_name	Value
+transaction_max_binlog_size	18446744073709551615
+set transaction_max_binlog_size=-1;
+show variables like '%transaction_max_binlog_size%';
+Variable_name	Value
+transaction_max_binlog_size	0
+##########################################################
+# test case 2:  small thrans for transaction_max_binlog_size and the config is session var
+##########################################################
+include/master-slave.inc
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+[connection master]
+[connection master]
+drop database if exists dbtest;
+create database dbtest;
+use dbtest;
+create table tb1(id int);
+set transaction_max_binlog_size=10;
+show variables like '%transaction_max_binlog_size%';
+Variable_name	Value
+transaction_max_binlog_size	10
+insert into dbtest.tb1 values(1);
+ERROR HY000: Transaction binlog is too big, see the limit of transaction_max_binlog_size
+select * from dbtest.tb1;
+id
+[connection master]
+set transaction_max_binlog_size=1024;
+show variables like '%transaction_max_binlog_size%';
+Variable_name	Value
+transaction_max_binlog_size	1024
+insert into dbtest.tb1 values(2);
+select * from dbtest.tb1;
+id
+2
+[connection slave]
+select * from dbtest.tb1;
+id
+2
+[connection master]
+show variables like '%transaction_max_binlog_size%';
+Variable_name	Value
+transaction_max_binlog_size	10
+##########################################################
+# test case 3:  big thrans for transaction_max_binlog_size
+##########################################################
+[connection master]
+set transaction_max_binlog_size=5242880;
+use dbtest;
+create table dbtest.tb2(a int key , c1 varchar(100), c2 varchar(100));
+create procedure dbtest.load1(count int unsigned)
+begin
+set @c=0;
+start transaction;
+while @c <count DO
+INSERT INTO dbtest.tb2 select @c,repeat(char(97+rand()*26),100),repeat(char(97+rand()*26),100);
+set @c=@c+1;
+end while;
+commit;
+end;
+//
+show variables like '%transaction_max_binlog_size%';
+Variable_name	Value
+transaction_max_binlog_size	5242880
+call dbtest.load1(100000);
+ERROR HY000: Transaction binlog is too big, see the limit of transaction_max_binlog_size
+[connection slave]
+select count(*) from dbtest.tb2;
+count(*)
+0
+##########################################################
+# test case 4:  transaction_max_binlog_size=0 means no limit
+##########################################################
+[connection slave]
+include/stop_slave.inc
+reset master;
+reset slave;
+[connection master]
+truncate table dbtest.tb2;
+set transaction_max_binlog_size=0;
+call dbtest.load1(100000);
+select count(*) from dbtest.tb2;
+count(*)
+100000
+drop table dbtest.tb2;
+drop procedure dbtest.load1;
+reset master;
+reset slave;
+##########################################################
+# test case 5: the config do not work on slave apply
+##########################################################
+[connection slave]
+include/stop_slave.inc
+Warnings:
+Note	3084	Replication thread(s) for channel '' are already stopped.
+set transaction_max_binlog_size=1;
+set global transaction_max_binlog_size=1;
+[connection master]
+use dbtest;
+create table tb3(id int);
+insert into tb3 values(1);
+[connection slave]
+include/start_slave.inc
+select * from dbtest.tb3;
+id
+1
+set transaction_max_binlog_size=0;
+set global transaction_max_binlog_size=0;
+[connection master]
+drop database dbtest;
+set transaction_max_binlog_size=0;
+set global transaction_max_binlog_size=0;
+include/uninstall_semisync_master.inc
+include/rpl_end.inc

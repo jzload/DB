@@ -1,0 +1,94 @@
+drop database if exists yxx;
+create database yxx;
+use yxx;
+set names utf8mb4;
+#########################################################################
+#  test case 1: combination for `enclosed`, `terminated` and `nospace_filling`
+#########################################################################
+create table yxx.tt (id int primary key, 
+tid tinyint,
+sid smallint,
+mid mediumint,
+bid bigint,
+did decimal(10,4),
+fid float,
+name_1 char(10), 
+name_2 varchar(10),
+name_3 tinyblob) 
+engine=innodb, charset=utf8mb4;
+insert into yxx.tt values (66, 66, 66, 66, 66, 66.66, 66.66, 'abc', 'def', 'ghi');
+create table yxx.t1 (c1 int, c2 char(10), c3 varchar(10)) engine=innodb, charset=utf8mb4;
+################################ Common outfile ################################
+"(1) common outfile without any hint"
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test"))
+66	66	66	66	66	66.6600	66.66	abc	def	ghi
+
+################################ Correct common usage for nospace_filling ################################
+"(1) enclosed and terminated are empty string, nospace_filling"
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test"))
+666666666666.660066.66abcdefghiE
+
+"(2) optional enclosed and terminated are empty string, nospace_filling"
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test"))
+666666666666.660066.66abcdefghiE
+
+"(3) no enclosed, terminated are empty string, nospace_filling"
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test"))
+666666666666.660066.66abcdefghiE
+
+################################ Correct usage with funcs for nospace_filling ################################
+"(1) enclosed and terminated are empty string, nospace_filling, lpad"
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test"))
+        66        66        66        66        66   66.6600     66.66       abc       def       defE
+
+"(2) optional enclosed and terminated are empty string, nospace_filling, lpad"
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test"))
+        66        66        66        66        66   66.6600     66.66       abc       def       defE
+
+"(3) no enclosed, terminated are empty string, nospace_filling, lpad"
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test"))
+        66        66        66        66        66   66.6600     66.66       abc       def       defE
+
+"(4) enclosed and terminated are empty string, nospace_filling, to_char"
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test"))
+00000000660000000066000000006600000000660000000066000066.6600000066.6600E
+
+"(5) optional enclosed and terminated are empty string, nospace_filling, to_char"
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test"))
+00000000660000000066000000006600000000660000000066000066.6600000066.6600E
+
+"(6) no enclosed, terminated are empty string, nospace_filling, to_char"
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test"))
+00000000660000000066000000006600000000660000000066000066.6600000066.6600E
+
+################################ Special cases for nospace_filling ################################
+"(1) with escaper (default) in data"
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test"))
+         1        \\\\        @@E
+
+"(2) with escaper (\) in data"
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test"))
+         1        \\\\        @@E
+
+"(3) with escaper (@) in data"
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test"))
+         1        \\        @@@@E
+
+"(4) Chinese in data"
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test"))
+         1        你好        盆友E
+
+################################ Incorrect usage for nospace_filling ################################
+"(1) gdb_format 'nospace_filling' needs no field enclosement"
+ERROR HY000: Wrong usage for gdb_format: nospace_filling can only used when field enclosement and terminator are empty string
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test"))
+NULL
+"(2) gdb_format 'nospace_filling' needs no field terminator"
+ERROR HY000: Wrong usage for gdb_format: nospace_filling can only used when field enclosement and terminator are empty string
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test"))
+NULL
+"(3) gdb_format 'nospace_filling' needs neither field terminator nor enclosement"
+ERROR HY000: Wrong usage for gdb_format: nospace_filling can only used when field enclosement and terminator are empty string
+load_file(concat('MYSQLTEST_VARDIR/tmp', "/outfile-test"))
+NULL
+drop database if exists yxx;

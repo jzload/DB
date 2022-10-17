@@ -1,0 +1,4 @@
+
+[mysqld.1]
+internal_tmp_mem_storage_engine=TempTable
+temptable_use_mmap=off

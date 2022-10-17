@@ -1,0 +1,154 @@
+#
+# This case test fixed bugs about procedures and functions, which lead to mysqld crash
+#
+#  (1) bug-1: if create a procedure with input params when parse_mode equals 2 
+#      (oracle parse mode), and call this procedure giving no param, mysqld crashes
+#
+#  (2) bug-2: if the first sql is a procedure with declare block, and aborts when parsing
+#      declare block (such as grammer error), the following create_func_command with begin 
+#      block will crashes
+#
+
+
+create database yxx;
+use yxx;
+
+--echo ###############################################################################
+--echo #              BUG-1: call procedure with params and give no param
+--echo ###############################################################################
+
+set @old_parse_mode = @@parse_mode;
+set @@parse_mode = 2;
+
+create procedure teststart(param int) as   begin   end;
+
+--error ER_SP_WRONG_NO_OF_ARGS
+call teststart();
+
+
+--echo ###############################################################################
+--echo #        BUG-2: aborting of parsing under declare block leads to crashing 
+--echo #                of next create function with begin block
+--echo ################################################################################
+
+# `start` used in procedure
+set @@parse_mode = 2;
+--delimiter /
+
+--error ER_PARSE_ERROR
+declare   start int := 1; begin  select start; end; /
+
+# func
+create function start1(x int)
+returns int reads sql data
+begin
+  return 0;
+end
+/
+--delimiter ;
+
+select start1(5);
+
+
+
+--echo ###############################################################################
+--echo #        BUG-3: access a select statement with derived table leads to  
+--echo #                               mysqld crash
+--echo ################################################################################
+
+create table rttest (rrr int, ttt int);
+insert into rttest values (111,111), (222,222);
+
+set @old_parse_mode = @@parse_mode;
+set @@parse_mode = 2;
+--delimiter /
+
+declare
+  a int;
+  begin
+    for rc in (select * from (select * from rttest) t) loop
+      select concat("info:", rc.rrr, ";", rc.ttt);
+    end loop;
+  end;
+/
+
+--delimiter ;
+set @@parse_mode = @old_parse_mode;
+
+
+--echo ###############################################################################
+--echo #        BUG-4: access fields not using alias in sql-cursor-for-loop leads to
+--echo #                               mysqld crash
+--echo ################################################################################
+set @old_parse_mode = @@parse_mode;
+set @@parse_mode = 2;
+--delimiter /
+
+--error ER_PROCEDURE_EXECUTE_FAIL
+declare
+  a int;
+begin
+  for rc in (select rttest.* from rttest t) loop
+    select concat("info:", rc.rrr, ";", rc.ttt);
+  end loop;
+end;
+/
+
+--delimiter ;
+set @@parse_mode = @old_parse_mode;
+
+
+
+
+--echo ###############################################################################
+--echo #        BUG-5: unknown variable in sql-cursor-for-loop doesn't show detail
+--echo ################################################################################
+create table nums(pid int, ppid int);
+insert into nums values (1,0), (2,0), (3,1),(4,2),(5,3),(6,3);
+
+set @old_parse_mode = @@parse_mode;
+set @@parse_mode = 2;
+--delimiter /
+
+--error ER_SP_UNDECLARED_VAR
+declare
+  a int;
+begin
+  for c in (select * from nums) loop
+    select c.uuu;
+  end loop;
+end;
+/
+
+--delimiter ;
+set @@parse_mode = @old_parse_mode;
+
+
+
+--echo ###############################################################################
+--echo #        BUG-6: access field with wrong table name in sql-cursor-for-loop 
+--echo #                        leads to mysqld crash
+--echo ################################################################################
+set @old_parse_mode = @@parse_mode;
+set @@parse_mode = 2;
+--delimiter /
+
+--error ER_PROCEDURE_EXECUTE_FAIL
+declare
+  a int;
+begin
+  for rc in (select r.* from rttest t) loop
+    select concat("info:", rc.rrr, ";", rc.ttt);
+  end loop;
+end;
+/
+
+--delimiter ;
+set @@parse_mode = @old_parse_mode;
+
+
+--echo "restore..."
+
+drop database yxx;
+set @@parse_mode = @old_parse_mode;
+

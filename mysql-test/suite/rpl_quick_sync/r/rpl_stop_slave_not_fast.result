@@ -1,0 +1,49 @@
+include/master-slave.inc
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+[connection master]
+[on slave]
+stop slave sql_thread;
+set global slave_parallel_workers = 4;
+start slave sql_thread;
+call mtr.add_suppression("The slave coordinator and worker threads are stopped, possibly leaving data in inconsistent state");
+[on master]
+set global max_binlog_size = 10485760;
+drop database if exists test_db;
+Warnings:
+Note	1008	Can't drop database 'test_db'; database doesn't exist
+create database test_db;
+create table test_db.tb1(a int key , c1 varchar(100), c2 varchar(100));
+create procedure test_db.load(count int unsigned)
+begin
+set @c=0;
+start transaction;
+while @c <count DO
+INSERT INTO test_db.tb1 select @c,repeat(char(97+rand()*26),100),repeat(char(97+rand()*26),100);
+set @c=@c+1;
+end while;
+commit;
+end;//
+[on slave]
+[on master]
+call test_db.load(150000);
+[on slave]
+stop slave io_thread;
+stop slave sql_thread;
+"stop slave sql_thread in special case need more than 60s.";
+[on master]
+[on slave]
+start slave;
+[on master]
+truncate table test_db.tb1;
+==== Cleanup ====
+[on master]
+DROP database test_db;
+set global max_binlog_size = 1073741824;
+[on slave]
+stop slave sql_thread;
+set global slave_parallel_workers = 0;
+start slave sql_thread;
+End of tests
+include/rpl_end.inc

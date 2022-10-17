@@ -1,0 +1,116 @@
+################################################################################
+# WL#7169 Semisync: make master wait for more than one slave to ack back
+#
+# The worklog added semisync master variable
+# rpl_semi_sync_master_wait_for_slave_count. The variable controls how many acks
+# from different slaves the transaction should wait for.
+#
+# The test verifies rpl_semi_sync_master_wait_for_slave_count works well.
+################################################################################
+--source include/not_group_replication_plugin.inc
+
+
+
+--echo ####################################################################
+--echo # master install plugin
+--echo ####################################################################
+--let rpl_topology=1->2
+--source include/rpl_init.inc
+CREATE TABLE t1(c1 INT);
+--source include/rpl_sync.inc
+
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+--source include/install_semisync_master.inc
+
+
+SET GLOBAL rpl_semi_sync_master_enabled = 0;
+set global rpl_semi_sync_master_timeout = 1000;
+
+
+create database if not exists linpin1;
+create table linpin1.tb1(a int key, b int);
+
+
+--echo ###################################################################
+--echo # slave install plugin
+--echo ###################################################################
+--let $rpl_connection_name= server_2
+--source include/rpl_connection.inc
+--source include/install_semisync_slave.inc
+
+
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+--let $clients= query_get_value(show status like "Rpl_semi_sync_master_clients", Value, 1)
+while($clients != 1)
+{
+  sleep 3;
+  --let $clients= query_get_value(show status like "Rpl_semi_sync_master_clients", Value, 1)
+}
+
+
+--echo ###################################################################
+--echo # Master set hwm and lwm
+--echo ###################################################################
+set global rpl_semi_sync_master_wait_cond_lwm = '0:0';
+set global rpl_semi_sync_master_wait_cond_hwm = '1:1';
+
+
+
+--echo ###################################################################
+--echo # check binlog statistics info
+--echo ###################################################################
+
+drop database if exists linpin1;
+sleep 1;
+
+
+# show master global binlog status;
+--let $master_binlog_timestamp= query_get_value(show status like 'Binlog_current_timestamp', Value, 1)
+
+
+--let $rpl_connection_name= server_2
+--source include/rpl_connection.inc
+# show slave syncreplay status;
+--let $slave_sync_timestamp= query_get_value(show slave syncreplay status, Sync_Log_Timestamp, 1)
+--let $slave_replay_timestamp= query_get_value(show slave syncreplay status, Replay_Log_Timestamp, 1)
+
+# 测试中偶现 $master_binlog_timestamp - $slave_sync_timestamp == 1, 这是主备之间的执行时间差导致的。
+# 目前暂未发现这个测试用例的这个时间差超过1 sec
+--let $time_diff1= `select abs($master_binlog_timestamp - $slave_sync_timestamp)`
+if($time_diff1 <= 1)
+{
+  --echo # compare master_binlog_timestamp and slave_sync_timestamp ok
+}
+
+--let $time_diff2= `select abs($master_binlog_timestamp - $slave_replay_timestamp)`
+if($time_diff2 <= 1) 
+{
+  --echo # compare master_binlog_timestamp and slave_replay_timestamp ok
+}
+
+
+--echo ###################################################################
+--echo # test end
+--echo ###################################################################
+
+--let $rpl_connection_name= server_2
+--source include/rpl_connection.inc
+--source include/uninstall_semisync_slave.inc
+
+
+# Ack array should be freed when uninstalling semisync master
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+--source include/uninstall_semisync_master.inc
+# end
+
+
+
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+DROP TABLE t1;
+CALL mtr.add_suppression(".* Timeout waiting for reply of binlog .*");
+CALL mtr.add_suppression(".* Failed to allocate memory for ack_array .*");
+--source include/rpl_end.inc

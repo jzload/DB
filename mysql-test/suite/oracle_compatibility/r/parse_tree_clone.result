@@ -1,0 +1,800 @@
+DROP DATABASE IF EXISTS test_db_parse_tree_clone;
+Warnings:
+Note	1008	Can't drop database 'test_db_parse_tree_clone'; database doesn't exist
+CREATE DATABASE test_db_parse_tree_clone;
+USE test_db_parse_tree_clone;
+create table t1 (a int,a1 int);
+create table t2 (b int,a1 int);
+create table t3 (c int,a1 int);
+create table t4 (d int);
+create table t5 (a int, b int);
+create table t7 (d int, e varchar(20));
+create table t10 (a int unsigned auto_increment primary key, b char(20));
+alter table t10 partition by range(a) (partition p0 values less than  (4),partition p1 values less than (10));
+alter table t10 add key b(b);
+insert into t1 values(0,0),(1,1),(4,4),(5,5);
+insert into t2 values(0,0),(2,2),(4,4),(6,6);
+insert into t3 values(0,0),(3,3),(5,5),(6,6);
+insert into t4 values(0),(1),(2),(3),(4),(5),(6),(NULL);
+insert into t5 values(0,0),(4,4);
+insert into t7 values(0,'a'),(1,'b'),(2,'c'),(3,'d'),(NULL,'e'),(4,NULL);
+insert into t10 values(null,'aa'),(null,'bb'),(null,'cc'),(null,'dd'),(null,'ee'),(null,'ff');
+select * from t1 full join t2 on a in (1,2,3,4,5,6) and a=b order by a,b;
+a	a1	b	a1
+NULL	NULL	0	0
+NULL	NULL	2	2
+NULL	NULL	6	6
+0	0	NULL	NULL
+1	1	NULL	NULL
+4	4	4	4
+5	5	NULL	NULL
+select * from t1 full join t2 on a in (1) and a=b order by a,b;
+a	a1	b	a1
+NULL	NULL	0	0
+NULL	NULL	2	2
+NULL	NULL	4	4
+NULL	NULL	6	6
+0	0	NULL	NULL
+1	1	NULL	NULL
+4	4	NULL	NULL
+5	5	NULL	NULL
+select * from t1 full join t2 on a in (select t2.a1 from t2 full join t3 on b<=c) order by a,b;
+a	a1	b	a1
+0	0	0	0
+0	0	2	2
+0	0	4	4
+0	0	6	6
+1	1	NULL	NULL
+4	4	0	0
+4	4	2	2
+4	4	4	4
+4	4	6	6
+5	5	NULL	NULL
+select * from t1 full join (select * from t2 order by a1,b limit 3)dt2 using(a1) order by a,b;
+a1	a	b
+2	NULL	2
+0	0	0
+1	1	NULL
+4	4	4
+5	5	NULL
+select * from t1 full join (select * from t2 order by a1,b limit 2,1)dt2 using(a1) order by a,b;
+a1	a	b
+0	0	NULL
+1	1	NULL
+4	4	4
+5	5	NULL
+select * from t1 full join
+(select a1,sum(b),avg(b),variance(b),std(b),max(b),min(b),count(b),count(distinct b)
+from t2
+group by a1
+having sum(b)>=0
+order by count(b),a1 limit 3 offset 2)dt2
+on t1.a1 = dt2.`max(b)`
+order by a,dt2.a1;
+a	a1	a1	sum(b)	avg(b)	variance(b)	std(b)	max(b)	min(b)	count(b)	count(distinct b)
+NULL	NULL	6	6	6.0000	0	0	6	6	1	1
+0	0	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	1	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+4	4	4	4	4.0000	0	0	4	4	1	1
+5	5	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+select * from t1 full join
+(with recursive cte1 as
+(select a,a1 from t1 where a = 0
+union all
+select t1.* from cte1 join t1 where cte1.a<t1.a),
+cte2(a1,a2,a3) as
+(select * from t1 natural full join t2 where a1>0)
+select cte2.* from cte1 left join cte2 on cte1.a1 = cte2.a1)dt using(a1)
+order by a1,a;
+a1	a	a2	a3
+NULL	NULL	NULL	NULL
+0	0	NULL	NULL
+1	1	1	NULL
+4	4	4	4
+4	4	4	4
+5	5	5	NULL
+5	5	5	NULL
+5	5	5	NULL
+5	5	5	NULL
+select * from t1 full join (select b b2, a1 a, t2.*, b `bb` from t2)dt2 on t1.a=b order by t1.a,b;
+a	a1	b2	a	b	a1	bb
+NULL	NULL	2	2	2	2	2
+NULL	NULL	6	6	6	6	6
+0	0	0	0	0	0	0
+1	1	NULL	NULL	NULL	NULL	NULL
+4	4	4	4	4	4	4
+5	5	NULL	NULL	NULL	NULL	NULL
+select * from t1 full join t10 partition(p0) t10_0 use key (b) on t1.a=t10_0.a order by t1.a,t10_0.a;
+a	a1	a	b
+NULL	NULL	2	bb
+NULL	NULL	3	cc
+0	0	NULL	NULL
+1	1	1	aa
+4	4	NULL	NULL
+5	5	NULL	NULL
+select * from t1 full join (t4,t2 join t3 on b=c) on a=c and d=a order by a,d,b;
+a	a1	d	b	a1	c	a1
+NULL	NULL	NULL	0	0	0	0
+NULL	NULL	NULL	6	6	6	6
+NULL	NULL	0	6	6	6	6
+NULL	NULL	1	0	0	0	0
+NULL	NULL	1	6	6	6	6
+NULL	NULL	2	0	0	0	0
+NULL	NULL	2	6	6	6	6
+NULL	NULL	3	0	0	0	0
+NULL	NULL	3	6	6	6	6
+NULL	NULL	4	0	0	0	0
+NULL	NULL	4	6	6	6	6
+NULL	NULL	5	0	0	0	0
+NULL	NULL	5	6	6	6	6
+NULL	NULL	6	0	0	0	0
+NULL	NULL	6	6	6	6	6
+0	0	0	0	0	0	0
+1	1	NULL	NULL	NULL	NULL	NULL
+4	4	NULL	NULL	NULL	NULL	NULL
+5	5	NULL	NULL	NULL	NULL	NULL
+select * from t1 full join (select * from t2 join lateral (select * from t3)dt3 on b=c)dt23(c1,c2,c3,c4) on a=c1 order by a;
+a	a1	c1	c2	c3	c4
+NULL	NULL	6	6	6	6
+0	0	0	0	0	0
+1	1	NULL	NULL	NULL	NULL
+4	4	NULL	NULL	NULL	NULL
+5	5	NULL	NULL	NULL	NULL
+select * from t1 full join (t2 cross join t3) on a=c order by a,b,c;
+a	a1	b	a1	c	a1
+NULL	NULL	0	0	3	3
+NULL	NULL	0	0	6	6
+NULL	NULL	2	2	3	3
+NULL	NULL	2	2	6	6
+NULL	NULL	4	4	3	3
+NULL	NULL	4	4	6	6
+NULL	NULL	6	6	3	3
+NULL	NULL	6	6	6	6
+0	0	0	0	0	0
+0	0	2	2	0	0
+0	0	4	4	0	0
+0	0	6	6	0	0
+1	1	NULL	NULL	NULL	NULL
+4	4	NULL	NULL	NULL	NULL
+5	5	0	0	5	5
+5	5	2	2	5	5
+5	5	4	4	5	5
+5	5	6	6	5	5
+select * from t1 full join (t2 join t3 using(a1)) on a=c order by a,b;
+a	a1	a1	b	c
+NULL	NULL	6	6	6
+0	0	0	0	0
+1	1	NULL	NULL	NULL
+4	4	NULL	NULL	NULL
+5	5	NULL	NULL	NULL
+select * from t1 full join (select * from t2 start with a1=0 connect by b>prior a1)dt2 using(a1) order by a1;
+a1	a	b
+0	0	0
+1	1	NULL
+2	NULL	2
+4	4	4
+4	4	4
+5	5	NULL
+6	NULL	6
+6	NULL	6
+6	NULL	6
+6	NULL	6
+select * from t1 full join (select t2.a1, sum(c) over(partition by t2.a1) sum_c,
+avg(c) over(order by t2.a1 rows between 1 preceding and 1 following) avg_c,
+variance(c) over (w1 order by t2.a1) var_c,
+min(c) over w2 as min_c,
+max(c) over w3 as max_c
+from t2 join t3 on t2.a1<t3.a1
+window w1 as (partition by t3.a1),
+w2 as (partition by t3.a1 order by b range unbounded preceding),
+w3 as (order by b rows between unbounded preceding and unbounded following))dt on t1.a1 = dt.a1
+order by a,min_c;
+a	a1	a1	sum_c	avg_c	var_c	min_c	max_c
+NULL	NULL	2	14	4.6667	0	3	6
+NULL	NULL	2	14	4.6667	0	5	6
+NULL	NULL	2	14	5.3333	0	6	6
+0	0	0	14	4.0000	0	3	6
+0	0	0	14	4.6667	0	5	6
+0	0	0	14	4.6667	0	6	6
+1	1	NULL	NULL	NULL	NULL	NULL	NULL
+4	4	4	11	5.6667	0	5	6
+4	4	4	11	5.5000	0	6	6
+5	5	NULL	NULL	NULL	NULL	NULL	NULL
+select * from t1 full join (select distinct straight_join t1.a1 into @var1 from t1 join t2 on a=b)dt12 on dt12.a1=a;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '(select distinct straight_join t1.a1 into @var1 from t1 join t2 on a=b)dt12 on d' at line 1
+select * from t1 full join (select * from t2 union select * from t3 order by a1 limit 2 offset 2)dt on a=b order by a,b;
+a	a1	b	a1
+NULL	NULL	3	3
+0	0	NULL	NULL
+1	1	NULL	NULL
+4	4	4	4
+5	5	NULL	NULL
+select * from t1 full join t2 on exists((select * from t1) order by a) order by a,b;
+a	a1	b	a1
+0	0	0	0
+0	0	2	2
+0	0	4	4
+0	0	6	6
+1	1	0	0
+1	1	2	2
+1	1	4	4
+1	1	6	6
+4	4	0	0
+4	4	2	2
+4	4	4	4
+4	4	6	6
+5	5	0	0
+5	5	2	2
+5	5	4	4
+5	5	6	6
+select * from t1 full join (select 1 c1, 1.0 c2, 1.2e5 c3, null c4, 0x56 c5)dt1 on a=c1 order by a;
+a	a1	c1	c2	c3	c4	c5
+0	0	NULL	NULL	NULL	NULL	NULL
+1	1	1	1.0	120000	NULL	V
+4	4	NULL	NULL	NULL	NULL	NULL
+5	5	NULL	NULL	NULL	NULL	NULL
+select * from t1 full join (select * from t2 where b is null and a1 is not null)dt using(a1) order by a1;
+a1	a	b
+0	0	NULL
+1	1	NULL
+4	4	NULL
+5	5	NULL
+select * from t1 full join (select * from t2 where b between 1 and 5)dt using(a1) order by a1;
+a1	a	b
+0	0	NULL
+1	1	NULL
+2	NULL	2
+4	4	4
+5	5	NULL
+select * from t1 full join (select * from t7 where e not like '%a')dt on a=d order by a,d;
+a	a1	d	e
+NULL	NULL	NULL	e
+NULL	NULL	2	c
+NULL	NULL	3	d
+0	0	NULL	NULL
+1	1	1	b
+4	4	NULL	NULL
+5	5	NULL	NULL
+select * from t1 full join (select * from t2 where true)dt on false where true xor false order by a,b;
+a	a1	b	a1
+NULL	NULL	0	0
+NULL	NULL	2	2
+NULL	NULL	4	4
+NULL	NULL	6	6
+0	0	NULL	NULL
+1	1	NULL	NULL
+4	4	NULL	NULL
+5	5	NULL	NULL
+select * from t1 full join (select t2.* from t2)dt on 1<2 and 2<>3 and NULL <=> NULL is true order by a,b;
+a	a1	b	a1
+0	0	0	0
+0	0	2	2
+0	0	4	4
+0	0	6	6
+1	1	0	0
+1	1	2	2
+1	1	4	4
+1	1	6	6
+4	4	0	0
+4	4	2	2
+4	4	4	4
+4	4	6	6
+5	5	0	0
+5	5	2	2
+5	5	4	4
+5	5	6	6
+select * from t1 full join t2 on b < all(select a1 from t3) or b is null order by a,b;
+a	a1	b	a1
+NULL	NULL	0	0
+NULL	NULL	2	2
+NULL	NULL	4	4
+NULL	NULL	6	6
+0	0	NULL	NULL
+1	1	NULL	NULL
+4	4	NULL	NULL
+5	5	NULL	NULL
+select * from t1 full join (select b,t2.b,test_db_parse_tree_clone.t2.b from t2)dt(c1,c2,c3) on a=c1 order by a,c1;
+a	a1	c1	c2	c3
+NULL	NULL	2	2	2
+NULL	NULL	6	6	6
+0	0	0	0	0
+1	1	NULL	NULL	NULL
+4	4	4	4	4
+5	5	NULL	NULL	NULL
+select * from t1 full join (select 1,now(4),sysdate)dt(c1,c2,c3) on c1=a1 order by a;
+a	a1	c1	c2	c3
+0	0	NULL	NULL	NULL
+1	1	1	yyyy-mm-dd HH:MM:SS	yyyy-mm-dd HH:MM:SS
+4	4	NULL	NULL	NULL
+5	5	NULL	NULL	NULL
+select * from t1 full join (select 1,md5(11124),abs(-12))dt(c1,c2,c3) on c1=a1 order by a;
+a	a1	c1	c2	c3
+0	0	NULL	NULL	NULL
+1	1	1	e3050c2fe9297974cbf4328fa4f98d42	12
+4	4	NULL	NULL	NULL
+5	5	NULL	NULL	NULL
+drop function if exists ftest;
+Warnings:
+Note	1305	FUNCTION test_db_parse_tree_clone.ftest does not exist
+create function ftest(x int)
+returns int reads sql data
+begin
+declare ret int;
+select count(*)
+into ret
+from t1 full join t2 on a=b
+where a<=x;
+return ret;
+end//
+select * from t1 full join (select 1,test_db_parse_tree_clone.ftest(5))dt(c1,c2) on c1=a1 order by a;
+a	a1	c1	c2
+0	0	NULL	NULL
+1	1	1	4
+4	4	NULL	NULL
+5	5	NULL	NULL
+select * from t1 full join (select a1, 'help','help' ' 1',n'abc' from t2)dt(c1,c2,c3,c4) on a1=c1 order by a,c1;
+a	a1	c1	c2	c3	c4
+NULL	NULL	2	help	help 1	abc
+NULL	NULL	6	help	help 1	abc
+0	0	0	help	help 1	abc
+1	1	NULL	NULL	NULL	NULL
+4	4	4	help	help 1	abc
+5	5	NULL	NULL	NULL	NULL
+Warnings:
+Warning	3720	NATIONAL/NCHAR/NVARCHAR implies the character set UTF8MB3, which will be replaced by UTF8MB4 in a future release. Please consider using CHAR(x) CHARACTER SET UTF8MB4 in order to be unambiguous.
+select *
+from t1 full join
+(select (select count(*) from t2) from t2)dt2(c1)
+on (select count(*),sum(b) from t2) in (select * from t2)
+order by a,c1;
+a	a1	c1
+NULL	NULL	4
+NULL	NULL	4
+NULL	NULL	4
+NULL	NULL	4
+0	0	NULL
+1	1	NULL
+4	4	NULL
+5	5	NULL
+select * from t1 full join t2 on exists(select * from t3 where a=c and b=c) order by a,b;
+a	a1	b	a1
+NULL	NULL	2	2
+NULL	NULL	4	4
+NULL	NULL	6	6
+0	0	0	0
+1	1	NULL	NULL
+4	4	NULL	NULL
+5	5	NULL	NULL
+select *
+from (select * from t1 where a1>5 or a1<3 or a1=4)dt1
+full join
+(select * from t2 where a1>0 and a1<7)dt2
+on a>1 or b<5 or dt1.a1>0 and dt2.a1=dt1.a1
+order by a,b;
+a	a1	b	a1
+0	0	2	2
+0	0	4	4
+1	1	2	2
+1	1	4	4
+4	4	2	2
+4	4	4	4
+4	4	6	6
+prepare stmt from 'select * from t1 full join t2 on a=b and t1.a1>?';
+select * from t1 full join t2 on (a,b) in (select * from t3) order by a,b;
+a	a1	b	a1
+NULL	NULL	2	2
+NULL	NULL	4	4
+NULL	NULL	6	6
+0	0	0	0
+1	1	NULL	NULL
+4	4	NULL	NULL
+5	5	NULL	NULL
+select a+1, a-1, a*2, a/2, a div 2, a mod 2, -a from t1 start with a=0 connect by 0;
+a+1	a-1	a*2	a/2	a div 2	a mod 2	-a
+1	-1	0	0.0000	0	0	0
+select position('abc' in 'ddabcabcabc'),truncate(1.234,a) from t1 start with a=0 connect by 0;
+position('abc' in 'ddabcabcabc')	truncate(1.234,a)
+3	1.000
+select ascii('a') from t1 start with a=0 connect by 0;
+ascii('a')
+97
+select a|0,a&7,a^7,1<<a,a>>1,~a from t1 start with a=0 connect by 0;
+a|0	a&7	a^7	1<<a	a>>1	~a
+0	0	7	1	0	18446744073709551615
+select row_count() from t1 start with a=0 connect by 0;
+row_count()
+-1
+drop table if exists t8;
+Warnings:
+Note	1051	Unknown table 'test_db_parse_tree_clone.t8'
+create table t8 (c1 int primary key auto_increment, c2 varchar(50));
+insert into t8 values(null,'hello'),(null,'how'),(null,'are'),(null,'you');
+alter table t8 add fulltext index (c2);
+Warnings:
+Warning	124	InnoDB rebuilding table to add column FTS_DOC_ID
+select * from t8 start with match c2 against ('+hello') connect by 0;
+c1	c2
+1	hello
+drop table t8;
+set @save_sql_mode = @@sql_mode;
+set sql_mode='pipes_as_concat';
+select 'hello' || 'how are you' from t1 start with a=0 connect by 0;
+'hello' || 'how are you'
+hellohow are you
+set sql_mode = @save_sql_mode;
+select reverse('abc'),replace('1234567',a,'0'),insert('how',2,4,'wwww') from t1 start with a=0 connect by false;
+reverse('abc')	replace('1234567',a,'0')	insert('how',2,4,'wwww')
+cba	1234567	hwwww
+select left('Mario No. 1',5),right('Luigi No. 2',5),trim('a' from 'aaabbababaa') from t1 start with a=0 connect by 0;
+left('Mario No. 1',5)	right('Luigi No. 2',5)	trim('a' from 'aaabbababaa')
+Mario	No. 2	bbabab
+select database(),user(),current_user() from t1 start with a=0 connect by 0;
+database()	user()	current_user()
+test_db_parse_tree_clone	root@localhost	root@localhost
+select 'peak' sounds like 'pick' from t1 start with a=0 connect by 0;
+'peak' sounds like 'pick'
+1
+select char('88',123,78),format(123456,4),repeat(123,3) from t1 start with a=0 connect by 0;
+char('88',123,78)	format(123456,4)	repeat(123,3)
+X{N	123,456.0000	123123123
+select cast(77 as char), convert('aaa' using gbk) from t1 start with a=0 connect by 0;
+cast(77 as char)	convert('aaa' using gbk)
+77	aaa
+select charset('aaa'), collation(123 collate utf8mb4_bin) from t1 start with a=0 connect by 0;
+charset('aaa')	collation(123 collate utf8mb4_bin)
+utf8mb4	utf8mb4_bin
+select weight_string(123 as char(8)) from t1 start with a=0 connect by 0;
+weight_string(123 as char(8))
+NULL
+select substr('abcdefg',2,3),substr('abcdefg',4) from t1 start with a=0 connect by 0;
+substr('abcdefg',2,3)	substr('abcdefg',4)
+bcd	defg
+select/*+semijoin() full_join_anti() */ * from t1 start with a=0 connect by 0;
+a	a1
+0	0
+Warnings:
+Warning	8035	FULL_JOIN_ANTI hint is misused in query.
+select rownum from t1 start with true connect by 0;
+rownum
+1
+2
+3
+4
+select date(19900319), time(220359),cast(220323.233 as time (4))
+from t1 start with a=0 connect by 0;
+date(19900319)	time(220359)	cast(220323.233 as time (4))
+1990-03-19	22:03:59	22:03:23.2330
+select timestamp(19900913210202.123),cast(19900913210202.123 as datetime (5))
+from t1 start with a=0 connect by 0;
+timestamp(19900913210202.123)	cast(19900913210202.123 as datetime (5))
+1990-09-13 21:02:02.123	1990-09-13 21:02:02.12300
+select cast(12 as signed), cast(-1 as unsigned)
+from t1 start with a=0 connect by 0;
+cast(12 as signed)	cast(-1 as unsigned)
+12	18446744073709551615
+select *
+from t1
+full join
+(select rownum r,year(a),month(a),day(a),hour(a),
+minute(a),second(a),microsecond(a),quarter(a),
+week(a),week(a,6)
+from (select 20200202202202.222)dt(a))dt
+on a=dt.r
+order by a;
+a	a1	r	year(a)	month(a)	day(a)	hour(a)	minute(a)	second(a)	microsecond(a)	quarter(a)	week(a)	week(a,6)
+0	0	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	1	1	2020	2	2	20	22	2	222000	1	5	6
+4	4	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+5	5	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+select * from t1 full join (select t2.a1,
+variance(c) over w1 var_c,
+var_samp(c) over w1 var_s_c,
+std(c) over w1 std_c,
+stddev_samp(c) over w1 std_s_c,
+bit_and(c) over w1 as and_c,
+bit_or(c) over w1 as or_c,
+bit_xor(c) over w1 as xor_c
+from t2 join t3 on t2.a1<t3.a1
+window
+w1 as (partition by t3.a1 order by b range unbounded preceding))dt on t1.a1 = dt.a1
+order by a, xor_c;
+a	a1	a1	var_c	var_s_c	std_c	std_s_c	and_c	or_c	xor_c
+NULL	NULL	2	0	0	0	0	3	3	0
+NULL	NULL	2	0	0	0	0	5	5	0
+NULL	NULL	2	0	0	0	0	6	6	0
+0	0	0	0	NULL	0	NULL	3	3	3
+0	0	0	0	NULL	0	NULL	5	5	5
+0	0	0	0	NULL	0	NULL	6	6	6
+1	1	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+4	4	4	0	0	0	0	5	5	5
+4	4	4	0	0	0	0	6	6	6
+5	5	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+select * from t1 full join
+(select a1,variance(b),var_samp(b),std(b),stddev_samp(b),bit_and(b),bit_or(b),bit_xor(b)
+from t2
+group by a1
+having sum(b)>=0
+order by count(b),a1)dt2
+on t1.a1 = dt2.a1
+order by a, dt2.a1;
+a	a1	a1	variance(b)	var_samp(b)	std(b)	stddev_samp(b)	bit_and(b)	bit_or(b)	bit_xor(b)
+NULL	NULL	2	0	NULL	0	NULL	2	2	2
+NULL	NULL	6	0	NULL	0	NULL	6	6	6
+0	0	0	0	NULL	0	NULL	0	0	0
+1	1	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+4	4	4	0	NULL	0	NULL	4	4	4
+5	5	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+select * from t1 full join (select t2.a1, listagg(c) within group (order by b) over w1 gc1,
+listagg(concat(b,c),';')  within group (order by b) over w1 gc2
+from t2 join t3 on t2.a1<t3.a1
+window w1 as (partition by t3.a1 order by b range unbounded preceding))dt on t1.a1 = dt.a1
+order by a,gc2;
+a	a1	a1	gc1	gc2
+NULL	NULL	2	66	23;03
+NULL	NULL	2	66	25;05
+NULL	NULL	2	66	26;06
+0	0	0	6	03
+0	0	0	6	05
+0	0	0	6	06
+1	1	NULL	NULL	NULL
+4	4	4	666	45;25;05
+4	4	4	666	46;26;06
+5	5	NULL	NULL	NULL
+select * from t1 full join
+(select t2.a1,
+grouping(t2.a1) grp_a1,
+group_concat(c) gcc1,
+group_concat(distinct b,c order by b desc separator ';') gcc2,
+listagg(c) within group (order by b) lac1,
+listagg(c,',') within group (order by b) lac2
+from t2,t3
+where b<c
+group by t2.a1 with rollup
+order by count(b),t2.a1)dt2
+on t1.a1 = dt2.a1
+order by a, grp_a1;
+a	a1	a1	grp_a1	gcc1	gcc2	lac1	lac2
+NULL	NULL	2	0	3,5,6	26;25;23	653	6,5,3
+NULL	NULL	NULL	1	3,5,6,3,5,6,5,6	46;45;26;25;23;06;05;03	65365365	6,5,3,6,5,3,6,5
+0	0	0	0	3,5,6	06;05;03	653	6,5,3
+1	1	NULL	NULL	NULL	NULL	NULL	NULL
+4	4	4	0	5,6	46;45	65	6,5
+5	5	NULL	NULL	NULL	NULL	NULL	NULL
+select * from t1 full join (select t2.a1,
+row_number() over w1 rn,
+rank() over w1 rk,
+dense_rank() over w1 drank,
+cume_dist() over w1 cd,
+percent_rank() over w1 pr,
+ntile(2) over w1 ntl
+from t2 join t3 on t2.a1<t3.a1
+window w1 as (partition by t3.a1 order by b range unbounded preceding))dt on t1.a1 = dt.a1
+order by a,cd;
+a	a1	a1	rn	rk	drank	cd	pr	ntl
+NULL	NULL	2	2	2	2	0.6666666666666666	0.5	1
+NULL	NULL	2	2	2	2	0.6666666666666666	0.5	1
+NULL	NULL	2	2	2	2	1	1	2
+0	0	0	1	1	1	0.3333333333333333	0	1
+0	0	0	1	1	1	0.3333333333333333	0	1
+0	0	0	1	1	1	0.5	0	1
+1	1	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+4	4	4	3	3	3	1	1	2
+4	4	4	3	3	3	1	1	2
+5	5	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+select * from t1 full join (select t2.a1,
+lead(c) over w1 ld1,
+lead(c,1,-1) RESPECT NULLS over w1 ld2,
+lag(c) over w1 rk1,
+lag(c,1,-1) RESPECT NULLS over w1 rk2,
+first_value(c) over w1 fv1,
+first_value(c) RESPECT NULLS over w1 fv2,
+last_value(c) over w1 lv1,
+last_value(c) RESPECT NULLS over w1 lv2,
+nth_value(c,1) over w1 nv1,
+nth_value(c,2) from first RESPECT NULLS over w1 nv2
+from t2 join t3 on t2.a1<t3.a1
+window w1 as (partition by t3.a1 order by b range unbounded preceding))dt on t1.a1 = dt.a1
+order by a,ld2;
+a	a1	a1	ld1	ld2	rk1	rk2	fv1	fv2	lv1	lv2	nv1	nv2
+NULL	NULL	2	NULL	-1	3	3	3	3	3	3	3	3
+NULL	NULL	2	5	5	5	5	5	5	5	5	5	5
+NULL	NULL	2	6	6	6	6	6	6	6	6	6	6
+0	0	0	3	3	NULL	-1	3	3	3	3	3	NULL
+0	0	0	5	5	NULL	-1	5	5	5	5	5	NULL
+0	0	0	6	6	NULL	-1	6	6	6	6	6	NULL
+1	1	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+4	4	4	NULL	-1	5	5	5	5	5	5	5	5
+4	4	4	NULL	-1	6	6	6	6	6	6	6	6
+5	5	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+select * from t1 full join
+(select t2.a1,
+grouping(t2.a1) grp_a1,
+json_arrayagg(c) ja_c,
+json_objectagg(concat('c',b,c),c) jo_c
+from t2,t3
+where b<c
+group by t2.a1 with rollup
+order by count(b),t2.a1)dt2
+on t1.a1 = dt2.a1
+order by a, grp_a1;
+a	a1	a1	grp_a1	ja_c	jo_c
+NULL	NULL	2	0	[3, 5, 6]	{"c23": 3, "c25": 5, "c26": 6}
+NULL	NULL	NULL	1	[3, 5, 6, 3, 5, 6, 5, 6]	{"c03": 3, "c05": 5, "c06": 6, "c23": 3, "c25": 5, "c26": 6, "c45": 5, "c46": 6}
+0	0	0	0	[3, 5, 6]	{"c03": 3, "c05": 5, "c06": 6}
+1	1	NULL	NULL	NULL	NULL
+4	4	4	0	[5, 6]	{"c45": 5, "c46": 6}
+5	5	NULL	NULL	NULL	NULL
+select 1, 0x4e,0b01001111,1.4,1.4e2, (select a from t1 limit 1), values(a), default(a) from t1 start with a=1 connect by 0;
+1	0x4e	0b01001111	1.4	1.4e2	(select a from t1 limit 1)	values(a)	default(a)
+1	N	O	1.4	140	0	NULL	NULL
+select * from t1 full join t2 on a=b and 1=0x1 and 9=0b1001 order by a,b;
+a	a1	b	a1
+NULL	NULL	2	2
+NULL	NULL	6	6
+0	0	0	0
+1	1	NULL	NULL
+4	4	4	4
+5	5	NULL	NULL
+select _binary'abc', date'19900909', _latin1 0x4e, _binary 0b1000001 from t1 start with a=1 connect by 0;
+abc	date'19900909'	_latin1 0x4e	_binary 0b1000001
+abc	1990-09-09	N	A
+select @a:=a+1, @a, @@global.innodb_use_native_aio from t1 start with a=1 connect by 0;
+@a:=a+1	@a	@@global.innodb_use_native_aio
+2	2	1
+Warnings:
+Warning	1287	Setting user variables within expressions is deprecated and will be removed in a future release. Consider alternatives: 'SET variable=expression, ...', or 'SELECT expression(s) INTO variables(s)'.
+prepare stmt from 'select * from t1 full join (select * from t2 order by b limit ?)dt2 on a=b order by a,b';
+set @a=3;
+execute stmt using @a;
+a	a1	b	a1
+NULL	NULL	2	2
+0	0	0	0
+1	1	NULL	NULL
+4	4	4	4
+5	5	NULL	NULL
+create procedure limit_clone_test (IN lmt int)
+begin
+select * from t1 full join (select * from t2 order by b limit lmt)dt2 on a=b order by a,b;
+end//
+call limit_clone_test(3);
+a	a1	b	a1
+NULL	NULL	2	2
+0	0	0	0
+1	1	NULL	NULL
+4	4	4	4
+5	5	NULL	NULL
+select {d '20200202'} `date`,{t '202020.020202'} `time`, {ts '20200202 20-22-02'} `datetime` from t1 start with a=1 connect by 0;
+date	time	datetime
+2020-02-02	20:20:20.020202	20200202 20-22-02
+create table t_data (id int,name varchar(50));
+insert into t_data values(1,'mario'),(2,'kuba'),(3,'pikachu'),(4,'nathan'),(5,'kratos');
+create table t_json as select json_arrayagg(name) over(order by id) ja_c,
+json_objectagg(name,concat(name,id)) over(order by id) jo_c
+from t_data;
+select ja_c,'mario' member of (ja_c) a, jo_c->'$.nathan' b, jo_c->>'$.nathan' c, ja_c->'$[1]' d, ja_c->>'$[2]' e from t_json start with 1 connect by 0 order by ja_c;
+ja_c	a	b	c	d	e
+["mario"]	1	NULL	NULL	NULL	NULL
+["mario", "kuba"]	1	NULL	NULL	"kuba"	NULL
+["mario", "kuba", "pikachu"]	1	NULL	NULL	"kuba"	pikachu
+["mario", "kuba", "pikachu", "nathan"]	1	"nathan4"	nathan4	"kuba"	pikachu
+["mario", "kuba", "pikachu", "nathan", "kratos"]	1	"nathan4"	nathan4	"kuba"	pikachu
+Warnings:
+Warning	1235	This version of MySQL doesn't yet support 'sorting of non-scalar JSON values'
+select cast(ja_c as char(30) array) from t_json start with 1 connect by 0;
+ERROR 42000: This version of MySQL doesn't yet support 'Use of CAST( .. AS .. ARRAY) outside of functional index in CREATE(non-SELECT)/ALTER TABLE or in general expressions'
+drop table t_json;
+drop table t_data;
+select 'abcd1234' regexp '[a-z]*[0-9]*' match_pattern from t1 start with a=1 connect by 0;
+match_pattern
+1
+select extract(year from '20200202') from t1 start with a=1 connect by 0;
+extract(year from '20200202')
+2020
+select case a when 1 then 'one' when 4 then 'four' else 'other' end case1 from t1 start with 1 connect by 0;
+case1
+other
+one
+four
+other
+select case when a<1 then '<1' when a<4 then '<4' else '>=4' end case2 from t1 start with 1 connect by 0;
+case2
+<1
+<4
+>=4
+>=4
+select if(a>3,a1,3) from t1 start with 1 connect by 0;
+if(a>3,a1,3)
+3
+3
+4
+5
+select interval(2,1,2,3),interval(2,3),interval(NULL,1,2) from t1 start with a=1 connect by 0;
+interval(2,1,2,3)	interval(2,3)	interval(NULL,1,2)
+2	0	-1
+select timestamp('2003-12-31 12:00:00','12:00:00') from t1 start with a=1 connect by 0;
+timestamp('2003-12-31 12:00:00','12:00:00')
+2004-01-01 00:00:00
+select adddate('2008-01-02', INTERVAL 3 month) from t1 start with a=1 connect by 0;
+adddate('2008-01-02', INTERVAL 3 month)
+2008-04-02
+select get_format(datetime, 'iso') from t1 start with a=1 connect by 0;
+get_format(datetime, 'iso')
+%Y-%m-%d %H:%i:%s
+select timestampdiff(MONTH,'2019-08-19','2020-07-18') from t1 start with a=1 connect by 0;
+timestampdiff(MONTH,'2019-08-19','2020-07-18')
+10
+select utc_date()=utc_date() from t1 start with a=1 connect by 0;
+utc_date()=utc_date()
+1
+select curdate()=curdate() from t1 start with a=1 connect by 0;
+curdate()=curdate()
+1
+select curtime()=curtime() from t1 start with a=1 connect by 0;
+curtime()=curtime()
+1
+select utc_time()=utc_time() from t1 start with a=1 connect by 0;
+utc_time()=utc_time()
+1
+select utc_timestamp()=utc_timestamp() from t1 start with a=1 connect by 0;
+utc_timestamp()=utc_timestamp()
+1
+select systimestamp=systimestamp from t1 start with a=1 connect by 0;
+systimestamp=systimestamp
+1
+select * from t1 full join (select t2.a1, count(*) over(partition by t2.a1) count_c
+from t2 join t3 on t2.a1<t3.a1)dt on t1.a1 = dt.a1
+order by a;
+a	a1	a1	count_c
+NULL	NULL	2	3
+NULL	NULL	2	3
+NULL	NULL	2	3
+0	0	0	3
+0	0	0	3
+0	0	0	3
+1	1	NULL	NULL
+4	4	4	2
+4	4	4	2
+5	5	NULL	NULL
+select * from t1 full join (select/*+JOIN_ORDER(t2,t3@`b`) */ b,c from t2 join t3 on b=c)dt2 on a=b order by a;
+a	a1	b	c
+NULL	NULL	6	6
+0	0	0	0
+1	1	NULL	NULL
+4	4	NULL	NULL
+5	5	NULL	NULL
+select * from t1 full join (select/*+JOIN_ORDER(@`a` t2,t3) */ b,c from t2 join t3 on b=c)dt2 on a=b order  by a;
+a	a1	b	c
+NULL	NULL	6	6
+0	0	0	0
+1	1	NULL	NULL
+4	4	NULL	NULL
+5	5	NULL	NULL
+Warnings:
+Warning	3127	Query block name `a` is not found for JOIN_ORDER hint
+Warning	3127	Query block name `a` is not found for JOIN_ORDER hint
+select a, a xor a1+1 from t1 start with a<=1 connect by 0;
+a	a xor a1+1
+0	1
+1	0
+select 'abc_' like 'abc|_' escape '|' from t1 start with a=1 connect by 0;
+'abc_' like 'abc|_' escape '|'
+1
+select format(12332.2,2,'de_DE') from t1 start with a=1 connect by 0;
+format(12332.2,2,'de_DE')
+12.332,20
+select trim('  abc  ') from t1 start with a=1 connect by 0;
+trim('  abc  ')
+abc
+select * from t1 full join
+(select t2.a1, sum(c) over(partition by t2.a1 order by b rows between 2 preceding and unbounded following exclude current row) sum_c
+from t2 join t3 on t2.a1<t3.a1)dt on t1.a1 = dt.a1
+order by a;
+ERROR 42000: This version of MySQL doesn't yet support 'EXCLUDE'
+create table ttime (time datetime, id int);
+insert into ttime values('19990909232323',1),('20000101101010',2),('20120202000001',3);
+select id,sum(id) over(order by time range interval 2 year preceding) sum_id from ttime start with 1 connect by 0 order by id;
+id	sum_id
+1	1
+2	3
+3	3
+DROP DATABASE IF EXISTS test_db_parse_tree_clone;

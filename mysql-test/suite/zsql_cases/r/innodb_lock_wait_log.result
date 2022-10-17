@@ -1,0 +1,1057 @@
+drop database if exists linpin;
+SET @old_transaction_isolation=	 	 @@global.transaction_isolation;
+SET @old_innodb_lock_wait_timeout=	 @@global.innodb_lock_wait_timeout;
+SET @old_lock_wait_timeout=	 		 @@global.lock_wait_timeout;
+set GLOBAL transaction_isolation = 	 'READ-COMMITTED';
+SET GLOBAL innodb_lock_wait_timeout= 1;
+SET GLOBAL lock_wait_timeout=	     1;
+create database linpin;
+use linpin;
+drop table if exists t20;
+drop table if exists t21;
+drop table if exists t22;
+create table t20(id int, name varchar(80));
+insert into t20 values(1,'linpin');
+insert into t20 values(2,'lishiming');
+insert into t20 values(3,'qinshihuang');
+insert into t20 values(4,'hanwudi');
+insert into t20 values(5,'5hangaozu');
+insert into t20 values(6,'6hangaozu');
+insert into t20 values(10,'5hangaozu');
+insert into t20 values(11,'6hangaozu');
+insert into t20 values(12,'5hangaozu');
+insert into t20 values(13,'6hangaozu');
+create table t21(id int, name varchar(80));
+insert into t21 values(1,'linpin');
+insert into t21 values(2,'lishiming');
+insert into t21 values(3,'qinshihuang');
+insert into t21 values(4,'hanwudi');
+insert into t21 values(5,'5hangaozu');
+insert into t21 values(6,'6hangaozu');
+insert into t21 values(10,'5hangaozu');
+insert into t21 values(11,'6hangaozu');
+insert into t21 values(12,'5hangaozu');
+insert into t21 values(13,'6hangaozu');
+create table t22(id int, name varchar(80));
+insert into t22 values(1,'linpin');
+insert into t22 values(2,'lishiming');
+insert into t22 values(3,'qinshihuang');
+insert into t22 values(4,'hanwudi');
+insert into t22 values(5,'5hangaozu');
+insert into t22 values(6,'6hangaozu');
+insert into t22 values(10,'5hangaozu');
+insert into t22 values(11,'6hangaozu');
+insert into t22 values(12,'5hangaozu');
+insert into t22 values(13,'6hangaozu');
+use linpin;
+start transaction;
+update t20 set name='11111zzzzzzzz' where id = 4;
+use linpin;
+start transaction;
+update t20 set name='2222zzzzzzzz' where id = 4;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+3
+drop table tmp_t20;
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+3
+drop table tmp_t20;
+use linpin;
+/*+TSN=mycase-0001*/start transaction;
+update t20 set name='11111zzzzzzzz' where id = 4;
+use linpin;
+/*+TSN=mycase-0002*/start transaction;
+update t20 set name='2222zzzzzzzz' where id = 4;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+6
+drop table tmp_t20;
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+6
+drop table tmp_t20;
+use linpin;
+/*+GTID=1234578*/start transaction;
+update t20 set name='11111zzzzzzzz' where id = 4;
+use linpin;
+/*+GTID=1234579*/start transaction;
+update t20 set name='2222zzzzzzzz' where id = 4;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+9
+drop table tmp_t20;
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+9
+drop table tmp_t20;
+use linpin;
+/*+TSN=mycase-0001*/ /*+GTID=1234578*/start transaction;
+update t20 set name='11111zzzzzzzz' where id = 4;
+use linpin;
+/*+TSN=mycase-0002*/ /*+GTID=1234579*/start transaction;
+update t20 set name='2222zzzzzzzz' where id = 4;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+12
+drop table tmp_t20;
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+12
+drop table tmp_t20;
+use linpin;
+start transaction;
+update t20 set name='11111zzzzzzzz' where id = 4;
+use linpin;
+start transaction;
+update t20 set name='2222zzzzzzzz' where id = 5;
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+12
+drop table tmp_t20;
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+12
+drop table tmp_t20;
+use linpin;
+start transaction;
+update t20 set name='11111zzzzzzzz' where id = 4;
+use linpin;
+start transaction;
+update t20 set name='2222zzzzzzzz' where id = 4;
+use linpin;
+start transaction;
+update t20 set name='3333zzzzzzzz' where id = 4;
+use linpin;
+start transaction;
+update t20 set name='3333zzzzzzzz' where id = 4;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+24
+drop table tmp_t20;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+24
+drop table tmp_t20;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+24
+drop table tmp_t20;
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+24
+drop table tmp_t20;
+use linpin;
+start transaction;
+update t20 set name='5zzzzz' where id = 5;
+use linpin;
+start transaction;
+update t20 set name='5ddddddd' where id = 5;
+use linpin;
+start transaction;
+update t20 set name='6dddddd' where id = 6;
+use linpin;
+start transaction;
+update t20 set name='6dddd' where id = 6;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+30
+drop table tmp_t20;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+30
+drop table tmp_t20;
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+30
+drop table tmp_t20;
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+30
+drop table tmp_t20;
+use linpin;
+start transaction;
+update t20 set name='5zzzzz' where id = 5;
+use linpin;
+start transaction;
+insert into t20 values(5, 'xxxx');
+use linpin;
+start transaction;
+insert into t20 values(6, 'xxxx');
+use linpin;
+start transaction;
+insert into t20 values(3, 'xxxx');
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+30
+drop table tmp_t20;
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+30
+drop table tmp_t20;
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+30
+drop table tmp_t20;
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+30
+drop table tmp_t20;
+SET @old_innodb_status_output_locks=	 	 @@global.innodb_status_output_locks;
+set global innodb_status_output_locks = 	 on;
+use linpin;
+start transaction;
+update t20 set name='5zzzzz' where id = 5;
+use linpin;
+start transaction;
+insert into t20 values(5, 'xxxx');
+use linpin;
+LOCK TABLES t20 read;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+30
+drop table tmp_t20;
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+30
+drop table tmp_t20;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+30
+drop table tmp_t20;
+set global innodb_status_output_locks = 	 @old_innodb_status_output_locks;
+use linpin;
+LOCK TABLES t20 write;
+use linpin;
+start transaction;
+update t20 set name='5zzzzz' where id = 5;
+use linpin;
+insert into t20 values(5, 'xxxx');
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+30
+drop table tmp_t20;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+30
+drop table tmp_t20;
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+30
+drop table tmp_t20;
+UNLOCK TABLES;
+use linpin;
+start transaction;
+update t20 set name='5zzzzz' where id = 5;
+update t21 set name='5zzzzz' where id = 6;
+use linpin;
+start transaction;
+update t22 set name='5zzzzz' where id = 7;
+update t21 set name='5zzzzz' where id = 6;
+use linpin;
+start transaction;
+update t20 set name='5zzzzz' where id = 5;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+36
+drop table tmp_t20;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+36
+drop table tmp_t20;
+commit;
+drop table if exists tmp_t20;
+create table tmp_t20(lock_wait_string varchar(256));
+select count(*) from tmp_t20;
+count(*)
+36
+drop table tmp_t20;
+SET GLOBAL innodb_lock_wait_timeout= @old_innodb_lock_wait_timeout;
+SET GLOBAL transaction_isolation=	 @old_transaction_isolation;
+SET GLOBAL lock_wait_timeout=	     @old_lock_wait_timeout;
+drop table t20;
+drop table t21;
+drop table t22;
+drop database linpin;
+drop database if exists linpin;
+SET @old_transaction_isolation=	 	 @@global.transaction_isolation;
+SET @old_innodb_lock_wait_timeout=	 @@global.innodb_lock_wait_timeout;
+SET @old_lock_wait_timeout=	 		 @@global.lock_wait_timeout;
+set GLOBAL transaction_isolation = 	 'READ-COMMITTED';
+SET GLOBAL innodb_lock_wait_timeout= 1;
+SET GLOBAL lock_wait_timeout=	     3;
+create database linpin;
+use linpin;
+drop table if exists t30;
+drop table if exists t31;
+create table t30(id int primary key, name varchar(80));
+insert into t30 values(1,'linpin');
+insert into t30 values(2,'lishiming');
+insert into t30 values(3,'qinshihuang');
+insert into t30 values(4,'hanwudi');
+insert into t30 values(5,'5hangaozu');
+insert into t30 values(6,'6hangaozu');
+insert into t30 values(10,'5hangaozu');
+insert into t30 values(11,'6hangaozu');
+insert into t30 values(12,'5hangaozu');
+insert into t30 values(13,'6hangaozu');
+create table t31(id int AUTO_INCREMENT primary key, name varchar(80));
+insert into t31 values(1,'linpin');
+insert into t31 values(2,'lishiming');
+insert into t31 values(3,'qinshihuang');
+insert into t31 values(4,'hanwudi');
+use linpin;
+start transaction;
+update t30 set name='11111zzzzzzzz' where id = 4;
+use linpin;
+start transaction;
+update t30 set name='2222zzzzzzzz' where id = 4;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t30;
+create table tmp_t30(lock_wait_string varchar(256));
+select count(*) from tmp_t30;
+count(*)
+39
+drop table tmp_t30;
+commit;
+drop table if exists tmp_t30;
+create table tmp_t30(lock_wait_string varchar(256));
+select count(*) from tmp_t30;
+count(*)
+39
+drop table tmp_t30;
+select count(*) from tmp_t30;
+count(*)
+39
+drop table tmp_t30;
+commit;
+drop table if exists tmp_t30;
+create table tmp_t30(lock_wait_string varchar(256));
+select count(*) from tmp_t30;
+count(*)
+39
+drop table tmp_t30;
+use linpin;
+start transaction;
+update t30 set name='11111zzzzzzzz' where id = 4;
+use linpin;
+start transaction;
+update t30 set name='2222zzzzzzzz' where id = 4;
+use linpin;
+start transaction;
+update t30 set name='3333zzzzzzzz' where id = 4;
+use linpin;
+start transaction;
+update t30 set name='3333zzzzzzzz' where id = 4;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t30;
+create table tmp_t30(lock_wait_string varchar(256));
+select count(*) from tmp_t30;
+count(*)
+51
+drop table tmp_t30;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t30;
+create table tmp_t30(lock_wait_string varchar(256));
+select count(*) from tmp_t30;
+count(*)
+51
+drop table tmp_t30;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t30;
+create table tmp_t30(lock_wait_string varchar(256));
+select count(*) from tmp_t30;
+count(*)
+51
+drop table tmp_t30;
+commit;
+drop table if exists tmp_t30;
+create table tmp_t30(lock_wait_string varchar(256));
+select count(*) from tmp_t30;
+count(*)
+51
+drop table tmp_t30;
+use linpin;
+start transaction;
+update t30 set name='5zzzzz' where id = 5;
+use linpin;
+start transaction;
+update t30 set name='5ddddddd' where id = 5;
+use linpin;
+start transaction;
+update t30 set name='6dddddd' where id = 6;
+use linpin;
+start transaction;
+update t30 set name='6dddd' where id = 6;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t30;
+create table tmp_t30(lock_wait_string varchar(256));
+select count(*) from tmp_t30;
+count(*)
+57
+drop table tmp_t30;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t30;
+create table tmp_t30(lock_wait_string varchar(256));
+select count(*) from tmp_t30;
+count(*)
+57
+drop table tmp_t30;
+commit;
+drop table if exists tmp_t30;
+create table tmp_t30(lock_wait_string varchar(256));
+select count(*) from tmp_t30;
+count(*)
+57
+drop table tmp_t30;
+commit;
+drop table if exists tmp_t30;
+create table tmp_t30(lock_wait_string varchar(256));
+select count(*) from tmp_t30;
+count(*)
+57
+drop table tmp_t30;
+use linpin;
+start transaction;
+update t30 set name='5zzzzz' where id = 5;
+use linpin;
+start transaction;
+insert into t30 values(100, 'xxxx');
+use linpin;
+start transaction;
+insert into t30 values(4, 'xxxx');
+ERROR 23000: Duplicate entry '4' for key 'PRIMARY'
+commit;
+drop table if exists tmp_t30;
+create table tmp_t30(lock_wait_string varchar(256));
+select count(*) from tmp_t30;
+count(*)
+57
+drop table tmp_t30;
+commit;
+drop table if exists tmp_t30;
+create table tmp_t30(lock_wait_string varchar(256));
+select count(*) from tmp_t30;
+count(*)
+57
+drop table tmp_t30;
+commit;
+drop table if exists tmp_t30;
+create table tmp_t30(lock_wait_string varchar(256));
+select count(*) from tmp_t30;
+count(*)
+57
+drop table tmp_t30;
+SET @tmp_innodb_lock_wait_timeout=	 @@global.innodb_lock_wait_timeout;
+SET GLOBAL innodb_lock_wait_timeout= 15;
+use linpin;
+start transaction;
+update t31 set name='4zzzzz' where id = 4;
+use linpin;
+start transaction;
+insert into t31 values(5, 'xxxxxx');
+use linpin;
+delete from t31;
+commit;
+drop table if exists tmp_t30;
+create table tmp_t30(lock_wait_string varchar(256));
+select count(*) from tmp_t30;
+count(*)
+60
+drop table tmp_t30;
+commit;
+drop table if exists tmp_t30;
+create table tmp_t30(lock_wait_string varchar(256));
+select count(*) from tmp_t30;
+count(*)
+63
+drop table tmp_t30;
+drop table if exists tmp_t30;
+create table tmp_t30(lock_wait_string varchar(256));
+select count(*) from tmp_t30;
+count(*)
+63
+drop table tmp_t30;
+SET GLOBAL innodb_lock_wait_timeout= @tmp_innodb_lock_wait_timeout;
+use linpin;
+start transaction;
+update t31 set name='4zzzzz' where id = 4;
+use linpin;
+start transaction;
+insert into t31 values(5, 'xxxxxx');
+use linpin;
+delete from t31;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t30;
+create table tmp_t30(lock_wait_string varchar(256));
+select count(*) from tmp_t30;
+count(*)
+66
+drop table tmp_t30;
+commit;
+drop table if exists tmp_t30;
+create table tmp_t30(lock_wait_string varchar(256));
+select count(*) from tmp_t30;
+count(*)
+66
+drop table tmp_t30;
+drop table if exists tmp_t30;
+create table tmp_t30(lock_wait_string varchar(256));
+select count(*) from tmp_t30;
+count(*)
+66
+drop table tmp_t30;
+SET GLOBAL innodb_lock_wait_timeout= @old_innodb_lock_wait_timeout;
+SET GLOBAL transaction_isolation=	 @old_transaction_isolation;
+SET GLOBAL lock_wait_timeout=	     @old_lock_wait_timeout;
+drop table t30;
+drop table t31;
+drop database linpin;
+drop database if exists linpin;
+SET @old_transaction_isolation=	 	 @@global.transaction_isolation;
+SET @old_innodb_lock_wait_timeout=	 @@global.innodb_lock_wait_timeout;
+SET @old_lock_wait_timeout=	 		 @@global.lock_wait_timeout;
+set GLOBAL transaction_isolation = 	 'READ-COMMITTED';
+SET GLOBAL innodb_lock_wait_timeout= 1;
+SET GLOBAL lock_wait_timeout=	     1;
+create database linpin;
+use linpin;
+drop table if exists t40;
+create table t40(id int , name varchar(80));
+alter table t40 add index idx_id(id);
+insert into t40 values(1,'linpin');
+insert into t40 values(2,'lishiming');
+insert into t40 values(3,'qinshihuang');
+insert into t40 values(4,'hanwudi');
+insert into t40 values(5,'5hangaozu');
+insert into t40 values(6,'6hangaozu');
+insert into t40 values(10,'5hangaozu');
+insert into t40 values(11,'6hangaozu');
+insert into t40 values(12,'5hangaozu');
+insert into t40 values(13,'6hangaozu');
+use linpin;
+start transaction;
+update t40 set name='11111zzzzzzzz' where id = 4;
+use linpin;
+start transaction;
+update t40 set name='2222zzzzzzzz' where id = 4;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t40;
+create table tmp_t40(lock_wait_string varchar(256));
+select count(*) from tmp_t40;
+count(*)
+69
+drop table tmp_t40;
+commit;
+drop table if exists tmp_t40;
+create table tmp_t40(lock_wait_string varchar(256));
+select count(*) from tmp_t40;
+count(*)
+69
+drop table tmp_t40;
+use linpin;
+start transaction;
+update t40 set name='11111zzzzzzzz' where id = 4;
+use linpin;
+start transaction;
+update t40 set name='2222zzzzzzzz' where id = 5;
+commit;
+drop table if exists tmp_t40;
+create table tmp_t40(lock_wait_string varchar(256));
+select count(*) from tmp_t40;
+count(*)
+69
+drop table tmp_t40;
+commit;
+drop table if exists tmp_t40;
+create table tmp_t40(lock_wait_string varchar(256));
+select count(*) from tmp_t40;
+count(*)
+69
+drop table tmp_t40;
+use linpin;
+start transaction;
+update t40 set name='11111zzzzzzzz' where id = 4;
+use linpin;
+start transaction;
+update t40 set name='2222zzzzzzzz' where id = 4;
+use linpin;
+start transaction;
+update t40 set name='3333zzzzzzzz' where id = 4;
+use linpin;
+start transaction;
+update t40 set name='3333zzzzzzzz' where id = 4;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t40;
+create table tmp_t40(lock_wait_string varchar(256));
+select count(*) from tmp_t40;
+count(*)
+81
+drop table tmp_t40;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t40;
+create table tmp_t40(lock_wait_string varchar(256));
+select count(*) from tmp_t40;
+count(*)
+81
+drop table tmp_t40;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t40;
+create table tmp_t40(lock_wait_string varchar(256));
+select count(*) from tmp_t40;
+count(*)
+81
+drop table tmp_t40;
+commit;
+drop table if exists tmp_t40;
+create table tmp_t40(lock_wait_string varchar(256));
+select count(*) from tmp_t40;
+count(*)
+81
+drop table tmp_t40;
+use linpin;
+start transaction;
+update t40 set name='5zzzzz' where id = 5;
+use linpin;
+start transaction;
+update t40 set name='5ddddddd' where id = 5;
+use linpin;
+start transaction;
+update t40 set name='6dddddd' where id = 6;
+use linpin;
+start transaction;
+update t40 set name='6dddd' where id = 6;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t40;
+create table tmp_t40(lock_wait_string varchar(256));
+select count(*) from tmp_t40;
+count(*)
+87
+drop table tmp_t40;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t40;
+create table tmp_t40(lock_wait_string varchar(256));
+select count(*) from tmp_t40;
+count(*)
+87
+drop table tmp_t40;
+commit;
+drop table if exists tmp_t40;
+create table tmp_t40(lock_wait_string varchar(256));
+select count(*) from tmp_t40;
+count(*)
+87
+drop table tmp_t40;
+commit;
+drop table if exists tmp_t40;
+create table tmp_t40(lock_wait_string varchar(256));
+select count(*) from tmp_t40;
+count(*)
+87
+drop table tmp_t40;
+use linpin;
+start transaction;
+update t40 set name='5zzzzz' where id = 5;
+use linpin;
+start transaction;
+insert into t40 values(100, 'xxxx');
+use linpin;
+start transaction;
+insert into t40 values(4, 'xxxx');
+commit;
+drop table if exists tmp_t40;
+create table tmp_t40(lock_wait_string varchar(256));
+select count(*) from tmp_t40;
+count(*)
+87
+drop table tmp_t40;
+commit;
+drop table if exists tmp_t40;
+create table tmp_t40(lock_wait_string varchar(256));
+select count(*) from tmp_t40;
+count(*)
+87
+drop table tmp_t40;
+commit;
+drop table if exists tmp_t40;
+create table tmp_t40(lock_wait_string varchar(256));
+select count(*) from tmp_t40;
+count(*)
+87
+drop table tmp_t40;
+SET GLOBAL innodb_lock_wait_timeout= @old_innodb_lock_wait_timeout;
+SET GLOBAL transaction_isolation=	 @old_transaction_isolation;
+SET GLOBAL lock_wait_timeout=	     @old_lock_wait_timeout;
+drop table t40;
+drop database linpin;
+drop database if exists linpin;
+SET @old_transaction_isolation=	 	 @@global.transaction_isolation;
+SET @old_innodb_lock_wait_timeout=	 @@global.innodb_lock_wait_timeout;
+SET @old_lock_wait_timeout=	 		 @@global.lock_wait_timeout;
+set GLOBAL transaction_isolation = 	 'READ-COMMITTED';
+SET GLOBAL innodb_lock_wait_timeout= 1;
+SET GLOBAL lock_wait_timeout=	     1;
+create database linpin;
+use linpin;
+drop table if exists t50;
+create table t50(id int primary key, name varchar(80),id2 int);
+alter table t50 add index t50_idx(id2);
+insert into t50 values(1,'linpin',1);
+insert into t50 values(2,'lishiming',2);
+insert into t50 values(3,'qinshihuang',3);
+insert into t50 values(4,'hanwudi',4);
+insert into t50 values(5,'5hangaozu',5);
+insert into t50 values(6,'6hangaozu',6);
+insert into t50 values(10,'5hangaozu',7);
+insert into t50 values(11,'6hangaozu',8);
+insert into t50 values(12,'5hangaozu',9);
+insert into t50 values(13,'6hangaozu',10);
+use linpin;
+start transaction;
+update t50 set name='11111zzzzzzzz' where id2 = 4;
+use linpin;
+start transaction;
+update t50 set name='2222zzzzzzzz' where id2 = 4;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t50;
+create table tmp_t50(lock_wait_string varchar(256));
+select count(*) from tmp_t50;
+count(*)
+90
+drop table tmp_t50;
+commit;
+drop table if exists tmp_t50;
+create table tmp_t50(lock_wait_string varchar(256));
+select count(*) from tmp_t50;
+count(*)
+90
+drop table tmp_t50;
+use linpin;
+start transaction;
+update t50 set name='11111zzzzzzzz' where id2 = 4;
+use linpin;
+start transaction;
+update t50 set name='2222zzzzzzzz' where id2 = 5;
+commit;
+drop table if exists tmp_t50;
+create table tmp_t50(lock_wait_string varchar(256));
+select count(*) from tmp_t50;
+count(*)
+90
+drop table tmp_t50;
+commit;
+drop table if exists tmp_t50;
+create table tmp_t50(lock_wait_string varchar(256));
+select count(*) from tmp_t50;
+count(*)
+90
+drop table tmp_t50;
+use linpin;
+start transaction;
+update t50 set name='11111zzzzzzzz' where id2 = 4;
+use linpin;
+start transaction;
+update t50 set name='2222zzzzzzzz' where id2 = 4;
+use linpin;
+start transaction;
+update t50 set name='3333zzzzzzzz' where id2 = 4;
+use linpin;
+start transaction;
+update t50 set name='3333zzzzzzzz' where id2 = 4;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t50;
+create table tmp_t50(lock_wait_string varchar(256));
+select count(*) from tmp_t50;
+count(*)
+102
+drop table tmp_t50;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t50;
+create table tmp_t50(lock_wait_string varchar(256));
+select count(*) from tmp_t50;
+count(*)
+102
+drop table tmp_t50;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t50;
+create table tmp_t50(lock_wait_string varchar(256));
+select count(*) from tmp_t50;
+count(*)
+102
+drop table tmp_t50;
+commit;
+drop table if exists tmp_t50;
+create table tmp_t50(lock_wait_string varchar(256));
+select count(*) from tmp_t50;
+count(*)
+102
+drop table tmp_t50;
+use linpin;
+start transaction;
+update t50 set name='5zzzzz' where id2 = 5;
+use linpin;
+start transaction;
+update t50 set name='5ddddddd' where id2 = 5;
+use linpin;
+start transaction;
+update t50 set name='6dddddd' where id2 = 6;
+use linpin;
+start transaction;
+update t50 set name='6dddd' where id2 = 6;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t50;
+create table tmp_t50(lock_wait_string varchar(256));
+select count(*) from tmp_t50;
+count(*)
+108
+drop table tmp_t50;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t50;
+create table tmp_t50(lock_wait_string varchar(256));
+select count(*) from tmp_t50;
+count(*)
+108
+drop table tmp_t50;
+commit;
+drop table if exists tmp_t50;
+create table tmp_t50(lock_wait_string varchar(256));
+select count(*) from tmp_t50;
+count(*)
+108
+drop table tmp_t50;
+commit;
+drop table if exists tmp_t50;
+create table tmp_t50(lock_wait_string varchar(256));
+select count(*) from tmp_t50;
+count(*)
+108
+drop table tmp_t50;
+use linpin;
+start transaction;
+update t50 set name='5zzzzz' where id2 = 5;
+use linpin;
+start transaction;
+insert into t50 values(5, 'xxxx', 5);
+use linpin;
+start transaction;
+insert into t50 values(60, 'xxxx', 6);
+use linpin;
+start transaction;
+insert into t50 values(30, 'xxxx', 3);
+commit;
+drop table if exists tmp_t50;
+create table tmp_t50(lock_wait_string varchar(256));
+select count(*) from tmp_t50;
+count(*)
+111
+drop table tmp_t50;
+Got one of the listed errors
+commit;
+drop table if exists tmp_t50;
+create table tmp_t50(lock_wait_string varchar(256));
+select count(*) from tmp_t50;
+count(*)
+111
+drop table tmp_t50;
+commit;
+drop table if exists tmp_t50;
+create table tmp_t50(lock_wait_string varchar(256));
+select count(*) from tmp_t50;
+count(*)
+111
+drop table tmp_t50;
+commit;
+drop table if exists tmp_t50;
+create table tmp_t50(lock_wait_string varchar(256));
+select count(*) from tmp_t50;
+count(*)
+111
+drop table tmp_t50;
+SET @old_innodb_status_output_locks=	 	 @@global.innodb_status_output_locks;
+set global innodb_status_output_locks = 	 on;
+use linpin;
+start transaction;
+update t50 set name='5zzzzz' where id2 = 5;
+use linpin;
+start transaction;
+insert into t50 values(50, 'xxxx', 5);
+use linpin;
+LOCK TABLES t50 read;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t50;
+create table tmp_t50(lock_wait_string varchar(256));
+select count(*) from tmp_t50;
+count(*)
+111
+drop table tmp_t50;
+commit;
+drop table if exists tmp_t50;
+create table tmp_t50(lock_wait_string varchar(256));
+select count(*) from tmp_t50;
+count(*)
+111
+drop table tmp_t50;
+drop table if exists tmp_t50;
+create table tmp_t50(lock_wait_string varchar(256));
+select count(*) from tmp_t50;
+count(*)
+111
+drop table tmp_t50;
+set global innodb_status_output_locks = 	 @old_innodb_status_output_locks;
+use linpin;
+LOCK TABLES t50 write;
+use linpin;
+start transaction;
+update t50 set name='5zzzzz' where id2 = 5;
+use linpin;
+insert into t50 values(5, 'xxxx', 5);
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+drop table if exists tmp_t50;
+create table tmp_t50(lock_wait_string varchar(256));
+select count(*) from tmp_t50;
+count(*)
+111
+drop table tmp_t50;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+drop table if exists tmp_t50;
+create table tmp_t50(lock_wait_string varchar(256));
+select count(*) from tmp_t50;
+count(*)
+111
+drop table tmp_t50;
+commit;
+drop table if exists tmp_t50;
+create table tmp_t50(lock_wait_string varchar(256));
+select count(*) from tmp_t50;
+count(*)
+111
+drop table tmp_t50;
+UNLOCK TABLES;
+SET GLOBAL innodb_lock_wait_timeout= @old_innodb_lock_wait_timeout;
+SET GLOBAL transaction_isolation=	 @old_transaction_isolation;
+SET GLOBAL lock_wait_timeout=	     @old_lock_wait_timeout;
+drop table t50;
+drop database linpin;

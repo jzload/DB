@@ -1,0 +1,106 @@
+#ifndef LOCK_0_LOCKWAIT_IC
+
+#define LOCK_0_LOCKWAIT_IC
+
+//#define MAX_TSN_LEN 2
+//#define MAX_GTID_LEN 2
+
+/** trx and lock info, to describe block trx and request trx
+when innodb produces lock wait.
+*/
+typedef struct T_TRX_INFO {
+  ulong thread_id;
+  trx_id_t trx_id;
+  char trx_serial_num[MAX_TSN_LEN + 1];
+  char trx_gtm_gtid[MAX_GTID_LEN + 1];
+  char sql_string[MAX_REQ_LOCK_SQL_LEN + 1];
+  char key_data[MAX_BLK_KEY_DATA_LEN + 1];
+} TRX_INFO;
+
+typedef std::vector<TRX_INFO*> trx_infos;
+
+
+/**  slot for store lock wait info
+1 request lock info
+2 block lock info
+*/
+
+typedef struct T_LOCK_WAIT_SLOT {
+  std::atomic<int32> completed; /** init 0; trx thread set to 1; snapshot thread 
+                                 write trx_info when 1 and set to 0 after wirte */
+  ib_time_monotonic_us_t timestamp;
+  std::atomic<int64> wait_time;
+  uint               blk_trx_count;
+  TRX_INFO          *request_trx;
+  trx_infos         *block_trxes;
+  bool               time_out;
+
+  T_LOCK_WAIT_SLOT(): completed(0), blk_trx_count(0),
+                      request_trx(NULL), block_trxes(NULL), time_out(false)
+  {}
+} LOCK_WAIT_SLOT;
+
+typedef std::vector<LOCK_WAIT_SLOT*> lock_wait_slots;
+
+
+typedef struct T_LOCK_WAIT_SLOT_CACHE {
+  lock_wait_slots  *first_lock_wait_slots;
+  lock_wait_slots  *second_lock_wait_slots;
+  bool first_in_use;
+  uint use_count;
+  os_event_t start_collect;
+
+  T_LOCK_WAIT_SLOT_CACHE()
+  {
+    first_lock_wait_slots = NULL;
+    second_lock_wait_slots = NULL;
+    first_in_use = true;
+    use_count = 0;
+    start_collect = NULL;
+  }
+} LOCK_WAIT_SLOT_CACHE;
+
+
+extern LOCK_WAIT_SLOT_CACHE *lw_slot_cache;
+extern OSMutex *lw_log_mutex;
+extern bool lock_wait_snapshot_thread_active;
+extern bool lock_wait_cache_initialized;
+
+/** open file nnodb_lock_wait.log
+@retrun  false, init success
+         true,  init error
+@note    windows support open?
+*/
+bool lock_wait_snapshot_init(void);
+
+
+/** write lock wait snapshot to innodb_lock_wait.log
+@param request_lock, lock to request
+@param block_lock,   lock blocking request_lock
+@param current_utime, the time when innodb produced lock conflict
+
+@return true  set slot  failed
+        false set slot  success
+
+@note 1.don't check whether params equal to null 
+      2.don't report error event if trans_serial_num is truncated
+*/
+LOCK_WAIT_SLOT *make_lock_wait_snapshot(const lock_t *request_lock,
+                                        ib_time_monotonic_us_t current_utime);
+
+
+/** free memory of global lw_slot_cache and close log file */
+void close_lock_wait_log_file(void);
+
+void destroy_lw_log_cahe(void);
+
+/**
+@note   lock_wait_snapshort_write thread.
+@param[in] arg   a dummy parameter required by os_thread_create
+@return a dummy parameter
+*/
+void lock_wait_snapshort_write();
+
+void set_lock_wait_time(LOCK_WAIT_SLOT *lw_slot, ulint wait_time);
+
+#endif // LOCK_0_LOCKWAIT_IC

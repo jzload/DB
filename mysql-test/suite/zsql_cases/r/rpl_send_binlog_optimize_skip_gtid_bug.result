@@ -1,0 +1,66 @@
+include/master-slave.inc
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+[connection master]
+[connection slave]
+include/stop_slave.inc
+include/start_slave.inc
+[connection slave]
+set global rpl_semi_sync_slave_enabled = ON;
+include/stop_slave.inc
+include/start_slave.inc
+[connection master]
+set global rpl_semi_sync_master_enabled = OFF;
+set global rpl_semi_sync_master_wait_cond_hwm = '1:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '1:0';
+set global rpl_semi_sync_master_group1 = '1,2:1';
+set global rpl_semi_sync_master_quick_sync_enabled=ON;
+set global rpl_semi_sync_master_enabled = ON;
+include/assert.inc [Rpl_semi_sync_master_current_wait_groups should be 1]
+include/assert.inc [Rpl_semi_sync_master_active_groups should be 1]
+[connection master]
+drop database if exists test_db;
+create database if not exists test_db;
+use test_db;
+create table tb1 (id int primary key , c1 int)ENGINE=InnoDB;
+#########################################################
+#CASE 1:[BUG] the master will skip some gtid which need send to slave in some cases.
+#########################################################
+[connection master]
+reset master;
+[connection slave]
+stop slave;
+reset slave all;
+reset master;
+include/start_slave.inc
+[connection master]
+insert into test_db.tb1 values(1,1);
+insert into test_db.tb1 values(2,2);
+truncate table test_db.tb1;
+insert into test_db.tb1 values(3,3);
+insert into test_db.tb1 values(4,4);
+[connection slave]
+stop slave;
+reset slave all;
+reset master;
+include/start_slave.inc
+[connection master]
+insert into test_db.tb1 values(5,5);
+insert into test_db.tb1 values(6,6);
+[connection slave]
+#########################################################
+#END.
+#########################################################
+[connection slave]
+call mtr.add_suppression("An unexpected event sequence was detected by the IO thread");
+call mtr.add_suppression("GTID_LOG_EVENT .* is not expected in an event stream");
+set global rpl_semi_sync_slave_enabled = OFF;
+[connection master]
+drop database test_db;
+CALL mtr.add_suppression(".*Got an error reading communication packets.*");
+set global rpl_semi_sync_master_enabled = OFF;
+set global rpl_semi_sync_master_wait_cond_lwm = '';
+set global rpl_semi_sync_master_wait_cond_hwm = '';
+set global rpl_semi_sync_master_group1 = '';
+include/rpl_end.inc

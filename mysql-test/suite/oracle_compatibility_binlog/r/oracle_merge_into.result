@@ -1,0 +1,2311 @@
+include/master-slave.inc
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+[connection master]
+call mtr.add_suppression("\\[Warning\\] \\[[^]]*\\] \\[[^]]*\\] Unsafe statement written .* = STATEMENT.");
+create database merge_db;
+use merge_db;
+create table tm1 (a int, b int);
+create table tm2 (a int, b int);
+create table tm3(a int,b int);
+create table tk1 (a int primary key, b int);
+create table tk2 (a int unique key, b int);
+create table auto_inc (id int primary key AUTO_INCREMENT, a int, b int);
+create table gc (a int, b int, c int GENERATED ALWAYS AS (a+b) STORED, d int GENERATED ALWAYS AS (a+b) VIRTUAL);
+create table tr1 (a int, b int);
+create table tr2 (a int, b int, c int);
+create table tr3 (a int, b int);
+insert into tm1 values (1,1),(1,2);
+insert into tm2 values (1,2),(2,1),(3,3),(4,4);
+insert into tm3 values (1,11),(2,12),(3,13),(4,14);
+insert into tk1 values (1,1),(2,2);
+insert into tk2 values (1,1),(2,2);
+SET @old_sql_mode=@@session.sql_mode;
+---------------------------------------------------------------
+## Test merge into for oracle compatibility
+---------------------------------------------------------------
+"test normal cases"
+---------------------------------------------------------------
+## Test_1: replication
+---------------------------------------------------------------
+delete from tm1;
+insert into tm1 values (1,1),(1,2),(2,1),(2,2);
+merge into tm1 using tm2 on (tm1.a = tm2.a) when matched then update set tm1.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from tm1;
+a	b
+1	2
+1	2
+2	1
+2	1
+3	3
+4	4
+include/start_slave.inc
+Warnings:
+Note	3083	Replication thread(s) for channel '' are already runnning.
+include/wait_for_slave_to_start.inc
+## slave data:
+select * from merge_db.tm1;
+a	b
+1	2
+1	2
+2	1
+2	1
+3	3
+4	4
+---------------------------------------------------------------
+## Test_2: target table has no key
+---------------------------------------------------------------
+delete from tm1;
+insert into tm1 values (1,1),(1,2);
+merge into tm1 using tm2 on (tm1.a = tm2.a) when not matched then insert values (tm2.a, tm2.b) when matched then update set tm1.b = tm2.b;
+select * from tm1;
+a	b
+1	2
+1	2
+2	1
+3	3
+4	4
+delete from tm1;
+insert into tm1 values (1,1),(1,2);
+merge into tm1 using tm2 on (tm1.a = tm2.a) when not matched then insert values (tm2.a, tm2.b);
+select * from tm1;
+a	b
+1	1
+1	2
+2	1
+3	3
+4	4
+delete from tm1;
+insert into tm1 values (1,1),(1,2);
+merge into tm1 using tm2 on (tm1.a = tm2.a) when matched then update set tm1.b = tm2.b;
+select * from tm1;
+a	b
+1	2
+1	2
+delete from tm1;
+insert into tm1 values (1,1),(1,2);
+merge into tm1 using tm2 on (tm1.a = tm2.a) when not matched then insert (tm1.a, tm1.b) values (tm2.a, tm2.b);
+select * from tm1;
+a	b
+1	1
+1	2
+2	1
+3	3
+4	4
+---------------------------------------------------------------
+## Test_3: target table has primary key
+---------------------------------------------------------------
+## Test_3_1: primary key in on condition
+delete from tk1;
+insert into tk1 values (1,1),(2,2);
+merge into tk1 using tm2 on (tk1.a = tm2.a) when matched then update set tk1.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from tk1;
+a	b
+1	2
+2	1
+3	3
+4	4
+delete from tk1;
+insert into tk1 values (1,1),(2,2);
+merge into tk1 using tm2 on (tk1.a = tm2.a) when not matched then insert values (tm2.a, tm2.b) when matched then update set tk1.b = tm2.b;
+select * from tk1;
+a	b
+1	2
+2	1
+3	3
+4	4
+## Test_3_2: primary key not in on condition and is updated
+delete from tk1;
+insert into tk1 values (1,1),(2,2);
+merge into tk1 using tm2 on (tk1.b = tm2.b) when not matched then insert values (tm2.a, tm2.b) when matched then update set tk1.a = tm2.a + 10;
+select * from tk1;
+a	b
+3	3
+4	4
+11	2
+12	1
+## Test_3_3: primary key is not assigned a value in insert clause
+merge into tk1 using tm2 on (tk1.a = tm2.a) when not matched then insert (tk1.b) values (tm2.b);
+ERROR HY000: Field 'a' doesn't have a default value
+## Test_3_4: only primary key is assigned a value in insert clause
+delete from tk1;
+insert into tk1 values (1,1),(2,2);
+merge into tk1 using tm2 on (tk1.a = tm2.a) when not matched then insert (tk1.a) values (tm2.a);
+select * from tk1;
+a	b
+1	1
+2	2
+3	NULL
+4	NULL
+## Test_3_5: primary key is not updated in update clause
+delete from tk1;
+insert into tk1 values (1,1),(2,2);
+merge into tk1 using tm2 on (tk1.a = tm2.a) when matched then update set tk1.b = tm2.b;
+select * from tk1;
+a	b
+1	2
+2	1
+## Test_3_6: primary key is updated in update clause
+delete from tk1;
+insert into tk1 values (1,1),(2,2);
+merge into tk1 using tm2 on (tk1.b = tm2.b) when matched then update set tk1.a = tm2.a+6;
+select * from tk1;
+a	b
+7	2
+8	1
+## Test_3_6: duplicate key
+merge into tk1 using tm2 on (tk1.b = tm2.b) when matched then update set tk1.a = 4;
+ERROR 23000: Duplicate entry '4' for key 'PRIMARY'
+merge into tk1 using tm2 on (tk1.b = tm2.b) when not matched then insert values (1,1);
+ERROR 23000: Duplicate entry '1' for key 'PRIMARY'
+---------------------------------------------------------------
+## Test_4: target table has unique key (default null) <secondary index>
+---------------------------------------------------------------
+## Test_4_1: normal test
+delete from tk2;
+insert into tk2 values (1,1),(2,2);
+merge into tk2 using tm2 on (tk2.a = tm2.a) when matched then update set tk2.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from tk2;
+a	b
+1	2
+2	1
+3	3
+4	4
+delete from tk2;
+insert into tk2 values (1,1),(2,2);
+merge into tk2 using tm2 on (tk2.a = tm2.a) when not matched then insert values (tm2.a, tm2.b) when matched then update set tk2.b = tm2.b;
+select * from tk2;
+a	b
+1	2
+2	1
+3	3
+4	4
+delete from tk2;
+insert into tk2 values (1,1),(2,2);
+merge into tk2 using tm2 on (tk2.b = tm2.b) when not matched then insert values (tm2.a, tm2.b) when matched then update set tk2.a = tm2.a + 10;
+select * from tk2;
+a	b
+12	1
+11	2
+3	3
+4	4
+## Test_4_2: unique key is not assigned a value in insert clause
+delete from tk2;
+insert into tk2 values (1,1),(2,2);
+merge into tk2 using tm2 on (tk2.a = tm2.a) when not matched then insert (tk2.b) values (tm2.b);
+select * from tk2;
+a	b
+1	1
+2	2
+NULL	3
+NULL	4
+## Test_4_3: duplicate key
+merge into tk2 using tm2 on (tk2.b = tm2.b) when matched then update set tk2.a = 4;
+ERROR 23000: Duplicate entry '4' for key 'a'
+merge into tk2 using tm2 on (tk2.a = tm2.a) when not matched then insert values (1,1);
+ERROR 23000: Duplicate entry '1' for key 'a'
+---------------------------------------------------------------
+## Test_5: target table has generated column
+---------------------------------------------------------------
+## Test_5_1: normal test
+delete from gc;
+insert into gc (a,b) values (1,1),(1,2);
+merge into gc using tm2 on (gc.a = tm2.a) when matched then update set gc.b = tm2.b when not matched then insert (gc.a,gc.b) values (tm2.a, tm2.b);
+select * from gc;
+a	b	c	d
+1	2	3	3
+1	2	3	3
+2	1	3	3
+3	3	6	6
+4	4	8	8
+delete from gc;
+insert into gc (a,b) values (1,1),(1,2);
+merge into gc using tm2 on (gc.a = tm2.a) when not matched then insert (gc.a, gc.b) values (tm2.a, tm2.b) when matched then update set gc.b = tm2.b;
+select * from gc;
+a	b	c	d
+1	2	3	3
+1	2	3	3
+2	1	3	3
+3	3	6	6
+4	4	8	8
+## Test_5_2: when gc corresponding columns are not all assigned a values
+delete from gc;
+insert into gc (a,b) values (1,1),(1,2);
+merge into gc using tm2 on (gc.b = tm2.b) when not matched then insert (gc.b) values (tm2.b);
+select * from gc;
+a	b	c	d
+1	1	2	2
+1	2	3	3
+NULL	3	NULL	NULL
+NULL	4	NULL	NULL
+## Test_5_3: when STORED generated column used in on condition, corresponding columns cannot be updated
+merge into gc using tm2 on (gc.c = tm2.a) when matched then update set gc.b = tm2.b when not matched then insert (gc.a,gc.b) values (tm2.a, tm2.b);
+ERROR HY000: error occurs in MERGE INTO, detail :fields in on condition cannot be updated
+## Test_5_4: when VIRTUAL generated column used in on condition, corresponding columns cannot be updated
+merge into gc using tm2 on (gc.d = tm2.a) when matched then update set gc.b = tm2.b when not matched then insert (gc.a,gc.b) values (tm2.a, tm2.b);
+ERROR HY000: error occurs in MERGE INTO, detail :fields in on condition cannot be updated
+## Test_5_5: generated columns cannot be assigned in insert or update clause
+merge into gc using tm2 on (gc.a = tm2.a) when not matched then insert (gc.a, gc.b, gc.c) values (tm2.a, tm2.b, tm2.b);
+ERROR HY000: The value specified for generated column 'c' in table 'gc' is not allowed.
+merge into gc using tm2 on (gc.a = tm2.a) when not matched then insert (gc.a, gc.b, gc.d) values (tm2.a, tm2.b, tm2.b);
+ERROR HY000: The value specified for generated column 'd' in table 'gc' is not allowed.
+merge into gc using tm2 on (gc.a = tm2.a) when matched then update set gc.c = tm2.b;
+ERROR HY000: The value specified for generated column 'c' in table 'gc' is not allowed.
+merge into gc using tm2 on (gc.a = tm2.a) when matched then update set gc.d = tm2.b;
+ERROR HY000: The value specified for generated column 'd' in table 'gc' is not allowed.
+merge into gc using tm2 on (gc.a = tm2.a) when not matched then insert (gc.c) values (tm2.a);
+ERROR HY000: The value specified for generated column 'c' in table 'gc' is not allowed.
+merge into gc using tm2 on (gc.a = tm2.a) when not matched then insert (gc.d) values (tm2.a);
+ERROR HY000: The value specified for generated column 'd' in table 'gc' is not allowed.
+---------------------------------------------------------------
+## Test_6: target table has auto-increment column
+---------------------------------------------------------------
+## Test_6_1: auto-increment normal test
+delete from auto_inc;
+insert into auto_inc (a,b) values (1,1),(1,2);
+merge into auto_inc using tm2 on (auto_inc.a = tm2.a) when matched then update set auto_inc.b = tm2.b when not matched then insert (auto_inc.a,auto_inc.b) values (tm2.a, tm2.b);
+select last_insert_id();
+last_insert_id()
+3
+select * from auto_inc;
+id	a	b
+1	1	2
+2	1	2
+3	2	1
+4	3	3
+5	4	4
+delete from auto_inc;
+insert into auto_inc (a,b) values (1,1),(1,2);
+merge into auto_inc using tm2 on (auto_inc.a = tm2.a) when not matched then insert (auto_inc.a,auto_inc.b) values (tm2.a, tm2.b) when matched then update set auto_inc.b = tm2.b;
+select * from auto_inc;
+id	a	b
+6	1	2
+7	1	2
+8	2	1
+9	3	3
+10	4	4
+## Test_6_2: not only auto-increment column is not assigned
+delete from auto_inc;
+insert into auto_inc (a,b) values (1,1),(1,2);
+merge into auto_inc using tm2 on (auto_inc.a = tm2.a) when not matched then insert (auto_inc.b) values (tm2.b);
+select * from auto_inc;
+id	a	b
+11	1	1
+12	1	2
+13	NULL	1
+14	NULL	3
+15	NULL	4
+## Test_6_3: more auto-increment ids is reserved than used
+delete from auto_inc;
+merge into auto_inc using tm2 on (auto_inc.a = tm2.a+4) when not matched then insert (auto_inc.a,auto_inc.b) values (tm2.a, tm2.b);
+select * from auto_inc;
+id	a	b
+16	1	2
+17	2	1
+18	3	3
+19	4	4
+merge into auto_inc using tm2 on (auto_inc.a = tm2.a+4) when not matched then insert (auto_inc.a,auto_inc.b) values (tm2.a, tm2.b);
+select * from auto_inc;
+id	a	b
+16	1	2
+17	2	1
+18	3	3
+19	4	4
+23	1	2
+24	2	1
+25	3	3
+26	4	4
+show create table auto_inc;
+Table	Create Table
+auto_inc	CREATE TABLE `auto_inc` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `a` int(11) DEFAULT NULL,
+  `b` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+## Test_6_4: auto-increment column is assigned
+select last_insert_id();
+last_insert_id()
+23
+merge into auto_inc using tm2 on (auto_inc.a = tm2.a+4) when not matched then insert values (tm2.a,tm2.b,tm2.a);
+select * from auto_inc;
+id	a	b
+1	2	1
+2	1	2
+3	3	3
+4	4	4
+16	1	2
+17	2	1
+18	3	3
+19	4	4
+23	1	2
+24	2	1
+25	3	3
+26	4	4
+show create table auto_inc;
+Table	Create Table
+auto_inc	CREATE TABLE `auto_inc` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `a` int(11) DEFAULT NULL,
+  `b` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=30 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+merge into auto_inc using tm2 on (auto_inc.a = tm2.a+4) when not matched then insert values (tm2.a+28,tm2.b,tm2.a);
+select * from auto_inc;
+id	a	b
+1	2	1
+2	1	2
+3	3	3
+4	4	4
+16	1	2
+17	2	1
+18	3	3
+19	4	4
+23	1	2
+24	2	1
+25	3	3
+26	4	4
+29	2	1
+30	1	2
+31	3	3
+32	4	4
+show create table auto_inc;
+Table	Create Table
+auto_inc	CREATE TABLE `auto_inc` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `a` int(11) DEFAULT NULL,
+  `b` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=33 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+select last_insert_id();
+last_insert_id()
+23
+## Test_6_5: auto-increment column is used in view
+create view va1 as select id, a from auto_inc;
+merge into va1 using tm2 on (va1.a = tm2.a+4) when not matched then insert (va1.a) values (tm2.a);
+select * from auto_inc;
+id	a	b
+1	2	1
+2	1	2
+3	3	3
+4	4	4
+16	1	2
+17	2	1
+18	3	3
+19	4	4
+23	1	2
+24	2	1
+25	3	3
+26	4	4
+29	2	1
+30	1	2
+31	3	3
+32	4	4
+33	1	NULL
+34	2	NULL
+35	3	NULL
+36	4	NULL
+## Test_6_5: auto-increment column is not used in view
+create view va2 as select a, b from auto_inc;
+select last_insert_id();
+last_insert_id()
+33
+merge into va2 using tm2 on (va2.a = tm2.a+4) when not matched then insert values (tm2.a, tm2.b);
+select last_insert_id();
+last_insert_id()
+33
+select * from auto_inc;
+id	a	b
+1	2	1
+2	1	2
+3	3	3
+4	4	4
+16	1	2
+17	2	1
+18	3	3
+19	4	4
+23	1	2
+24	2	1
+25	3	3
+26	4	4
+29	2	1
+30	1	2
+31	3	3
+32	4	4
+33	1	NULL
+34	2	NULL
+35	3	NULL
+36	4	NULL
+40	1	2
+41	2	1
+42	3	3
+43	4	4
+## Test_6_6: insert with assigned duplicate auto-increment column 
+merge into auto_inc using tm2 on (auto_inc.a = tm2.a+4) when not matched then insert values (tm2.a, tm2.a, tm2.b);
+ERROR 23000: Duplicate entry '1' for key 'PRIMARY'
+---------------------------------------------------------------
+## Test_7: target table is view
+---------------------------------------------------------------
+## Test_7_1: target table is view without check option
+create view v1 as select * from tm1;
+delete from v1;
+insert into v1 values (1,1),(2,2);
+merge into v1 using tm2 on (v1.a = tm2.a) when matched then update set v1.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from v1;
+a	b
+1	2
+2	1
+3	3
+4	4
+## Test_7_2: try insert to VIEW with fields duplicate
+create view v8 as select a a, b b, a c from tm1;
+merge into v8 using tm2 on (v8.a = tm2.a) when not matched then insert values (tm2.a, tm2.b, tm2.b+10);
+ERROR HY000: The target table v8 of the MERGE INTO is not insertable-into
+## Test_7_3: try insert to VIEW with expression in SELECT list
+create view v9 as select a+1 a, b b from tm1;
+merge into v9 using tm2 on (v9.a = tm2.a) when not matched then insert values (tm2.a, tm2.b);
+ERROR HY000: Column 'a' is not updatable
+## Test_7_4: try insert to VIEW using temporary table algorithm
+create algorithm=temptable view v10 as select * from tm1;
+merge into v10 using tm2 on (v10.a = tm2.a) when not matched then insert values (tm2.a, tm2.b);
+ERROR HY000: The target table v10 of the MERGE INTO is not insertable-into
+## Test_7_5: Trys update table from which we select using views and subqueries that uses target table
+create view v11 as select * from tm1 where 20 < (select (a) from tm1);
+merge into v11 using tm2 on (v11.a = tm2.a) when not matched then insert values (tm2.a, tm2.b);
+ERROR HY000: error occurs in MERGE INTO, detail :target table is misused in subqueries or non-materialized source table
+## Test_7_6: Trys update table from which we select using views and subqueries that not uses target table
+create view v12 as select * from tm1 where 20 < (select (a) from tm3 limit 1);
+delete from tm1;
+insert into v12 values (1,1),(2,2);
+merge into v12 using tm2 on (v12.a = tm2.a) when not matched then insert values (tm2.a, tm2.b);
+select * from v12;
+a	b
+select * from tm1;
+a	b
+1	1
+2	2
+1	2
+2	1
+3	3
+4	4
+## Test_7_8: target table is ordered view
+CREATE VIEW v13 AS SELECT * FROM tm1 ORDER BY a;
+delete from v13;
+insert into v13 values (1,1),(2,2);
+merge into v13 using tm2 on (v13.a = tm2.a) when matched then update set v13.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from v13;
+a	b
+1	2
+2	1
+3	3
+4	4
+## Test_7_9: target table is view with check option
+create view v2 as select * from tm1 where b < 3 with check option;
+merge into v2 using tm2 on (v2.a = tm2.a) when matched then update set v2.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+ERROR HY000: error occurs in MERGE INTO, detail :view with check option cannot be modified
+create view v3 as select * from v2;
+merge into v3 using tm2 on (v3.a = tm2.a) when matched then update set v3.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+ERROR HY000: error occurs in MERGE INTO, detail :view with check option cannot be modified
+## Test_7_10: target table is view of view
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+create view v4 as select * from tm1 where b < 3;
+create view v5 as select * from v4 where a > 1;
+merge into v5 using tm2 on (v5.a = tm2.a) when matched then update set v5.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from v5;
+a	b
+2	1
+select * from tm1;
+a	b
+1	1
+2	1
+1	2
+3	3
+4	4
+## Test_7_11: target table is joined view
+create view v6 as select tt1.a, tt2.b from tm1 tt1 join tm1 tt2 on tt1.a=tt1.b;
+merge into v6 using tm2 on (v6.a = tm2.a) when matched then update set v6.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+ERROR HY000: Can not modify more than one base table through a join view 'merge_db.v6'
+create view v7 as select * from v6;
+merge into v7 using tm2 on (v7.a = tm2.a) when matched then update set v7.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+ERROR HY000: Can not modify more than one base table through a join view 'merge_db.v7'
+## Test_7_12: target table with check option without where
+create view v14 as select * from tm1 with cascaded check option;
+merge into v14 using tm2 on (v14.a = tm2.a) when matched then update set v14.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+## Test_7_13: underlying view of target table with local check option
+create view v15 as select * from tm1 where b < 3 with local check option;
+merge into v15 using tm2 on (v15.a = tm2.a) when matched then update set v15.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+ERROR HY000: error occurs in MERGE INTO, detail :view with check option cannot be modified
+create view v16 as select * from v15;
+merge into v16 using tm2 on (v16.a = tm2.a) when matched then update set v16.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+ERROR HY000: error occurs in MERGE INTO, detail :view with check option cannot be modified
+## Test_7_14: underlying view of target table has where & top view with check option
+create view v17 as select * from tm1 where b < 3;
+create view v18 as select * from v17 with cascaded check option;
+merge into v18 using tm2 on (v18.a = tm2.a) when matched then update set v18.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+ERROR HY000: error occurs in MERGE INTO, detail :view with check option cannot be modified
+create view v19 as select * from v17 with local check option;
+merge into v19 using tm2 on (v19.a = tm2.a) when matched then update set v19.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+---------------------------------------------------------------
+## Test_8: target table is derived table
+---------------------------------------------------------------
+## Test_8_1: target table is single table
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+merge into (select * from tm1)dt using tm2 on (dt.a = tm2.a) when matched then update set dt.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from tm1;
+a	b
+1	2
+2	1
+3	3
+4	4
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+merge into (select * from (select * from tm1)dt) ddt using tm2 on (ddt.a = tm2.a) when matched then update set ddt.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from tm1;
+a	b
+1	2
+2	1
+3	3
+4	4
+## Test_8_2: target table is multiple table
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+merge into (select tt1.a, tt2.b from tm1 tt1 join tm1 tt2 on tt1.a=tt2.a)dt using tm2 on (dt.a = tm2.a) when matched then update set dt.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+ERROR HY000: Can not modify more than one base table through a join view '.'
+---------------------------------------------------------------
+## Test_9: target table is temporary table
+---------------------------------------------------------------
+create temporary table tmp (a int, b int);
+insert tmp values (1,1),(2,2);
+merge into tmp using tm2 on (tmp.a = tm2.a) when matched then update set tmp.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from tmp;
+a	b
+1	2
+2	1
+3	3
+4	4
+DROP TEMPORARY TABLE IF EXISTS tmp;
+---------------------------------------------------------------
+## Test_10: target table is partition table
+---------------------------------------------------------------
+create table pt1 (a int, b int, c int) partition by range(a)(partition s1 values less than (5), partition s2 values less than (10), partition s3 values less than MAXVALUE);
+insert into pt1 values (1,1,1),(2,2,2),(6,6,6),(7,7,7),(11,11,11),(12,12,12);
+create table pts (a int, b int);
+insert into pts values (1,8),(2,13),(3,3),(5,5),(6,4),(7,13),(10,10),(11,9),(12,19),(100,100);
+## Test_10_1: normal test: partition column is updated and not in on condition
+explain merge into pt1 using pts on (pt1.b = pts.a) when matched then update set pt1.a=pts.b when not matched then insert values (pts.a, pts.b, 200);
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	pts	NULL	ALL	NULL	NULL	NULL	NULL	10	100.00	NULL
+1	MERGE	pt1	s1,s2,s3	ALL	NULL	NULL	NULL	NULL	6	100.00	Using where
+Warnings:
+Note	1003	merge into `merge_db`.`pt1` using `merge_db`.`pts` on ((`merge_db`.`pt1`.`b` = `merge_db`.`pts`.`a`)) when matched then update set `merge_db`.`pt1`.`a` = `merge_db`.`pts`.`b` when not matched then insert values (`merge_db`.`pts`.`a`,`merge_db`.`pts`.`b`,200)
+explain format =tree merge into pt1 using pts on (pt1.b = pts.a) when matched then update set pt1.a=pts.b when not matched then insert values (pts.a, pts.b, 200);
+EXPLAIN
+-> Merge into pt1
+    -> Nested loop left join  (cost=8.00 rows=60)
+        -> Table scan on pts  (cost=1.25 rows=10)
+        -> Filter: (pt1.b = pts.a)  (cost=0.14 rows=6)
+            -> Table scan on pt1  (cost=0.14 rows=6)
+
+merge into pt1 using pts on (pt1.b = pts.a) when matched then update set pt1.a=pts.b when not matched then insert values (pts.a, pts.b, 200);
+select * from pt1;
+a	b	c
+3	3	200
+4	6	6
+8	1	1
+5	5	200
+9	11	11
+19	12	12
+13	2	2
+13	7	7
+10	10	200
+100	100	200
+## Test_10_2: normal test: partition column in on condition
+delete from pt1;
+insert into pt1 values (1,1,1),(2,2,2),(6,6,6),(7,7,7),(11,11,11),(12,12,12);
+explain merge into pt1 using pts on (pt1.a = pts.a) when matched then update set pt1.b=pts.b when not matched then insert values (pts.a, pts.b, 300);
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	pts	NULL	ALL	NULL	NULL	NULL	NULL	10	100.00	NULL
+1	MERGE	pt1	s1,s2,s3	ALL	NULL	NULL	NULL	NULL	6	100.00	Using where
+Warnings:
+Note	1003	merge into `merge_db`.`pt1` using `merge_db`.`pts` on ((`merge_db`.`pt1`.`a` = `merge_db`.`pts`.`a`)) when matched then update set `merge_db`.`pt1`.`b` = `merge_db`.`pts`.`b` when not matched then insert values (`merge_db`.`pts`.`a`,`merge_db`.`pts`.`b`,300)
+explain format =tree merge into pt1 using pts on (pt1.a = pts.a) when matched then update set pt1.b=pts.b when not matched then insert values (pts.a, pts.b, 300);
+EXPLAIN
+-> Merge into pt1
+    -> Nested loop left join  (cost=8.00 rows=60)
+        -> Table scan on pts  (cost=1.25 rows=10)
+        -> Filter: (pt1.a = pts.a)  (cost=0.14 rows=6)
+            -> Table scan on pt1  (cost=0.14 rows=6)
+
+merge into pt1 using pts on (pt1.a = pts.a) when matched then update set pt1.b=pts.b when not matched then insert values (pts.a, pts.b, 300);
+select * from pt1;
+a	b	c
+1	8	1
+2	13	2
+3	3	300
+6	4	6
+7	13	7
+5	5	300
+11	9	11
+12	19	12
+10	10	300
+100	100	300
+## Test_10_3: normal test: partition column in on condition and causes partition pruning
+delete from pt1;
+insert into pt1 values (1,1,1),(2,2,2),(6,6,6),(7,7,7),(11,11,11),(12,12,12);
+explain merge into pt1 using pts on ( pt1.a = pts.a and pt1.a<5) when matched then update set pt1.b=pts.b, pt1.c=500 when not matched then insert values (400,400,400);
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	pts	NULL	ALL	NULL	NULL	NULL	NULL	10	100.00	NULL
+1	MERGE	pt1	s1	ALL	NULL	NULL	NULL	NULL	2	100.00	Using where
+Warnings:
+Note	1003	merge into `merge_db`.`pt1` using `merge_db`.`pts` on (((`merge_db`.`pt1`.`a` = `merge_db`.`pts`.`a`) and (`merge_db`.`pts`.`a` < 5))) when matched then update set `merge_db`.`pt1`.`b` = `merge_db`.`pts`.`b`,`merge_db`.`pt1`.`c` = 500 when not matched then insert values (400,400,400)
+explain format=tree merge into pt1 using pts on ( pt1.a = pts.a and pt1.a<5) when matched then update set pt1.b=pts.b, pt1.c=500 when not matched then insert values (400,400,400);
+EXPLAIN
+-> Merge into pt1
+    -> Nested loop left join  (cost=3.50 rows=20)
+        -> Table scan on pts  (cost=1.25 rows=10)
+        -> Filter: ((pt1.a = pts.a) and (pts.a < 5))  (cost=0.05 rows=2)
+            -> Table scan on pt1  (cost=0.05 rows=2)
+
+merge into pt1 using pts on ( pt1.a = pts.a and pt1.a<5) when matched then update set pt1.b=pts.b, pt1.c=500 when not matched then insert values (400,400,400);
+select * from pt1;
+a	b	c
+1	8	500
+2	13	500
+6	6	6
+7	7	7
+11	11	11
+12	12	12
+400	400	400
+400	400	400
+400	400	400
+400	400	400
+400	400	400
+400	400	400
+400	400	400
+400	400	400
+## Test_10_4: push-down where causes partition pruning: partition column not in on condition
+delete from pt1;
+insert into pt1 values (1,1,1),(2,2,2),(6,6,6),(7,7,7),(11,11,11),(12,12,12);
+explain merge into pt1 using tm2 on (pt1.b = tm2.b) when matched then update set pt1.a=5+pt1.a where pt1.a<10;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	tm2	NULL	ALL	NULL	NULL	NULL	NULL	4	100.00	NULL
+1	MERGE	pt1	s1,s2	ALL	NULL	NULL	NULL	NULL	4	25.00	Using where
+Warnings:
+Note	1003	merge into `merge_db`.`pt1` using `merge_db`.`tm2` when matched then update set `merge_db`.`pt1`.`a` = (5 + `merge_db`.`pt1`.`a`)  where ((`merge_db`.`pt1`.`b` = `merge_db`.`tm2`.`b`) and (`merge_db`.`pt1`.`a` < 10))
+explain format=tree merge into pt1 using tm2 on (pt1.b = tm2.b) when matched then update set pt1.a=5+pt1.a where pt1.a<10;
+EXPLAIN
+-> Merge into pt1
+    -> Nested loop inner join  (cost=3.02 rows=4)
+        -> Table scan on tm2  (cost=0.65 rows=4)
+        -> Filter: ((pt1.b = tm2.b) and (pt1.a < 10))  (cost=0.22 rows=1)
+            -> Table scan on pt1  (cost=0.22 rows=4)
+
+merge into pt1 using tm2 on (pt1.b = tm2.b) when matched then update set pt1.a=5+pt1.a where pt1.a<10;
+select * from pt1;
+a	b	c
+6	6	6
+7	7	7
+7	2	2
+6	1	1
+11	11	11
+12	12	12
+## Test_10_5: push-down where causes partition pruning: partition column in on condition
+delete from pt1;
+insert into pt1 values (1,1,1),(2,2,2),(6,6,6),(7,7,7),(11,11,11),(12,12,12);
+explain merge into pt1 using pts on (pt1.a = pts.a) when matched then update set pt1.b=pts.b where pt1.a<5;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	pts	NULL	ALL	NULL	NULL	NULL	NULL	10	100.00	Using where
+1	MERGE	pt1	s1	ALL	NULL	NULL	NULL	NULL	2	50.00	Using where
+Warnings:
+Note	1003	merge into `merge_db`.`pt1` using `merge_db`.`pts` when matched then update set `merge_db`.`pt1`.`b` = `merge_db`.`pts`.`b`  where ((`merge_db`.`pt1`.`a` = `merge_db`.`pts`.`a`) and (`merge_db`.`pts`.`a` < 5))
+explain format=tree merge into pt1 using pts on (pt1.a = pts.a) when matched then update set pt1.b=pts.b where pt1.a<5;
+EXPLAIN
+-> Merge into pt1
+    -> Nested loop inner join  (cost=3.60 rows=10)
+        -> Filter: (pts.a < 5)  (cost=1.25 rows=10)
+            -> Table scan on pts  (cost=1.25 rows=10)
+        -> Filter: (pt1.a = pts.a)  (cost=0.05 rows=1)
+            -> Table scan on pt1  (cost=0.05 rows=2)
+
+merge into pt1 using pts on (pt1.a = pts.a) when matched then update set pt1.b=pts.b where pt1.a<5;
+select * from pt1;
+a	b	c
+1	8	1
+2	13	2
+6	6	6
+7	7	7
+11	11	11
+12	12	12
+delete from pt1;
+insert into pt1 values (1,1,1),(2,2,2),(6,6,6),(7,7,7),(11,11,11),(12,12,12);
+explain merge into pt1 using tm2 on (pt1.b = tm2.b) when matched then update set pt1.a=7 where pt1.a=2;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	tm2	NULL	ALL	NULL	NULL	NULL	NULL	4	100.00	NULL
+1	MERGE	pt1	s1	ALL	NULL	NULL	NULL	NULL	2	50.00	Using where
+Warnings:
+Note	1003	merge into `merge_db`.`pt1` using `merge_db`.`tm2` when matched then update set `merge_db`.`pt1`.`a` = 7  where ((`merge_db`.`pt1`.`b` = `merge_db`.`tm2`.`b`) and (`merge_db`.`pt1`.`a` = 2))
+merge into pt1 using tm2 on (pt1.b = tm2.b) when matched then update set pt1.a=7 where pt1.a=2;
+select * from pt1;
+a	b	c
+1	1	1
+6	6	6
+7	7	7
+7	2	2
+11	11	11
+12	12	12
+---------------------------------------------------------------
+## Test_11: source table is derived table
+---------------------------------------------------------------
+## Test_11_1: source table is simple derived table
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+merge into tm1 using (select * from tm2) dt on (tm1.a = dt.a) when matched then update set tm1.b=10 when not matched then insert values (dt.a, dt.b);
+select * from tm1;
+a	b
+1	10
+2	10
+3	3
+4	4
+## Test_11_2: source table is derived table of pruned partition table
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+merge into tm1 using (select * from pt1 where a<10) tm2 on (tm1.a = tm2.a) when matched then update set tm1.b=tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from tm1;
+a	b
+1	1
+2	2
+6	6
+7	7
+## Test_11_3: source table is derived table of joined table
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+merge into tm1 using (select tm2.b a,tm3.b b from tm2 join tm3 on tm2.a=tm3.a) dt on (tm1.a = dt.a) when matched then update set tm1.b=dt.b when not matched then insert values (dt.a, dt.b);
+select * from tm1;
+a	b
+1	12
+2	11
+3	13
+4	14
+## Test_11_1: source table and target table are all simple derived table
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+merge into (select * from tm1) t using (select * from tm2) dt on (t.a=dt.a+1) when matched then update set t.b=10 when not matched then insert values (dt.a, dt.b);
+select * from tm1;
+a	b
+1	1
+2	10
+2	1
+3	3
+4	4
+---------------------------------------------------------------
+## Test_12: test push down where
+---------------------------------------------------------------
+delete from tk1;
+insert into tk1 values (1,1),(2,2),(4,6);
+explain merge into tk1 using tm2 on (tk1.a = tm2.a) when matched then update set tk1.b = tm2.b where tm2.a<3;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	tm2	NULL	ALL	NULL	NULL	NULL	NULL	4	33.33	Using where
+1	MERGE	tk1	NULL	eq_ref	PRIMARY	PRIMARY	4	merge_db.tm2.a	1	100.00	NULL
+Warnings:
+Note	1003	merge into `merge_db`.`tk1` using `merge_db`.`tm2` on ((`merge_db`.`tk1`.`a` = `merge_db`.`tm2`.`a`)) when matched then update set `merge_db`.`tk1`.`b` = `merge_db`.`tm2`.`b`  where (`merge_db`.`tm2`.`a` < 3)
+explain format=tree merge into tk1 using tm2 on (tk1.a = tm2.a) when matched then update set tk1.b = tm2.b where tm2.a<3;
+EXPLAIN
+-> Merge into tk1
+    -> Nested loop left join  (cost=1.12 rows=1)
+        -> Filter: (tm2.a < 3)  (cost=0.65 rows=1)
+            -> Table scan on tm2  (cost=0.65 rows=4)
+        -> Single-row index lookup on tk1 using PRIMARY (a=tm2.a)  (cost=0.33 rows=1)
+
+merge into tk1 using tm2 on (tk1.a = tm2.a) when matched then update set tk1.b = tm2.b where tm2.a<3;
+select * from tk1;
+a	b
+1	2
+2	1
+4	6
+delete from tk1;
+insert into tk1 values (1,1),(2,2);
+explain merge into tk1 using tm2 on (tk1.a = tm2.a) when not matched then insert values (tm2.a, tm2.b) where tm2.a>3;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	tm2	NULL	ALL	NULL	NULL	NULL	NULL	4	33.33	Using where
+1	MERGE	tk1	NULL	eq_ref	PRIMARY	PRIMARY	4	merge_db.tm2.a	1	100.00	Using index
+Warnings:
+Note	1003	merge into `merge_db`.`tk1` using `merge_db`.`tm2` on ((`merge_db`.`tk1`.`a` = `merge_db`.`tm2`.`a`)) when not matched then insert values (`merge_db`.`tm2`.`a`,`merge_db`.`tm2`.`b`) where (`merge_db`.`tm2`.`a` > 3)
+explain format=tree merge into tk1 using tm2 on (tk1.a = tm2.a) when not matched then insert values (tm2.a, tm2.b) where tm2.a>3;
+EXPLAIN
+-> Merge into tk1
+    -> Nested loop left join  (cost=1.12 rows=1)
+        -> Filter: (tm2.a > 3)  (cost=0.65 rows=1)
+            -> Table scan on tm2  (cost=0.65 rows=4)
+        -> Single-row index lookup on tk1 using PRIMARY (a=tm2.a)  (cost=0.33 rows=1)
+
+merge into tk1 using tm2 on (tk1.a = tm2.a) when not matched then insert values (tm2.a, tm2.b) where tm2.a>3;
+select * from tk1;
+a	b
+1	1
+2	2
+4	4
+delete from tk1;
+insert into tk1 values (1,1),(2,2);
+explain merge into tk1 using tm2 on (tk1.a = tm2.a) when not matched then insert (tk1.a) values (tm2.a) where tm2.b<4;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	tm2	NULL	ALL	NULL	NULL	NULL	NULL	4	33.33	Using where
+1	MERGE	tk1	NULL	eq_ref	PRIMARY	PRIMARY	4	merge_db.tm2.a	1	100.00	Using index
+Warnings:
+Note	1003	merge into `merge_db`.`tk1` using `merge_db`.`tm2` on ((`merge_db`.`tk1`.`a` = `merge_db`.`tm2`.`a`)) when not matched then insert (`merge_db`.`tk1`.`a`) values (`merge_db`.`tm2`.`a`) where (`merge_db`.`tm2`.`b` < 4)
+merge into tk1 using tm2 on (tk1.a = tm2.a) when not matched then insert (tk1.a) values (tm2.a) where tm2.b<4;
+select * from tk1;
+a	b
+1	1
+2	2
+3	NULL
+delete from tm1;
+insert into tm1 values (1,1),(2,2),(5,5),(7,7);
+explain merge into tm1 using tm2 on (tm1.b = tm2.b) when matched then update set tm1.a=2 where tm1.a<5;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	tm2	NULL	ALL	NULL	NULL	NULL	NULL	4	100.00	NULL
+1	MERGE	tm1	NULL	ALL	NULL	NULL	NULL	NULL	4	25.00	Using where
+Warnings:
+Note	1003	merge into `merge_db`.`tm1` using `merge_db`.`tm2` when matched then update set `merge_db`.`tm1`.`a` = 2  where ((`merge_db`.`tm1`.`b` = `merge_db`.`tm2`.`b`) and (`merge_db`.`tm1`.`a` < 5))
+explain format=tree merge into tm1 using tm2 on (tm1.b = tm2.b) when matched then update set tm1.a=2 where tm1.a<5;
+EXPLAIN
+-> Merge into tm1
+    -> Nested loop inner join  (cost=2.77 rows=4)
+        -> Table scan on tm2  (cost=0.65 rows=4)
+        -> Filter: ((tm1.b = tm2.b) and (tm1.a < 5))  (cost=0.15 rows=1)
+            -> Table scan on tm1  (cost=0.15 rows=4)
+
+merge into tm1 using tm2 on (tm1.b = tm2.b) when matched then update set tm1.a=2 where tm1.a<5;
+select * from tm1;
+a	b
+2	1
+2	2
+5	5
+7	7
+---------------------------------------------------------------
+## Test_13: source table is the same table as target table
+---------------------------------------------------------------
+## Test_13_1: not supported cases
+merge into tm1 using tm1 on (tm1.a = tm1.b) when not matched then insert values (tm1.a, tm1.b);
+ERROR 42000: Not unique table/alias: 'tm1'
+merge into tm1 dt using tm1 on (dt.a = tm1.b) when not matched then insert values (tm1.a, tm1.b);
+ERROR HY000: error occurs in MERGE INTO, detail :target table is misused in subqueries or non-materialized source table
+merge into (select * from tm1) dt using tm1 on (dt.a = tm1.b) when not matched then insert values (tm1.a, tm1.b);
+ERROR HY000: error occurs in MERGE INTO, detail :target table is misused in subqueries or non-materialized source table
+merge into tm1 using tm2 on (tm1.a = tm2.a) when not matched then insert values ((select a from tm1 limit 1), tm2.b);
+ERROR HY000: error occurs in MERGE INTO, detail :target table is misused in subqueries or non-materialized source table
+merge into tm1 using tm2 on (tm1.a = tm2.a) when matched then update set tm1.b = (select a from tm1 limit 1);
+ERROR HY000: error occurs in MERGE INTO, detail :target table is misused in subqueries or non-materialized source table
+## Test_13_2: source table use alias
+delete from tm1;
+insert into tm1 values (1,2),(2,1),(3,4);
+explain merge into tm1 using tm1 dt on (tm1.a = dt.b) when not matched then insert values (dt.a, dt.b) when matched then update set tm1.b=dt.a;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	PRIMARY	<derived2>	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+1	MERGE	tm1	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	Using where
+2	DERIVED	dt	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+Warnings:
+Note	1003	merge into `merge_db`.`tm1` using (/* select#2 */ select `dt`.`a` AS `a`,`dt`.`b` AS `b` from `merge_db`.`tm1` `dt`) `dt` on ((`merge_db`.`tm1`.`a` = `dt`.`b`)) when matched then update set `merge_db`.`tm1`.`b` = `dt`.`a` when not matched then insert values (`dt`.`a`,`dt`.`b`)
+explain format=tree merge into tm1 using tm1 dt on (tm1.a = dt.b) when not matched then insert values (dt.a, dt.b) when matched then update set tm1.b=dt.a;
+EXPLAIN
+-> Merge into tm1
+    -> Nested loop left join
+        -> Table scan on dt
+            -> Materialize
+                -> Table scan on dt  (cost=0.55 rows=3)
+        -> Filter: (tm1.a = dt.b)  (cost=0.18 rows=3)
+            -> Table scan on tm1  (cost=0.18 rows=3)
+
+merge into tm1 using tm1 dt on (tm1.a = dt.b) when not matched then insert values (dt.a, dt.b) when matched then update set tm1.b=dt.a;
+select * from tm1;
+a	b
+1	2
+2	1
+3	4
+3	4
+delete from tm1;
+insert into tm1 values (1,2),(2,1),(3,4);
+merge into tm1 using tm1 dt on (tm1.a = dt.a+1) when not matched then insert values (dt.a, dt.b) when matched then update set tm1.b=dt.b+1;
+select * from tm1;
+a	b
+1	2
+2	3
+3	2
+3	4
+## Test_13_3: source table is derived table
+delete from tm1;
+insert into tm1 values (1,2),(2,1),(3,4);
+explain merge into tm1 using (select tm2.a,tm2.b from tm1 join tm2 on tm1.a=tm2.a) dt on (tm1.a = dt.b) when not matched then insert values (dt.a, dt.b) when matched then update set tm1.b=dt.a;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	PRIMARY	<derived2>	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+1	MERGE	tm1	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	Using where
+2	DERIVED	tm1	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+2	DERIVED	tm2	NULL	ALL	NULL	NULL	NULL	NULL	4	25.00	Using where; Using join buffer (Block Nested Loop)
+Warnings:
+Note	1003	merge into `merge_db`.`tm1` using (/* select#2 */ select `merge_db`.`tm2`.`a` AS `a`,`merge_db`.`tm2`.`b` AS `b` from `merge_db`.`tm1` join `merge_db`.`tm2` where (`merge_db`.`tm2`.`a` = `tm1`.`a`)) `dt` on ((`merge_db`.`tm1`.`a` = `dt`.`b`)) when matched then update set `merge_db`.`tm1`.`b` = `dt`.`a` when not matched then insert values (`dt`.`a`,`dt`.`b`)
+merge into tm1 using (select * from tm1) dt on (tm1.a = dt.b) when not matched then insert values (dt.a, dt.b) when matched then update set tm1.b=dt.a;
+select * from tm1;
+a	b
+1	2
+2	1
+3	4
+3	4
+delete from tm1;
+insert into tm1 values (1,2),(2,1),(3,4);
+merge into tm1 using (select * from tm1) dt on (tm1.a = dt.a+1) when not matched then insert values (dt.a, dt.b) when matched then update set tm1.b=dt.a;
+select * from tm1;
+a	b
+1	2
+2	1
+3	2
+3	4
+## Test_13_4: source table use alias and target table use alias
+delete from tm1;
+insert into tm1 values (1,2),(2,1),(3,4);
+explain merge into tm1 t using tm1 dt on (t.a = dt.b) when not matched then insert values (dt.a, dt.b) when matched then update set t.b=dt.a;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	PRIMARY	<derived2>	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+1	MERGE	t	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	Using where
+2	DERIVED	dt	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+Warnings:
+Note	1003	merge into `merge_db`.`tm1` `t` using (/* select#2 */ select `dt`.`a` AS `a`,`dt`.`b` AS `b` from `merge_db`.`tm1` `dt`) `dt` on ((`merge_db`.`t`.`a` = `dt`.`b`)) when matched then update set `merge_db`.`t`.`b` = `dt`.`a` when not matched then insert values (`dt`.`a`,`dt`.`b`)
+merge into tm1 t using (select * from tm1) dt on (t.a = dt.b) when not matched then insert values (dt.a, dt.b) when matched then update set t.b=dt.a;
+select * from tm1;
+a	b
+1	2
+2	1
+3	4
+3	4
+delete from tm1;
+insert into tm1 values (1,2),(2,1),(3,4);
+merge into tm1 t using (select * from tm1) dt on (t.a = dt.a+1) when not matched then insert values (dt.a, dt.b) when matched then update set t.b=dt.a;
+select * from tm1;
+a	b
+1	2
+2	1
+3	2
+3	4
+## Test_13_5: target table is derived table
+delete from tm1;
+insert into tm1 values (1,2),(2,1),(3,4);
+explain merge into (select * from tm1) t using tm1 dt on (t.a = dt.b) when not matched then insert values (dt.a, dt.b) when matched then update set t.b=dt.a;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	PRIMARY	<derived3>	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+1	MERGE	tm1	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	Using where
+3	DERIVED	dt	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+Warnings:
+Note	1003	merge into (`merge_db`.`tm1`) using (/* select#3 */ select `dt`.`a` AS `a`,`dt`.`b` AS `b` from `merge_db`.`tm1` `dt`) `dt` on ((`merge_db`.`tm1`.`a` = `dt`.`b`)) when matched then update set `merge_db`.`tm1`.`b` = `dt`.`a` when not matched then insert values (`dt`.`a`,`dt`.`b`)
+merge into (select * from tm1) t using (select * from tm1) dt on (t.a = dt.b) when not matched then insert values (dt.a, dt.b) when matched then update set t.b=dt.a;
+select * from tm1;
+a	b
+1	2
+2	1
+3	4
+3	4
+delete from tm1;
+insert into tm1 values (1,2),(2,1),(3,4);
+merge into (select * from tm1) t using (select * from tm1) dt on (t.a = dt.a+1) when not matched then insert values (dt.a, dt.b) when matched then update set t.b=dt.a;
+select * from tm1;
+a	b
+1	2
+2	1
+3	2
+3	4
+## Test_13_6: target table is view
+delete from tm1;
+insert into tm1 values (1,2),(2,1),(3,4);
+explain merge into v1 using tm1 dt on (v1.a = dt.a+1) when not matched then insert values (dt.a, dt.b) when matched then update set v1.b=dt.a;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	PRIMARY	<derived2>	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+1	MERGE	tm1	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	Using where
+2	DERIVED	dt	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+Warnings:
+Note	1003	merge into (`merge_db`.`tm1`) using (/* select#2 */ select `dt`.`a` AS `a`,`dt`.`b` AS `b` from `merge_db`.`tm1` `dt`) `dt` on ((`merge_db`.`tm1`.`a` = (`dt`.`a` + 1))) when matched then update set `merge_db`.`tm1`.`b` = `dt`.`a` when not matched then insert (`merge_db`.`tm1`.`a`,`merge_db`.`tm1`.`b`) values (`dt`.`a`,`dt`.`b`)
+merge into v1 using tm1 dt on (v1.a = dt.a+1) when not matched then insert values (dt.a, dt.b) when matched then update set v1.b=dt.a;
+select * from tm1;
+a	b
+1	2
+2	1
+3	2
+3	4
+## Test_13_7: target table is partition table
+delete from pt1;
+insert into pt1 values (1,1,1),(2,2,2),(6,6,6),(7,7,7),(11,11,11),(12,12,12);
+explain merge into pt1 using pt1 pts on (pt1.a = pts.a+1) when matched then update set pt1.b=pts.b when not matched then insert values (pts.a, pts.b, 999);
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	PRIMARY	<derived2>	NULL	ALL	NULL	NULL	NULL	NULL	6	100.00	NULL
+1	MERGE	pt1	s1,s2,s3	ALL	NULL	NULL	NULL	NULL	6	100.00	Using where
+2	DERIVED	pts	s1,s2,s3	ALL	NULL	NULL	NULL	NULL	6	100.00	NULL
+Warnings:
+Note	1003	merge into `merge_db`.`pt1` using (/* select#2 */ select `merge_db`.`pts`.`a` AS `a`,`merge_db`.`pts`.`b` AS `b`,`merge_db`.`pts`.`c` AS `c` from `merge_db`.`pt1` `pts`) `pts` on ((`merge_db`.`pt1`.`a` = (`pts`.`a` + 1))) when matched then update set `merge_db`.`pt1`.`b` = `pts`.`b` when not matched then insert values (`pts`.`a`,`pts`.`b`,999)
+explain format =tree merge into pt1 using pt1 pts on (pt1.a = pts.a+1) when matched then update set pt1.b=pts.b when not matched then insert values (pts.a, pts.b, 999);
+EXPLAIN
+-> Merge into pt1
+    -> Nested loop left join
+        -> Table scan on pts
+            -> Materialize
+                -> Table scan on pts  (cost=1.35 rows=6)
+        -> Filter: (pt1.a = (pts.a + 1))  (cost=0.23 rows=6)
+            -> Table scan on pt1  (cost=0.23 rows=6)
+
+merge into pt1 using pt1 pts on (pt1.a = pts.a+1) when matched then update set pt1.b=pts.b when not matched then insert values (pts.a, pts.b, 999);
+select * from pt1;
+a	b	c
+1	1	1
+2	1	2
+2	2	999
+6	6	6
+7	6	7
+7	7	999
+11	11	11
+12	11	12
+12	12	999
+---------------------------------------------------------------
+## Test_14: test default values
+---------------------------------------------------------------
+create table dv (a int, b int, c VARCHAR(10) DEFAULT 'World', d int DEFAULT 555);
+insert into dv (a,b,c,d) values (1,1,'City',1),(2,2,'Street',2);
+merge into dv using tm2 on (dv.a = tm2.a) when matched then update set c = default, d = default when not matched then insert (a,b,c) values (tm2.a,tm2.b,default);
+select * from dv;
+a	b	c	d
+1	1	World	555
+2	2	World	555
+3	3	World	555
+4	4	World	555
+delete from tm1;
+insert into tm1 values (1,1),(1,2);
+merge into v1 using tm2 on (v1.a = tm2.a) when not matched then insert values (default,default);
+select * from v1;
+a	b
+1	1
+1	2
+NULL	NULL
+NULL	NULL
+NULL	NULL
+merge into v1 using tm2 on (v1.a = tm2.a) when matched then update set v1.b=default;
+select * from v1;
+a	b
+1	NULL
+1	NULL
+NULL	NULL
+NULL	NULL
+NULL	NULL
+---------------------------------------------------------------
+## Test_15: insert with not appointed column
+---------------------------------------------------------------
+delete from tm1;
+insert into tm1 values (1,1),(1,2);
+merge into tm1 using tm2 on (tm1.a = tm2.a) when not matched then insert (tm1.a) values (tm2.a);
+select * from tm1;
+a	b
+1	1
+1	2
+2	NULL
+3	NULL
+4	NULL
+delete from tm1;
+insert into tm1 values (1,1),(1,2);
+merge into tm1 using tm2 on (tm1.a = tm2.a) when not matched then insert values ();
+select * from tm1;
+a	b
+1	1
+1	2
+NULL	NULL
+NULL	NULL
+NULL	NULL
+merge into v1 using tm2 on (v1.a = tm2.a) when not matched then insert values ();
+ERROR 21S01: Column count doesn't match value count
+select * from v1;
+a	b
+1	1
+1	2
+NULL	NULL
+NULL	NULL
+NULL	NULL
+merge into pt1 using tm2 on (pt1.a = tm2.a) when not matched then insert values ();
+select * from pt1;
+a	b	c
+1	1	1
+2	1	2
+2	2	999
+NULL	NULL	NULL
+NULL	NULL	NULL
+6	6	6
+7	6	7
+7	7	999
+11	11	11
+12	11	12
+12	12	999
+---------------------------------------------------------------
+## Test_16: test error cases
+---------------------------------------------------------------
+delete from tm1;
+insert into tm1 values (1,1),(1,2);
+merge into tm1 using tm2 on (tm1.a = tm2.a) when not matched then insert values (tm2.a);
+ERROR 21S01: Column count doesn't match value count
+merge into tm1 using tm2 on tm1.a = tm2.a when matched then update set tm1.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'tm1.a = tm2.a when matched then update set tm1.b = tm2.b when not matched then i' at line 1
+"target table field cannot resolved in insert where"
+merge into tk1 using tm2 on (tk1.a = tm2.a) when not matched then insert values (tm2.a, tm2.b) where tk1.a>3;
+ERROR 42S22: Unknown column 'tk1.a' in 'where clause'
+---------------------------------------------------------------
+## Test_17: test explain cases
+---------------------------------------------------------------
+explain merge into tm1 using tm2 on (tm1.a = tm2.a) when matched then update set tm1.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	tm2	NULL	ALL	NULL	NULL	NULL	NULL	4	100.00	NULL
+1	MERGE	tm1	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	Using where
+Warnings:
+Note	1003	merge into `merge_db`.`tm1` using `merge_db`.`tm2` on ((`merge_db`.`tm1`.`a` = `merge_db`.`tm2`.`a`)) when matched then update set `merge_db`.`tm1`.`b` = `merge_db`.`tm2`.`b` when not matched then insert values (`merge_db`.`tm2`.`a`,`merge_db`.`tm2`.`b`)
+explain format=tree merge into tm1 using tm2 on (tm1.a = tm2.a) when matched then update set tm1.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+EXPLAIN
+-> Merge into tm1
+    -> Nested loop left join  (cost=1.70 rows=8)
+        -> Table scan on tm2  (cost=0.65 rows=4)
+        -> Filter: (tm1.a = tm2.a)  (cost=0.11 rows=2)
+            -> Table scan on tm1  (cost=0.11 rows=2)
+
+explain format=json merge into tm1 using tm2 on (tm1.a = tm2.a) when matched then update set tm1.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+EXPLAIN
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "1.70"
+    },
+    "nested_loop": [
+      {
+        "table": {
+          "table_name": "tm2",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 4,
+          "rows_produced_per_join": 4,
+          "filtered": "100.00",
+          "cost_info": {
+            "read_cost": "0.25",
+            "eval_cost": "0.40",
+            "prefix_cost": "0.65",
+            "data_read_per_join": "64"
+          },
+          "used_columns": [
+            "a",
+            "b"
+          ]
+        }
+      },
+      {
+        "table": {
+          "merge": true,
+          "table_name": "tm1",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 2,
+          "rows_produced_per_join": 8,
+          "filtered": "100.00",
+          "cost_info": {
+            "read_cost": "0.25",
+            "eval_cost": "0.80",
+            "prefix_cost": "1.70",
+            "data_read_per_join": "128"
+          },
+          "used_columns": [
+            "a",
+            "b"
+          ],
+          "attached_condition": "<if>(is_not_null_compl(tm1), (`merge_db`.`tm1`.`a` = `merge_db`.`tm2`.`a`), true)"
+        }
+      }
+    ]
+  }
+}
+Warnings:
+Note	1003	merge into `merge_db`.`tm1` using `merge_db`.`tm2` on ((`merge_db`.`tm1`.`a` = `merge_db`.`tm2`.`a`)) when matched then update set `merge_db`.`tm1`.`b` = `merge_db`.`tm2`.`b` when not matched then insert values (`merge_db`.`tm2`.`a`,`merge_db`.`tm2`.`b`)
+---------------------------------------------------------------
+## Test_18: test check constraint
+---------------------------------------------------------------
+CREATE TABLE ck1 (a int CHECK (a<4), b int, CHECK (a >= b));
+insert into ck1 values (1,1),(2,2);
+merge into ck1 using tm2 on(ck1.a=tm2.a) when matched then update set ck1.b=tm2.b;
+ERROR HY000: Check constraint 'ck1_chk_2' is violated.
+merge into ck1 using tm2 on(ck1.a=tm2.a) when not matched then insert values(tm2.a, tm2.b);
+ERROR HY000: Check constraint 'ck1_chk_1' is violated.
+CREATE TABLE ck2 (a int CHECK (a<10), b int);
+insert into ck2 values (1,1),(2,2);
+merge into ck2 using tm2 on(ck2.a=tm2.a) when matched then update set ck2.b=tm2.b when not matched then insert values(tm2.a, tm2.b);
+select * from ck2;
+a	b
+1	2
+2	1
+3	3
+4	4
+---------------------------------------------------------------
+## Test_19: test trigger cases
+---------------------------------------------------------------
+insert into tr1 values (1,1),(2,2);
+insert into tr2 values (1,1,1),(1,1,2);
+create trigger trg_after_insert after insert on tr1 for each row
+begin
+update tr2 set a = 100 where c=1;
+end
+##
+create trigger trg_before_insert before insert on tr1 for each row
+begin
+update tr2 set b = 200 where c=1;
+end
+##
+create trigger trg_after_update after update on tr1 for each row
+begin
+update tr2 set a = 300 where c=2;
+end
+##
+create trigger trg_before_update before update on tr1 for each row
+begin
+update tr2 set b = 400 where c=2;
+end
+##
+merge into tr1 using tm2 on (tr1.a = tm2.a) when matched then update set tr1.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from tr1;
+a	b
+1	2
+2	1
+3	3
+4	4
+select * from tr2;
+a	b	c
+100	200	1
+300	400	2
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+create or replace trigger trg_merge before insert on tr3 for each row
+begin
+merge into tm1 using tm2 on(tm1.a=tm2.a) when matched then update set tm1.b=tm2.b when not matched then insert values (tm2.a,tm2.b);
+end
+##
+select * from tm1;
+a	b
+1	1
+2	2
+insert into tr3 values (1,1);
+---------------------------------------------------------------
+## Test_20: test merge in procedure
+---------------------------------------------------------------
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+CREATE OR REPLACE PROCEDURE test_merge()
+BEGIN
+DECLARE t INT DEFAULT 1;
+WHILE t < 4 DO
+merge into tm1 using tm2 on(tm1.a=tm2.a) when matched then update set tm1.b=tm1.b+t;
+SELECT * FROM tm1;
+SET t = t + 1;
+END WHILE;
+END $$
+CALL test_merge();
+a	b
+1	2
+2	3
+a	b
+1	4
+2	5
+a	b
+1	7
+2	8
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+CREATE OR REPLACE PROCEDURE test_merge2()
+BEGIN
+DECLARE t INT DEFAULT 1;
+WHILE t < 4 DO
+merge into tm1 using tm2 on(tm1.a=tm2.a) when not matched then insert values(t,t);
+SELECT * FROM tm1;
+SET t = t + 1;
+END WHILE;
+END $$
+CALL test_merge2();
+a	b
+1	1
+2	2
+1	1
+1	1
+a	b
+1	1
+2	2
+1	1
+1	1
+2	2
+2	2
+a	b
+1	1
+2	2
+1	1
+1	1
+2	2
+2	2
+3	3
+3	3
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+CREATE OR REPLACE PROCEDURE test_merge3()
+BEGIN
+DECLARE t INT DEFAULT 1;
+WHILE t < 4 DO
+merge into tm1 using tm2 on(tm1.a=tm2.a) when matched then update set tm1.b=tm1.b+t when not matched then insert values(t,t);
+SELECT * FROM tm1;
+SET t = t + 1;
+END WHILE;
+END $$
+CALL test_merge3();
+a	b
+1	2
+2	3
+1	1
+1	1
+a	b
+1	4
+2	5
+1	3
+1	3
+2	2
+2	2
+a	b
+1	7
+2	8
+1	6
+1	6
+2	5
+2	5
+3	3
+3	3
+---------------------------------------------------------------
+## Test_21: test merge in prepare
+---------------------------------------------------------------
+PREPARE stmt_merge1 FROM 'merge into tm1 using tm2 on(tm1.a=tm2.a) when matched then update set tm1.b = ?';
+SET @a = 3;
+EXECUTE stmt_merge1 USING @a;
+select * from tm1;
+a	b
+1	3
+2	3
+1	3
+1	3
+2	3
+2	3
+3	3
+3	3
+SET @a = 4;
+EXECUTE stmt_merge1 USING @a;
+select * from tm1;
+a	b
+1	4
+2	4
+1	4
+1	4
+2	4
+2	4
+3	4
+3	4
+PREPARE stmt_merge2 FROM 'merge into tm1 using tm2 on(tm1.a= ? ) when matched then update set tm1.b = 5';
+set @a = 2;
+EXECUTE stmt_merge2 USING @a;
+select * from tm1;
+a	b
+1	4
+2	5
+1	4
+1	4
+2	5
+2	5
+3	4
+3	4
+PREPARE stmt_merge3 FROM 'merge into tm1 using tm2 on(tm1.a=tm2.a) when not matched then insert values (?,?)';
+set @a = 10;
+set @b = 11;
+EXECUTE stmt_merge3 USING @a, @b;
+select * from tm1;
+a	b
+1	4
+2	5
+1	4
+1	4
+2	5
+2	5
+3	4
+3	4
+10	11
+---------------------------------------------------------------
+## Test_22: test event
+---------------------------------------------------------------
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+drop event if exists merge_into;
+Warnings:
+Note	1305	Event merge_into does not exist
+CREATE EVENT merge_into ON SCHEDULE EVERY 5 SECOND on completion preserve enable
+DO merge into tm1 using tm2 on(tm1.a=tm2.a) when matched then update set tm1.b=tm2.b when not matched then insert values (tm2.a,tm2.b);
+select * from merge_db.tm1;
+a	b
+1	2
+2	1
+3	3
+4	4
+alter event merge_into on completion preserve enable;
+alter event merge_into on completion  preserve disable;
+drop event merge_into;
+---------------------------------------------------------------
+## Test_23: test transaction
+---------------------------------------------------------------
+## Test_23_1: Explicit commit
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+begin;
+merge into tm1 using tm2 on(tm1.a=tm2.a) when matched then update set tm1.b=tm2.b when not matched then insert values (tm2.a,tm2.b);
+commit;
+select * from tm1;
+a	b
+1	2
+2	1
+3	3
+4	4
+## Test_23_2: Rollback
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+begin;
+merge into tm1 using tm2 on(tm1.a=tm2.a) when matched then update set tm1.b=tm2.b when not matched then insert values (tm2.a,tm2.b);
+rollback;
+select * from tm1;
+a	b
+1	1
+2	2
+## Test_23_3: Implicit commit
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+begin;
+merge into tm1 using tm2 on(tm1.a=tm2.a) when matched then update set tm1.b=tm2.b when not matched then insert values (tm2.a,tm2.b);
+create table implicit (id int);
+rollback;
+select * from tm1;
+a	b
+1	2
+2	1
+3	3
+4	4
+---------------------------------------------------------------
+## Test_24: test alltype
+---------------------------------------------------------------
+create table alltype(
+id       int       primary key auto_increment,
+tinyid   tinyint,
+smallid  smallint,
+medid    mediumint,
+bigid    bigint,
+floid    float,
+douid    double,
+deid     decimal(3,2),
+dateid   date,
+timeid   time,
+yearid   year,
+dtid     datetime,
+tsid     timestamp,
+name     varchar(25),
+name1    char(10),
+tbname   tinyblob,
+txname   tinytext,
+bname    blob,
+tname    text,
+mbname   mediumblob,
+mtname   mediumtext,
+lbname   longblob,
+ltname   longtext,
+a        SET('A','B','C'),
+b        ENUM('F','M','L')
+);
+insert into alltype values
+(1, 2, 3, 4, 5, 5.61, 5.554, 6.987, '2020-06-01', '18:18:16', 2020, '2020-06-01 00:00:00', '2020-06-01 00:00:00', 'ss', 'ss', 'xx', 'xx', 'ss', 'ss', 'xx', 'xx', 's', 'x', 'A', 'M'), 
+(2, 2, 3, 4, 5, 5.61, 5.554, 6.987, '2020-06-01', '18:18:16', 2020, '2020-06-01 00:00:00', '2020-06-01 00:00:00', 'ss', 'ss', 'xx', 'xx', 'ss', 'ss', 'xx', 'xx', 's', 'x', 'B', 'F');
+Warnings:
+Note	1265	Data truncated for column 'deid' at row 1
+Note	1265	Data truncated for column 'deid' at row 2
+merge into alltype using tm2 on(alltype.id = tm2.a) 
+when matched then update set 
+alltype.tinyid = tm2.a,
+alltype.smallid = tm2.a, 
+alltype.medid = tm2.b, 
+alltype.bigid = tm2.b, 
+alltype.floid = 6.99, 
+alltype.douid = 6.999,
+alltype.deid = 6.999,
+alltype.dateid = '2020-09-09',
+alltype.timeid = '13:50:16',
+alltype.yearid = 2021,
+alltype.dtid = '2020-09-09 12:12:12',
+alltype.tsid = '2020-09-09 12:12:12',
+alltype.name = 'abc',
+alltype.name1 = 'abcd',
+alltype.tbname = 'abcde',
+alltype.txname = 'abcdef',
+alltype.bname = 'abcdefg',
+alltype.tname = 'abcdefgh',
+alltype.mbname = 'abcdefghl',
+alltype.mtname = 'abcdefghlm',
+alltype.lbname = 'abcdefghlmn',
+alltype.ltname = 'abcdefghlmno',
+alltype.a = 'C',
+alltype.b = 'L'
+when not matched then insert 
+(tinyid,smallid,medid,bigid,floid,douid,deid,dateid,timeid,yearid,dtid,tsid,name,name1,tbname,txname,bname,tname,mbname,mtname,lbname,ltname,a,b) values
+(tm2.a, tm2.a, tm2.b, tm2.b, 5.61, 5.554, 6.987, '2020-06-01', '18:18:16', 2020, '2020-06-01 00:00:00', '2020-06-01 00:00:00', 'ss', 'ss', 'xx', 'xx', 'ss', 'ss', 'xx', 'xx', 's', 'x', 'A', 'M');
+Warnings:
+Note	1265	Data truncated for column 'deid' at row 1
+Note	1265	Data truncated for column 'deid' at row 2
+Note	1265	Data truncated for column 'deid' at row 3
+Note	1265	Data truncated for column 'deid' at row 4
+select * from alltype;
+id	tinyid	smallid	medid	bigid	floid	douid	deid	dateid	timeid	yearid	dtid	tsid	name	name1	tbname	txname	bname	tname	mbname	mtname	lbname	ltname	a	b
+1	1	1	2	2	6.99	6.999	7.00	2020-09-09	13:50:16	2021	2020-09-09 12:12:12	2020-09-09 12:12:12	abc	abcd	abcde	abcdef	abcdefg	abcdefgh	abcdefghl	abcdefghlm	abcdefghlmn	abcdefghlmno	C	L
+2	2	2	1	1	6.99	6.999	7.00	2020-09-09	13:50:16	2021	2020-09-09 12:12:12	2020-09-09 12:12:12	abc	abcd	abcde	abcdef	abcdefg	abcdefgh	abcdefghl	abcdefghlm	abcdefghlmn	abcdefghlmno	C	L
+3	3	3	3	3	5.61	5.554	6.99	2020-06-01	18:18:16	2020	2020-06-01 00:00:00	2020-06-01 00:00:00	ss	ss	xx	xx	ss	ss	xx	xx	s	x	A	M
+4	4	4	4	4	5.61	5.554	6.99	2020-06-01	18:18:16	2020	2020-06-01 00:00:00	2020-06-01 00:00:00	ss	ss	xx	xx	ss	ss	xx	xx	s	x	A	M
+---------------------------------------------------------------
+## Test_25: source table and target table from different database
+---------------------------------------------------------------
+create database merge_db2;
+create table merge_db2.tm2 (a int, b int);
+insert into merge_db2.tm2 values (1,7),(2,8),(5,5),(6,6);
+delete from tm1;
+insert into tm1 values (1,1),(1,2),(2,1),(2,2);
+merge into tm1 using merge_db2.tm2 on (tm1.a = tm2.a) when matched then update set tm1.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from tm1;
+a	b
+1	7
+1	7
+2	8
+2	8
+5	5
+6	6
+---------------------------------------------------------------
+## Test_26: json_table
+---------------------------------------------------------------
+set @str='{"name":[{"a":"1","b":"2"},  {"a":"2","b":"1"},{"a":"3","b":"3"}]}';
+## Test_26_1: source table is json_table
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+merge into tm1 using  json_table(@str,'$.name[*]' columns (a int path '$.a', b int path '$.b')) as tt on (tm1.a=tt.a) when matched then update set tm1.b=tt.b when not matched then insert values (tt.a,tt.b);
+select * from tm1;
+a	b
+1	2
+2	1
+3	3
+## Test_26_2: target table is json_table
+merge into json_table(@str,'$.name[*]' columns (a int path '$.a', b int path '$.b')) t using tm1 on(t.a=tm1.a) when matched then update set t.b=100;
+ERROR HY000: The target table t of the MERGE INTO is not updatable
+---------------------------------------------------------------
+## Test_27: MERGE INTO accepts invalid date from default val
+---------------------------------------------------------------
+SET @@session.sql_mode='';
+CREATE TABLE default_date(a DATE NOT NULL DEFAULT '0000-00-00', b int);
+INSERT INTO default_date VALUES();
+INSERT INTO default_date VALUES(DEFAULT, DEFAULT);
+SET @@session.sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE';
+Warnings:
+Warning	3135	'NO_ZERO_DATE', 'NO_ZERO_IN_DATE' and 'ERROR_FOR_DIVISION_BY_ZERO' sql modes should be used with strict mode. They will be merged with strict mode in a future release.
+SET binlog_row_image = FULL;
+merge into default_date using tm2 on(default_date.b=tm2.a) when not matched then insert values();
+ERROR 22007: Incorrect date value: '0000-00-00' for column 'a' at row 1
+merge into default_date using tm2 on(default_date.b=tm2.a) when not matched then insert values(default,1);
+ERROR 22007: Incorrect date value: '0000-00-00' for column 'a' at row 1
+merge into default_date using tm2 on(default_date.b=tm2.a) when not matched then insert values ('0000-00-00',2);
+ERROR 22007: Incorrect date value: '0000-00-00' for column 'a' at row 1
+merge into default_date using tm2 on(default_date.b=tm2.a) when not matched then insert (a,b) values ('0000-00-00',2);
+ERROR 22007: Incorrect date value: '0000-00-00' for column 'a' at row 1
+merge into default_date using default_date dt on(default_date.b=dt.b+1) when not matched then insert (a,b) values (dt.a,dt.b);
+ERROR 22007: Incorrect date value: '0000-00-00' for column 'a' at row 1
+SELECT * FROM default_date;
+a	b
+0000-00-00	NULL
+0000-00-00	NULL
+---------------------------------------------------------------
+## Test_27: MERGE INTO accepts function default datetime
+---------------------------------------------------------------
+SET binlog_row_image = MINIMAL;
+CREATE TABLE default_date2(a timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP, b int);
+merge into default_date2 using tm2 on(default_date2.b=tm2.a) when not matched then insert values();
+merge into default_date2 using tm2 on(default_date2.b=tm2.a) when not matched then insert values(default,tm2.b);
+merge into default_date2 using tm2 on(default_date2.b=tm2.a) when matched then update set default_date2.a=default;
+---------------------------------------------------------------
+## Test_28: MERGE INTO json partial update
+---------------------------------------------------------------
+SET @old_binlog_row_value_options = @@session.binlog_row_value_options;
+SET @old_binlog_row_image = @@session.binlog_row_image;
+SET @@session.binlog_row_value_options = PARTIAL_JSON;
+SET @@session.binlog_row_image = MINIMAL;
+CREATE TABLE json_partial(id INT PRIMARY KEY AUTO_INCREMENT,
+json_col JSON,
+name VARCHAR(100) AS (json_col->>'$.name'),
+age INT AS (json_col->'$.age'));
+INSERT INTO json_partial(json_col) VALUES
+(JSON_OBJECT('name', 'Joe', 'age', 24,
+'data', REPEAT('x', 10 * 1000 * 1000))),
+(JSON_OBJECT('name', 'Sue', 'age', 32,
+'data', REPEAT('y', 10 * 1000 * 1000))),
+(JSON_OBJECT('name', 'Pete', 'age', 40,
+'data', REPEAT('z', 10 * 1000 * 1000))),
+(JSON_OBJECT('name', 'Jenny', 'age', 27,
+'data', REPEAT('w', 10 * 1000 * 1000)));
+INSERT INTO json_partial(json_col) SELECT json_col FROM json_partial;
+INSERT INTO json_partial(json_col) SELECT json_col FROM json_partial;
+create table json_p_s (a int,b int);
+insert into json_p_s select id,id from json_partial;
+merge into json_partial using json_p_s on (json_partial.id=json_p_s.a) when matched then update set json_partial.json_col = json_set(json_col, '$.age', age + 1);
+SET @@session.binlog_row_value_options = @old_binlog_row_value_options;
+SET @@session.binlog_row_image = @old_binlog_row_image;
+---------------------------------------------------------------
+## Test_29: MERGE INTO + start with connect by
+---------------------------------------------------------------
+create table nums (pid int primary key, ppid int);
+insert into nums values (1, 0);
+insert into nums values (2, 0);
+insert into nums values (3, 2);
+insert into nums values (4, 2);
+insert into nums values (5, 2);
+insert into nums values (6, 1);
+insert into nums values (7, 1);
+insert into nums values (8, 2);
+insert into nums values (9, 6);
+insert into nums values (10,6);
+merge into (select * from nums start with pid = 1 connect by ppid = prior pid) dt using tm2 on(dt.pid=tm2.a) when matched then update set dt.ppid=tm2.b when not matched then insert values (tm2.a,tm2.b);
+delete from tm1;
+insert into tm1 values(1,1),(6,6);
+merge into tm1 using (select * from nums start with pid = 1 connect by ppid = prior pid) dt on(dt.pid=tm1.a) when matched then update set tm1.b=dt.ppid when not matched then insert values (dt.pid,dt.ppid);
+select * from tm1;
+a	b
+1	0
+6	1
+7	1
+9	6
+10	6
+---------------------------------------------------------------
+## Test_30: MERGE INTO + minus
+---------------------------------------------------------------
+merge into tm1 using (select * from tm1 minus select * from tm2) dt on(tm1.a=dt.a) when matched then update set tm1.b=1 when not matched then insert values (dt.a,dt.b);
+select * from tm1;
+a	b
+1	1
+6	1
+7	1
+9	1
+10	1
+merge into (select * from tm1 minus select * from tm2) dt using tm1 on(tm1.b=dt.b) when matched then update set dt.a=2 when not matched then insert values (tm1.a,tm1.b);
+ERROR HY000: The target table dt of the MERGE INTO is not updatable
+---------------------------------------------------------------
+## Test_31: MERGE INTO + full join
+---------------------------------------------------------------
+merge into tm1 using (select tm1.a a, tm1.b b, tm2.a c, tm2.a d from tm1 full join tm2 on tm1.a=tm2.a) dt on(tm1.a=dt.a) when matched then update set tm1.b=1 when not matched then insert values (dt.a,dt.b);
+select * from tm1;
+a	b
+1	1
+6	1
+7	1
+9	1
+10	1
+NULL	NULL
+NULL	NULL
+NULL	NULL
+merge into (select tm1.a a, tm1.b b, tm2.a c, tm2.a d from tm1 full join tm2 on tm1.a=tm2.a) dt using tm1 on(tm1.b=dt.b) when matched then update set dt.a=2 when not matched then insert values (tm1.a,tm1.b);
+---------------------------------------------------------------
+## Test_32: Empty source table
+---------------------------------------------------------------
+create table et (a int, b int);
+merge into tm1 using et on (tm1.a=et.a) when matched then update set tm1.b=et.b when not matched then insert values (et.a, et.b);
+select * from tm1;
+a	b
+1	1
+6	1
+7	1
+9	1
+10	1
+NULL	NULL
+NULL	NULL
+NULL	NULL
+---------------------------------------------------------------
+## Test_33: Empty target table
+---------------------------------------------------------------
+truncate tm1;
+merge into tm1 using tm2 on (tm1.a=tm2.a) when matched then update set tm1.b=tm2.b when not matched then insert values (tm2.a,tm2.b);
+select * from tm1;
+a	b
+1	2
+2	1
+3	3
+4	4
+---------------------------------------------------------------
+## Test_34: Source table is partition table
+---------------------------------------------------------------
+merge into tm1 using pt1 on (tm1.a=pt1.a) when matched then update set tm1.b=pt1.b when not matched then insert values (pt1.a,pt1.b);
+select * from tm1;
+a	b
+1	1
+2	2
+3	3
+4	4
+NULL	NULL
+NULL	NULL
+6	6
+7	6
+11	11
+12	11
+---------------------------------------------------------------
+## Test_35: Source table is view
+---------------------------------------------------------------
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+create view vs as select * from tm2;
+merge into tm1 using vs on (tm1.a=vs.a) when matched then update set tm1.b=vs.b when not matched then insert values (vs.a,vs.b);
+select * from tm1;
+a	b
+1	2
+2	1
+3	3
+4	4
+---------------------------------------------------------------
+## Test_36: Source table has primary key
+---------------------------------------------------------------
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+delete from tk1;
+insert into tk1 values (1,2),(2,1),(3,3),(4,4);
+merge into tm1 using tk1 on (tm1.a=tk1.a) when matched then update set tm1.b=tk1.b when not matched then insert values (tk1.a,tk1.b);
+select * from tm1;
+a	b
+1	2
+2	1
+3	3
+4	4
+---------------------------------------------------------------
+## Test_37: Source table has unique key <secondary index>
+---------------------------------------------------------------
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+delete from tk2;
+insert into tk2 values (1,2),(2,1),(3,3),(4,4);
+merge into tm1 using tk2 on (tm1.a=tk2.a) when matched then update set tm1.b=tk2.b when not matched then insert values (tk2.a,tk2.b);
+select * from tm1;
+a	b
+1	2
+2	1
+3	3
+4	4
+---------------------------------------------------------------
+## Test_38: Columns have same type and different precision
+---------------------------------------------------------------
+create table prec1 (a int, b decimal(7,4));
+create table prec2 (a int, b decimal(10,6));
+insert into prec1 values (1, 1.5),(2, 2.5),(3, 3.5);
+insert into prec2 values (1, 321.2566),(2, 32.23572),(3, 2222.5555),(4, 4.2626),(5, 24.23444),(6, 2422.4444);
+merge into prec1 using prec2 on (prec1.a=prec2.a) when matched then update set prec1.b=prec2.b where prec2.a<3 when not matched then insert values (prec2.a,prec2.b) where prec2.a in (4,5);
+Warnings:
+Note	1265	Data truncated for column 'b' at row 2
+Note	1265	Data truncated for column 'b' at row 5
+select * from prec1;
+a	b
+1	321.2566
+2	32.2357
+3	3.5000
+4	4.2626
+5	24.2344
+merge into prec1 using prec2 on (prec1.a=prec2.a) when matched then update set prec1.b=prec2.b where prec2.a=3;
+ERROR 22003: Out of range value for column 'b' at row 1
+merge into prec1 using prec2 on (prec1.a=prec2.a) when not matched then insert values (prec2.a,prec2.b) where prec2.a=6;
+ERROR 22003: Out of range value for column 'b' at row 1
+---------------------------------------------------------------
+## Test_39: Columns have different and substitutable types
+---------------------------------------------------------------
+create table sub1 (a int, b float);
+create table sub2 (a int, b decimal(10,4));
+insert into sub1 values (1, 1.5),(2, 2.5);
+insert into sub2 values (1, 1.22),(2, 2.22),(3, 3.22),(4, 4.22);
+merge into sub1 using sub2 on(sub1.a=sub2.a) when matched then update set sub1.b=sub2.b when not matched then insert values (sub2.a,sub2.b);
+select * from sub1;
+a	b
+1	1.22
+2	2.22
+3	3.22
+4	4.22
+create table sub3 (a int, b float);
+create table sub4 (a int, b decimal(10,4));
+insert into sub3 values (1, 1.54252),(2, 11143114.335),(3, 254.333), (4, 1.54252),(5, 11143114.335),(6, 254.333);
+insert into sub4 values (1, 1.22),(2, 2.22),(3, 3.22);
+merge into sub4 using sub3 on(sub4.a=sub3.a) when matched then update set sub4.b=sub3.b where sub3.a!=2 when not matched then insert values (sub3.a,sub3.b) where sub3.a!=5;
+Warnings:
+Note	1265	Data truncated for column 'b' at row 1
+Note	1265	Data truncated for column 'b' at row 3
+Note	1265	Data truncated for column 'b' at row 4
+Note	1265	Data truncated for column 'b' at row 6
+select * from sub4;
+a	b
+1	1.5425
+2	2.2200
+3	254.3330
+4	1.5425
+6	254.3330
+merge into sub4 using sub3 on(sub4.a=sub3.a) when matched then update set sub4.b=sub3.b where sub3.a=2;
+ERROR 22003: Out of range value for column 'b' at row 1
+merge into sub4 using sub3 on(sub4.a=sub3.a) when not matched then insert values (sub3.a,sub3.b) where sub3.a=5;
+ERROR 22003: Out of range value for column 'b' at row 1
+---------------------------------------------------------------
+## Test_40: Non-stable set use first record to update
+---------------------------------------------------------------
+delete from tm1;
+delete from tm2;
+insert into tm1 values (1,1),(2,2);
+insert into tm2 values (1,11),(2,12),(1,21),(2,22),(1,31),(2,32);
+merge into tm1 using tm2 on (tm1.a = tm2.a) when matched then update set tm1.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from tm1;
+a	b
+1	11
+2	12
+delete from tk1;
+insert into tk1 values (1,1),(2,2);
+merge into tk1 using tm2 on (tk1.a = tm2.a) when matched then update set tk1.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from tk1;
+a	b
+1	11
+2	12
+insert into tm2 values (5,41),(6,42),(5,47),(6,44);
+merge into pt1 using tm2 on (pt1.a = tm2.a) when matched then update set pt1.b=tm2.b;
+select * from pt1;
+a	b	c
+1	11	1
+2	12	2
+2	12	999
+NULL	NULL	NULL
+NULL	NULL	NULL
+6	42	6
+7	6	7
+7	7	999
+11	11	11
+12	11	12
+12	12	999
+---------------------------------------------------------------
+## Test_41: Keywords
+---------------------------------------------------------------
+create database matched;
+create table matched.matched (matched int);
+drop database matched;
+create database merge;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'merge' at line 1
+create table merge (a int);
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'merge (a int)' at line 1
+create tabel t_m (merge int);
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'tabel t_m (merge int)' at line 1
+create table t_m (a int) engine=merge;
+create table t_m2 (a int) SECONDARY_ENGINE=merge;
+create table t_m3(a int);
+alter table t_m3 engine=merge;
+create table pt_m (a int, b int) partition by range(a)(partition s1 values less than (5) engine=merge, partition s2 values less than MAXVALUE engine=merge);
+ERROR HY000: Engine cannot be used in partitioned tables
+set @saved_engine=@@session.default_storage_engine;
+set @saved_tmp_engine=@@session.default_tmp_storage_engine;
+set @@session.default_storage_engine=MERGE,@@session.default_tmp_storage_engine=MERGE;
+set @@session.default_storage_engine=@saved_engine,@@session.default_tmp_storage_engine=@saved_tmp_engine;
+create algorithm=merge view v_m as select * from t_m;
+show engine merge status;
+---------------------------------------------------------------
+## Test_42: Cocurrent test
+---------------------------------------------------------------
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+delete from tm2;
+insert into tm2 values (1,2),(2,1),(3,3),(4,4);
+select * from tm1;
+a	b
+1	1001
+2	1002
+3	1002
+4	1003
+---------------------------------------------------------------
+## Test_43: Subqueries & explain format=json
+---------------------------------------------------------------
+explain format=json merge into tm1 using tm2 on (tm1.a=tm2.a) when matched then update set tm1.b = (select a from tm3 where rownum<=1) where tm2.b< (select a from tm3 where rownum<=1) when not matched then insert values ((select a from tm3 where rownum<=1), (select b from tm3 where rownum<=1)) where tm2.b< (select a from tm3 where rownum<=1);
+EXPLAIN
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "2.50"
+    },
+    "nested_loop": [
+      {
+        "table": {
+          "table_name": "tm2",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 4,
+          "rows_produced_per_join": 4,
+          "filtered": "100.00",
+          "cost_info": {
+            "read_cost": "0.25",
+            "eval_cost": "0.40",
+            "prefix_cost": "0.65",
+            "data_read_per_join": "64"
+          },
+          "used_columns": [
+            "a",
+            "b"
+          ]
+        }
+      },
+      {
+        "table": {
+          "merge": true,
+          "table_name": "tm1",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 4,
+          "rows_produced_per_join": 16,
+          "filtered": "100.00",
+          "cost_info": {
+            "read_cost": "0.25",
+            "eval_cost": "1.60",
+            "prefix_cost": "2.50",
+            "data_read_per_join": "256"
+          },
+          "used_columns": [
+            "a",
+            "b"
+          ],
+          "attached_condition": "<if>(is_not_null_compl(tm1), (`merge_db`.`tm1`.`a` = `merge_db`.`tm2`.`a`), true)"
+        }
+      }
+    ],
+    "update_value_subqueries": [
+      {
+        "dependent": false,
+        "cacheable": true,
+        "query_block": {
+          "select_id": 5,
+          "cost_info": {
+            "query_cost": "0.65"
+          },
+          "table": {
+            "table_name": "tm3",
+            "access_type": "ALL",
+            "rows_examined_per_scan": 4,
+            "rows_produced_per_join": 4,
+            "filtered": "100.00",
+            "cost_info": {
+              "read_cost": "0.25",
+              "eval_cost": "0.40",
+              "prefix_cost": "0.65",
+              "data_read_per_join": "64"
+            },
+            "used_columns": [
+              "a"
+            ]
+          }
+        }
+      }
+    ],
+    "insert_values_subqueries": [
+      {
+        "dependent": false,
+        "cacheable": true,
+        "query_block": {
+          "select_id": 3,
+          "cost_info": {
+            "query_cost": "0.65"
+          },
+          "table": {
+            "table_name": "tm3",
+            "access_type": "ALL",
+            "rows_examined_per_scan": 4,
+            "rows_produced_per_join": 4,
+            "filtered": "100.00",
+            "cost_info": {
+              "read_cost": "0.25",
+              "eval_cost": "0.40",
+              "prefix_cost": "0.65",
+              "data_read_per_join": "64"
+            },
+            "used_columns": [
+              "b"
+            ]
+          }
+        }
+      },
+      {
+        "dependent": false,
+        "cacheable": true,
+        "query_block": {
+          "select_id": 2,
+          "cost_info": {
+            "query_cost": "0.65"
+          },
+          "table": {
+            "table_name": "tm3",
+            "access_type": "ALL",
+            "rows_examined_per_scan": 4,
+            "rows_produced_per_join": 4,
+            "filtered": "100.00",
+            "cost_info": {
+              "read_cost": "0.25",
+              "eval_cost": "0.40",
+              "prefix_cost": "0.65",
+              "data_read_per_join": "64"
+            },
+            "used_columns": [
+              "a"
+            ]
+          }
+        }
+      }
+    ],
+    "update_clause_where_subqueries": [
+      {
+        "dependent": false,
+        "cacheable": true,
+        "query_block": {
+          "select_id": 6,
+          "cost_info": {
+            "query_cost": "0.65"
+          },
+          "table": {
+            "table_name": "tm3",
+            "access_type": "ALL",
+            "rows_examined_per_scan": 4,
+            "rows_produced_per_join": 4,
+            "filtered": "100.00",
+            "cost_info": {
+              "read_cost": "0.25",
+              "eval_cost": "0.40",
+              "prefix_cost": "0.65",
+              "data_read_per_join": "64"
+            },
+            "used_columns": [
+              "a"
+            ]
+          }
+        }
+      }
+    ],
+    "insert_clause_where_subqueries": [
+      {
+        "dependent": false,
+        "cacheable": true,
+        "query_block": {
+          "select_id": 4,
+          "cost_info": {
+            "query_cost": "0.65"
+          },
+          "table": {
+            "table_name": "tm3",
+            "access_type": "ALL",
+            "rows_examined_per_scan": 4,
+            "rows_produced_per_join": 4,
+            "filtered": "100.00",
+            "cost_info": {
+              "read_cost": "0.25",
+              "eval_cost": "0.40",
+              "prefix_cost": "0.65",
+              "data_read_per_join": "64"
+            },
+            "used_columns": [
+              "a"
+            ]
+          }
+        }
+      }
+    ]
+  }
+}
+Warnings:
+Note	1003	merge into `merge_db`.`tm1` using `merge_db`.`tm2` on ((`merge_db`.`tm1`.`a` = `merge_db`.`tm2`.`a`)) when matched then update set `merge_db`.`tm1`.`b` = (/* select#5 */ select `merge_db`.`tm3`.`a` from `merge_db`.`tm3` where (rownum <= 1)) where((`merge_db`.`tm2`.`b` < (/* select#6 */ select `merge_db`.`tm3`.`a` from `merge_db`.`tm3` where (rownum <= 1)))) when not matched then insert values ((/* select#2 */ select `merge_db`.`tm3`.`a` from `merge_db`.`tm3` where (rownum <= 1)),(/* select#3 */ select `merge_db`.`tm3`.`b` from `merge_db`.`tm3` where (rownum <= 1))) where((`merge_db`.`tm2`.`b` < (/* select#4 */ select `merge_db`.`tm3`.`a` from `merge_db`.`tm3` where (rownum <= 1))))
+explain format=json merge into tm1 using tm2 on (tm1.a=tm2.a) when matched then update set tm1.b = 2 where tm2.b< (select a from tm3 where rownum<=1);
+EXPLAIN
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "1.43"
+    },
+    "nested_loop": [
+      {
+        "table": {
+          "table_name": "tm2",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 4,
+          "rows_produced_per_join": 1,
+          "filtered": "33.33",
+          "cost_info": {
+            "read_cost": "0.25",
+            "eval_cost": "0.13",
+            "prefix_cost": "0.65",
+            "data_read_per_join": "21"
+          },
+          "used_columns": [
+            "a",
+            "b"
+          ],
+          "attached_condition": "(`merge_db`.`tm2`.`b` < (/* select#2 */ select `merge_db`.`tm3`.`a` from `merge_db`.`tm3` where (rownum <= 1)))",
+          "attached_subqueries": [
+            {
+              "dependent": false,
+              "cacheable": true,
+              "query_block": {
+                "select_id": 2,
+                "cost_info": {
+                  "query_cost": "0.65"
+                },
+                "table": {
+                  "table_name": "tm3",
+                  "access_type": "ALL",
+                  "rows_examined_per_scan": 4,
+                  "rows_produced_per_join": 4,
+                  "filtered": "100.00",
+                  "cost_info": {
+                    "read_cost": "0.25",
+                    "eval_cost": "0.40",
+                    "prefix_cost": "0.65",
+                    "data_read_per_join": "64"
+                  },
+                  "used_columns": [
+                    "a"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "table": {
+          "merge": true,
+          "table_name": "tm1",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 4,
+          "rows_produced_per_join": 5,
+          "filtered": "100.00",
+          "cost_info": {
+            "read_cost": "0.25",
+            "eval_cost": "0.53",
+            "prefix_cost": "1.43",
+            "data_read_per_join": "85"
+          },
+          "used_columns": [
+            "a",
+            "b"
+          ],
+          "attached_condition": "<if>(is_not_null_compl(tm1), (`merge_db`.`tm1`.`a` = `merge_db`.`tm2`.`a`), true)"
+        }
+      }
+    ]
+  }
+}
+Warnings:
+Note	1003	merge into `merge_db`.`tm1` using `merge_db`.`tm2` on ((`merge_db`.`tm1`.`a` = `merge_db`.`tm2`.`a`)) when matched then update set `merge_db`.`tm1`.`b` = 2  where (`merge_db`.`tm2`.`b` < (/* select#2 */ select `merge_db`.`tm3`.`a` from `merge_db`.`tm3` where (rownum <= 1)))
+explain format=json merge into tm1 using tm2 on (tm1.a=tm2.a) when not matched then insert values (1,1) where tm2.b< (select a from tm3 where rownum<=1);
+EXPLAIN
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "1.43"
+    },
+    "nested_loop": [
+      {
+        "table": {
+          "table_name": "tm2",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 4,
+          "rows_produced_per_join": 1,
+          "filtered": "33.33",
+          "cost_info": {
+            "read_cost": "0.25",
+            "eval_cost": "0.13",
+            "prefix_cost": "0.65",
+            "data_read_per_join": "21"
+          },
+          "used_columns": [
+            "a",
+            "b"
+          ],
+          "attached_condition": "(`merge_db`.`tm2`.`b` < (/* select#2 */ select `merge_db`.`tm3`.`a` from `merge_db`.`tm3` where (rownum <= 1)))",
+          "attached_subqueries": [
+            {
+              "dependent": false,
+              "cacheable": true,
+              "query_block": {
+                "select_id": 2,
+                "cost_info": {
+                  "query_cost": "0.65"
+                },
+                "table": {
+                  "table_name": "tm3",
+                  "access_type": "ALL",
+                  "rows_examined_per_scan": 4,
+                  "rows_produced_per_join": 4,
+                  "filtered": "100.00",
+                  "cost_info": {
+                    "read_cost": "0.25",
+                    "eval_cost": "0.40",
+                    "prefix_cost": "0.65",
+                    "data_read_per_join": "64"
+                  },
+                  "used_columns": [
+                    "a"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "table": {
+          "merge": true,
+          "table_name": "tm1",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 4,
+          "rows_produced_per_join": 5,
+          "filtered": "100.00",
+          "cost_info": {
+            "read_cost": "0.25",
+            "eval_cost": "0.53",
+            "prefix_cost": "1.43",
+            "data_read_per_join": "85"
+          },
+          "used_columns": [
+            "a",
+            "b"
+          ],
+          "attached_condition": "<if>(is_not_null_compl(tm1), (`merge_db`.`tm1`.`a` = `merge_db`.`tm2`.`a`), true)"
+        }
+      }
+    ]
+  }
+}
+Warnings:
+Note	1003	merge into `merge_db`.`tm1` using `merge_db`.`tm2` on ((`merge_db`.`tm1`.`a` = `merge_db`.`tm2`.`a`)) when not matched then insert values (1,1) where (`merge_db`.`tm2`.`b` < (/* select#2 */ select `merge_db`.`tm3`.`a` from `merge_db`.`tm3` where (rownum <= 1)))
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+merge into tm1 using tm2 on (tm1.a=tm2.a) when matched then update set tm1.b = (select a from tm3 where rownum<=1) where tm2.b< (select a from tm3 where rownum<=1) when not matched then insert values ((select a from tm3 where rownum<=1), (select b from tm3 where rownum<=1)) where tm2.b< (select a from tm3 where rownum<=1);
+select * from tm1;
+a	b
+1	1
+2	2
+merge into (select tm1.a, tm1.b b from tm1 where a<= (select a from tm3 where rownum<=1)) dt using tm2 on(dt.a=tm2.a)when matched then update set b=10 when not matched then insert values (10,10);
+merge into (select tm1.a, tm1.b b, (select a from tm3 where rownum<=1) e from tm1) dt using tm2 on(dt.a=tm2.a) when matched then update set e=10;
+ERROR HY000: Column 'e' is not updatable
+merge into (select tm1.a, tm1.b b, (select a from tm3 where rownum<=1) e from tm1) dt using tm2 on(dt.a=tm2.a) when not matched then insert values (10,10);
+merge into (select tm1.a, tm1.b b, (select a from tm3 where rownum<=1) e from tm1) dt using tm2 on(dt.a=tm2.a) when not matched then insert (e) values (10);
+ERROR HY000: Column 'e' is not updatable
+---------------------------------------------------------------
+## Test_44: source table use the same alias as base table of target table
+---------------------------------------------------------------
+merge into tm1 dt using tm2 tm1 on (dt.a=tm1.a) when not matched then insert values(1,1) when matched then update set dt.b=10;
+merge into tm1 using tm2 tm1 on (1!=1) when not matched then insert values(10,10);
+---------------------------------------------------------------
+## End test merge into
+---------------------------------------------------------------
+drop database if exists merge_db;
+drop database if exists merge_db2;
+SET @@session.sql_mode=@old_sql_mode;
+include/rpl_end.inc

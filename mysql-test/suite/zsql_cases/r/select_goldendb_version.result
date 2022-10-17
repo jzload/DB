@@ -1,0 +1,3 @@
+select @@goldendb_version;
+@@goldendb_version
+V_allmaster

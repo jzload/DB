@@ -1,0 +1,59 @@
+include/rpl_init.inc [topology=1->2]
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+include/rpl_default_connections.inc
+include/rpl_reset.inc
+include/sync_slave_sql_with_master.inc
+include/diff_tables.inc [server_1:test15.ti_nk, server_2:test15.ti_nk]
+include/diff_tables.inc [server_1:test15.ti_wk, server_2:test15.ti_wk]
+include/diff_tables.inc [server_1:test14.ti_nk, server_2:test14.ti_nk]
+include/diff_tables.inc [server_1:test14.ti_wk, server_2:test14.ti_wk]
+include/diff_tables.inc [server_1:test13.ti_nk, server_2:test13.ti_nk]
+include/diff_tables.inc [server_1:test13.ti_wk, server_2:test13.ti_wk]
+include/diff_tables.inc [server_1:test12.ti_nk, server_2:test12.ti_nk]
+include/diff_tables.inc [server_1:test12.ti_wk, server_2:test12.ti_wk]
+include/diff_tables.inc [server_1:test11.ti_nk, server_2:test11.ti_nk]
+include/diff_tables.inc [server_1:test11.ti_wk, server_2:test11.ti_wk]
+include/diff_tables.inc [server_1:test10.ti_nk, server_2:test10.ti_nk]
+include/diff_tables.inc [server_1:test10.ti_wk, server_2:test10.ti_wk]
+include/diff_tables.inc [server_1:test9.ti_nk, server_2:test9.ti_nk]
+include/diff_tables.inc [server_1:test9.ti_wk, server_2:test9.ti_wk]
+include/diff_tables.inc [server_1:test8.ti_nk, server_2:test8.ti_nk]
+include/diff_tables.inc [server_1:test8.ti_wk, server_2:test8.ti_wk]
+include/diff_tables.inc [server_1:test7.ti_nk, server_2:test7.ti_nk]
+include/diff_tables.inc [server_1:test7.ti_wk, server_2:test7.ti_wk]
+include/diff_tables.inc [server_1:test6.ti_nk, server_2:test6.ti_nk]
+include/diff_tables.inc [server_1:test6.ti_wk, server_2:test6.ti_wk]
+include/diff_tables.inc [server_1:test5.ti_nk, server_2:test5.ti_nk]
+include/diff_tables.inc [server_1:test5.ti_wk, server_2:test5.ti_wk]
+include/diff_tables.inc [server_1:test4.ti_nk, server_2:test4.ti_nk]
+include/diff_tables.inc [server_1:test4.ti_wk, server_2:test4.ti_wk]
+include/diff_tables.inc [server_1:test3.ti_nk, server_2:test3.ti_nk]
+include/diff_tables.inc [server_1:test3.ti_wk, server_2:test3.ti_wk]
+include/diff_tables.inc [server_1:test2.ti_nk, server_2:test2.ti_nk]
+include/diff_tables.inc [server_1:test2.ti_wk, server_2:test2.ti_wk]
+include/diff_tables.inc [server_1:test1.ti_nk, server_2:test1.ti_nk]
+include/diff_tables.inc [server_1:test1.ti_wk, server_2:test1.ti_wk]
+include/diff_tables.inc [server_1:test0.ti_nk, server_2:test0.ti_nk]
+include/diff_tables.inc [server_1:test0.ti_wk, server_2:test0.ti_wk]
+# clear up
+[connection master]
+drop database test15;
+drop database test14;
+drop database test13;
+drop database test12;
+drop database test11;
+drop database test10;
+drop database test9;
+drop database test8;
+drop database test7;
+drop database test6;
+drop database test5;
+drop database test4;
+drop database test3;
+drop database test2;
+drop database test1;
+drop database test0;
+include/sync_slave_sql_with_master.inc
+include/rpl_end.inc

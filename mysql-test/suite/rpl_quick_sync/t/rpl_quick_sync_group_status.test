@@ -1,0 +1,450 @@
+--source include/not_group_replication_plugin.inc
+source include/have_semisync_plugin.inc;
+source include/master-slave.inc;
+# only support the binlog-format='row'
+--source include/have_binlog_format_row.inc
+
+let $engine_type= InnoDB;
+
+# Suppress warnings that might be generated during the test
+disable_query_log;
+connection master;
+call mtr.add_suppression("Timeout waiting for reply of binlog");
+call mtr.add_suppression("Semi-sync master .* waiting for slave reply");
+call mtr.add_suppression("Read semi-sync reply");
+call mtr.add_suppression("Unsafe statement written to the binary log using statement format since BINLOG_FORMAT = STATEMENT.");
+call mtr.add_suppression(".*Got an error reading communication packets.*");
+connection slave;
+call mtr.add_suppression("Master server does not support semi-sync");
+call mtr.add_suppression("Semi-sync slave .* reply");
+call mtr.add_suppression("Slave SQL.*Request to stop slave SQL Thread received while applying a group that has non-transactional changes; waiting for completion of the group");
+enable_query_log;
+
+connection master;
+disable_query_log;
+let $value = query_get_value(show variables like 'rpl_semi_sync_master_enabled', Value, 1);
+if ($value == 'OFF')
+{
+    set sql_log_bin=0;
+    SET GLOBAL rpl_semi_sync_master_enabled = 1;
+    set sql_log_bin=1;
+}
+enable_query_log;
+
+--source include/assert_semisync_master_status_on.inc
+#
+# active_groups = 0
+# check the some semisync variables and status
+#
+SET GLOBAL rpl_semi_sync_master_wait_cond_hwm = '1:0';
+SET GLOBAL rpl_semi_sync_master_wait_cond_lwm = '1:0';
+
+set global rpl_semi_sync_master_wait_for_slave_count = 2;
+--let $assert_variable_name= Rpl_semi_sync_master_wait_for_slave_count
+--let $assert_variable_value= 2
+--source include/assert_variable.inc
+--let $assert_variable_name= Rpl_semi_sync_master_wait_no_slave
+--let $assert_variable_value= 1
+--source include/assert_variable.inc
+set global rpl_semi_sync_master_wait_no_slave = 0;
+--let $assert_variable_name= Rpl_semi_sync_master_wait_no_slave
+--let $assert_variable_value= 0
+--source include/assert_variable.inc
+
+--let $assert_variable_name= Rpl_semi_sync_master_inspection_time
+--let $assert_variable_value= 1000
+--source include/assert_variable.inc
+set global rpl_semi_sync_master_inspection_time = 0;
+--let $assert_variable_name= Rpl_semi_sync_master_inspection_time
+--let $assert_variable_value= 1
+--source include/assert_variable.inc
+-- error 1232
+set global rpl_semi_sync_master_inspection_time = 19345678901234567890;
+set global rpl_semi_sync_master_inspection_time = 10000;
+--let $assert_variable_name= Rpl_semi_sync_master_inspection_time
+--let $assert_variable_value= 10000
+--source include/assert_variable.inc
+
+
+
+#
+# active_groups = 0
+# check the default group* variable is NULL
+#
+--let $group1_null = NULL
+--let $group1_var= [SELECT @@rpl_semi_sync_master_group1 AS Value, Value, 1]
+--let assert_cond= "$group1_var" like "$group1_null"
+--let assert_text= Rpl_semi_sync_master_group1 should be NULL
+--source include/assert.inc
+--let $group2_null = NULL
+--let $group2_var= [SELECT @@rpl_semi_sync_master_group2 AS Value, Value, 1]
+--let assert_cond= "$group2_var" like "$group2_null"
+--let assert_text= Rpl_semi_sync_master_group2 should be NULL
+--source include/assert.inc
+--let $group3_null = NULL
+--let $group3_var= [SELECT @@rpl_semi_sync_master_group3 AS Value, Value, 1]
+--let assert_cond= "$group3_var" like "$group3_null"
+--let assert_text= Rpl_semi_sync_master_group3 should be NULL
+--source include/assert.inc
+--let $group4_null = NULL
+--let $group4_var= [SELECT @@rpl_semi_sync_master_group4 AS Value, Value, 1]
+--let assert_cond= "$group4_var" like "$group4_null"
+--let assert_text= Rpl_semi_sync_master_group4 should be NULL
+--source include/assert.inc
+--let $group5_null = NULL
+--let $group5_var= [SELECT @@rpl_semi_sync_master_group5 AS Value, Value, 1]
+--let assert_cond= "$group5_var" like "$group5_null"
+--let assert_text= Rpl_semi_sync_master_group5 should be NULL
+--source include/assert.inc
+--let $group6_null = NULL
+--let $group6_var= [SELECT @@rpl_semi_sync_master_group6 AS Value, Value, 1]
+--let assert_cond= "$group6_var" like "$group6_null"
+--let assert_text= Rpl_semi_sync_master_group6 should be NULL
+--source include/assert.inc
+--let $group7_null = NULL
+--let $group7_var= [SELECT @@rpl_semi_sync_master_group7 AS Value, Value, 1]
+--let assert_cond= "$group7_var" like "$group7_null"
+--let assert_text= Rpl_semi_sync_master_group7 should be NULL
+--source include/assert.inc
+--let $group8_null = NULL
+--let $group8_var= [SELECT @@rpl_semi_sync_master_group8 AS Value, Value, 1]
+--let assert_cond= "$group8_var" like "$group8_null"
+--let assert_text= Rpl_semi_sync_master_group8 should be NULL
+--source include/assert.inc
+--let $group9_null = NULL
+--let $group9_var= [SELECT @@rpl_semi_sync_master_group9 AS Value, Value, 1]
+--let assert_cond= "$group9_var" like "$group9_null"
+--let assert_text= Rpl_semi_sync_master_group9 should be NULL
+--source include/assert.inc
+--let $group10_null = NULL
+--let $group10_var= [SELECT @@rpl_semi_sync_master_group10 AS Value, Value, 1]
+--let assert_cond= "$group10_var" like "$group10_null"
+--let assert_text= Rpl_semi_sync_master_group10 should be NULL
+--source include/assert.inc
+
+#
+# active_groups = 0
+# check the default group_status
+#
+--let $group1_unactive = 0:GROUP_UNACTIVE
+--let $group1_status= [show status like "Rpl_semi_sync_master_group1_status", Value, 1]
+--let assert_cond= "$group1_status" like "$group1_unactive"
+--let assert_text= Rpl_semi_sync_master_group1_status should be 0:GROUP_UNACTIVE
+--source include/assert.inc
+--let $group2_unactive = 0:GROUP_UNACTIVE
+--let $group2_status= [show status like "Rpl_semi_sync_master_group2_status", Value, 1]
+--let assert_cond= "$group2_status" like "$group2_unactive"
+--let assert_text= Rpl_semi_sync_master_group2_status should be 0:GROUP_UNACTIVE
+--source include/assert.inc
+--let $group3_unactive = 0:GROUP_UNACTIVE
+--let $group3_status= [show status like "Rpl_semi_sync_master_group3_status", Value, 1]
+--let assert_cond= "$group3_status" like "$group3_unactive"
+--let assert_text= Rpl_semi_sync_master_group3_status should be 0:GROUP_UNACTIVE
+--source include/assert.inc
+--let $group4_unactive = 0:GROUP_UNACTIVE
+--let $group4_status= [show status like "Rpl_semi_sync_master_group4_status", Value, 1]
+--let assert_cond= "$group4_status" like "$group4_unactive"
+--let assert_text= Rpl_semi_sync_master_group4_status should be 0:GROUP_UNACTIVE
+--source include/assert.inc
+--let $group5_unactive = 0:GROUP_UNACTIVE
+--let $group5_status= [show status like "Rpl_semi_sync_master_group5_status", Value, 1]
+--let assert_cond= "$group5_status" like "$group5_unactive"
+--let assert_text= Rpl_semi_sync_master_group5_status should be 0:GROUP_UNACTIVE
+--source include/assert.inc
+--let $group6_unactive = 0:GROUP_UNACTIVE
+--let $group6_status= [show status like "Rpl_semi_sync_master_group6_status", Value, 1]
+--let assert_cond= "$group6_status" like "$group6_unactive"
+--let assert_text= Rpl_semi_sync_master_group6_status should be 0:GROUP_UNACTIVE
+--source include/assert.inc
+--let $group7_unactive = 0:GROUP_UNACTIVE
+--let $group7_status= [show status like "Rpl_semi_sync_master_group7_status", Value, 1]
+--let assert_cond= "$group7_status" like "$group7_unactive"
+--let assert_text= Rpl_semi_sync_master_group7_status should be 0:GROUP_UNACTIVE
+--source include/assert.inc
+--let $group8_unactive = 0:GROUP_UNACTIVE
+--let $group8_status= [show status like "Rpl_semi_sync_master_group8_status", Value, 1]
+--let assert_cond= "$group8_status" like "$group8_unactive"
+--let assert_text= Rpl_semi_sync_master_group8_status should be 0:GROUP_UNACTIVE
+--source include/assert.inc
+--let $group9_unactive = 0:GROUP_UNACTIVE
+--let $group9_status= [show status like "Rpl_semi_sync_master_group9_status", Value, 1]
+--let assert_cond= "$group9_status" like "$group9_unactive"
+--let assert_text= Rpl_semi_sync_master_group9_status should be 0:GROUP_UNACTIVE
+--source include/assert.inc
+--let $group10_unactive = 0:GROUP_UNACTIVE
+--let $group10_status= [show status like "Rpl_semi_sync_master_group10_status", Value, 1]
+--let assert_cond= "$group10_status" like "$group10_unactive"
+--let assert_text= Rpl_semi_sync_master_group10_status should be 0:GROUP_UNACTIVE
+--source include/assert.inc
+
+connection slave;
+source include/stop_slave.inc;
+
+disable_query_log;
+let $value= query_get_value(show variables like 'rpl_semi_sync_slave_enabled', Value, 1);
+if ($value == 'OFF')
+{
+    set sql_log_bin=0;
+    SET GLOBAL rpl_semi_sync_slave_enabled = 1;
+    set sql_log_bin=1;
+}
+enable_query_log;
+
+source include/start_slave.inc;
+let $id=`select @@server_id`;
+
+connection master;
+
+#
+# active_groups = 0
+# check the set rpl_semi_sync_master_group* err format
+#
+-- error 1229
+set rpl_semi_sync_master_group1 = '1,2,3,4,5:1';
+-- error 1231
+set global rpl_semi_sync_master_group3 = '100001,100002,100003,100004,100005,100006,100007,100008,100009,100010,100011,100012,100013,100014,100015,100016,100017,100018,100019,100020,100021,100022,100023,100024,100025,100026,100027,100028,100029,100030,100031,100032,100033,100034,100035,100036,100037,100038,100039,100040,100041,100042,100043,100044,100045,100046,100047,100048,100049,100050,100051,100052,100053,100054,100055,100056,100057,100058,100059,100060,100061,100062,100063,100064,100065,100066,100067,100068,100069,100070,100071,100072,100073,100074,100075,100076,100077,100078,100079,100080,100081,100082,100083,100084,100085,100086,100087,100088,100089,100090,100091,100092,100093,100094,100095,100096,100097,100098,100099,100100,100101,100102,100103,100104,100105,100106,100107,100108,100109,100110,100111,100112,100113,100114,100115,100116,100117,100118,100119,100120,100121,100122,100123,100124,100125,100126,100127,100128,100129,100130,100131,100132,100133,100134,100135,100136,100137,100138,100139,100140,100141,100142,100143,100144,100145,100146,100147:1';
+set global rpl_semi_sync_master_group3 = '100001,100002,100003,100004,100005,100006,100007,100008,100009,100010,100011,100012,100013,100014,100015,100016,100017,100018,100019,100020,100021,100022,100023,100024,100025,100026,100027,100028,100029,100030,100031,100032,100033,100034,100035,100036,100037,100038,100039,100040,100041,100042,100043,100044,100045,100046,100047,100048,100049,100050,100051,100052,100053,100054,100055,100056,100057,100058,100059,100060,100061,100062,100063,100064,100065,100066,100067,100068,100069,100070,100071,100072,100073,100074,100075,100076,100077,100078,100079,100080,100081,100082,100083,100084,100085,100086,100087,100088,100089,100090,100091,100092,100093,100094,100095,100096,100097,100098,100099,100100,100101,100102,100103,100104,100105,100106,100107,100108,100109,100110,100111,100112,100113,100114,100115,100116,100117,100118,100119,100120,100121,100122,100123,100124,100125,100126,100127,100128,100129,100130,100131,100132,100133,100134,100135,100136,100137,100138,100139,100140,100141,100142,100143,100144,100145,100146:1';
+set global rpl_semi_sync_master_group3 = NULL;
+-- error 1231
+set global rpl_semi_sync_master_group4 = '-1,2,4,8:1';
+-- error 1231
+set global rpl_semi_sync_master_group1 = '1,2,4,8:1,';
+-- error 1231
+set global rpl_semi_sync_master_group1 = '1,2,4,,8:1';
+-- error 1231
+set global rpl_semi_sync_master_group1 = '1,2,4,:8:1';
+-- error 1231
+set global rpl_semi_sync_master_group1 = '1,2,4,8';
+-- error 1231
+set global rpl_semi_sync_master_group1 = ':8';
+-- error 1231
+set global rpl_semi_sync_master_group4 = '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,192,193,194,195,196,197,198,199,200,201,202,203,204,205,206,207,208,209,210,211,212,213,214,215,216,217,218,219,220,221,222,223,224,225,226,227,228,229,230,231,232,233,234,235,236,237,238,239,240,241,242,243,244,245,246,247,248,249,250,251,252,253,254,255,256,257:1';
+set global rpl_semi_sync_master_group4 = '1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,192,193,194,195,196,197,198,199,200,201,202,203,204,205,206,207,208,209,210,211,212,213,214,215,216,217,218,219,220,221,222,223,224,225,226,227,228,229,230,231,232,233,234,235,236,237,238,239,240,241,242,243,244,245,246,247,248,249,250,251,252,253,254,255,256:1';
+set global rpl_semi_sync_master_group4 = NULL;
+-- error 1231
+set global rpl_semi_sync_master_group1 = '12345678901,2,4,8:1';
+set global rpl_semi_sync_master_group1 = '1234567890,2,4,8:1';
+set global rpl_semi_sync_master_group1 = NULL;
+-- error 1231
+set global rpl_semi_sync_master_group1 = '4294967296,2,4,8:1';
+set global rpl_semi_sync_master_group1 = '4294967295,2,4,8:1';
+set global rpl_semi_sync_master_group1 = NULL;
+-- error 1231
+set global rpl_semi_sync_master_group1 = '0,2,4,8:1';
+set global rpl_semi_sync_master_group4 = '1,2,4,8:0';
+set global rpl_semi_sync_master_group4 = NULL;
+-- error 1231
+set global rpl_semi_sync_master_group4 = '1,2,4,8:257';
+-- error 1231
+set global rpl_semi_sync_master_group4 = '1,2,4,8: 5234567890';
+-- error 1231
+set global rpl_semi_sync_master_group4 = '1,2,4,8:5';
+-- error 1231
+set global rpl_semi_sync_master_group1 = '1,2,4,8,2:1';
+set global rpl_semi_sync_master_group2 = '1,2,4,8:1';
+-- error 1231
+set global rpl_semi_sync_master_group3 = '1,3,5,7:1';
+set global rpl_semi_sync_master_group2 = NULL;
+set global rpl_semi_sync_master_group1 = ' 1 , 2 , 4 , 8 : 1 ';
+set global rpl_semi_sync_master_group1 = NULL;
+-- error 1231
+set global rpl_semi_sync_master_group1 = ' 1 1 , 2 1 , 4 , 8 : 1 ';
+set global rpl_semi_sync_master_group1 = NULL;
+-- error 1231
+set global rpl_semi_sync_master_group2 = ' 1 . 2 , 4 , 8 : 1 ';
+set global rpl_semi_sync_master_group2 = '    	  ';
+set global rpl_semi_sync_master_group2 = '';
+#
+# active_groups = 0
+# check the set rpl_semi_sync_master_group* 
+#
+set global rpl_semi_sync_master_group1 = '1:1';
+--let $group1_str = 1:1
+--let $group1_var= [SELECT @@rpl_semi_sync_master_group1 AS Value, Value, 1]
+--let assert_cond= "$group1_var" like "$group1_str"
+--let assert_text= Rpl_semi_sync_master_group1 should be OK
+--source include/assert.inc
+set global rpl_semi_sync_master_group2 = '20,21:2';
+--let $group2_str = 20,21:2
+--let $group2_var= [SELECT @@rpl_semi_sync_master_group2 AS Value, Value, 1]
+--let assert_cond= "$group2_var" like "$group2_str"
+--let assert_text= Rpl_semi_sync_master_group2 should be OK
+--source include/assert.inc
+set global rpl_semi_sync_master_group3 = '30,31,32:3';
+--let $group3_str = 30,31,32:3
+--let $group3_var= [SELECT @@rpl_semi_sync_master_group3 AS Value, Value, 1]
+--let assert_cond= "$group3_var" like "$group3_str"
+--let assert_text= Rpl_semi_sync_master_group3 should be OK
+--source include/assert.inc
+set global rpl_semi_sync_master_group4 = '40,41,42,43:4';
+--let $group4_str = 40,41,42,43:4
+--let $group4_var= [SELECT @@rpl_semi_sync_master_group4 AS Value, Value, 1]
+--let assert_cond= "$group4_var" like "$group4_str"
+--let assert_text= Rpl_semi_sync_master_group4 should be OK
+--source include/assert.inc
+set global rpl_semi_sync_master_group5 = '50,51,52,53,54:5';
+--let $group5_str = 50,51,52,53,54:5
+--let $group5_var= [SELECT @@rpl_semi_sync_master_group5 AS Value, Value, 1]
+--let assert_cond= "$group5_var" like "$group5_str"
+--let assert_text= Rpl_semi_sync_master_group5 should be OK
+--source include/assert.inc
+set global rpl_semi_sync_master_group6 = '60,61,62,63,64,65:6';
+--let $group6_str = 60,61,62,63,64,65:6
+--let $group6_var= [SELECT @@rpl_semi_sync_master_group6 AS Value, Value, 1]
+--let assert_cond= "$group6_var" like "$group6_str"
+--let assert_text= Rpl_semi_sync_master_group6 should be OK
+--source include/assert.inc
+set global rpl_semi_sync_master_group7 = '70,71,72,73,74,75,76:7';
+--let $group7_str = 70,71,72,73,74,75,76:7
+--let $group7_var= [SELECT @@rpl_semi_sync_master_group7 AS Value, Value, 1]
+--let assert_cond= "$group7_var" like "$group7_str"
+--let assert_text= Rpl_semi_sync_master_group7 should be OK
+--source include/assert.inc
+set global rpl_semi_sync_master_group8 = '80,81,82,83,84,85,86,87:8';
+--let $group8_str = 80,81,82,83,84,85,86,87:8
+--let $group8_var= [SELECT @@rpl_semi_sync_master_group8 AS Value, Value, 1]
+--let assert_cond= "$group8_var" like "$group8_str"
+--let assert_text= Rpl_semi_sync_master_group8 should be OK
+--source include/assert.inc
+set global rpl_semi_sync_master_group9 = '90,91,92,93,94,95,96,97,98:9';
+--let $group9_str = 90,91,92,93,94,95,96,97,98:9
+--let $group9_var= [SELECT @@rpl_semi_sync_master_group9 AS Value, Value, 1]
+--let assert_cond= "$group9_var" like "$group9_str"
+--let assert_text= Rpl_semi_sync_master_group9 should be OK
+--source include/assert.inc
+set global rpl_semi_sync_master_group10 = '100,101,102,103,104,105,106,107,108,109:10';
+--let $group10_str = 100,101,102,103,104,105,106,107,108,109:10
+--let $group10_var= [SELECT @@rpl_semi_sync_master_group10 AS Value, Value, 1]
+--let assert_cond= "$group10_var" like "$group10_str"
+--let assert_text= Rpl_semi_sync_master_group10 should be OK
+--source include/assert.inc
+
+let $group_end = :1;
+let $group_value = $id$group_end;
+eval set global rpl_semi_sync_master_group1 = '$group_value';
+
+#
+# active_groups = 1
+# check the set rpl_semi_sync_master_group* 
+#
+set global rpl_semi_sync_master_group1 = '1,2,3,4294967295,3294967295:1';
+--let $group1_active = 1:GROUP_ACTIVE
+--let $group1_status= [show status like "Rpl_semi_sync_master_group1_status", Value, 1]
+--let assert_cond= "$group1_status" like "$group1_active"
+--let assert_text= Rpl_semi_sync_master_group1_status should be 1:GROUP_ACTIVE
+--source include/assert.inc
+set global rpl_semi_sync_master_group1 = '1,2,3,4294967295,3294967295:2';
+--let $group1_active = 1:GROUP_UNACTIVE
+--let $group1_status= [show status like "Rpl_semi_sync_master_group1_status", Value, 1]
+--let assert_cond= "$group1_status" like "$group1_active"
+--let assert_text= Rpl_semi_sync_master_group1_status should be 1:GROUP_UNACTIVE
+--source include/assert.inc
+set global rpl_semi_sync_master_group1 = NULL;
+set global rpl_semi_sync_master_group2 = '1,2,3,4294967295,3294967295:1';
+--let $group2_active = 1:GROUP_ACTIVE
+--let $group2_status= [show status like "Rpl_semi_sync_master_group2_status", Value, 1]
+--let assert_cond= "$group2_status" like "$group2_active"
+--let assert_text= Rpl_semi_sync_master_group2_status should be 1:GROUP_ACTIVE
+--source include/assert.inc
+set global rpl_semi_sync_master_group2 = NULL;
+set global rpl_semi_sync_master_group3 = '1,2,3,4294967295,3294967295:1';
+--let $group3_active = 1:GROUP_ACTIVE
+--let $group3_status= [show status like "Rpl_semi_sync_master_group3_status", Value, 1]
+--let assert_cond= "$group3_status" like "$group3_active"
+--let assert_text= Rpl_semi_sync_master_group3_status should be 1:GROUP_ACTIVE
+--source include/assert.inc
+set global rpl_semi_sync_master_group3 = NULL;
+set global rpl_semi_sync_master_group4 = '1,2,3,4294967295,3294967295:1';
+--let $group4_active = 1:GROUP_ACTIVE
+--let $group4_status= [show status like "Rpl_semi_sync_master_group4_status", Value, 1]
+--let assert_cond= "$group4_status" like "$group4_active"
+--let assert_text= Rpl_semi_sync_master_group4_status should be 1:GROUP_ACTIVE
+--source include/assert.inc
+set global rpl_semi_sync_master_group4 = NULL;
+set global rpl_semi_sync_master_group5 = '1,2,3,4294967295,3294967295:1';
+--let $group5_active = 1:GROUP_ACTIVE
+--let $group5_status= [show status like "Rpl_semi_sync_master_group5_status", Value, 1]
+--let assert_cond= "$group5_status" like "$group5_active"
+--let assert_text= Rpl_semi_sync_master_group5_status should be 1:GROUP_ACTIVE
+--source include/assert.inc
+set global rpl_semi_sync_master_group5 = NULL;
+set global rpl_semi_sync_master_group6 = '1,2,3,4294967295,3294967295:1';
+--let $group6_active = 1:GROUP_ACTIVE
+--let $group6_status= [show status like "Rpl_semi_sync_master_group6_status", Value, 1]
+--let assert_cond= "$group6_status" like "$group6_active"
+--let assert_text= Rpl_semi_sync_master_group6_status should be 1:GROUP_ACTIVE
+--source include/assert.inc
+set global rpl_semi_sync_master_group6 = NULL;
+set global rpl_semi_sync_master_group7 = '1,2,3,4294967295,3294967295:1';
+--let $group7_active = 1:GROUP_ACTIVE
+--let $group7_status= [show status like "Rpl_semi_sync_master_group7_status", Value, 1]
+--let assert_cond= "$group7_status" like "$group7_active"
+--let assert_text= Rpl_semi_sync_master_group7_status should be 1:GROUP_ACTIVE
+--source include/assert.inc
+set global rpl_semi_sync_master_group7 = NULL;
+set global rpl_semi_sync_master_group8 = '1,2,3,4294967295,3294967295:1';
+--let $group8_active = 1:GROUP_ACTIVE
+--let $group8_status= [show status like "Rpl_semi_sync_master_group8_status", Value, 1]
+--let assert_cond= "$group8_status" like "$group8_active"
+--let assert_text= Rpl_semi_sync_master_group8_status should be 1:GROUP_ACTIVE
+--source include/assert.inc
+set global rpl_semi_sync_master_group8 = NULL;
+set global rpl_semi_sync_master_group9 = '1,2,3,4294967295,3294967295:1';
+--let $group9_active = 1:GROUP_ACTIVE
+--let $group9_status= [show status like "Rpl_semi_sync_master_group9_status", Value, 1]
+--let assert_cond= "$group9_status" like "$group9_active"
+--let assert_text= Rpl_semi_sync_master_group9_status should be 1:GROUP_ACTIVE
+--source include/assert.inc
+set global rpl_semi_sync_master_group9 = NULL;
+set global rpl_semi_sync_master_group10 = '1,2,3,4294967295,3294967295:1';
+--let $group10_active = 1:GROUP_ACTIVE
+--let $group10_status= [show status like "Rpl_semi_sync_master_group10_status", Value, 1]
+--let assert_cond= "$group10_status" like "$group10_active"
+--let assert_text= Rpl_semi_sync_master_group10_status should be 1:GROUP_ACTIVE
+--source include/assert.inc
+set global rpl_semi_sync_master_group10 = NULL;
+set global rpl_semi_sync_master_group1 = '1,2:1';
+
+
+#
+# quick sync mode
+#
+
+replace_result $engine_type ENGINE_TYPE;
+eval CREATE TABLE t1 (i INT NOT NULL AUTO_INCREMENT PRIMARY KEY, f varchar(8)) ENGINE=$engine_type;
+INSERT INTO t1 (f) VALUES ('a'),('a'),('a'),('a'),('a');
+--disable_warnings
+INSERT INTO t1 SELECT i+5, f FROM t1;
+INSERT INTO t1 SELECT i+10, f FROM t1;
+DROP TABLE t1;
+sleep 10;
+
+
+#
+# Clean up
+#
+connection slave;
+source include/stop_slave.inc;
+
+disable_warnings;
+set global rpl_semi_sync_slave_enabled = OFF;
+
+connection master;
+--let $active_groups_0= query_get_value(SHOW STATUS LIKE 'Rpl_semi_sync_master_active_groups', Value, 1)
+while ($active_groups_0)
+{
+  sleep 10;
+  --let $active_groups_0= query_get_value(SHOW STATUS LIKE 'Rpl_semi_sync_master_active_groups', Value, 1)
+}
+set global rpl_semi_sync_master_enabled = OFF;
+set global rpl_semi_sync_master_group1 = NULL;
+set global rpl_semi_sync_master_wait_cond_lwm = '';
+set global rpl_semi_sync_master_wait_cond_hwm = '';
+set global rpl_semi_sync_master_wait_for_slave_count = 1;
+set global rpl_semi_sync_master_wait_no_slave = ON;
+set global rpl_semi_sync_master_inspection_time = 1000;
+enable_warnings;
+
+connection master;
+# --source include/sync_slave_sql_with_master.inc
+# --source include/rpl_end.inc

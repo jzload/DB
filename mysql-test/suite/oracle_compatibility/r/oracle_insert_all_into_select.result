@@ -1,0 +1,1570 @@
+include/master-slave.inc
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+[connection master]
+drop database if exists insert_all_select_test;
+Warnings:
+Note	1008	Can't drop database 'insert_all_select_test'; database doesn't exist
+create database insert_all_select_test;
+create table insert_all_select_test.t1(id int primary key auto_increment, name varchar(25), birth date);
+create table insert_all_select_test.t2(id int primary key auto_increment, name varchar(25), birth date);
+create table insert_all_select_test.t3(id int primary key auto_increment, name varchar(25), birth date);
+insert into insert_all_select_test.t2 values(1, 'xiao', '2020-06-10'),(2, 'yao', '2019-06-10'),(3, 'guo', '2018-06-10');
+---------------------------------------------------------------
+## Test oracle compatibility of insert all select
+---------------------------------------------------------------
+---------------------------------------------------------------
+## Test_1: test insert all select, basic function
+---------------------------------------------------------------
+insert all into insert_all_select_test.t1
+into insert_all_select_test.t3
+select * from insert_all_select_test.t2 where id=1;
+select * from insert_all_select_test.t1;
+id	name	birth
+1	xiao	2020-06-10
+select * from insert_all_select_test.t3;
+id	name	birth
+1	xiao	2020-06-10
+insert all into insert_all_select_test.t1(name)
+into insert_all_select_test.t3(name)
+select name from insert_all_select_test.t2 where id=2;
+select * from insert_all_select_test.t1;
+id	name	birth
+1	xiao	2020-06-10
+2	yao	NULL
+select * from insert_all_select_test.t3;
+id	name	birth
+1	xiao	2020-06-10
+2	yao	NULL
+insert all into insert_all_select_test.t1(name, birth)
+into insert_all_select_test.t3(name, birth)
+select name,birth from insert_all_select_test.t2;
+select * from insert_all_select_test.t1;
+id	name	birth
+1	xiao	2020-06-10
+2	yao	NULL
+3	xiao	2020-06-10
+4	yao	2019-06-10
+5	guo	2018-06-10
+select * from insert_all_select_test.t3;
+id	name	birth
+1	xiao	2020-06-10
+2	yao	NULL
+3	xiao	2020-06-10
+4	yao	2019-06-10
+5	guo	2018-06-10
+include/rpl_sync.inc
+include/start_slave.inc
+Warnings:
+Note	3083	Replication thread(s) for channel '' are already runnning.
+include/wait_for_slave_to_start.inc
+## slave data:
+select * from insert_all_select_test.t1;
+id	name	birth
+1	xiao	2020-06-10
+2	yao	NULL
+3	xiao	2020-06-10
+4	yao	2019-06-10
+5	guo	2018-06-10
+select * from insert_all_select_test.t3;
+id	name	birth
+1	xiao	2020-06-10
+2	yao	NULL
+3	xiao	2020-06-10
+4	yao	2019-06-10
+5	guo	2018-06-10
+include/stop_slave.inc
+include/wait_for_slave_to_stop.inc
+---------------------------------------------------------------
+## Test_2: test insert all select, have values keyword
+---------------------------------------------------------------
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+insert all into insert_all_select_test.t1(id) values(2)
+into insert_all_select_test.t3
+select * from insert_all_select_test.t2 where id=1;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'select * from insert_all_select_test.t2 where id=1' at line 3
+insert all into insert_all_select_test.t1
+into insert_all_select_test.t3(id,name) values(2,'yaya')
+select * from insert_all_select_test.t2 where id=1;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'values(2,'yaya')
+select * from insert_all_select_test.t2 where id=1' at line 2
+explain insert all into insert_all_select_test.t1
+into insert_all_select_test.t3(id,name) values(2,'yaya')
+select * from insert_all_select_test.t2 where id=1;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'values(2,'yaya')
+select * from insert_all_select_test.t2 where id=1' at line 2
+insert all into insert_all_select_test.t1
+into insert_all_select_test.t3(id,name) values(2,'yaya')
+(select * from insert_all_select_test.t2 where id=1);
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'values(2,'yaya')
+(select * from insert_all_select_test.t2 where id=1)' at line 2
+select * from insert_all_select_test.t1;
+id	name	birth
+select * from insert_all_select_test.t3;
+id	name	birth
+---------------------------------------------------------------
+## Test_3: test insert all select, insert into different db
+---------------------------------------------------------------
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+drop database if exists insert_all_select_test1;
+Warnings:
+Note	1008	Can't drop database 'insert_all_select_test1'; database doesn't exist
+create database insert_all_select_test1;
+create table insert_all_select_test1.t1(id int primary key auto_increment, name varchar(25), birth date);
+use insert_all_select_test1;
+insert all into t1(id,name)
+into insert_all_select_test.t3(id,name)
+select id,name from insert_all_select_test.t2 where id=1;
+explain insert all into t1(id,name)
+into insert_all_select_test.t3(id,name)
+select id,name from insert_all_select_test.t2 where id=1;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t1	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	INSERT	t3	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	SIMPLE	t2	NULL	const	PRIMARY	PRIMARY	4	const	1	100.00	NULL
+Warnings:
+Note	1003	insert all into `insert_all_select_test1`.`t1` (`insert_all_select_test1`.`t1`.`id`,`insert_all_select_test1`.`t1`.`name`) into `insert_all_select_test`.`t3` (`insert_all_select_test`.`t3`.`id`,`insert_all_select_test`.`t3`.`name`) /* select#1 */ select `insert_all_select_test`.`t2`.`id` AS `id`,`insert_all_select_test`.`t2`.`name` AS `name` from `insert_all_select_test`.`t2` where true
+explain insert into t1(id,name)
+select id,name from insert_all_select_test.t2 where id=1;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t1	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	SIMPLE	t2	NULL	const	PRIMARY	PRIMARY	4	const	1	100.00	NULL
+Warnings:
+Note	1003	insert into `insert_all_select_test1`.`t1` (`insert_all_select_test1`.`t1`.`id`,`insert_all_select_test1`.`t1`.`name`) /* select#1 */ select `insert_all_select_test`.`t2`.`id` AS `id`,`insert_all_select_test`.`t2`.`name` AS `name` from `insert_all_select_test`.`t2` where true
+insert all into t1(name, birth)
+into insert_all_select_test.t3(name, birth)
+select name,birth from insert_all_select_test.t2;
+select * from t1;
+id	name	birth
+1	xiao	NULL
+2	xiao	2020-06-10
+3	yao	2019-06-10
+4	guo	2018-06-10
+select * from insert_all_select_test.t3;
+id	name	birth
+1	xiao	NULL
+2	xiao	2020-06-10
+3	yao	2019-06-10
+4	guo	2018-06-10
+drop database insert_all_select_test1;
+---------------------------------------------------------------
+## Test_4: test insert all select, subquery is union
+---------------------------------------------------------------
+use insert_all_select_test;
+create table websites(id int primary key auto_increment, name varchar(20), url blob, alxea bigint, country varchar(20));
+create table apps(id int primary key auto_increment, app_name varchar(20), url blob, country varchar(20));
+create table t4(id int primary key auto_increment, name varchar(20), app_name varchar(20),url blob, alxea bigint, country varchar(20));
+create table t41(id int primary key auto_increment, name varchar(20), app_name varchar(20),url blob, alxea bigint, country varchar(20));
+insert all into websites values(1, 'Google',"https://www.google.cm",1,'USA')
+into websites values(2,'baidu',"https://www.baidu.com/", 13,'CN')
+into websites values(3,'cainiao',"http://www.runoob.com/", 4689,'CN')
+into websites values(4,'weibo',"http://weibo.com/ ",20,'CN')
+into websites values(5,'Facebook',"https://www.facebook.com/",3 ,'USA')
+into websites values(7,'stackoverflow',"http://stackoverflow.com/",0 ,'IND')
+select * from dual;
+insert all into apps values(1 ,'QQ APP',"http://im.qq.com/", 'CN')
+into apps values(2 ,'weibo APP',"http://weibo.com/",'CN')
+into apps values(3 ,'tao APP',"https://www.taobao.com/" ,"CN")
+select * from dual;
+insert all into insert_all_select_test.t4(country)
+into insert_all_select_test.t41(country)
+SELECT country FROM insert_all_select_test.websites union (select country from insert_all_select_test.apps order by country);
+explain insert all into insert_all_select_test.t4(country)
+into insert_all_select_test.t41(country)
+SELECT country FROM insert_all_select_test.websites union (select country from insert_all_select_test.apps order by country);
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t4	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	INSERT	t41	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	PRIMARY	websites	NULL	ALL	NULL	NULL	NULL	NULL	6	100.00	NULL
+2	UNION	apps	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+NULL	UNION RESULT	<union1,2>	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	Using temporary
+Warnings:
+Note	1003	insert all into `insert_all_select_test`.`t4` (`insert_all_select_test`.`t4`.`country`) into `insert_all_select_test`.`t41` (`insert_all_select_test`.`t41`.`country`) /* select#1 */ select `insert_all_select_test`.`websites`.`country` AS `country` from `insert_all_select_test`.`websites` union /* select#2 */ select `insert_all_select_test`.`apps`.`country` AS `country` from `insert_all_select_test`.`apps`
+explain insert into insert_all_select_test.t4(country)
+SELECT country FROM insert_all_select_test.websites union (select country from insert_all_select_test.apps order by country);
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t4	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	PRIMARY	websites	NULL	ALL	NULL	NULL	NULL	NULL	6	100.00	NULL
+2	UNION	apps	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+NULL	UNION RESULT	<union1,2>	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	Using temporary
+Warnings:
+Note	1003	insert into `insert_all_select_test`.`t4` (`insert_all_select_test`.`t4`.`country`) /* select#1 */ select `insert_all_select_test`.`websites`.`country` AS `country` from `insert_all_select_test`.`websites` union /* select#2 */ select `insert_all_select_test`.`apps`.`country` AS `country` from `insert_all_select_test`.`apps`
+select * from t4;
+id	name	app_name	url	alxea	country
+1	NULL	NULL	NULL	NULL	USA
+2	NULL	NULL	NULL	NULL	CN
+3	NULL	NULL	NULL	NULL	IND
+select * from t41;
+id	name	app_name	url	alxea	country
+1	NULL	NULL	NULL	NULL	USA
+2	NULL	NULL	NULL	NULL	CN
+3	NULL	NULL	NULL	NULL	IND
+---------------------------------------------------------------
+## Test_5: test insert all select, subquery is join
+---------------------------------------------------------------
+create table tcount_tbl(runoob_author varchar(50), runoob_count int);
+insert all into tcount_tbl values('cainiao', 10)
+into tcount_tbl values('RUNOOB.COM',20)
+into tcount_tbl values('Google',22)
+select * from dual;
+create table runoob_tbl(runoob_id int primary key auto_increment, runoob_title varchar(50), runoob_author varchar(50), submission_date date);
+insert all into runoob_tbl values(1,'PHP','cainiao', '2017-04-12')
+into runoob_tbl values(2,'Mysql','cainiao', '2017-04-12')
+into runoob_tbl values(3,'Java',' RUNOOB.COM','2015-05-01')
+into runoob_tbl values(4,'Python','RUNOOB.COM','2016-03-06')
+into runoob_tbl values(5,'C','FK','2017-03-06')
+select * from dual;
+create table t5(runoob_id int primary key auto_increment, runoob_title varchar(50), runoob_author varchar(50), submission_date date, runoob_count int);
+create table t51(runoob_id int primary key auto_increment, runoob_title varchar(50), runoob_author varchar(50), submission_date date, runoob_count int);
+## inner join
+insert all into insert_all_select_test.t5(runoob_id, runoob_author, runoob_count)
+into insert_all_select_test.t51(runoob_id, runoob_author, runoob_count)
+SELECT a.runoob_id, a.runoob_author, b.runoob_count FROM insert_all_select_test.runoob_tbl a, insert_all_select_test.tcount_tbl b WHERE a.runoob_author = b.runoob_author;
+explain insert all into insert_all_select_test.t5(runoob_id, runoob_author, runoob_count)
+into insert_all_select_test.t51(runoob_id, runoob_author, runoob_count)
+SELECT a.runoob_id, a.runoob_author, b.runoob_count FROM insert_all_select_test.runoob_tbl a, insert_all_select_test.tcount_tbl b WHERE a.runoob_author = b.runoob_author;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t5	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	INSERT	t51	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	SIMPLE	b	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+1	SIMPLE	a	NULL	ALL	NULL	NULL	NULL	NULL	5	20.00	Using where; Using join buffer (Block Nested Loop)
+Warnings:
+Note	1003	insert all into `insert_all_select_test`.`t5` (`insert_all_select_test`.`t5`.`runoob_id`,`insert_all_select_test`.`t5`.`runoob_author`,`insert_all_select_test`.`t5`.`runoob_count`) into `insert_all_select_test`.`t51` (`insert_all_select_test`.`t51`.`runoob_id`,`insert_all_select_test`.`t51`.`runoob_author`,`insert_all_select_test`.`t51`.`runoob_count`) /* select#1 */ select `insert_all_select_test`.`a`.`runoob_id` AS `runoob_id`,`insert_all_select_test`.`a`.`runoob_author` AS `runoob_author`,`insert_all_select_test`.`b`.`runoob_count` AS `runoob_count` from `insert_all_select_test`.`runoob_tbl` `a` join `insert_all_select_test`.`tcount_tbl` `b` where (`insert_all_select_test`.`a`.`runoob_author` = `insert_all_select_test`.`b`.`runoob_author`)
+explain insert into insert_all_select_test.t5(runoob_id, runoob_author, runoob_count)
+SELECT a.runoob_id, a.runoob_author, b.runoob_count FROM insert_all_select_test.runoob_tbl a, insert_all_select_test.tcount_tbl b WHERE a.runoob_author = b.runoob_author;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t5	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	SIMPLE	b	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+1	SIMPLE	a	NULL	ALL	NULL	NULL	NULL	NULL	5	20.00	Using where; Using join buffer (Block Nested Loop)
+Warnings:
+Note	1003	insert into `insert_all_select_test`.`t5` (`insert_all_select_test`.`t5`.`runoob_id`,`insert_all_select_test`.`t5`.`runoob_author`,`insert_all_select_test`.`t5`.`runoob_count`) /* select#1 */ select `insert_all_select_test`.`a`.`runoob_id` AS `runoob_id`,`insert_all_select_test`.`a`.`runoob_author` AS `runoob_author`,`insert_all_select_test`.`b`.`runoob_count` AS `runoob_count` from `insert_all_select_test`.`runoob_tbl` `a` join `insert_all_select_test`.`tcount_tbl` `b` where (`insert_all_select_test`.`a`.`runoob_author` = `insert_all_select_test`.`b`.`runoob_author`)
+select * from t5;
+runoob_id	runoob_title	runoob_author	submission_date	runoob_count
+1	NULL	cainiao	NULL	10
+2	NULL	cainiao	NULL	10
+4	NULL	RUNOOB.COM	NULL	20
+select * from t51;
+runoob_id	runoob_title	runoob_author	submission_date	runoob_count
+1	NULL	cainiao	NULL	10
+2	NULL	cainiao	NULL	10
+4	NULL	RUNOOB.COM	NULL	20
+truncate table t5;
+truncate table t51;
+## left join
+insert all into insert_all_select_test.t5(runoob_id, runoob_author, runoob_count)
+into insert_all_select_test.t51(runoob_id, runoob_author, runoob_count)
+SELECT a.runoob_id, a.runoob_author, b.runoob_count FROM insert_all_select_test.runoob_tbl a LEFT JOIN insert_all_select_test.tcount_tbl b ON a.runoob_author = b.runoob_author;
+select * from t5;
+runoob_id	runoob_title	runoob_author	submission_date	runoob_count
+1	NULL	cainiao	NULL	10
+2	NULL	cainiao	NULL	10
+3	NULL	 RUNOOB.COM	NULL	NULL
+4	NULL	RUNOOB.COM	NULL	20
+5	NULL	FK	NULL	NULL
+select * from t51;
+runoob_id	runoob_title	runoob_author	submission_date	runoob_count
+1	NULL	cainiao	NULL	10
+2	NULL	cainiao	NULL	10
+3	NULL	 RUNOOB.COM	NULL	NULL
+4	NULL	RUNOOB.COM	NULL	20
+5	NULL	FK	NULL	NULL
+truncate table t5;
+truncate table t51;
+## right join
+insert all into insert_all_select_test.t5(runoob_id, runoob_author, runoob_count)
+into insert_all_select_test.t51(runoob_id, runoob_author, runoob_count)
+SELECT a.runoob_id, a.runoob_author, b.runoob_count FROM insert_all_select_test.runoob_tbl a RIGHT JOIN insert_all_select_test.tcount_tbl b ON a.runoob_author = b.runoob_author;
+select * from t5;
+runoob_id	runoob_title	runoob_author	submission_date	runoob_count
+1	NULL	cainiao	NULL	10
+2	NULL	cainiao	NULL	10
+4	NULL	RUNOOB.COM	NULL	20
+5	NULL	NULL	NULL	22
+select * from t51;
+runoob_id	runoob_title	runoob_author	submission_date	runoob_count
+1	NULL	cainiao	NULL	10
+2	NULL	cainiao	NULL	10
+4	NULL	RUNOOB.COM	NULL	20
+5	NULL	NULL	NULL	22
+---------------------------------------------------------------
+## Test_6: test insert all select, select from dual
+---------------------------------------------------------------
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+insert all into insert_all_select_test.t1
+into insert_all_select_test.t3
+select * from dual;
+ERROR HY000: You cannot use INSERT ALL SELECT FROM DUAL without VALUES
+explain insert all into insert_all_select_test.t1
+into insert_all_select_test.t3
+select * from dual;
+ERROR HY000: You cannot use INSERT ALL SELECT FROM DUAL without VALUES
+select * from insert_all_select_test.t1;
+id	name	birth
+select * from insert_all_select_test.t3;
+id	name	birth
+---------------------------------------------------------------
+## Test_7: test insert all select, select from (select from)
+---------------------------------------------------------------
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+insert all into insert_all_select_test.t1(id)
+into insert_all_select_test.t3(id)
+select * from (select id from t2) as a;
+explain insert all into insert_all_select_test.t1(id)
+into insert_all_select_test.t3(id)
+select * from (select id from t2) as a;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t1	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	INSERT	t3	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	SIMPLE	t2	NULL	index	NULL	PRIMARY	4	NULL	3	100.00	Using index
+Warnings:
+Note	1003	insert all into `insert_all_select_test`.`t1` (`insert_all_select_test`.`t1`.`id`) into `insert_all_select_test`.`t3` (`insert_all_select_test`.`t3`.`id`) /* select#1 */ select `insert_all_select_test`.`t2`.`id` AS `id` from `insert_all_select_test`.`t2`
+explain insert into insert_all_select_test.t1(id)
+select * from (select id from t2) as a;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t1	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	SIMPLE	t2	NULL	index	NULL	PRIMARY	4	NULL	3	100.00	Using index
+Warnings:
+Note	1003	insert into `insert_all_select_test`.`t1` (`insert_all_select_test`.`t1`.`id`) /* select#1 */ select `insert_all_select_test`.`t2`.`id` AS `id` from `insert_all_select_test`.`t2`
+select * from insert_all_select_test.t1;
+id	name	birth
+1	NULL	NULL
+2	NULL	NULL
+3	NULL	NULL
+select * from insert_all_select_test.t3;
+id	name	birth
+1	NULL	NULL
+2	NULL	NULL
+3	NULL	NULL
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+insert all into insert_all_select_test.t1(id)
+into insert_all_select_test.t3(id)
+select id from insert_all_select_test.t2 where name not in (select name from insert_all_select_test.t2 where id=2);
+explain insert all into insert_all_select_test.t1(id)
+into insert_all_select_test.t3(id)
+select id from insert_all_select_test.t2 where name not in (select name from insert_all_select_test.t2 where id=2);
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t1	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	INSERT	t3	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	PRIMARY	t2	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	Using where
+2	SUBQUERY	t2	NULL	const	PRIMARY	PRIMARY	4	const	1	100.00	NULL
+Warnings:
+Note	1003	insert all into `insert_all_select_test`.`t1` (`insert_all_select_test`.`t1`.`id`) into `insert_all_select_test`.`t3` (`insert_all_select_test`.`t3`.`id`) /* select#1 */ select `insert_all_select_test`.`t2`.`id` AS `id` from `insert_all_select_test`.`t2` where <in_optimizer>(`insert_all_select_test`.`t2`.`name`,`insert_all_select_test`.`t2`.`name` in ( <materialize> (/* select#2 */ select `insert_all_select_test`.`t2`.`name` from `insert_all_select_test`.`t2` where true having true ), <primary_index_lookup>(`insert_all_select_test`.`t2`.`name` in <temporary table> on <auto_distinct_key> where ((`insert_all_select_test`.`t2`.`name` = `materialized-subquery`.`name`)))) is false)
+explain insert into insert_all_select_test.t1(id)
+select id from insert_all_select_test.t2 where name not in (select name from insert_all_select_test.t2 where id=2);
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t1	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	PRIMARY	t2	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	Using where
+2	SUBQUERY	t2	NULL	const	PRIMARY	PRIMARY	4	const	1	100.00	NULL
+Warnings:
+Note	1003	insert into `insert_all_select_test`.`t1` (`insert_all_select_test`.`t1`.`id`) /* select#1 */ select `insert_all_select_test`.`t2`.`id` AS `id` from `insert_all_select_test`.`t2` where <in_optimizer>(`insert_all_select_test`.`t2`.`name`,`insert_all_select_test`.`t2`.`name` in ( <materialize> (/* select#2 */ select `insert_all_select_test`.`t2`.`name` from `insert_all_select_test`.`t2` where true having true ), <primary_index_lookup>(`insert_all_select_test`.`t2`.`name` in <temporary table> on <auto_distinct_key> where ((`insert_all_select_test`.`t2`.`name` = `materialized-subquery`.`name`)))) is false)
+select * from insert_all_select_test.t1;
+id	name	birth
+1	NULL	NULL
+3	NULL	NULL
+select * from insert_all_select_test.t3;
+id	name	birth
+1	NULL	NULL
+3	NULL	NULL
+---------------------------------------------------------------
+## Test_8: test insert all select, select from (select from dual)
+---------------------------------------------------------------
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+insert all into insert_all_select_test.t1(id)
+into insert_all_select_test.t3(id)
+select * from (select 1 from dual) as a;
+explain insert all into insert_all_select_test.t1(id)
+into insert_all_select_test.t3(id)
+select * from (select 1 from dual) as a;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t1	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	INSERT	t3	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	PRIMARY	<derived2>	NULL	system	NULL	NULL	NULL	NULL	1	100.00	NULL
+2	DERIVED	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	No tables used
+Warnings:
+Note	1003	insert all into `insert_all_select_test`.`t1` (`insert_all_select_test`.`t1`.`id`) into `insert_all_select_test`.`t3` (`insert_all_select_test`.`t3`.`id`) /* select#1 */ select `a`.`1` AS `1` from (/* select#2 */ select 1 AS `1`) `a`
+explain insert into insert_all_select_test.t1(id)
+select * from (select 1 from dual) as a;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t1	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	PRIMARY	<derived2>	NULL	system	NULL	NULL	NULL	NULL	1	100.00	NULL
+2	DERIVED	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	No tables used
+Warnings:
+Note	1003	insert into `insert_all_select_test`.`t1` (`insert_all_select_test`.`t1`.`id`) /* select#1 */ select `a`.`1` AS `1` from (/* select#2 */ select 1 AS `1`) `a`
+select * from insert_all_select_test.t1;
+id	name	birth
+1	NULL	NULL
+select * from insert_all_select_test.t3;
+id	name	birth
+1	NULL	NULL
+---------------------------------------------------------------
+## Test_9: test insert all select, select from (select from union)
+---------------------------------------------------------------
+truncate table insert_all_select_test.t4;
+truncate table insert_all_select_test.t41;
+insert all into insert_all_select_test.t4(country)
+into insert_all_select_test.t41(country)
+select * from
+(SELECT country FROM insert_all_select_test.websites union
+(select country from insert_all_select_test.apps order by country))
+as a;
+explain insert all into insert_all_select_test.t4(country)
+into insert_all_select_test.t41(country)
+select * from
+(SELECT country FROM insert_all_select_test.websites union
+(select country from insert_all_select_test.apps order by country))
+as a;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t4	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	INSERT	t41	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	PRIMARY	<derived2>	NULL	ALL	NULL	NULL	NULL	NULL	9	100.00	NULL
+2	DERIVED	websites	NULL	ALL	NULL	NULL	NULL	NULL	6	100.00	NULL
+3	UNION	apps	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+NULL	UNION RESULT	<union2,3>	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	Using temporary
+Warnings:
+Note	1003	insert all into `insert_all_select_test`.`t4` (`insert_all_select_test`.`t4`.`country`) into `insert_all_select_test`.`t41` (`insert_all_select_test`.`t41`.`country`) /* select#1 */ select `a`.`country` AS `country` from (/* select#2 */ select `insert_all_select_test`.`websites`.`country` AS `country` from `insert_all_select_test`.`websites` union /* select#3 */ select `insert_all_select_test`.`apps`.`country` AS `country` from `insert_all_select_test`.`apps`) `a`
+explain insert into insert_all_select_test.t4(country)
+select * from
+(SELECT country FROM insert_all_select_test.websites union
+(select country from insert_all_select_test.apps order by country))
+as a;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t4	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	PRIMARY	<derived2>	NULL	ALL	NULL	NULL	NULL	NULL	9	100.00	NULL
+2	DERIVED	websites	NULL	ALL	NULL	NULL	NULL	NULL	6	100.00	NULL
+3	UNION	apps	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+NULL	UNION RESULT	<union2,3>	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	Using temporary
+Warnings:
+Note	1003	insert into `insert_all_select_test`.`t4` (`insert_all_select_test`.`t4`.`country`) /* select#1 */ select `a`.`country` AS `country` from (/* select#2 */ select `insert_all_select_test`.`websites`.`country` AS `country` from `insert_all_select_test`.`websites` union /* select#3 */ select `insert_all_select_test`.`apps`.`country` AS `country` from `insert_all_select_test`.`apps`) `a`
+select * from insert_all_select_test.t4;
+id	name	app_name	url	alxea	country
+1	NULL	NULL	NULL	NULL	USA
+2	NULL	NULL	NULL	NULL	CN
+3	NULL	NULL	NULL	NULL	IND
+select * from insert_all_select_test.t41;
+id	name	app_name	url	alxea	country
+1	NULL	NULL	NULL	NULL	USA
+2	NULL	NULL	NULL	NULL	CN
+3	NULL	NULL	NULL	NULL	IND
+---------------------------------------------------------------
+## Test_10: test insert all select, select from (select from join)
+---------------------------------------------------------------
+truncate table insert_all_select_test.t5;
+truncate table insert_all_select_test.t51;
+insert all into insert_all_select_test.t5(runoob_id, runoob_author, runoob_count)
+into insert_all_select_test.t51(runoob_id, runoob_author, runoob_count)
+select * from
+(SELECT a.runoob_id, a.runoob_author, b.runoob_count FROM
+insert_all_select_test.runoob_tbl a LEFT JOIN
+insert_all_select_test.tcount_tbl b ON a.runoob_author = b.runoob_author)
+as a;
+explain insert all into insert_all_select_test.t5(runoob_id, runoob_author, runoob_count)
+into insert_all_select_test.t51(runoob_id, runoob_author, runoob_count)
+select * from
+(SELECT a.runoob_id, a.runoob_author, b.runoob_count FROM
+insert_all_select_test.runoob_tbl a LEFT JOIN
+insert_all_select_test.tcount_tbl b ON a.runoob_author = b.runoob_author)
+as a;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t5	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	INSERT	t51	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	SIMPLE	a	NULL	ALL	NULL	NULL	NULL	NULL	5	100.00	NULL
+1	SIMPLE	b	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	Using where; Using join buffer (Block Nested Loop)
+Warnings:
+Note	1003	insert all into `insert_all_select_test`.`t5` (`insert_all_select_test`.`t5`.`runoob_id`,`insert_all_select_test`.`t5`.`runoob_author`,`insert_all_select_test`.`t5`.`runoob_count`) into `insert_all_select_test`.`t51` (`insert_all_select_test`.`t51`.`runoob_id`,`insert_all_select_test`.`t51`.`runoob_author`,`insert_all_select_test`.`t51`.`runoob_count`) /* select#1 */ select `insert_all_select_test`.`a`.`runoob_id` AS `runoob_id`,`insert_all_select_test`.`a`.`runoob_author` AS `runoob_author`,`insert_all_select_test`.`b`.`runoob_count` AS `runoob_count` from `insert_all_select_test`.`runoob_tbl` `a` left join `insert_all_select_test`.`tcount_tbl` `b` on((`insert_all_select_test`.`b`.`runoob_author` = `insert_all_select_test`.`a`.`runoob_author`)) where true
+explain insert into insert_all_select_test.t5(runoob_id, runoob_author, runoob_count)
+select * from
+(SELECT a.runoob_id, a.runoob_author, b.runoob_count FROM
+insert_all_select_test.runoob_tbl a LEFT JOIN
+insert_all_select_test.tcount_tbl b ON a.runoob_author = b.runoob_author)
+as a;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t5	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	SIMPLE	a	NULL	ALL	NULL	NULL	NULL	NULL	5	100.00	NULL
+1	SIMPLE	b	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	Using where; Using join buffer (Block Nested Loop)
+Warnings:
+Note	1003	insert into `insert_all_select_test`.`t5` (`insert_all_select_test`.`t5`.`runoob_id`,`insert_all_select_test`.`t5`.`runoob_author`,`insert_all_select_test`.`t5`.`runoob_count`) /* select#1 */ select `insert_all_select_test`.`a`.`runoob_id` AS `runoob_id`,`insert_all_select_test`.`a`.`runoob_author` AS `runoob_author`,`insert_all_select_test`.`b`.`runoob_count` AS `runoob_count` from `insert_all_select_test`.`runoob_tbl` `a` left join `insert_all_select_test`.`tcount_tbl` `b` on((`insert_all_select_test`.`b`.`runoob_author` = `insert_all_select_test`.`a`.`runoob_author`)) where true
+select * from insert_all_select_test.t5;
+runoob_id	runoob_title	runoob_author	submission_date	runoob_count
+1	NULL	cainiao	NULL	10
+2	NULL	cainiao	NULL	10
+3	NULL	 RUNOOB.COM	NULL	NULL
+4	NULL	RUNOOB.COM	NULL	20
+5	NULL	FK	NULL	NULL
+select * from insert_all_select_test.t51;
+runoob_id	runoob_title	runoob_author	submission_date	runoob_count
+1	NULL	cainiao	NULL	10
+2	NULL	cainiao	NULL	10
+3	NULL	 RUNOOB.COM	NULL	NULL
+4	NULL	RUNOOB.COM	NULL	20
+5	NULL	FK	NULL	NULL
+---------------------------------------------------------------
+## Test_11: test insert all select, all type
+---------------------------------------------------------------
+create table insert_all_select_test.t7(
+id       int       primary key auto_increment,
+tinyid   tinyint,
+smallid  smallint,
+medid    mediumint,
+bigid    bigint,
+floid    float,
+douid    double,
+deid     decimal(3,2),
+dateid   date,
+timeid   time,
+yearid   year,
+dtid     datetime,
+tsid     timestamp,
+name     varchar(25),
+name1    char(10),
+tbname   tinyblob,
+txname   tinytext,
+bname    blob,
+tname    text,
+mbname   mediumblob,
+mtname   mediumtext,
+lbname   longblob,
+ltname   longtext,
+a        SET('A','B','C'),
+b        ENUM('F','M')
+);
+create table insert_all_select_test.t71(
+id       int       primary key auto_increment,
+tinyid   tinyint,
+smallid  smallint,
+medid    mediumint,
+bigid    bigint,
+floid    float,
+douid    double,
+deid     decimal(3,2),
+dateid   date,
+timeid   time,
+yearid   year,
+dtid     datetime,
+tsid     timestamp,
+name     varchar(25),
+name1    char(10),
+tbname   tinyblob,
+txname   tinytext,
+bname    blob,
+tname    text,
+mbname   mediumblob,
+mtname   mediumtext,
+lbname   longblob,
+ltname   longtext,
+a        SET('A','B','C'),
+b        ENUM('F','M')
+);
+create table insert_all_select_test.t72(
+id       int       primary key auto_increment,
+tinyid   tinyint,
+smallid  smallint,
+medid    mediumint,
+bigid    bigint,
+floid    float,
+douid    double,
+deid     decimal(3,2),
+dateid   date,
+timeid   time,
+yearid   year,
+dtid     datetime,
+tsid     timestamp,
+name     varchar(25),
+name1    char(10),
+tbname   tinyblob,
+txname   tinytext,
+bname    blob,
+tname    text,
+mbname   mediumblob,
+mtname   mediumtext,
+lbname   longblob,
+ltname   longtext,
+a        SET('A','B','C'),
+b        ENUM('F','M')
+);
+insert all into insert_all_select_test.t7 values(1, 2, 3, 4, 5, 5.61, 5.554, 6.987, '2020-06-01', '18:18:16', 2020, '2020-06-01 00:00:00', '2020-06-01 00:00:00', 'ss', 'ss', 'xx', 'xx', 'ss', 'ss', 'xx', 'xx', 's', 'x', 'A', 'M')
+into insert_all_select_test.t7 values(2, 2, 3, 4, 5, 5.61, 5.554, 6.987, '2020-06-01', '18:18:16', 2020, '2020-06-01 00:00:00', '2020-06-01 00:00:00', 'ss', 'ss', 'xx', 'xx', 'ss', 'ss', 'xx', 'xx', 's', 'x', 'B', 'F')
+select * from dual;
+Warnings:
+Note	1265	Data truncated for column 'deid' at row 1
+Note	1265	Data truncated for column 'deid' at row 2
+select * from insert_all_select_test.t7;
+id	tinyid	smallid	medid	bigid	floid	douid	deid	dateid	timeid	yearid	dtid	tsid	name	name1	tbname	txname	bname	tname	mbname	mtname	lbname	ltname	a	b
+1	2	3	4	5	5.61	5.554	6.99	2020-06-01	18:18:16	2020	2020-06-01 00:00:00	2020-06-01 00:00:00	ss	ss	xx	xx	ss	ss	xx	xx	s	x	A	M
+2	2	3	4	5	5.61	5.554	6.99	2020-06-01	18:18:16	2020	2020-06-01 00:00:00	2020-06-01 00:00:00	ss	ss	xx	xx	ss	ss	xx	xx	s	x	B	F
+insert all into insert_all_select_test.t71
+into insert_all_select_test.t72
+select * from insert_all_select_test.t7;
+explain insert all into insert_all_select_test.t71
+into insert_all_select_test.t72
+select * from insert_all_select_test.t7;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t71	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	INSERT	t72	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	SIMPLE	t7	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	NULL
+Warnings:
+Note	1003	insert all into `insert_all_select_test`.`t71` into `insert_all_select_test`.`t72` /* select#1 */ select `insert_all_select_test`.`t7`.`id` AS `id`,`insert_all_select_test`.`t7`.`tinyid` AS `tinyid`,`insert_all_select_test`.`t7`.`smallid` AS `smallid`,`insert_all_select_test`.`t7`.`medid` AS `medid`,`insert_all_select_test`.`t7`.`bigid` AS `bigid`,`insert_all_select_test`.`t7`.`floid` AS `floid`,`insert_all_select_test`.`t7`.`douid` AS `douid`,`insert_all_select_test`.`t7`.`deid` AS `deid`,`insert_all_select_test`.`t7`.`dateid` AS `dateid`,`insert_all_select_test`.`t7`.`timeid` AS `timeid`,`insert_all_select_test`.`t7`.`yearid` AS `yearid`,`insert_all_select_test`.`t7`.`dtid` AS `dtid`,`insert_all_select_test`.`t7`.`tsid` AS `tsid`,`insert_all_select_test`.`t7`.`name` AS `name`,`insert_all_select_test`.`t7`.`name1` AS `name1`,`insert_all_select_test`.`t7`.`tbname` AS `tbname`,`insert_all_select_test`.`t7`.`txname` AS `txname`,`insert_all_select_test`.`t7`.`bname` AS `bname`,`insert_all_select_test`.`t7`.`tname` AS `tname`,`insert_all_select_test`.`t7`.`mbname` AS `mbname`,`insert_all_select_test`.`t7`.`mtname` AS `mtname`,`insert_all_select_test`.`t7`.`lbname` AS `lbname`,`insert_all_select_test`.`t7`.`ltname` AS `ltname`,`insert_all_select_test`.`t7`.`a` AS `a`,`insert_all_select_test`.`t7`.`b` AS `b` from `insert_all_select_test`.`t7`
+explain insert into insert_all_select_test.t71
+select * from insert_all_select_test.t7;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t71	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	SIMPLE	t7	NULL	ALL	NULL	NULL	NULL	NULL	2	100.00	NULL
+Warnings:
+Note	1003	insert into `insert_all_select_test`.`t71` /* select#1 */ select `insert_all_select_test`.`t7`.`id` AS `id`,`insert_all_select_test`.`t7`.`tinyid` AS `tinyid`,`insert_all_select_test`.`t7`.`smallid` AS `smallid`,`insert_all_select_test`.`t7`.`medid` AS `medid`,`insert_all_select_test`.`t7`.`bigid` AS `bigid`,`insert_all_select_test`.`t7`.`floid` AS `floid`,`insert_all_select_test`.`t7`.`douid` AS `douid`,`insert_all_select_test`.`t7`.`deid` AS `deid`,`insert_all_select_test`.`t7`.`dateid` AS `dateid`,`insert_all_select_test`.`t7`.`timeid` AS `timeid`,`insert_all_select_test`.`t7`.`yearid` AS `yearid`,`insert_all_select_test`.`t7`.`dtid` AS `dtid`,`insert_all_select_test`.`t7`.`tsid` AS `tsid`,`insert_all_select_test`.`t7`.`name` AS `name`,`insert_all_select_test`.`t7`.`name1` AS `name1`,`insert_all_select_test`.`t7`.`tbname` AS `tbname`,`insert_all_select_test`.`t7`.`txname` AS `txname`,`insert_all_select_test`.`t7`.`bname` AS `bname`,`insert_all_select_test`.`t7`.`tname` AS `tname`,`insert_all_select_test`.`t7`.`mbname` AS `mbname`,`insert_all_select_test`.`t7`.`mtname` AS `mtname`,`insert_all_select_test`.`t7`.`lbname` AS `lbname`,`insert_all_select_test`.`t7`.`ltname` AS `ltname`,`insert_all_select_test`.`t7`.`a` AS `a`,`insert_all_select_test`.`t7`.`b` AS `b` from `insert_all_select_test`.`t7`
+select * from insert_all_select_test.t71;
+id	tinyid	smallid	medid	bigid	floid	douid	deid	dateid	timeid	yearid	dtid	tsid	name	name1	tbname	txname	bname	tname	mbname	mtname	lbname	ltname	a	b
+1	2	3	4	5	5.61	5.554	6.99	2020-06-01	18:18:16	2020	2020-06-01 00:00:00	2020-06-01 00:00:00	ss	ss	xx	xx	ss	ss	xx	xx	s	x	A	M
+2	2	3	4	5	5.61	5.554	6.99	2020-06-01	18:18:16	2020	2020-06-01 00:00:00	2020-06-01 00:00:00	ss	ss	xx	xx	ss	ss	xx	xx	s	x	B	F
+select * from insert_all_select_test.t72;
+id	tinyid	smallid	medid	bigid	floid	douid	deid	dateid	timeid	yearid	dtid	tsid	name	name1	tbname	txname	bname	tname	mbname	mtname	lbname	ltname	a	b
+1	2	3	4	5	5.61	5.554	6.99	2020-06-01	18:18:16	2020	2020-06-01 00:00:00	2020-06-01 00:00:00	ss	ss	xx	xx	ss	ss	xx	xx	s	x	A	M
+2	2	3	4	5	5.61	5.554	6.99	2020-06-01	18:18:16	2020	2020-06-01 00:00:00	2020-06-01 00:00:00	ss	ss	xx	xx	ss	ss	xx	xx	s	x	B	F
+---------------------------------------------------------------
+## Test_12: test insert all into 100 tables
+---------------------------------------------------------------
+create database insert_all_select_test1;
+use insert_all_select_test1;
+create table insert_all_select_test1.t10(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_select_test1.t11(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_select_test1.t12(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_select_test1.t13(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_select_test1.t14(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_select_test1.t15(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_select_test1.t16(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_select_test1.t17(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_select_test1.t18(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_select_test1.t19(id int primary key auto_increment, name varchar(25), address varchar(25));
+create table insert_all_select_test1.t20(id int primary key auto_increment, name varchar(25), address varchar(25));
+insert all into t10 values(1, 'xiaoxiao', 'street') select * from dual;
+DROP PROCEDURE IF EXISTS `insert_sql_pro` |
+Warnings:
+Note	1305	PROCEDURE insert_all_select_test1.insert_sql_pro does not exist
+CREATE PROCEDURE `insert_sql_pro`()
+BEGIN
+DECLARE i INT;
+DECLARE j INT;
+DECLARE table_name blob;
+DECLARE sql_stmt blob;
+DECLARE sql_tmp blob;
+SET i = 11;
+SET @sql_item="";
+WHILE i<21 DO
+set j = 1;
+WHILE j<11 DO
+set sql_tmp = @sql_item;
+set table_name = CONCAT('t', i, "(name, address) " );
+SET sql_stmt = CONCAT(
+'into ', table_name
+);
+SET @sql_item = CONCAT(sql_tmp, sql_stmt);
+SET j = j+1;
+END WHILE;
+SET i = i+1;
+END WHILE;
+set @sql = CONCAT('insert all ', @sql_item, 'select name,address from t10');
+PREPARE create_stmt FROM @sql;
+EXECUTE create_stmt;
+END |
+call insert_sql_pro;
+drop database insert_all_select_test1;
+---------------------------------------------------------------
+## Test_13: test insert all into temporary table
+---------------------------------------------------------------
+create temporary table insert_all_select_test.tmp_table(id int primary key auto_increment, name varchar(25), birth date);
+insert all into insert_all_select_test.tmp_table select * from insert_all_select_test.t2;
+explain insert all into insert_all_select_test.tmp_table select * from insert_all_select_test.t2;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	tmp_table	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+Warnings:
+Note	1003	insert all into `insert_all_select_test`.`tmp_table` /* select#1 */ select `insert_all_select_test`.`t2`.`id` AS `id`,`insert_all_select_test`.`t2`.`name` AS `name`,`insert_all_select_test`.`t2`.`birth` AS `birth` from `insert_all_select_test`.`t2`
+insert all into insert_all_select_test.tmp_table(name, birth)
+into insert_all_select_test.tmp_table(name, birth)
+select name, birth from insert_all_select_test.t2;
+ERROR HY000: Can't reopen table: 'tmp_table'
+explain insert all into insert_all_select_test.tmp_table(name, birth)
+into insert_all_select_test.tmp_table(name, birth)
+select name, birth from insert_all_select_test.t2;
+ERROR HY000: Can't reopen table: 'tmp_table'
+select * from insert_all_select_test.tmp_table;
+id	name	birth
+1	xiao	2020-06-10
+2	yao	2019-06-10
+3	guo	2018-06-10
+---------------------------------------------------------------
+## Test_14: test select insert_all_select_test.t2 from dual
+---------------------------------------------------------------
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+insert all into insert_all_select_test.t1(id, name)
+into insert_all_select_test.t3(id, name)
+select insert_all_select_test.t2 from dual;
+ERROR HY000: You cannot use INSERT ALL SELECT FROM DUAL without VALUES
+explain insert all into insert_all_select_test.t1(id, name)
+into insert_all_select_test.t3(id, name)
+select insert_all_select_test.t2 from dual;
+ERROR HY000: You cannot use INSERT ALL SELECT FROM DUAL without VALUES
+select * from insert_all_select_test.t1;
+id	name	birth
+select * from insert_all_select_test.t2;
+id	name	birth
+1	xiao	2020-06-10
+2	yao	2019-06-10
+3	guo	2018-06-10
+select * from insert_all_select_test.t3;
+id	name	birth
+---------------------------------------------------------------
+## Test_15: abnormal test,insert all on duplicate key
+---------------------------------------------------------------
+truncate table insert_all_select_test.t1;
+insert all into insert_all_select_test.t1(id, name)
+on duplicate key update id=(select id from insert_all_select_test.t2)
+select id,name from insert_all_select_test.t2;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'on duplicate key update id=(select id from insert_all_select_test.t2)
+select id,' at line 2
+select * from insert_all_select_test.t1;
+id	name	birth
+---------------------------------------------------------------
+## Test_16: abnormal test,fields num not match select item
+---------------------------------------------------------------
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+insert all into insert_all_select_test.t1(id, name)
+into insert_all_select_test.t3(id, name, birth)
+select id,name from insert_all_select_test.t2;
+ERROR 21S01: Column count doesn't match value count at row 1
+insert all into insert_all_select_test.t1(id, name)
+into insert_all_select_test.t3(id, name, birth)
+select id,name,birth from insert_all_select_test.t2;
+ERROR 21S01: Column count doesn't match value count at row 1
+insert all into insert_all_select_test.t1(id)
+into insert_all_select_test.t3(address)
+select id,name from insert_all_select_test.t2;
+ERROR 21S01: Column count doesn't match value count at row 1
+explain insert all into insert_all_select_test.t1(id)
+into insert_all_select_test.t3(address)
+select id,name from insert_all_select_test.t2;
+ERROR 21S01: Column count doesn't match value count at row 1
+select * from insert_all_select_test.t1;
+id	name	birth
+select * from insert_all_select_test.t2;
+id	name	birth
+1	xiao	2020-06-10
+2	yao	2019-06-10
+3	guo	2018-06-10
+select * from insert_all_select_test.t3;
+id	name	birth
+---------------------------------------------------------------
+## Test_17: abnormal test,primary key conflict
+---------------------------------------------------------------
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+insert all into insert_all_select_test.t1(id) values(1) select * from dual;
+insert all into insert_all_select_test.t1(id, name)
+into insert_all_select_test.t3(id, name)
+select id,name from insert_all_select_test.t2;
+ERROR 23000: Duplicate entry '1' for key 'PRIMARY'
+truncate insert_all_select_test.t1;
+insert all into insert_all_select_test.t3(id) values(1) select * from dual;
+insert all into insert_all_select_test.t1(id, name)
+into insert_all_select_test.t3(id, name)
+select id,name from insert_all_select_test.t2;
+ERROR 23000: Duplicate entry '1' for key 'PRIMARY'
+explain insert all into insert_all_select_test.t1(id, name)
+into insert_all_select_test.t3(id, name)
+select id,name from insert_all_select_test.t2;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t1	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	INSERT	t3	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	SIMPLE	t2	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+Warnings:
+Note	1003	insert all into `insert_all_select_test`.`t1` (`insert_all_select_test`.`t1`.`id`,`insert_all_select_test`.`t1`.`name`) into `insert_all_select_test`.`t3` (`insert_all_select_test`.`t3`.`id`,`insert_all_select_test`.`t3`.`name`) /* select#1 */ select `insert_all_select_test`.`t2`.`id` AS `id`,`insert_all_select_test`.`t2`.`name` AS `name` from `insert_all_select_test`.`t2`
+truncate insert_all_select_test.t3;
+select * from insert_all_select_test.t1;
+id	name	birth
+select * from insert_all_select_test.t3;
+id	name	birth
+insert all into insert_all_select_test.t1(id, name)
+into insert_all_select_test.t3(id, name)
+select id,name from insert_all_select_test.t2;
+insert all into insert_all_select_test.t1(id, name)
+into insert_all_select_test.t3(id, name)
+select id,name from insert_all_select_test.t2;
+ERROR 23000: Duplicate entry '1' for key 'PRIMARY'
+select * from insert_all_select_test.t1;
+id	name	birth
+1	xiao	NULL
+2	yao	NULL
+3	guo	NULL
+select * from insert_all_select_test.t2;
+id	name	birth
+1	xiao	2020-06-10
+2	yao	2019-06-10
+3	guo	2018-06-10
+select * from insert_all_select_test.t3;
+id	name	birth
+1	xiao	NULL
+2	yao	NULL
+3	guo	NULL
+---------------------------------------------------------------
+## Test_18: abnormal test,table not exist
+---------------------------------------------------------------
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+insert all into insert_all_select_test.t8(id, name)
+into insert_all_select_test.t1(id, name)
+into insert_all_select_test.t3(id, name)
+select id,name from insert_all_select_test.t2;
+ERROR 42S02: Table 'insert_all_select_test.t8' doesn't exist
+insert all into insert_all_select_test.t1(id, name)
+into insert_all_select_test.t8(id, name)
+into insert_all_select_test.t3(id, name)
+select id,name from insert_all_select_test.t2;
+ERROR 42S02: Table 'insert_all_select_test.t8' doesn't exist
+insert all into insert_all_select_test.t1(id, name)
+into insert_all_select_test.t3(id, name)
+into insert_all_select_test.t8(id, name)
+select id,name from insert_all_select_test.t2;
+ERROR 42S02: Table 'insert_all_select_test.t8' doesn't exist
+explain insert all into insert_all_select_test.t1(id, name)
+into insert_all_select_test.t3(id, name)
+into insert_all_select_test.t8(id, name)
+select id,name from insert_all_select_test.t2;
+ERROR 42S02: Table 'insert_all_select_test.t8' doesn't exist
+select * from insert_all_select_test.t1;
+id	name	birth
+select * from insert_all_select_test.t3;
+id	name	birth
+---------------------------------------------------------------
+## Test_19: abnormal test, fields not match select item
+---------------------------------------------------------------
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+insert all into insert_all_select_test.t1(id, name)
+into insert_all_select_test.t3(name, birth)
+select id,name from insert_all_select_test.t2;
+ERROR 22007: Incorrect date value: 'xiao' for column 'birth' at row 1
+insert all into insert_all_select_test.t1(id, name)
+into insert_all_select_test.t3(id, address)
+select id,name from insert_all_select_test.t2;
+ERROR 42S22: Unknown column 'address' in 'field list'
+insert all into insert_all_select_test.t1(id)
+into insert_all_select_test.t3(address)
+select id from insert_all_select_test.t2;
+ERROR 42S22: Unknown column 'address' in 'field list'
+insert all into insert_all_select_test.t1(id, name)
+into insert_all_select_test.t3(id, name)
+select id,address from insert_all_select_test.t2;
+ERROR 42S22: Unknown column 'address' in 'field list'
+insert all into insert_all_select_test.t1(id, name, address, birth)
+into insert_all_select_test.t3(id, name, address, birth)
+select id,name,address,address from insert_all_select_test.t2;
+ERROR 42S22: Unknown column 'address' in 'field list'
+insert all into insert_all_select_test.t1(id, name, address, birth)
+into insert_all_select_test.t3(id, name, address, birth)
+select * from insert_all_select_test.t2;
+ERROR 42S22: Unknown column 'address' in 'field list'
+alter table insert_all_select_test.t1 add column address char(10);
+alter table insert_all_select_test.t2 add column address char(10);
+insert all into insert_all_select_test.t2 values(19,'ss','2020-12-10','kk'),(20,'ss','2020-09-10','mm') select * from dual;
+alter table insert_all_select_test.t3 add column address char(10);
+insert all into insert_all_select_test.t1(name, address)
+into insert_all_select_test.t3(address, name)
+select name,address from insert_all_select_test.t2;
+select * from insert_all_select_test.t1;
+id	name	birth	address
+4	xiao	NULL	NULL
+5	yao	NULL	NULL
+6	guo	NULL	NULL
+7	ss	NULL	kk
+8	ss	NULL	mm
+select * from insert_all_select_test.t3;
+id	name	birth	address
+1	NULL	NULL	xiao
+2	NULL	NULL	yao
+3	NULL	NULL	guo
+4	kk	NULL	ss
+5	mm	NULL	ss
+truncate insert_all_select_test.t1;
+truncate insert_all_select_test.t3;
+insert all into insert_all_select_test.t2 values(21,'1234567890123','2020-12-10','kk'),(22,'9876543210123','2020-09-10','mm') select * from dual;
+insert all into insert_all_select_test.t1(name, address)
+into insert_all_select_test.t3(address, name)
+select name,address from insert_all_select_test.t2;
+ERROR 22001: Data too long for column 'address' at row 6
+alter table insert_all_select_test.t1 add column col_v5 varchar(5);
+alter table insert_all_select_test.t3 add column col_v5 varchar(5);
+insert all into insert_all_select_test.t1(name, col_v5)
+into insert_all_select_test.t3(name, col_v5)
+select address,name from insert_all_select_test.t2 where id=21;
+ERROR 01000: Data truncated for column 'col_v5' at row 1
+alter table insert_all_select_test.t1 drop column address;
+alter table insert_all_select_test.t2 drop column address;
+alter table insert_all_select_test.t3 drop column address;
+alter table insert_all_select_test.t1 drop column col_v5;
+alter table insert_all_select_test.t3 drop column col_v5;
+alter table insert_all_select_test.t1 add column col_char char;
+alter table insert_all_select_test.t3 add column col_char char;
+insert all into insert_all_select_test.t1(col_char)
+into insert_all_select_test.t3(col_char)
+select id from insert_all_select_test.t2 where id<10;
+select * from insert_all_select_test.t1;
+id	name	birth	col_char
+8	NULL	NULL	1
+9	NULL	NULL	2
+10	NULL	NULL	3
+select * from insert_all_select_test.t3;
+id	name	birth	col_char
+8	NULL	NULL	1
+9	NULL	NULL	2
+10	NULL	NULL	3
+alter table insert_all_select_test.t1 drop column col_char;
+alter table insert_all_select_test.t3 drop column col_char;
+---------------------------------------------------------------
+## Test_20: test insert all into tables,transaction rollback
+---------------------------------------------------------------
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+begin;
+insert all into insert_all_select_test.t1(id, birth)
+into insert_all_select_test.t3(id, birth)
+select id,birth from insert_all_select_test.t2;
+rollback;
+select * from insert_all_select_test.t1;
+id	name	birth
+select * from insert_all_select_test.t3;
+id	name	birth
+---------------------------------------------------------------
+## Test_21: test insert all into tables,in transaction,ddl end
+---------------------------------------------------------------
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+begin;
+insert all into insert_all_select_test.t1(id, name)
+into insert_all_select_test.t3(id, name)
+select id,name from insert_all_select_test.t2;
+drop table insert_all_select_test.t4;
+select * from insert_all_select_test.t1;
+id	name	birth
+1	xiao	NULL
+2	yao	NULL
+3	guo	NULL
+19	ss	NULL
+20	ss	NULL
+21	1234567890123	NULL
+22	9876543210123	NULL
+select * from insert_all_select_test.t3;
+id	name	birth
+1	xiao	NULL
+2	yao	NULL
+3	guo	NULL
+19	ss	NULL
+20	ss	NULL
+21	1234567890123	NULL
+22	9876543210123	NULL
+---------------------------------------------------------------
+## Test_22: test insert all into tables,in transaction
+---------------------------------------------------------------
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+begin;
+insert all into insert_all_select_test.t1(id, name)
+into insert_all_select_test.t3(id, name)
+select id,name from insert_all_select_test.t2;
+commit;
+select * from insert_all_select_test.t1;
+id	name	birth
+1	xiao	NULL
+2	yao	NULL
+3	guo	NULL
+19	ss	NULL
+20	ss	NULL
+21	1234567890123	NULL
+22	9876543210123	NULL
+select * from insert_all_select_test.t3;
+id	name	birth
+1	xiao	NULL
+2	yao	NULL
+3	guo	NULL
+19	ss	NULL
+20	ss	NULL
+21	1234567890123	NULL
+22	9876543210123	NULL
+---------------------------------------------------------------
+## Test_23: test insert all into view
+---------------------------------------------------------------
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+create view insert_all_select_test.view_t1 as select * from insert_all_select_test.t2;
+insert all into insert_all_select_test.view_t1
+into insert_all_select_test.t3
+select * from insert_all_select_test.t2;
+ERROR HY000: Target table cannot be insert, because it is a VIEW.
+insert all into insert_all_select_test.t3
+into insert_all_select_test.view_t1
+select * from insert_all_select_test.t2;
+ERROR HY000: Target table cannot be insert, because it is a VIEW.
+select * from insert_all_select_test.t1;
+id	name	birth
+select * from insert_all_select_test.t3;
+id	name	birth
+select * from insert_all_select_test.view_t1;
+id	name	birth
+1	xiao	2020-06-10
+2	yao	2019-06-10
+3	guo	2018-06-10
+19	ss	2020-12-10
+20	ss	2020-09-10
+21	1234567890123	2020-12-10
+22	9876543210123	2020-09-10
+---------------------------------------------------------------
+## Test_24: test select * into t4 from t2
+---------------------------------------------------------------
+create table if not exists insert_all_select_test.t4(id int primary key auto_increment, name varchar(25), birth date);
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+insert all into insert_all_select_test.t1
+into insert_all_select_test.t3
+select * into insert_all_select_test.t4 from insert_all_select_test.t2;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '.t4 from insert_all_select_test.t2' at line 3
+select * from insert_all_select_test.t1;
+id	name	birth
+select * from insert_all_select_test.t3;
+id	name	birth
+---------------------------------------------------------------
+## Test_25: test select * into t4
+---------------------------------------------------------------
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+insert all into insert_all_select_test.t1
+into insert_all_select_test.t3
+select * into insert_all_select_test.t4;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '.t4' at line 3
+select * from insert_all_select_test.t1;
+id	name	birth
+select * from insert_all_select_test.t3;
+id	name	birth
+---------------------------------------------------------------
+## Test_26: test select * into outfile 't4' from t2;
+---------------------------------------------------------------
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+insert all into insert_all_select_test.t1
+into insert_all_select_test.t3
+select * into outfile insert_all_select_test.t4 from insert_all_select_test.t2;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'insert_all_select_test.t4 from insert_all_select_test.t2' at line 3
+select * from insert_all_select_test.t1;
+id	name	birth
+select * from insert_all_select_test.t3;
+id	name	birth
+---------------------------------------------------------------
+## Test_27: test insert all into tb (select from t2);
+---------------------------------------------------------------
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+insert all into insert_all_select_test.t1
+into insert_all_select_test.t3
+(select * from insert_all_select_test.t2);
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'select * from insert_all_select_test.t2)' at line 3
+insert all into insert_all_select_test.t1
+into insert_all_select_test.t3
+select 1;
+ERROR HY000: You cannot use INSERT ALL SELECT FROM DUAL without VALUES
+select * from insert_all_select_test.t1;
+id	name	birth
+select * from insert_all_select_test.t3;
+id	name	birth
+---------------------------------------------------------------
+## Test_28: test select from t2 union select * from dual;
+---------------------------------------------------------------
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+insert all into insert_all_select_test.t1
+into insert_all_select_test.t3
+select * from insert_all_select_test.t2 union select * from dual;
+ERROR HY000: No tables used
+select * from insert_all_select_test.t1;
+id	name	birth
+select * from insert_all_select_test.t3;
+id	name	birth
+---------------------------------------------------------------
+## Test_29: test triggers for insert all select;
+---------------------------------------------------------------
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+drop trigger if exists insert_all_select_test.tgr_users_delete;
+create trigger insert_all_select_test.tgr_users_delete
+before delete on insert_all_select_test.t2
+for each row
+begin
+insert all into insert_all_select_test.t1
+into insert_all_select_test.t3
+select * from insert_all_select_test.t2;
+end|
+delete from insert_all_select_test.t2 where id=20;
+select * from insert_all_select_test.t1;
+id	name	birth
+1	xiao	2020-06-10
+2	yao	2019-06-10
+3	guo	2018-06-10
+19	ss	2020-12-10
+20	ss	2020-09-10
+21	1234567890123	2020-12-10
+22	9876543210123	2020-09-10
+select * from insert_all_select_test.t3;
+id	name	birth
+1	xiao	2020-06-10
+2	yao	2019-06-10
+3	guo	2018-06-10
+19	ss	2020-12-10
+20	ss	2020-09-10
+21	1234567890123	2020-12-10
+22	9876543210123	2020-09-10
+---------------------------------------------------------------
+## Test_30: test event for insert all select;
+---------------------------------------------------------------
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+use insert_all_select_test;
+create event insert_all_select_test.ev ON SCHEDULE every 1 second on completion preserve disable
+do
+insert all into insert_all_select_test.t1(name)
+into insert_all_select_test.t3(name)
+select name from insert_all_select_test.t2 |
+ALTER EVENT insert_all_select_test.ev ON COMPLETION PRESERVE ENABLE;
+select sleep(1);
+sleep(1)
+0
+ALTER EVENT insert_all_select_test.ev DISABLE;
+select * from insert_all_select_test.t1;
+id	name	birth
+1	xiao	NULL
+2	yao	NULL
+3	guo	NULL
+4	ss	NULL
+5	1234567890123	NULL
+6	9876543210123	NULL
+select * from insert_all_select_test.t3;
+id	name	birth
+1	xiao	NULL
+2	yao	NULL
+3	guo	NULL
+4	ss	NULL
+5	1234567890123	NULL
+6	9876543210123	NULL
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+---------------------------------------------------------------
+## Test_31: test different type of index;
+---------------------------------------------------------------
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+alter table insert_all_select_test.t3 change id id int default 0;
+alter table insert_all_select_test.t3 drop primary key;
+insert all into insert_all_select_test.t1
+into insert_all_select_test.t3
+select * from insert_all_select_test.t2;
+select * from insert_all_select_test.t1;
+id	name	birth
+1	xiao	2020-06-10
+2	yao	2019-06-10
+3	guo	2018-06-10
+19	ss	2020-12-10
+21	1234567890123	2020-12-10
+22	9876543210123	2020-09-10
+select * from insert_all_select_test.t3;
+id	name	birth
+1	xiao	2020-06-10
+2	yao	2019-06-10
+3	guo	2018-06-10
+19	ss	2020-12-10
+21	1234567890123	2020-12-10
+22	9876543210123	2020-09-10
+alter table insert_all_select_test.t3 add UNIQUE(id);
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+insert all into insert_all_select_test.t1
+into insert_all_select_test.t3
+select * from insert_all_select_test.t2;
+insert all into insert_all_select_test.t1(name)
+into insert_all_select_test.t3(name)
+select name from insert_all_select_test.t2;
+ERROR 23000: Duplicate entry '0' for key 'id'
+select * from insert_all_select_test.t1;
+id	name	birth
+1	xiao	2020-06-10
+2	yao	2019-06-10
+3	guo	2018-06-10
+19	ss	2020-12-10
+21	1234567890123	2020-12-10
+22	9876543210123	2020-09-10
+select * from insert_all_select_test.t3;
+id	name	birth
+1	xiao	2020-06-10
+2	yao	2019-06-10
+3	guo	2018-06-10
+19	ss	2020-12-10
+21	1234567890123	2020-12-10
+22	9876543210123	2020-09-10
+truncate table insert_all_select_test.t1;
+truncate table insert_all_select_test.t3;
+alter table insert_all_select_test.t3 change id id int primary key auto_increment;
+---------------------------------------------------------------
+## Test_32: test insert all select in binlog format statement
+---------------------------------------------------------------
+drop temporary table insert_all_select_test.tmp_table;
+alter table insert_all_select_test.t1 change id id int default 0;
+alter table insert_all_select_test.t2 change id id int;
+alter table insert_all_select_test.t3 change id id int default 0;
+desc t1;
+Field	Type	Null	Key	Default	Extra
+id	int(11)	NO	PRI	0	
+name	varchar(25)	YES		NULL	
+birth	date	YES		NULL	
+desc t2;
+Field	Type	Null	Key	Default	Extra
+id	int(11)	NO	PRI	NULL	
+name	varchar(25)	YES		NULL	
+birth	date	YES		NULL	
+desc t3;
+Field	Type	Null	Key	Default	Extra
+id	int(11)	NO	PRI	0	
+name	varchar(25)	YES		NULL	
+birth	date	YES		NULL	
+set @sav_binlog_format=  @@session.binlog_format;
+set @@session.binlog_format= statement;
+start transaction;
+set session transaction isolation level repeatable read;
+truncate table insert_all_select_test.t3;
+truncate table insert_all_select_test.t1;
+insert all into insert_all_select_test.t1(name)
+into insert_all_select_test.t3(name)
+select name from insert_all_select_test.t2 where id=1;
+commit;
+set @@session.binlog_format= @sav_binlog_format;
+select * from insert_all_select_test.t1;
+id	name	birth
+0	xiao	NULL
+select * from insert_all_select_test.t3;
+id	name	birth
+0	xiao	NULL
+---------------------------------------------------------------
+## Test_33: test insert all select, subquery include minus
+---------------------------------------------------------------
+use insert_all_select_test;
+create table t_user(id int, no varchar(10), name varchar(10), age int, level_no int);
+create table t_user1(id int, no varchar(10), name varchar(10), age int, level_no int);
+create table t_user2(id int, no varchar(10), name varchar(10), age int, level_no int);
+create table t_user3(id int, no varchar(10), name varchar(10), age int, level_no int);
+drop table if exists t_item;
+Warnings:
+Note	1051	Unknown table 'insert_all_select_test.t_item'
+create table t_item(id int, no varchar(10));
+insert into t_item values(1, 'a'),(1, 'a'),(2, 'b'),(3, 'c'),(4, 'd');
+drop table if exists t_item2;
+Warnings:
+Note	1051	Unknown table 'insert_all_select_test.t_item2'
+create table t_item2(c1 int, c2 varchar(10));
+insert into t_item2 values(1, 'a'),(2, 'b'),(3, 'dddd');
+insert all into t_user1(id,no) into t_user2(id,no) into t_user3(id,no)
+select id, no from t_item where id > 0 minus select * from t_item2;
+explain select id, no from t_item where id > 0 minus select * from t_item2;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	PRIMARY	t_item	NULL	ALL	NULL	NULL	NULL	NULL	5	33.33	Using where
+2	MINUS	t_item2	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+NULL	MINUS RESULT	<minus1,2>	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	Using temporary
+Warnings:
+Note	1003	/* select#1 */ select `insert_all_select_test`.`t_item`.`id` AS `id`,`insert_all_select_test`.`t_item`.`no` AS `no` from `insert_all_select_test`.`t_item` where (`insert_all_select_test`.`t_item`.`id` > 0) union /* select#2 */ select `insert_all_select_test`.`t_item2`.`c1` AS `c1`,`insert_all_select_test`.`t_item2`.`c2` AS `c2` from `insert_all_select_test`.`t_item2`
+explain insert into t_user1(id,no)
+select id, no from t_item where id > 0 minus select * from t_item2;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t_user1	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	PRIMARY	t_item	NULL	ALL	NULL	NULL	NULL	NULL	5	33.33	Using where
+2	MINUS	t_item2	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+NULL	MINUS RESULT	<minus1,2>	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	Using temporary
+Warnings:
+Note	1003	insert into `insert_all_select_test`.`t_user1` (`insert_all_select_test`.`t_user1`.`id`,`insert_all_select_test`.`t_user1`.`no`) /* select#1 */ select `insert_all_select_test`.`t_item`.`id` AS `id`,`insert_all_select_test`.`t_item`.`no` AS `no` from `insert_all_select_test`.`t_item` where (`insert_all_select_test`.`t_item`.`id` > 0) union /* select#2 */ select `insert_all_select_test`.`t_item2`.`c1` AS `c1`,`insert_all_select_test`.`t_item2`.`c2` AS `c2` from `insert_all_select_test`.`t_item2`
+explain insert all into t_user1(id,no) into t_user2(id,no) into t_user3(id,no)
+select id, no from t_item where id > 0 minus select * from t_item2;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t_user1	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	INSERT	t_user2	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	INSERT	t_user3	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	PRIMARY	t_item	NULL	ALL	NULL	NULL	NULL	NULL	5	33.33	Using where
+2	MINUS	t_item2	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+NULL	MINUS RESULT	<minus1,2>	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	Using temporary
+Warnings:
+Note	1003	insert all into `insert_all_select_test`.`t_user1` (`insert_all_select_test`.`t_user1`.`id`,`insert_all_select_test`.`t_user1`.`no`) into `insert_all_select_test`.`t_user2` (`insert_all_select_test`.`t_user2`.`id`,`insert_all_select_test`.`t_user2`.`no`) into `insert_all_select_test`.`t_user3` (`insert_all_select_test`.`t_user3`.`id`,`insert_all_select_test`.`t_user3`.`no`) /* select#1 */ select `insert_all_select_test`.`t_item`.`id` AS `id`,`insert_all_select_test`.`t_item`.`no` AS `no` from `insert_all_select_test`.`t_item` where (`insert_all_select_test`.`t_item`.`id` > 0) union /* select#2 */ select `insert_all_select_test`.`t_item2`.`c1` AS `c1`,`insert_all_select_test`.`t_item2`.`c2` AS `c2` from `insert_all_select_test`.`t_item2`
+select id, no from t_item where id > 0 minus select * from t_item2;
+id	no
+3	c
+4	d
+select * from t_user1;
+id	no	name	age	level_no
+3	c	NULL	NULL	NULL
+4	d	NULL	NULL	NULL
+select * from t_user2;
+id	no	name	age	level_no
+3	c	NULL	NULL	NULL
+4	d	NULL	NULL	NULL
+select * from t_user3;
+id	no	name	age	level_no
+3	c	NULL	NULL	NULL
+4	d	NULL	NULL	NULL
+---------------------------------------------------------------
+## Test_34: test insert all select, subquery include minus(right has parens)
+---------------------------------------------------------------
+truncate t_user1;
+truncate t_user2;
+truncate t_user3;
+insert all into t_user1(id,no) into t_user2(id,no) into t_user3(id,no)
+select id, no from t_item where id > 0 minus (select * from t_item2);
+explain select id, no from t_item where id > 0 minus (select * from t_item2);
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	PRIMARY	t_item	NULL	ALL	NULL	NULL	NULL	NULL	5	33.33	Using where
+2	MINUS	t_item2	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+NULL	MINUS RESULT	<minus1,2>	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	Using temporary
+Warnings:
+Note	1003	/* select#1 */ select `insert_all_select_test`.`t_item`.`id` AS `id`,`insert_all_select_test`.`t_item`.`no` AS `no` from `insert_all_select_test`.`t_item` where (`insert_all_select_test`.`t_item`.`id` > 0) union /* select#2 */ select `insert_all_select_test`.`t_item2`.`c1` AS `c1`,`insert_all_select_test`.`t_item2`.`c2` AS `c2` from `insert_all_select_test`.`t_item2`
+explain insert into t_user1(id,no)
+select id, no from t_item where id > 0 minus (select * from t_item2);
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t_user1	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	PRIMARY	t_item	NULL	ALL	NULL	NULL	NULL	NULL	5	33.33	Using where
+2	MINUS	t_item2	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+NULL	MINUS RESULT	<minus1,2>	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	Using temporary
+Warnings:
+Note	1003	insert into `insert_all_select_test`.`t_user1` (`insert_all_select_test`.`t_user1`.`id`,`insert_all_select_test`.`t_user1`.`no`) /* select#1 */ select `insert_all_select_test`.`t_item`.`id` AS `id`,`insert_all_select_test`.`t_item`.`no` AS `no` from `insert_all_select_test`.`t_item` where (`insert_all_select_test`.`t_item`.`id` > 0) union /* select#2 */ select `insert_all_select_test`.`t_item2`.`c1` AS `c1`,`insert_all_select_test`.`t_item2`.`c2` AS `c2` from `insert_all_select_test`.`t_item2`
+explain insert all into t_user1(id,no) into t_user2(id,no) into t_user3(id,no)
+select id, no from t_item where id > 0 minus (select * from t_item2);
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t_user1	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	INSERT	t_user2	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	INSERT	t_user3	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	PRIMARY	t_item	NULL	ALL	NULL	NULL	NULL	NULL	5	33.33	Using where
+2	MINUS	t_item2	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+NULL	MINUS RESULT	<minus1,2>	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	Using temporary
+Warnings:
+Note	1003	insert all into `insert_all_select_test`.`t_user1` (`insert_all_select_test`.`t_user1`.`id`,`insert_all_select_test`.`t_user1`.`no`) into `insert_all_select_test`.`t_user2` (`insert_all_select_test`.`t_user2`.`id`,`insert_all_select_test`.`t_user2`.`no`) into `insert_all_select_test`.`t_user3` (`insert_all_select_test`.`t_user3`.`id`,`insert_all_select_test`.`t_user3`.`no`) /* select#1 */ select `insert_all_select_test`.`t_item`.`id` AS `id`,`insert_all_select_test`.`t_item`.`no` AS `no` from `insert_all_select_test`.`t_item` where (`insert_all_select_test`.`t_item`.`id` > 0) union /* select#2 */ select `insert_all_select_test`.`t_item2`.`c1` AS `c1`,`insert_all_select_test`.`t_item2`.`c2` AS `c2` from `insert_all_select_test`.`t_item2`
+select id, no from t_item where id > 0 minus (select * from t_item2);
+id	no
+3	c
+4	d
+select * from t_user1;
+id	no	name	age	level_no
+3	c	NULL	NULL	NULL
+4	d	NULL	NULL	NULL
+select * from t_user2;
+id	no	name	age	level_no
+3	c	NULL	NULL	NULL
+4	d	NULL	NULL	NULL
+select * from t_user3;
+id	no	name	age	level_no
+3	c	NULL	NULL	NULL
+4	d	NULL	NULL	NULL
+---------------------------------------------------------------
+## Test_35: test insert all select, subquery is minus ... union ...
+---------------------------------------------------------------
+truncate t_user1;
+truncate t_user2;
+truncate t_user3;
+insert all into t_user1(id,no) into t_user2(id,no) into t_user3(id,no)
+select id, no from t_item where id > 0 minus (select * from t_item2) union select * from t_item;
+explain select id, no from t_item where id > 0 minus (select * from t_item2) union select * from t_item;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	PRIMARY	t_item	NULL	ALL	NULL	NULL	NULL	NULL	5	33.33	Using where
+2	MINUS	t_item2	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+3	UNION	t_item	NULL	ALL	NULL	NULL	NULL	NULL	5	100.00	NULL
+NULL	UNION MINUS RESULT	<union/minus1,2,3>	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	Using temporary
+Warnings:
+Note	1003	/* select#1 */ select `insert_all_select_test`.`t_item`.`id` AS `id`,`insert_all_select_test`.`t_item`.`no` AS `no` from `insert_all_select_test`.`t_item` where (`insert_all_select_test`.`t_item`.`id` > 0) union /* select#2 */ select `insert_all_select_test`.`t_item2`.`c1` AS `c1`,`insert_all_select_test`.`t_item2`.`c2` AS `c2` from `insert_all_select_test`.`t_item2` union /* select#3 */ select `insert_all_select_test`.`t_item`.`id` AS `id`,`insert_all_select_test`.`t_item`.`no` AS `no` from `insert_all_select_test`.`t_item`
+explain insert into t_user1(id,no)
+select id, no from t_item where id > 0 minus (select * from t_item2) union select * from t_item;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t_user1	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	PRIMARY	t_item	NULL	ALL	NULL	NULL	NULL	NULL	5	33.33	Using where
+2	MINUS	t_item2	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+3	UNION	t_item	NULL	ALL	NULL	NULL	NULL	NULL	5	100.00	NULL
+NULL	UNION MINUS RESULT	<union/minus1,2,3>	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	Using temporary
+Warnings:
+Note	1003	insert into `insert_all_select_test`.`t_user1` (`insert_all_select_test`.`t_user1`.`id`,`insert_all_select_test`.`t_user1`.`no`) /* select#1 */ select `insert_all_select_test`.`t_item`.`id` AS `id`,`insert_all_select_test`.`t_item`.`no` AS `no` from `insert_all_select_test`.`t_item` where (`insert_all_select_test`.`t_item`.`id` > 0) union /* select#2 */ select `insert_all_select_test`.`t_item2`.`c1` AS `c1`,`insert_all_select_test`.`t_item2`.`c2` AS `c2` from `insert_all_select_test`.`t_item2` union /* select#3 */ select `insert_all_select_test`.`t_item`.`id` AS `id`,`insert_all_select_test`.`t_item`.`no` AS `no` from `insert_all_select_test`.`t_item`
+explain insert all into t_user1(id,no) into t_user2(id,no) into t_user3(id,no)
+select id, no from t_item where id > 0 minus (select * from t_item2) union select * from t_item;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t_user1	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	INSERT	t_user2	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	INSERT	t_user3	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	PRIMARY	t_item	NULL	ALL	NULL	NULL	NULL	NULL	5	33.33	Using where
+2	MINUS	t_item2	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+3	UNION	t_item	NULL	ALL	NULL	NULL	NULL	NULL	5	100.00	NULL
+NULL	UNION MINUS RESULT	<union/minus1,2,3>	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	Using temporary
+Warnings:
+Note	1003	insert all into `insert_all_select_test`.`t_user1` (`insert_all_select_test`.`t_user1`.`id`,`insert_all_select_test`.`t_user1`.`no`) into `insert_all_select_test`.`t_user2` (`insert_all_select_test`.`t_user2`.`id`,`insert_all_select_test`.`t_user2`.`no`) into `insert_all_select_test`.`t_user3` (`insert_all_select_test`.`t_user3`.`id`,`insert_all_select_test`.`t_user3`.`no`) /* select#1 */ select `insert_all_select_test`.`t_item`.`id` AS `id`,`insert_all_select_test`.`t_item`.`no` AS `no` from `insert_all_select_test`.`t_item` where (`insert_all_select_test`.`t_item`.`id` > 0) union /* select#2 */ select `insert_all_select_test`.`t_item2`.`c1` AS `c1`,`insert_all_select_test`.`t_item2`.`c2` AS `c2` from `insert_all_select_test`.`t_item2` union /* select#3 */ select `insert_all_select_test`.`t_item`.`id` AS `id`,`insert_all_select_test`.`t_item`.`no` AS `no` from `insert_all_select_test`.`t_item`
+select id, no from t_item where id > 0 minus (select * from t_item2) union select * from t_item;
+id	no
+3	c
+4	d
+1	a
+2	b
+select * from t_user1;
+id	no	name	age	level_no
+3	c	NULL	NULL	NULL
+4	d	NULL	NULL	NULL
+1	a	NULL	NULL	NULL
+2	b	NULL	NULL	NULL
+select * from t_user2;
+id	no	name	age	level_no
+3	c	NULL	NULL	NULL
+4	d	NULL	NULL	NULL
+1	a	NULL	NULL	NULL
+2	b	NULL	NULL	NULL
+select * from t_user3;
+id	no	name	age	level_no
+3	c	NULL	NULL	NULL
+4	d	NULL	NULL	NULL
+1	a	NULL	NULL	NULL
+2	b	NULL	NULL	NULL
+---------------------------------------------------------------
+## Test_36: test insert all select, subquery is union ... minus ...
+---------------------------------------------------------------
+truncate t_user1;
+truncate t_user2;
+truncate t_user3;
+insert all into t_user1(id,no) into t_user2(id,no) into t_user3(id,no)
+select id, no from t_item where id > 0 union (select * from t_item2) minus select * from t_item;
+explain select id, no from t_item where id > 0 union (select * from t_item2) minus select * from t_item;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	PRIMARY	t_item	NULL	ALL	NULL	NULL	NULL	NULL	5	33.33	Using where
+2	UNION	t_item2	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+3	MINUS	t_item	NULL	ALL	NULL	NULL	NULL	NULL	5	100.00	NULL
+NULL	UNION MINUS RESULT	<union/minus1,2,3>	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	Using temporary
+Warnings:
+Note	1003	/* select#1 */ select `insert_all_select_test`.`t_item`.`id` AS `id`,`insert_all_select_test`.`t_item`.`no` AS `no` from `insert_all_select_test`.`t_item` where (`insert_all_select_test`.`t_item`.`id` > 0) union /* select#2 */ select `insert_all_select_test`.`t_item2`.`c1` AS `c1`,`insert_all_select_test`.`t_item2`.`c2` AS `c2` from `insert_all_select_test`.`t_item2` union /* select#3 */ select `insert_all_select_test`.`t_item`.`id` AS `id`,`insert_all_select_test`.`t_item`.`no` AS `no` from `insert_all_select_test`.`t_item`
+explain insert into t_user1(id,no)
+select id, no from t_item where id > 0 union (select * from t_item2) minus select * from t_item;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t_user1	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	PRIMARY	t_item	NULL	ALL	NULL	NULL	NULL	NULL	5	33.33	Using where
+2	UNION	t_item2	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+3	MINUS	t_item	NULL	ALL	NULL	NULL	NULL	NULL	5	100.00	NULL
+NULL	UNION MINUS RESULT	<union/minus1,2,3>	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	Using temporary
+Warnings:
+Note	1003	insert into `insert_all_select_test`.`t_user1` (`insert_all_select_test`.`t_user1`.`id`,`insert_all_select_test`.`t_user1`.`no`) /* select#1 */ select `insert_all_select_test`.`t_item`.`id` AS `id`,`insert_all_select_test`.`t_item`.`no` AS `no` from `insert_all_select_test`.`t_item` where (`insert_all_select_test`.`t_item`.`id` > 0) union /* select#2 */ select `insert_all_select_test`.`t_item2`.`c1` AS `c1`,`insert_all_select_test`.`t_item2`.`c2` AS `c2` from `insert_all_select_test`.`t_item2` union /* select#3 */ select `insert_all_select_test`.`t_item`.`id` AS `id`,`insert_all_select_test`.`t_item`.`no` AS `no` from `insert_all_select_test`.`t_item`
+explain insert all into t_user1(id,no) into t_user2(id,no) into t_user3(id,no)
+select id, no from t_item where id > 0 union (select * from t_item2) minus select * from t_item;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t_user1	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	INSERT	t_user2	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	INSERT	t_user3	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	PRIMARY	t_item	NULL	ALL	NULL	NULL	NULL	NULL	5	33.33	Using where
+2	UNION	t_item2	NULL	ALL	NULL	NULL	NULL	NULL	3	100.00	NULL
+3	MINUS	t_item	NULL	ALL	NULL	NULL	NULL	NULL	5	100.00	NULL
+NULL	UNION MINUS RESULT	<union/minus1,2,3>	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	Using temporary
+Warnings:
+Note	1003	insert all into `insert_all_select_test`.`t_user1` (`insert_all_select_test`.`t_user1`.`id`,`insert_all_select_test`.`t_user1`.`no`) into `insert_all_select_test`.`t_user2` (`insert_all_select_test`.`t_user2`.`id`,`insert_all_select_test`.`t_user2`.`no`) into `insert_all_select_test`.`t_user3` (`insert_all_select_test`.`t_user3`.`id`,`insert_all_select_test`.`t_user3`.`no`) /* select#1 */ select `insert_all_select_test`.`t_item`.`id` AS `id`,`insert_all_select_test`.`t_item`.`no` AS `no` from `insert_all_select_test`.`t_item` where (`insert_all_select_test`.`t_item`.`id` > 0) union /* select#2 */ select `insert_all_select_test`.`t_item2`.`c1` AS `c1`,`insert_all_select_test`.`t_item2`.`c2` AS `c2` from `insert_all_select_test`.`t_item2` union /* select#3 */ select `insert_all_select_test`.`t_item`.`id` AS `id`,`insert_all_select_test`.`t_item`.`no` AS `no` from `insert_all_select_test`.`t_item`
+select id, no from t_item where id > 0 union (select * from t_item2) minus select * from t_item;
+id	no
+3	dddd
+select * from t_user1;
+id	no	name	age	level_no
+3	dddd	NULL	NULL	NULL
+select * from t_user2;
+id	no	name	age	level_no
+3	dddd	NULL	NULL	NULL
+select * from t_user3;
+id	no	name	age	level_no
+3	dddd	NULL	NULL	NULL
+---------------------------------------------------------------
+## Test_37: test insert all select, subquery include minus, dest table and source table is same
+---------------------------------------------------------------
+truncate t_user1;
+truncate t_user2;
+truncate t_user3;
+insert into t_user values(1, '00001', 'a', 25, 1),(2, '00002', 'b', 30, 2),
+(3, '00003', 'c', 35, 3),(4, '00004', 'd', 45, 1),
+(5, '00005', 'e', 30, 2),(6, '00006', 'f', 35, 3),
+(7, '00007', 'g', 25, 1),(8, '00008', 'h', 35, 2),
+(9, '00009', 'i', 20, 3),(10, '00010', 'j', 25, 1),
+(1, NULL, 'a', 25, 1);
+select * from t_user;
+id	no	name	age	level_no
+1	00001	a	25	1
+2	00002	b	30	2
+3	00003	c	35	3
+4	00004	d	45	1
+5	00005	e	30	2
+6	00006	f	35	3
+7	00007	g	25	1
+8	00008	h	35	2
+9	00009	i	20	3
+10	00010	j	25	1
+1	NULL	a	25	1
+select name, age from t_user where age < 40 minus select name, age from t_user where age between 30 and 35;
+name	age
+a	25
+g	25
+i	20
+j	25
+insert all into t_user(name,age) into t_user(name,age)
+select name, age from t_user where age < 40 minus select name, age from t_user where age between 30 and 35;
+explain select name, age from t_user where age < 40 minus select name, age from t_user where age between 30 and 35;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	PRIMARY	t_user	NULL	ALL	NULL	NULL	NULL	NULL	19	33.33	Using where
+2	MINUS	t_user	NULL	ALL	NULL	NULL	NULL	NULL	19	11.11	Using where
+NULL	MINUS RESULT	<minus1,2>	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	Using temporary
+Warnings:
+Note	1003	/* select#1 */ select `insert_all_select_test`.`t_user`.`name` AS `name`,`insert_all_select_test`.`t_user`.`age` AS `age` from `insert_all_select_test`.`t_user` where (`insert_all_select_test`.`t_user`.`age` < 40) union /* select#2 */ select `insert_all_select_test`.`t_user`.`name` AS `name`,`insert_all_select_test`.`t_user`.`age` AS `age` from `insert_all_select_test`.`t_user` where (`insert_all_select_test`.`t_user`.`age` between 30 and 35)
+explain insert into t_user(name,age)
+select name, age from t_user where age < 40 minus select name, age from t_user where age between 30 and 35;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t_user	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	PRIMARY	t_user	NULL	ALL	NULL	NULL	NULL	NULL	19	33.33	Using where
+2	MINUS	t_user	NULL	ALL	NULL	NULL	NULL	NULL	19	11.11	Using where
+NULL	MINUS RESULT	<minus1,2>	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	Using temporary
+Warnings:
+Note	1003	insert into `insert_all_select_test`.`t_user` (`insert_all_select_test`.`t_user`.`name`,`insert_all_select_test`.`t_user`.`age`) /* select#1 */ select `insert_all_select_test`.`t_user`.`name` AS `name`,`insert_all_select_test`.`t_user`.`age` AS `age` from `insert_all_select_test`.`t_user` where (`insert_all_select_test`.`t_user`.`age` < 40) union /* select#2 */ select `insert_all_select_test`.`t_user`.`name` AS `name`,`insert_all_select_test`.`t_user`.`age` AS `age` from `insert_all_select_test`.`t_user` where (`insert_all_select_test`.`t_user`.`age` between 30 and 35)
+explain insert all into t_user(name,age) into t_user(name,age)
+select name, age from t_user where age < 40 minus select name, age from t_user where age between 30 and 35;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	INSERT	t_user	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	INSERT	t_user	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	NULL
+1	PRIMARY	t_user	NULL	ALL	NULL	NULL	NULL	NULL	19	33.33	Using where
+2	MINUS	t_user	NULL	ALL	NULL	NULL	NULL	NULL	19	11.11	Using where
+NULL	MINUS RESULT	<minus1,2>	NULL	ALL	NULL	NULL	NULL	NULL	NULL	NULL	Using temporary
+Warnings:
+Note	1003	insert all into `insert_all_select_test`.`t_user` (`insert_all_select_test`.`t_user`.`name`,`insert_all_select_test`.`t_user`.`age`) into `insert_all_select_test`.`t_user` (`insert_all_select_test`.`t_user`.`name`,`insert_all_select_test`.`t_user`.`age`) /* select#1 */ select `insert_all_select_test`.`t_user`.`name` AS `name`,`insert_all_select_test`.`t_user`.`age` AS `age` from `insert_all_select_test`.`t_user` where (`insert_all_select_test`.`t_user`.`age` < 40) union /* select#2 */ select `insert_all_select_test`.`t_user`.`name` AS `name`,`insert_all_select_test`.`t_user`.`age` AS `age` from `insert_all_select_test`.`t_user` where (`insert_all_select_test`.`t_user`.`age` between 30 and 35)
+select name,age from t_user;
+name	age
+a	25
+b	30
+c	35
+d	45
+e	30
+f	35
+g	25
+h	35
+i	20
+j	25
+a	25
+a	25
+g	25
+i	20
+j	25
+a	25
+g	25
+i	20
+j	25
+---------------------------------------------------------------
+## End test insert all into select
+---------------------------------------------------------------
+drop database if exists insert_all_select_test;
+drop database if exists insert_all_select_test;
+Warnings:
+Note	1008	Can't drop database 'insert_all_select_test'; database doesn't exist
+drop database if exists insert_all_select_test;

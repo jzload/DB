@@ -1,0 +1,315 @@
+################################################################################
+# WL#7169 Semisync: make master wait for more than one slave to ack back
+#
+# The worklog added semisync master variable
+# rpl_semi_sync_master_wait_for_slave_count. The variable controls how many acks
+# from different slaves the transaction should wait for.
+#
+# The test verifies rpl_semi_sync_master_wait_for_slave_count works well.
+################################################################################
+--source include/not_group_replication_plugin.inc
+
+--let rpl_topology=1->2, 1->3, 1->4, 1->5
+--source include/rpl_init.inc
+CREATE TABLE t1(c1 INT);
+--source include/rpl_sync.inc
+
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+--source include/install_semisync_master.inc
+
+--echo ####################################################################
+--echo # Test Case: check the thread_pool_size of threadpool mode
+--echo ####################################################################
+--let $assert_variable_name= thread_pool_size
+--let $assert_variable_value= 24
+--source include/assert_variable.inc
+
+# It is for coverage test to cover the debug code.
+SET GLOBAL rpl_semi_sync_master_enabled = 0;
+set global rpl_semi_sync_master_timeout = 1000;
+
+--echo ###################################################################
+--echo # Test Case: add slave 2 3 4 5
+--echo ###################################################################
+--let $rpl_connection_name= server_2
+--source include/rpl_connection.inc
+--source include/install_semisync_slave.inc
+
+--let $rpl_connection_name= server_3
+--source include/rpl_connection.inc
+--source include/install_semisync_slave.inc
+
+--let $rpl_connection_name= server_4
+--source include/rpl_connection.inc
+--source include/install_semisync_slave.inc
+
+--let $rpl_connection_name= server_5
+--source include/rpl_connection.inc
+--source include/install_semisync_slave.inc
+
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+--let $clients= query_get_value(show status like "Rpl_semi_sync_master_clients", Value, 1)
+while($clients != 4)
+{
+  sleep 10;
+  --let $clients= query_get_value(show status like "Rpl_semi_sync_master_clients", Value, 1)
+}
+
+
+--echo ###################################################################
+--echo # Test Case 1: set wait_cond_hwm ok
+--echo ###################################################################
+set global rpl_semi_sync_master_wait_cond_lwm = '0:0';
+set @@global.rpl_semi_sync_master_wait_cond_hwm = NULL;
+set global rpl_semi_sync_master_wait_cond_hwm = '1:1';
+set @@global.rpl_semi_sync_master_wait_cond_hwm = ' 1 : 1 ';
+set global rpl_semi_sync_master_wait_cond_hwm = '0:1';
+set @@global.rpl_semi_sync_master_wait_cond_hwm = '1:0';
+set global rpl_semi_sync_master_wait_cond_hwm = '10:1';
+set @@global.rpl_semi_sync_master_wait_cond_hwm = '3:1';
+set global rpl_semi_sync_master_wait_cond_hwm = '6:0';
+set @@global.rpl_semi_sync_master_wait_cond_hwm = '10:0';
+set global rpl_semi_sync_master_wait_cond_hwm = '1:1';
+set @@global.rpl_semi_sync_master_wait_cond_hwm = '0:1';
+set global rpl_semi_sync_master_wait_cond_hwm = '1:0';
+set @@global.rpl_semi_sync_master_wait_cond_hwm = '10:0';
+set global rpl_semi_sync_master_wait_cond_hwm = '4:1';
+set @@global.rpl_semi_sync_master_wait_cond_hwm = '7:0';
+set global rpl_semi_sync_master_wait_cond_hwm = '10:1';
+set @@global.rpl_semi_sync_master_wait_cond_hwm = NULL;
+
+--let $wait_cond_hwm_expect = NULL
+--let $wait_cond_hwm= [SELECT @@Rpl_semi_sync_master_wait_cond_hwm AS Value, Value, 1]
+--let assert_cond= "$wait_cond_hwm" like "$wait_cond_hwm_expect"
+--let assert_text= Rpl_semi_sync_master_wait_cond_hwm should be NULL
+--source include/assert.inc
+
+
+--echo ###################################################################
+--echo # Test Case 2: set wait_cond_hwm error
+--echo ###################################################################
+-- error 1229
+set  rpl_semi_sync_master_wait_cond_hwm = '4:1';
+-- error 1229
+set session  rpl_semi_sync_master_wait_cond_hwm = '4:1';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_hwm = '-3:1';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_hwm = '3:-1';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_hwm = '3,1';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_hwm = '3:1,';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_hwm = '3:,1';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_hwm = '.3:0';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_hwm = '3.:0';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_hwm = '1 0:0';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_hwm = '10:0 0';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_hwm = '10:0:10';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_hwm = ':0:0';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_hwm = '1';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_hwm = '2:';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_hwm = ':0';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_hwm = '11:0';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_hwm = '5234567890:0';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_hwm = '1234567890123456789012:0';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_hwm = '3:2';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_hwm = '5:5234567890';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_hwm = '10:1234567890123456789012';
+
+
+--echo ###################################################################
+--echo # Test Case 3: set wait_cond_hwm < wait_cond_lwm error 
+--echo ###################################################################
+set global rpl_semi_sync_master_wait_cond_hwm = '10:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '2:1';
+set global rpl_semi_sync_master_wait_cond_hwm = '5:1';
+set global rpl_semi_sync_master_wait_cond_hwm = '4:0';
+set global rpl_semi_sync_master_wait_cond_hwm = '3:0';
+set global rpl_semi_sync_master_wait_cond_hwm = '3:1';
+set global rpl_semi_sync_master_wait_cond_hwm = '2:0';
+set global rpl_semi_sync_master_wait_cond_hwm = '2:1';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_hwm = '1:0';
+
+set global rpl_semi_sync_master_wait_cond_lwm = '1:0';
+set global rpl_semi_sync_master_wait_cond_hwm = '2:0';
+set global rpl_semi_sync_master_wait_cond_hwm = '2:1';
+set global rpl_semi_sync_master_wait_cond_hwm = '1:0';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_hwm = '1:1';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_hwm = '0:0';
+
+set global rpl_semi_sync_master_wait_cond_lwm = NULL;
+set global rpl_semi_sync_master_wait_cond_hwm = '0:0';
+set global rpl_semi_sync_master_wait_cond_hwm = '0:1';
+set global rpl_semi_sync_master_wait_cond_hwm = '1:1';
+
+set global rpl_semi_sync_master_wait_cond_lwm = '0:1';
+set global rpl_semi_sync_master_wait_cond_hwm = '0:0';
+set global rpl_semi_sync_master_wait_cond_hwm = '0:1';
+set global rpl_semi_sync_master_wait_cond_hwm = '1:1';
+
+
+--echo ###################################################################
+--echo # Test Case 4: set wait_cond_lwm ok
+--echo ###################################################################
+set global rpl_semi_sync_master_wait_cond_hwm = '10:0';
+set global rpl_semi_sync_master_wait_cond_lwm = NULL;
+set global rpl_semi_sync_master_wait_cond_lwm = '1:1';
+set global rpl_semi_sync_master_wait_cond_lwm = ' 1 : 1 ';
+set global rpl_semi_sync_master_wait_cond_lwm = '0:1';
+set global rpl_semi_sync_master_wait_cond_lwm = '1:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '10:1';
+set global rpl_semi_sync_master_wait_cond_lwm = '3:1';
+set global rpl_semi_sync_master_wait_cond_lwm = '6:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '10:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '1:1';
+set global rpl_semi_sync_master_wait_cond_lwm = '0:1';
+set global rpl_semi_sync_master_wait_cond_lwm = '1:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '10:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '4:1';
+set global rpl_semi_sync_master_wait_cond_lwm = '7:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '10:1';
+set global rpl_semi_sync_master_wait_cond_lwm = NULL;
+
+--let $wait_cond_lwm_expect = NULL
+--let $wait_cond_lwm= [SELECT @@Rpl_semi_sync_master_wait_cond_lwm AS Value, Value, 1]
+--let assert_cond= "$wait_cond_lwm" like "$wait_cond_lwm_expect"
+--let assert_text= Rpl_semi_sync_master_wait_cond_lwm should be NULL
+--source include/assert.inc
+
+
+--echo ###################################################################
+--echo # Test Case 5: set wait_cond_hwm error
+--echo ###################################################################
+-- error 1229
+set  rpl_semi_sync_master_wait_cond_lwm = '4:1';
+-- error 1229
+set session  rpl_semi_sync_master_wait_cond_lwm = '4:1';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_lwm = '-3:1';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_lwm = '3:-1';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_lwm = '3,1';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_lwm = '3:1,';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_lwm = '3:,1';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_lwm = '.3:0';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_lwm = '3.:0';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_lwm = '1 0:0';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_lwm = '10:0 0';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_lwm = '10:0:10';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_lwm = ':0:0';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_lwm = '1';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_lwm = '2:';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_lwm = ':0';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_lwm = '11:0';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_lwm = '5234567890:0';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_lwm = '1234567890123456789012:0';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_lwm = '3:2';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_lwm = '5:5234567890';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_lwm = '10:1234567890123456789012';
+
+
+--echo ###################################################################
+--echo # Test Case 6: set wait_cond_lwm > wait_cond_hwm error 
+--echo ###################################################################
+set global rpl_semi_sync_master_wait_cond_lwm = NULL;
+set global rpl_semi_sync_master_wait_cond_hwm = '3:1';
+set global rpl_semi_sync_master_wait_cond_lwm = '1:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '2:1';
+set global rpl_semi_sync_master_wait_cond_lwm = '3:1';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_lwm = '3:0';
+
+set global rpl_semi_sync_master_wait_cond_lwm = NULL;
+set global rpl_semi_sync_master_wait_cond_hwm = '2:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '1:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '2:1';
+set global rpl_semi_sync_master_wait_cond_lwm = '2:0';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_lwm = '3:1';
+
+set global rpl_semi_sync_master_wait_cond_lwm = NULL;
+set global rpl_semi_sync_master_wait_cond_hwm = '0:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '0:0';
+set global rpl_semi_sync_master_wait_cond_lwm = '0:1';
+-- error 1231
+set global rpl_semi_sync_master_wait_cond_lwm = '1:1';
+
+
+
+--echo ########################################################################
+--echo # Coverage Test
+--echo ########################################################################
+# Nothing is changed if the new value equals to the original value
+SET GLOBAL rpl_semi_sync_master_wait_for_slave_count = 4;
+
+# Ack array should be cleaned when disabling semisync master
+SET GLOBAL rpl_semi_sync_master_enabled= OFF;
+
+--let $rpl_connection_name= server_2
+--source include/rpl_connection.inc
+--source include/uninstall_semisync_slave.inc
+
+--let $rpl_connection_name= server_3
+--source include/rpl_connection.inc
+--source include/uninstall_semisync_slave.inc
+
+--let $rpl_connection_name= server_4
+--source include/rpl_connection.inc
+--source include/uninstall_semisync_slave.inc
+
+--let $rpl_connection_name= server_5
+--source include/rpl_connection.inc
+--source include/uninstall_semisync_slave.inc
+
+# Ack array should be freed when uninstalling semisync master
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+--source include/uninstall_semisync_master.inc
+# end
+
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+DROP TABLE t1;
+CALL mtr.add_suppression(".* Timeout waiting for reply of binlog .*");
+CALL mtr.add_suppression(".* Failed to allocate memory for ack_array .*");
+--source include/rpl_end.inc

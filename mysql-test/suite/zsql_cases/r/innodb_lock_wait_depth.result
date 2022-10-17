@@ -1,0 +1,75 @@
+drop database if exists lw_depth;
+SET @old_transaction_isolation=	 	 @@global.transaction_isolation;
+SET @old_innodb_lock_wait_timeout=	 @@global.innodb_lock_wait_timeout;
+SET @old_lock_wait_timeout=	 		 @@global.lock_wait_timeout;
+set GLOBAL transaction_isolation = 	 'READ-COMMITTED';
+SET GLOBAL innodb_lock_wait_timeout= 1;
+SET GLOBAL lock_wait_timeout=	     5;
+create database lw_depth;
+use lw_depth;
+drop table if exists lock_depth1;
+create table lock_depth1(id1 int primary key, id2 int, id3 int,key(id2));
+insert into lock_depth1 values(1,1,1),(2,2,2),(3,3,3),(4,4,4),(5,5,5);
+set global innodb_lock_wait_max_depth = 0;
+use lw_depth;
+start transaction;
+update lock_depth1 set id3 = id3 + 1 where id1 = 1;
+use lw_depth;
+start transaction;
+update lock_depth1 set id3 = id3 + 1 where id1 = 1;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+rollback;
+rollback;
+set global innodb_lock_wait_max_depth = 1;
+use lw_depth;
+start transaction;
+update lock_depth1 set id3 = id3 + 1 where id1 = 1;
+use lw_depth;
+start transaction;
+update lock_depth1 set id3 = id3 + 1 where id1 = 1;
+ERROR HY000: Too many locks are on the same record
+rollback;
+rollback;
+set global innodb_lock_wait_max_depth = 2;
+SET GLOBAL innodb_lock_wait_timeout= 2;
+use lw_depth;
+start transaction;
+insert into lock_depth1 values(6,1,1);
+use lw_depth;
+start transaction;
+insert into lock_depth1 values(7,1,1);
+use lw_depth;
+start transaction;
+select count(*) from lock_depth1 where id2 = 1 lock in share mode;
+use lw_depth;
+start transaction;
+select count(*) from lock_depth1 where id2 = 1 lock in share mode;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+rollback;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+rollback;
+rollback;
+rollback;
+set global innodb_lock_wait_max_depth = 2;
+SET GLOBAL innodb_lock_wait_timeout= 1;
+use lw_depth;
+start transaction;
+select * from lock_depth1 where id1 =1 for update;
+id1	id2	id3
+1	1	1
+use lw_depth;
+start transaction;
+select * from lock_depth1 where id1 =1 for update;
+use lw_depth;
+start transaction;
+select * from lock_depth1 where id1 =1 for update;
+ERROR HY000: Too many locks are on the same record
+rollback;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+rollback;
+SET GLOBAL innodb_lock_wait_max_depth = 0;
+SET GLOBAL innodb_lock_wait_timeout= @old_innodb_lock_wait_timeout;
+SET GLOBAL transaction_isolation=	 @old_transaction_isolation;
+SET GLOBAL lock_wait_timeout=	     @old_lock_wait_timeout;
+drop table lock_depth1;
+drop database lw_depth;

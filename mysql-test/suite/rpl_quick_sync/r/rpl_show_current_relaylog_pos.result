@@ -1,0 +1,43 @@
+include/master-slave.inc
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+[connection master]
+[on slave]
+SHOW STATUS LIKE 'Slave_current_relaylog_pos';
+Variable_name	Value
+Slave_current_relaylog_pos	371
+==== Create new table and insert records ====
+[on master]
+SET AUTOCOMMIT=0;
+BEGIN;
+CREATE TABLE t1 (n INT);
+INSERT INTO t1 VALUES (1);
+[on slave]
+include/sync_slave_sql_with_master.inc
+SHOW STATUS LIKE 'Slave_current_relaylog_pos';
+Variable_name	Value
+Slave_current_relaylog_pos	559
+[on master]
+COMMIT;
+[on slave]
+include/sync_slave_sql_with_master.inc
+SHOW STATUS LIKE 'Slave_current_relaylog_pos';
+Variable_name	Value
+Slave_current_relaylog_pos	832
+==== Stop slave sql_thread ===
+STOP SLAVE SQL_THREAD;
+include/wait_for_slave_sql_to_stop.inc
+[on master]
+INSERT INTO t1 VALUES (2);
+[on slave]
+include/sync_slave_io_with_master.inc
+SHOW STATUS LIKE 'Slave_current_relaylog_pos';
+Variable_name	Value
+Slave_current_relaylog_pos	832
+==== Cleanup ====
+START SLAVE SQL_THREAD;
+[on master]
+DROP TABLE t1;
+End of tests
+include/rpl_end.inc

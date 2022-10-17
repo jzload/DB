@@ -1,0 +1,15 @@
+select @@log_bin;
+@@log_bin
+0
+show variables like '%transaction_max_binlog_size%';
+Variable_name	Value
+transaction_max_binlog_size	0
+set transaction_max_binlog_size=1;
+create table tb1 (id int);
+insert into tb1 values(1),(2),(3);
+select * from tb1;
+id
+1
+2
+3
+drop table tb1;

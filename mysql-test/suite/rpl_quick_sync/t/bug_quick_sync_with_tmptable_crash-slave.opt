@@ -1,0 +1,6 @@
+$SEMISYNC_PLUGIN_OPT
+--gtid_mode=ON
+--enforce_gtid_consistency=ON
+--slave_parallel_workers=32
+--slave-parallel-type=LOGICAL_CLOCK
+--slave_preserve_commit_order=1

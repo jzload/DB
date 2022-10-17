@@ -1,0 +1,70 @@
+begin;
+SET TIMESTAMP=1593594164.123456789;
+select systimestamp;
+systimestamp
+2020-07-01 12:02:44.123457
+select SYSTIMESTAMP;
+SYSTIMESTAMP
+2020-07-01 12:02:44.123457
+select sYSTimesTAMP;
+sYSTimesTAMP
+2020-07-01 12:02:44.123457
+select systimestamp();
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ')' at line 1
+select SYSTIMESTAMP(-1);
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '-1)' at line 1
+select sYSTIMESTAMP(1);
+sYSTIMESTAMP(1)
+2020-07-01 12:02:44.1
+select SYSTimesTAMP(6);
+SYSTimesTAMP(6)
+2020-07-01 12:02:44.123457
+select SYSTimesTAMP(7);
+ERROR 42000: Too-big precision 7 specified for 'systimestamp'. Maximum is 6.
+select to_char(systimestamp, 'yyyy-mm-dd hh:mi:ss.ff4') from dual;
+to_char(systimestamp, 'yyyy-mm-dd hh:mi:ss.ff4')
+2020-07-01 12:02:44.1234
+select TO_CHAR(SYSTIMESTAMP, 'HH24:MI:SS.FF3') ;
+TO_CHAR(SYSTIMESTAMP, 'HH24:MI:SS.FF3')
+12:02:44.123
+select TO_CHAR(SYSTIMESTAMP, 'HH24MISSFF3') ;
+TO_CHAR(SYSTIMESTAMP, 'HH24MISSFF3')
+120244123
+create database systimestamp;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'systimestamp' at line 1
+create database `systimestamp`;
+use `systimestamp`;
+create table  systimestamp  (a int);
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'systimestamp  (a int)' at line 1
+create table `systimestamp` (systimestamp int);
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'systimestamp int)' at line 1
+create table `systimestamp` (`systimestamp` int);
+select length(systimestamp) = length(systimestamp(6)) from dual;
+length(systimestamp) = length(systimestamp(6))
+1
+select * from (select systimestamp from dual) tmp;
+systimestamp
+2020-07-01 12:02:44.123457
+create table test (a int);
+insert into test values (1), (2), (3);
+select a as  systimestamp  from test;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'systimestamp  from test' at line 1
+select a as `systimestamp` from test;
+systimestamp
+1
+2
+3
+select * from test where a != systimestamp order by a;
+a
+1
+2
+3
+select * from test order by systimestamp;
+a
+1
+2
+3
+drop database systimestamp;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'systimestamp' at line 1
+drop database `systimestamp`;
+commit;

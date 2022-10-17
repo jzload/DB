@@ -1,0 +1,751 @@
+#
+# Test：Range分区支持substr函数 测试用例
+#       本测试用例涉及 alter 命令相关功能
+#
+# Syntax:
+# ALTER TABLE tbl_name
+#   [alter_specification [, alter_specification] ...]
+#   [(partition_definition [, partition_definition] ...)]
+#   [partition_options]
+#
+# partition_options:
+#   partition_option [partition_option] ...
+#
+# partition_option:
+#     ADD PARTITION (partition_definition)
+#   | DROP PARTITION partition_names
+#   | DISCARD PARTITION {partition_names | ALL} TABLESPACE
+#   | IMPORT PARTITION {partition_names | ALL} TABLESPACE
+#   | TRUNCATE PARTITION {partition_names | ALL}
+#   | COALESCE PARTITION number
+#   | REORGANIZE PARTITION partition_names INTO (partition_definitions)
+#   | EXCHANGE PARTITION partition_name WITH TABLE tbl_name [{WITH|WITHOUT} VALIDATION]
+#   | ANALYZE PARTITION {partition_names | ALL}
+#   | CHECK PARTITION {partition_names | ALL}
+#   | OPTIMIZE PARTITION {partition_names | ALL}
+#   | REBUILD PARTITION {partition_names | ALL}
+#   | REPAIR PARTITION {partition_names | ALL}
+#   | REMOVE PARTITIONING
+
+
+--echo 创建测试数据库
+--disable_warnings
+drop database if exists test_db;
+create database test_db;
+use test_db;
+
+--echo =========================================================
+--echo ALTER 命令可以重新定义分区规则
+--echo =========================================================
+
+--echo alter 语句支持非分区表转换为range substr分区表
+CREATE TABLE test (
+  id INT,
+  name char(7),
+  unique key(id,name));
+
+show create table test;
+
+insert into test values (1, '');
+insert into test values (2, NULL);
+insert into test values (3, 'aaa');
+insert into test values (4, 'ddd');
+insert into test values (5, 'jjj');
+insert into test values (6, 'zzz');
+insert into test values (7, '多字节');
+insert into test values (11, '###');
+insert into test values (12, '<<<');
+insert into test values (13, '???');
+insert into test values (14, '{{{');
+insert into test values (15, '|||');
+insert into test values (16, '}}}');
+
+select * from test order by id;
+
+alter table test
+PARTITION BY RANGE (substr(name, 1))
+( PARTITION p_ccc VALUES LESS THAN ('ccc'),
+  PARTITION p_fff VALUES LESS THAN ('fff'),
+  PARTITION p_kkk VALUES LESS THAN ('kkk'),
+  PARTITION p_max VALUES LESS THAN (MAXVALUE));
+
+show create table test;
+
+select * from test order by id;
+select * from test partition (p_ccc) order by id;
+select * from test partition (p_fff) order by id;
+select * from test partition (p_kkk) order by id;
+select * from test partition (p_max) order by id;
+drop table if exists test;
+
+--echo alter语句支持range substr分区表转换为其他分区表(hash分区)
+CREATE TABLE test (
+  id INT,
+  name char(7),
+  unique key(id,name))
+PARTITION BY RANGE (substr(name, 1))
+( PARTITION p_ccc VALUES LESS THAN ('ccc'),
+  PARTITION p_fff VALUES LESS THAN ('fff'),
+  PARTITION p_kkk VALUES LESS THAN ('kkk'),
+  PARTITION p_max VALUES LESS THAN (MAXVALUE));
+show create table test;
+
+insert into test values (1, '');
+insert into test values (2, NULL);
+insert into test values (3, 'aaa');
+insert into test values (4, 'ddd');
+insert into test values (5, 'jjj');
+insert into test values (6, 'zzz');
+insert into test values (7, '多字节');
+insert into test values (11, '###');
+insert into test values (12, '<<<');
+insert into test values (13, '???');
+insert into test values (14, '{{{');
+insert into test values (15, '|||');
+insert into test values (16, '}}}');
+
+alter table test
+partition by hash (id) partitions 3;
+show create table test;
+
+select * from test partition (p0) order by id;
+select * from test partition (p1) order by id;
+select * from test partition (p2) order by id;
+drop table if exists test;
+
+--echo alter语句支持其他分区表(hash分区)转换为range substr分区表
+CREATE TABLE test (
+  id INT,
+  name char(7),
+  unique key(id,name))
+PARTITION BY hash (id) partitions 3;
+
+show create table test;
+
+insert into test values (1, '');
+insert into test values (2, NULL);
+insert into test values (3, 'aaa');
+insert into test values (4, 'ddd');
+insert into test values (5, 'jjj');
+insert into test values (6, 'zzz');
+insert into test values (7, '多字节');
+insert into test values (11, '###');
+insert into test values (12, '<<<');
+insert into test values (13, '???');
+insert into test values (14, '{{{');
+insert into test values (15, '|||');
+insert into test values (16, '}}}');
+
+select * from test partition (p0) order by id;
+select * from test partition (p1) order by id;
+select * from test partition (p2) order by id;
+
+alter table test
+PARTITION BY RANGE (substr(name, 1))
+( PARTITION p_ccc VALUES LESS THAN ('ccc'),
+  PARTITION p_fff VALUES LESS THAN ('fff'),
+  PARTITION p_kkk VALUES LESS THAN ('kkk'),
+  PARTITION p_max VALUES LESS THAN (MAXVALUE));
+
+show create table test;
+
+select * from test partition (p_ccc) order by id;
+select * from test partition (p_fff) order by id;
+select * from test partition (p_kkk) order by id;
+select * from test partition (p_max) order by id;
+drop table if exists test;
+
+--echo =========================================================
+--echo ALTER 语句支持 ADD PARTITION 功能
+--echo =========================================================
+CREATE TABLE test (
+  id INT,
+  name char(7),
+  unique key(id,name))
+PARTITION BY RANGE (substr(name, 1, 2))
+( PARTITION p_ccc VALUES LESS THAN ('cc'),
+  PARTITION p_fff VALUES LESS THAN ('ff'),
+  PARTITION p_kkk VALUES LESS THAN ('kk'));
+
+--error ER_RANGE_NOT_INCREASING_ERROR
+alter table test add partition (partition p_ddd values less than ('dd'));
+--error ER_PARSE_ERROR
+alter table if not exists test add partition (partition p_ddd values less than ('dd'));
+--error ER_VALUES_IS_NOT_STRING_TYPE_ERROR
+alter table test add partition (partition p_678 values less than (678));
+--error ER_SAME_NAME_PARTITION
+alter table test add partition (partition p_kkk values less than ('mm'));
+
+alter table test add partition (partition p_mmm values less than ('mm'));
+show create table test;
+
+alter table test add partition 
+(partition p_ppp values less than ('pp'),
+ partition p_qqq values less than ('qq'));
+show create table test;
+drop table test;
+
+--echo =========================================================
+--echo ALTER 语句支持 DROP PARTITION 功能
+--echo =========================================================
+CREATE TABLE test (
+  id INT,
+  name char(7),
+  unique key(id,name))
+PARTITION BY RANGE (substr(name, 1))
+SUBPARTITION BY hash(id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('ccc')
+  (subpartition s0, subpartition s1),
+  PARTITION p_fff VALUES LESS THAN ('fff')
+  (subpartition s2, subpartition s3),
+  PARTITION p_kkk VALUES LESS THAN ('kkk')
+  (subpartition s4, subpartition s5),
+  PARTITION p_max VALUES LESS THAN (MAXVALUE)
+  (subpartition s6, subpartition s7));
+show create table test;
+
+insert into test values (1, '');
+insert into test values (2, NULL);
+insert into test values (3, 'aaa');
+insert into test values (4, 'ddd');
+insert into test values (5, 'jjj');
+insert into test values (6, 'zzz');
+insert into test values (7, '多字节');
+insert into test values (11, '###');
+insert into test values (12, '<<<');
+insert into test values (13, '???');
+insert into test values (14, '{{{');
+insert into test values (15, '|||');
+insert into test values (16, '}}}');
+
+select * from test partition (p_ccc) order by id;
+select * from test partition (p_fff) order by id;
+select * from test partition (p_kkk) order by id;
+select * from test partition (p_max) order by id;
+
+--echo drop partition 不支持子分区
+--error ER_DROP_PARTITION_NON_EXISTENT
+alter table test drop partition s0;
+--error ER_DROP_PARTITION_NON_EXISTENT
+alter table test drop partition s2, s4;
+
+--echo drop partition 中指定的分区名字不存在，需报错
+--error ER_DROP_PARTITION_NON_EXISTENT
+alter table test drop partition p_xxx, p_ccc;
+
+--echo drop partition 不支持if exist
+--error ER_PARSE_ERROR
+alter table if exists test drop partition p_ccc;
+
+alter table test drop partition p_ccc;
+--error ER_UNKNOWN_PARTITION
+select * from test partition (p_ccc) order by id;
+show create table test;
+
+alter table test drop partition p_kkk, p_fff;
+--error ER_UNKNOWN_PARTITION
+select * from test partition (p_kkk, p_fff) order by id;
+show create table test;
+drop table test;
+
+CREATE TABLE test (
+  id INT,
+  name char(7),
+  unique key(id,name))
+PARTITION BY hash (id) partitions 2
+(partition p_1, partition p_2);
+
+--echo drop partition 只支持range/list分区
+--error ER_ONLY_ON_RANGE_LIST_PARTITION
+alter table test drop partition p_1;
+drop table test;
+
+--echo =========================================================
+--echo ALTER 语句支持 TRUNCATE PARTITION 功能
+--echo =========================================================
+CREATE TABLE test (
+  id INT,
+  name char(7),
+  primary key(id,name))
+PARTITION BY RANGE (substr(name, 1, 3))
+( PARTITION p_ccc VALUES LESS THAN ('ccc'),
+  PARTITION p_fff VALUES LESS THAN ('fff'),
+  PARTITION p_kkk VALUES LESS THAN ('kkk'),
+  PARTITION p_max VALUES LESS THAN (MAXVALUE));
+show create table test;
+
+insert into test values (1, '');
+insert into test values (3, 'aaa');
+insert into test values (4, 'ddd');
+insert into test values (5, 'jjj');
+insert into test values (6, 'zzz');
+insert into test values (7, '多字节');
+insert into test values (11, '###');
+insert into test values (12, '<<<');
+insert into test values (13, '???');
+insert into test values (14, '{{{');
+insert into test values (15, '|||');
+insert into test values (16, '}}}');
+
+select * from test partition (p_ccc) order by id;
+select * from test partition (p_fff) order by id;
+select * from test partition (p_kkk) order by id;
+select * from test partition (p_max) order by id;
+
+--echo truncate partiton 对应的分区名不存在，需报错
+--error ER_UNKNOWN_PARTITION
+alter table test truncate partition p_xxx;
+
+--echo truncate partition 不支持if exists
+--error ER_PARSE_ERROR
+alter table if exists test truncate partition p_xxx;
+
+--echo 清空单个分区
+select * from test partition (p_kkk) order by id;
+alter table test truncate partition p_ccc, p_fff;
+select * from test partition (p_kkk) order by id;
+
+--echo 清空多个分区
+select * from test partition (p_ccc, p_fff) order by id;
+alter table test truncate partition p_ccc, p_fff;
+select * from test partition (p_ccc, p_fff) order by id;
+
+--echo 支持truncate partition all
+truncate table test;
+insert into test values (1, '');
+insert into test values (3, 'aaa');
+insert into test values (4, 'ddd');
+insert into test values (5, 'jjj');
+insert into test values (6, 'zzz');
+insert into test values (7, '多字节');
+insert into test values (11, '###');
+insert into test values (12, '<<<');
+insert into test values (13, '???');
+insert into test values (14, '{{{');
+insert into test values (15, '|||');
+insert into test values (16, '}}}');
+select * from test order by id;
+alter table test truncate partition all;
+select * from test order by id;
+drop table test;
+
+CREATE TABLE test (
+  id INT,
+  name char(7),
+  primary key(id,name))
+PARTITION BY RANGE (substr(name, 1, 3))
+subpartition by hash(id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('ccc')
+  (subpartition s0, subpartition s1),
+  PARTITION p_fff VALUES LESS THAN ('fff')
+  (subpartition s2, subpartition s3),
+  PARTITION p_max VALUES LESS THAN (MAXVALUE)
+  (subpartition s4, subpartition s5));
+insert into test values (1, '');
+insert into test values (3, 'aaa');
+insert into test values (4, 'ddd');
+insert into test values (6, 'zzz');
+insert into test values (7, '多字节');
+insert into test values (11, '###');
+insert into test values (12, '<<<');
+insert into test values (13, '???');
+insert into test values (14, '{{{');
+insert into test values (15, '|||');
+insert into test values (16, '}}}');
+
+--echo truncate partition 为单个子分区时，对应分区上数据全部清空
+select * from test partition (s0) order by id;
+alter table test truncate partition s0;
+select * from test partition (s0) order by id;
+
+--echo truncate partition 为多个子分区时，对应分区上数据全部清空
+select * from test partition (s1,s2,s3) order by id;
+alter table test truncate partition s1,s2,s3;
+select * from test partition (s1,s2,s3) order by id;
+
+--echo truncate partition 为分区和子分区混合时，对应分区上数据全部清空
+select * from test partition (p_max,s4,s5) order by id;
+alter table test truncate partition p_max,s4,s5;
+select * from test partition (p_max,s4,s5) order by id;
+
+drop table test;
+
+--echo =========================================================
+--echo ALTER 语句支持 REORGANIZE PARTITION 功能
+--echo =========================================================
+CREATE TABLE test (
+  id INT,
+  name char(7),
+  primary key(id,name))
+PARTITION BY RANGE (substr(name, 1, 3))
+( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+  PARTITION p_ddd VALUES LESS THAN ('ddd'),
+  PARTITION p_fff VALUES LESS THAN ('fff'),
+  PARTITION p_iii VALUES LESS THAN ('iii'),
+  PARTITION p_mmm VALUES LESS THAN ('mmm'));
+show create table test;
+
+insert into test values (1, 'aaa');
+insert into test values (2, 'bbb');
+insert into test values (3, 'ccc');
+insert into test values (4, 'ddd');
+insert into test values (5, 'eee');
+insert into test values (6, 'fff');
+insert into test values (7, 'ggg');
+insert into test values (8, 'hhh');
+insert into test values (9, 'iii');
+insert into test values (10, 'jjj');
+insert into test values (11, 'kkk');
+
+--echo 多个分区合并合并为一个分区时，分区不存在，需报错
+--error ER_DROP_PARTITION_NON_EXISTENT
+alter table test reorganize partition p_bbb, p_kkk into
+(partition p_iii values less than ('iii'));
+
+--echo 多个分区合并合并为一个分区时，多个分区若不连续，需报错
+--error ER_CONSECUTIVE_REORG_PARTITIONS
+alter table test reorganize partition p_bbb, p_fff into
+(partition p_iii values less than ('iii'));
+
+--echo 多个分区合并为一个分区，范围变小，需报错
+--error ER_REORG_OUTSIDE_RANGE
+alter table test reorganize partition p_ddd, p_fff into
+(partition p_eee values less than ('eee'));
+
+--echo 多个分区合并为一个分区，范围变大，需报错
+--error ER_REORG_OUTSIDE_RANGE
+alter table test reorganize partition p_ddd, p_fff into
+(partition p_ggg values less than ('ggg'));
+
+--echo 多个分区合并为一个分区时，多个分区需连续且合并的分区范围保持不变
+select * from test partition (p_ddd) order by id;
+select * from test partition (p_fff) order by id;
+alter table test reorganize partition p_ddd, p_fff into
+(partition p_fff values less than ('fff'));
+--error ER_UNKNOWN_PARTITION
+select * from test partition (p_ddd) order by id;
+select * from test partition (p_fff) order by id;
+
+--echo 多个分区合并为多个分区时，多个分区需连续且合并的分区范围保持不变
+select * from test partition (p_bbb) order by id;
+select * from test partition (p_fff) order by id;
+alter table test reorganize partition p_bbb, p_fff into
+(partition p_ccc values less than ('ccc'),
+ partition p_fff values less than ('fff'));
+--error ER_UNKNOWN_PARTITION
+select * from test partition (p_bbb) order by id;
+select * from test partition (p_fff) order by id;
+
+--echo 多个分区合并为一个分区时，若包含最后一个分区，可以扩充分区范围
+select * from test partition (p_iii) order by id;
+select * from test partition (p_mmm) order by id;
+alter table test reorganize partition p_iii, p_mmm into
+(partition p_kkk values less than ('kkk'),
+ partition p_nnn values less than ('nnn'));
+select * from test partition (p_kkk) order by id;
+select * from test partition (p_nnn) order by id;
+
+--echo 一个分区拆分为多个分区时，分区范围变小，需报错
+--error ER_REORG_OUTSIDE_RANGE
+alter table test reorganize partition p_fff into
+(partition p_ddd values less than ('ddd'),
+ partition p_eee values less than ('eee'));
+
+--echo 一个分区拆分为多个分区时，分区范围变大，需报错
+--error ER_REORG_OUTSIDE_RANGE
+alter table test reorganize partition p_fff into
+(partition p_ddd values less than ('ddd'),
+ partition p_ggg values less than ('ggg'));
+
+--echo 一个分区拆分为多个分区时，分区范围需保持不变
+select * from test partition (p_fff) order by id;
+alter table test reorganize partition p_fff into
+(partition p_eee values less than ('eee'),
+ partition p_fff values less than ('fff'));
+select * from test partition (p_eee) order by id;
+select * from test partition (p_fff) order by id;
+show create table test;
+
+--echo 一个分区拆分为一个分区时，可以实现修改分区名字的功能
+select * from test partition (p_fff) order by id;
+alter table test reorganize partition p_fff into
+(partition p_rename_fff values less than ('fff'));
+select * from test partition (p_rename_fff) order by id;
+show create table test;
+
+drop table test;
+CREATE TABLE test (
+  id INT,
+  name char(7),
+  unique key(id,name))
+PARTITION BY RANGE (substr(name, 1)) partitions 2
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('ccc')
+    (subpartition s0, subpartition s1),
+  PARTITION p_kkk VALUES LESS THAN ('kkk')
+    (subpartition s2, subpartition s3));
+
+show create table test;
+insert into test values (1, 'aaa'), (2, 'bbb');
+insert into test values (3, 'ddd'), (4, 'fff');
+
+--echo reorganize partition 中包含子分区，需报错
+select * from test partition (s0) order by id;
+--error ER_DROP_PARTITION_NON_EXISTENT
+alter table test reorganize partition s0 into
+(partition p_rename_s0 values less than ('fff'));
+
+drop table test;
+
+--echo =========================================================
+--echo alter 语句针对 range substr 不支持 COALESCE PARTITION 功能
+--echo =========================================================
+CREATE TABLE test (
+  id INT,
+  name char(7),
+  primary key(id,name))
+PARTITION BY RANGE (substr(name, 1, 3))
+( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+  PARTITION p_ddd VALUES LESS THAN ('ddd'),
+  PARTITION p_fff VALUES LESS THAN ('fff'),
+  PARTITION p_iii VALUES LESS THAN ('iii'),
+  PARTITION p_mmm VALUES LESS THAN ('mmm'));
+
+--error ER_COALESCE_ONLY_ON_HASH_PARTITION
+alter table test coalesce partition 3;
+drop table test;
+
+--echo =========================================================
+--echo ALTER 语句支持 EXCHANGE PARTITION 功能
+--echo =========================================================
+
+--echo 含有子分区的场景
+CREATE TABLE test (
+  id INT,
+  name char(7),
+  primary key(id, name))
+PARTITION BY RANGE (substr(name, 1)) partitions 2
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('ccc')
+    (subpartition s0, subpartition s1),
+  PARTITION p_kkk VALUES LESS THAN ('kkk')
+    (subpartition s2, subpartition s3));
+
+create table test_noPartition like test;
+alter table test_noPartition remove partitioning;
+
+--echo 某个子分区和非分区表都为空
+select * from test_noPartition order by id;
+select * from test partition (s0) order by id;
+alter table test exchange partition s0 with table test_noPartition;
+select * from test_noPartition order by id;
+select * from test partition (s0) order by id;
+
+--echo 子分区表非空，非分区表空
+truncate table test;
+truncate table test_noPartition;
+insert into test values (1, 'aaa'), (2, 'bbb');
+select * from test partition (s0) order by id;
+select * from test_noPartition order by id;
+alter table test exchange partition s0 with table test_noPartition;
+select * from test partition (s0) order by id;
+select * from test_noPartition order by id;
+
+--echo 子分区表空，非分区表不空
+truncate table test;
+truncate table test_noPartition;
+insert into test_noPartition values (1, 'aaa');
+select * from test partition (s1) order by id;
+select * from test_noPartition order by id;
+alter table test exchange partition s1 with table test_noPartition;
+select * from test partition (s1) order by id;
+select * from test_noPartition order by id;
+
+--echo 子分区表不空，非分区表不空
+truncate table test;
+truncate table test_noPartition;
+insert into test values (1, 'aaa');
+insert into test_noPartition values (1, 'abbb');
+select * from test partition (s0) order by id;
+select * from test partition (s1) order by id;
+select * from test_noPartition order by id;
+alter table test exchange partition s1 with table test_noPartition;
+select * from test partition (s0) order by id;
+select * from test partition (s1) order by id;
+select * from test_noPartition order by id;
+
+--echo 子分区表不空，非分区表不空, 使用 WITH VALIDATION 报错
+truncate table test;
+truncate table test_noPartition;
+insert into test values (1, 'aaa');
+insert into test_noPartition values (1, 'azzz');
+
+--error ER_ROW_DOES_NOT_MATCH_PARTITION
+alter table test exchange partition s0 with table test_noPartition;
+--error ER_ROW_DOES_NOT_MATCH_PARTITION
+alter table test exchange partition s0 with table test_noPartition with validation;
+alter table test exchange partition s0 with table test_noPartition without validation;
+
+drop table test;
+drop table test_noPartition;
+
+--echo 含有分区(没有子分区)的场景
+CREATE TABLE test (
+  id INT,
+  name char(7),
+  primary key(id, name))
+PARTITION BY RANGE (substr(name, 1)) partitions 2
+( PARTITION p_ccc VALUES LESS THAN ('ccc'),
+  PARTITION p_kkk VALUES LESS THAN ('kkk'));
+
+create table test_noPartition like test;
+alter table test_noPartition remove partitioning;
+
+--echo 某个子分区和非分区表都为空
+select * from test_noPartition order by id;
+select * from test partition (p_ccc) order by id;
+alter table test exchange partition p_ccc with table test_noPartition;
+select * from test_noPartition order by id;
+select * from test partition (p_ccc) order by id;
+
+--echo 子分区表非空，非分区表空
+truncate table test;
+truncate table test_noPartition;
+insert into test values (1, 'aaa'), (2, 'bbb');
+select * from test partition (p_ccc) order by id;
+select * from test_noPartition order by id;
+alter table test exchange partition p_ccc with table test_noPartition;
+select * from test partition (p_ccc) order by id;
+select * from test_noPartition order by id;
+
+--echo 子分区表空，非分区表不空
+truncate table test;
+truncate table test_noPartition;
+insert into test_noPartition values (1, 'aaa'), (2, 'bbb');
+select * from test partition (p_ccc) order by id;
+select * from test_noPartition order by id;
+alter table test exchange partition p_ccc with table test_noPartition;
+select * from test partition (p_ccc) order by id;
+select * from test_noPartition order by id;
+
+--echo 子分区表不空，非分区表不空, 使用 WITH VALIDATION 报错
+truncate table test;
+truncate table test_noPartition;
+insert into test values (1, 'aaa');
+insert into test_noPartition values (2, 'zzz');
+
+--error 1526
+alter table test exchange partition p_ccc with table test_noPartition;
+--error 1526
+alter table test exchange partition p_ccc with table test_noPartition with validation;
+alter table test exchange partition p_ccc with table test_noPartition without validation;
+
+drop table test;
+drop table test_noPartition;
+
+--echo =========================================================
+--echo ALTER 语句支持 OPTIMIZE/REBUILD/ANALYZE PARTITION 功能
+--echo =========================================================
+CREATE TABLE test (
+  id INT,
+  name char(7),
+  primary key(id, name))
+PARTITION BY RANGE (substr(name, 1)) partitions 2
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('ccc')
+    (subpartition s0, subpartition s1),
+  PARTITION p_kkk VALUES LESS THAN ('kkk')
+    (subpartition s2, subpartition s3));
+
+show create table test;
+alter table test OPTIMIZE PARTITION p_ccc;
+alter table test OPTIMIZE PARTITION p_kkk;
+alter table test OPTIMIZE PARTITION all;
+
+alter table test REBUILD PARTITION p_ccc;
+alter table test REBUILD PARTITION p_kkk;
+alter table test REBUILD PARTITION all;
+
+alter table test ANALYZE PARTITION p_ccc;
+alter table test ANALYZE PARTITION p_kkk;
+alter table test ANALYZE PARTITION all;
+
+drop table test;
+
+--echo =========================================================
+--echo ALTER 语句支持 CHECK/REPAIR PARTITION 功能
+--echo =========================================================
+CREATE TABLE test (
+  id INT,
+  name char(7),
+  primary key(id,name))
+PARTITION BY RANGE (substr(name, 1, 3))
+( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+  PARTITION p_ddd VALUES LESS THAN ('ddd'),
+  PARTITION p_fff VALUES LESS THAN ('fff'),
+  PARTITION p_iii VALUES LESS THAN ('iii'),
+  PARTITION p_mmm VALUES LESS THAN ('mmm'));
+
+show create table test;
+
+insert into test values (1, 'aaa'), (2, 'bbb');
+insert into test values (3, 'fff'), (4, 'iii');
+
+--echo 数据正常
+alter table test check partition p_xx;
+alter table test repair partition p_xx;
+alter table test check partition p_bbb, p_iii;
+alter table test repair partition p_bbb, p_iii;
+alter table test check partition all;
+alter table test repair partition all;
+
+--echo 数据异常
+truncate table test;
+create table test_noPartition like test;
+alter table test_noPartition remove partitioning;
+
+insert into test_noPartition values (1, 'kkk');
+alter table test exchange partition p_fff with table test_noPartition without validation;
+
+alter table test check partition all;
+alter table test repair partition all;
+
+drop table test, test_noPartition;
+
+--echo =========================================================
+--echo ALTER 语句支持 DISCARD/IMPORT PARTITIONING 功能
+--echo =========================================================
+
+
+
+--echo =========================================================
+--echo ALTER 语句支持 REMOVE PARTITIONING 功能
+--echo =========================================================
+CREATE TABLE test (
+  id INT,
+  name char(7),
+  primary key(id, name))
+PARTITION BY RANGE (substr(name, 1)) partitions 2
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('ccc')
+    (subpartition s0, subpartition s1),
+  PARTITION p_kkk VALUES LESS THAN ('kkk')
+    (subpartition s2, subpartition s3));
+
+insert into test values (1, 'aaa'), (2, 'bbb');
+insert into test values (3, 'ccc'), (4, 'ddd');
+insert into test values (5, 'eee'), (6, 'jjj');
+
+show create table test;
+select * from test order by id;
+alter table test remove partitioning;
+show create table test;
+select * from test order by id;
+drop table test;
+
+
+--echo 清理测试数据
+drop database if exists test_db;
+--enable_warnings
+
+# End of Range分区支持substr函数

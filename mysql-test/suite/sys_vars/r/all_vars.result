@@ -1,0 +1,153 @@
+create table t1 (test_name text);
+create table t2 (variable_name text);
+load data infile "MYSQLTEST_VARDIR/tmp/sys_vars.all_vars.txt" into table t1;
+insert into t2 select variable_name from performance_schema.global_variables;
+insert into t2 select variable_name from performance_schema.session_variables;
+update t2 set variable_name= replace(variable_name, "performance_schema_", "pfs_");
+update t2 set variable_name= replace(variable_name, "_history_long_", "_hl_");
+update t2 set variable_name= replace(variable_name, "_history_", "_h_");
+update t2 set variable_name= replace(variable_name, "_throttle_queries_not_using_indexes", "_throttle_qni");
+update t2 set variable_name= replace(variable_name, "lock_order_", "lo_");
+select variable_name as `There should be *no* long test name listed below:` from t2
+where length(variable_name) > 50;
+There should be *no* long test name listed below:
+select variable_name as `There should be *no* variables listed below:` from t2
+left join t1 on variable_name=test_name where test_name is null ORDER BY variable_name;
+There should be *no* variables listed below:
+activate_all_roles_on_login
+activate_all_roles_on_login
+active_gtm_gtid_list
+active_gtm_gtid_list
+binlog_encryption
+binlog_encryption
+binlog_rotate_encryption_master_key_at_startup
+binlog_rotate_encryption_master_key_at_startup
+cte_max_recursion_depth
+cte_max_recursion_depth
+default_collation_for_utf8mb4
+default_collation_for_utf8mb4
+default_date_format
+default_date_format
+default_timestamp_format
+default_timestamp_format
+disable_tcp_connection
+disable_tcp_connection
+disabled_storage_engines
+disabled_storage_engines
+enable_binlog_gtmgtid_index
+enable_binlog_gtmgtid_index
+export_null_as_space
+export_null_as_space
+generated_random_password_length
+generated_random_password_length
+goldendb_version
+goldendb_version
+group_replication_consistency
+group_replication_consistency
+import_space_as_null
+import_space_as_null
+innodb_dedicated_server
+innodb_dedicated_server
+innodb_distributed_mvcc_purge
+innodb_distributed_mvcc_purge
+innodb_distributed_mvcc_purge_gtmgtid
+innodb_distributed_mvcc_purge_gtmgtid
+innodb_distributed_mvcc_purge_timeout
+innodb_distributed_mvcc_purge_timeout
+innodb_lock_wait_collect_time
+innodb_lock_wait_collect_time
+innodb_lock_wait_log
+innodb_lock_wait_log
+innodb_lock_wait_log_dir
+innodb_lock_wait_log_dir
+innodb_lock_wait_log_size
+innodb_lock_wait_log_size
+innodb_lock_wait_max_depth
+innodb_lock_wait_max_depth
+innodb_log_spin_cpu_abs_lwm
+innodb_log_spin_cpu_abs_lwm
+innodb_log_spin_cpu_pct_hwm
+innodb_log_spin_cpu_pct_hwm
+innodb_log_wait_for_flush_spin_hwm
+innodb_log_wait_for_flush_spin_hwm
+keyring_operations
+keyring_operations
+kill_idle_transaction
+kill_idle_transaction
+listagg_max_len
+listagg_max_len
+mandatory_roles
+mandatory_roles
+next_gtm_gtid
+nls_length_semantics
+nls_length_semantics
+parse_mode
+parse_mode
+partial_revokes
+partial_revokes
+password_require_current
+password_require_current
+regexp_stack_limit
+regexp_stack_limit
+regexp_time_limit
+regexp_time_limit
+resultset_metadata
+rpl_semi_sync_master_group1
+rpl_semi_sync_master_group1
+rpl_semi_sync_master_group10
+rpl_semi_sync_master_group10
+rpl_semi_sync_master_group2
+rpl_semi_sync_master_group2
+rpl_semi_sync_master_group3
+rpl_semi_sync_master_group3
+rpl_semi_sync_master_group4
+rpl_semi_sync_master_group4
+rpl_semi_sync_master_group5
+rpl_semi_sync_master_group5
+rpl_semi_sync_master_group6
+rpl_semi_sync_master_group6
+rpl_semi_sync_master_group7
+rpl_semi_sync_master_group7
+rpl_semi_sync_master_group8
+rpl_semi_sync_master_group8
+rpl_semi_sync_master_group9
+rpl_semi_sync_master_group9
+rpl_semi_sync_master_inspection_time
+rpl_semi_sync_master_inspection_time
+rpl_semi_sync_master_quick_sync_enabled
+rpl_semi_sync_master_quick_sync_enabled
+rpl_semi_sync_master_wait_cond_hwm
+rpl_semi_sync_master_wait_cond_hwm
+rpl_semi_sync_master_wait_cond_lwm
+rpl_semi_sync_master_wait_cond_lwm
+service_available_even_bellow_lwm
+service_available_even_bellow_lwm
+sql_require_primary_key
+sql_require_primary_key
+temptable_use_mmap
+temptable_use_mmap
+thread_pool_high_prio_mode
+thread_pool_high_prio_mode
+thread_pool_high_prio_tickets
+thread_pool_high_prio_tickets
+thread_pool_idle_timeout
+thread_pool_idle_timeout
+thread_pool_max_threads
+thread_pool_max_threads
+thread_pool_oversubscribe
+thread_pool_oversubscribe
+thread_pool_size
+thread_pool_size
+thread_pool_stall_limit
+thread_pool_stall_limit
+tls_ciphersuites
+tls_ciphersuites
+tls_version
+tls_version
+tmp_table_max_rows
+tmp_table_max_rows
+transaction_max_binlog_size
+transaction_max_binlog_size
+use_secondary_engine
+drop table t1;
+drop table t2;

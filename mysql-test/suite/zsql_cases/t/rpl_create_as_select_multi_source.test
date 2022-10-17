@@ -1,0 +1,220 @@
+--let $use_gtids= 1
+--let $rpl_gtid_utils= 1
+--source include/have_log_bin.inc
+--source include/have_binlog_format_row.inc
+--source include/not_group_replication_plugin.inc
+# Test requires master-info-repository=TABLE, relay-log-info-repository=TABLE
+--source include/have_slave_repository_type_table.inc
+#
+
+--let $rpl_topology= 1->2,3->2
+--let $rpl_multi_source= 1
+--let $wait_for_executed_gtid_set= 1
+--disable_warnings
+--source include/rpl_init.inc
+--enable_warnings
+
+--echo # TEST CASE 1: from different db sync 
+--echo # a) prepare  db1.t1 on server_1
+--echo #
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+CREATE DATABASE db1;
+CREATE TABLE db1.t1 ( a int);
+--let $i= 10
+while($i)
+{
+  eval INSERT INTO db1.t1 VALUES ($i);
+  --dec $i
+}
+SHOW DATABASES;
+create table db1.t2 as select * from db1.t1;
+
+
+--echo #
+--echo # b)  prepare database and table db3.t1 on server_3
+--echo #
+--let $rpl_connection_name= server_3
+--source include/rpl_connection.inc
+CREATE DATABASE db3;
+CREATE TABLE db3.t1 (a int);
+--let $i= 10
+while($i)
+{
+  eval INSERT INTO db3.t1 VALUES (3*$i);
+  --dec $i
+}
+SHOW DATABASES;
+create table db3.t2 as select * from db3.t1;
+
+--echo #
+--echo # c)  sync the slave (server_2) with both masters (server_1 and server_3)
+--echo #
+#sync the slave with server_1
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+
+--let $rpl_channel_name= 'channel_1'
+--let $sync_slave_connection= server_2
+--source include/sync_slave_sql_with_master.inc
+
+# sync the slave with server_3
+--let $rpl_connection_name= server_3
+--source include/rpl_connection.inc
+
+--let $rpl_channel_name= 'channel_3'
+--let $sync_slave_connection=server_2
+--source include/sync_slave_sql_with_master.inc
+
+
+--echo #
+--echo # d) Check that slave has replicated from both masters.
+--let $rpl_connection_name= server_2
+--source include/rpl_connection.inc
+SHOW DATABASES;
+--let $assert_text= Slave should have 10 rows in db1.t2
+--let $assert_cond= `SELECT COUNT(*) = 10 `rows` FROM db1.t2`
+--source include/assert.inc
+--let $assert_text= Slave should have 10 rows in db3.t2
+--let $assert_cond= `SELECT COUNT(*) = 10 `rows` FROM db3.t2`
+--source include/assert.inc
+
+--echo # TEST CASE 2: use the same database, different table
+--echo # a) prepare database on server_1
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+CREATE DATABASE IF NOT EXISTS  dbcommon;
+CREATE TABLE dbcommon.t11(a int);
+--let $i= 10
+while($i)
+{
+  eval INSERT INTO dbcommon.t11 values (11*$i);
+  --dec $i
+}
+create table dbcommon.t12 as select * from dbcommon.t11;
+
+--echo # b) prepare database on server_3
+--let $rpl_connection_name= server_3
+--source include/rpl_connection.inc
+CREATE DATABASE IF NOT EXISTS  dbcommon;
+CREATE TABLE dbcommon.t33(a int);
+
+--let $i= 10
+while($i)
+{
+  eval INSERT INTO dbcommon.t33 values (33*$i);
+  --dec $i
+}
+create table dbcommon.t32 as select * from dbcommon.t33;
+
+--echo #
+--echo # c)  sync the slave (server_2) with both masters (server_1 and server_3)
+--echo #
+#sync the slave with server_1
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+
+--let $rpl_channel_name= 'channel_1'
+--let $sync_slave_connection= server_2
+--source include/sync_slave_sql_with_master.inc
+
+# sync the slave with server_3
+--let $rpl_connection_name= server_3
+--source include/rpl_connection.inc
+
+--let $rpl_channel_name= 'channel_3'
+--let $sync_slave_connection=server_2
+--source include/sync_slave_sql_with_master.inc
+
+
+--echo #
+--echo # d) Check that slave has replicated from both masters.
+--let $rpl_connection_name= server_2
+--source include/rpl_connection.inc
+SHOW DATABASES;
+--let $assert_text= Slave should have 10 rows in dbcommon.t12
+--let $assert_cond= `SELECT COUNT(*) = 10 `rows` FROM dbcommon.t12`
+--source include/assert.inc
+--let $assert_text= Slave should have 10 rows in dbcommon.t32
+--let $assert_cond= `SELECT COUNT(*) = 10 `rows` FROM dbcommon.t32`
+--source include/assert.inc
+
+--echo # TEST CASE 3: use the same database, same table
+--echo # a) prepare database on server_1
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+CREATE TABLE dbcommon.t_common(a int);
+--let $i= 10
+while($i)
+{
+  eval INSERT INTO dbcommon.t_common values (11*$i);
+  --dec $i
+}
+create table IF NOT EXISTS dbcommon.t_common2 as select * from dbcommon.t_common;
+
+--echo # b) prepare database on server_3
+--let $rpl_connection_name= server_3
+--source include/rpl_connection.inc
+
+CREATE TABLE IF NOT EXISTS  dbcommon.t_common(a int);
+
+--let $i= 10
+while($i)
+{
+  eval INSERT INTO dbcommon.t_common values (33*$i);
+  --dec $i
+}
+create table  IF NOT EXISTS dbcommon.t_common2 as select * from dbcommon.t_common;
+
+--echo #
+--echo # c)  sync the slave (server_2) with both masters (server_1 and server_3)
+--echo #
+#sync the slave with server_1
+--let $rpl_connection_name= server_1
+--source include/rpl_connection.inc
+
+--let $rpl_channel_name= 'channel_1'
+--let $sync_slave_connection= server_2
+--source include/sync_slave_sql_with_master.inc
+
+# sync the slave with server_3
+--let $rpl_connection_name= server_3
+--source include/rpl_connection.inc
+
+--let $rpl_channel_name= 'channel_3'
+--let $sync_slave_connection=server_2
+--source include/sync_slave_sql_with_master.inc
+
+
+--echo #
+--echo # d) Check that slave has replicated from both masters.
+--let $rpl_connection_name= server_2
+--source include/rpl_connection.inc
+SHOW DATABASES;
+--let $assert_text= Slave should have 20 rows in dbcommon.t_common2
+--let $assert_cond= `SELECT COUNT(*) = 20 `rows` FROM dbcommon.t_common2`
+--source include/assert.inc
+
+--echo # TEST CASE 3: use the same database, same table
+
+
+
+--echo # clean up
+--echo connection_server_1
+--connection server_1
+DROP DATABASE db1;
+DROP DATABASE  IF EXISTS  dbcommon;
+--let $rpl_channel_name= 'channel_1'
+--let $sync_slave_connection= server_2
+--source include/sync_slave_sql_with_master.inc
+
+--echo connection_server_3
+--connection server_3
+DROP DATABASE db3;
+DROP DATABASE  IF EXISTS  dbcommon;
+--let $rpl_channel_name= 'channel_3'
+--let $sync_slave_connection= server_2
+--source include/sync_slave_sql_with_master.inc
+
+--let $rpl_skip_sync= 1
+--source include/rpl_end.inc

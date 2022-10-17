@@ -1,0 +1,272 @@
+--echo ##########################################################
+--echo # prepare for connect engine test
+--echo ##########################################################
+install plugin connect soname 'ha_connect.so';
+if (!`SELECT count(*) FROM information_schema.engines WHERE
+        (support = 'YES' OR support = 'DEFAULT') AND
+        engine = 'connect'`)
+{
+    skip Need CONNECT engine;
+}
+
+create database if not exists test_connect_engine;
+use test_connect_engine;
+--disable_warnings
+drop table if exists runSQL;
+
+--disable_warnings
+create table runSQL
+(
+  command varchar(128) flag=0, 
+  number int(5) flag=1,
+  message varchar(255) flag=2
+ )
+engine=connect table_type=odbc
+Connection='DSN=mysrc'
+option_list='Execsrc=1';
+
+
+--echo ##########################################################
+--echo # test1: test for reserved GTID field not in oracle
+--echo ##########################################################
+##create table##
+--disable_result_log
+select * from runSQL where command = 'drop table pet_gtid';
+--enable_result_log
+select * from runSQL where command =
+'create table pet_gtid
+( 
+  name VARCHAR(20) , 
+  species VARCHAR(20),
+  age INT, 
+  birth DATE
+)';
+
+drop table if exists ora_pet_gtid;
+create table ora_pet_gtid
+( 
+  name VARCHAR(20) , 
+  species VARCHAR(20),
+  age INT, 
+  birth DATE,
+  GTID bigint(20) unsigned not null default '0'
+)
+engine=CONNECT 
+table_type=ODBC 
+tabname='pet_gtid' 
+Connection='DSN=mysrc';
+
+##insert##
+insert into ora_pet_gtid values ('Puff','bird', 1, date'1999-03-30',110);
+insert into ora_pet_gtid(name,species,age,birth,GTID) values ('Fluffy','cat', 2 , date'1993-02-04',1111111);
+insert into ora_pet_gtid(name,species,age,birth) values ('Fang','dog', 3 , date'1980-08-27');
+
+##select##
+select * from ora_pet_gtid order by age;
+select name,age,birth,GTID from ora_pet_gtid order by age;
+select name,age,GTID from ora_pet_gtid where age=1;
+--error ER_GET_ERRMSG
+select name,age,GTID from ora_pet_gtid where GTID=0;
+
+##update##
+update ora_pet_gtid set age=11 where name='Puff';
+select * from ora_pet_gtid order by age;
+--error ER_GET_ERRMSG
+update ora_pet_gtid set age=11,GTID=111 where name='Puff';
+--error ER_GET_ERRMSG
+update ora_pet_gtid set GTID=111 where age=11;
+--error ER_GET_ERRMSG
+update ora_pet_gtid set ora_pet_gtid.GTID=111 where age=11;
+--error ER_GET_ERRMSG
+update ora_pet_gtid set age=12 where GTID=0;
+--error ER_GET_ERRMSG
+update ora_pet_gtid set age=12 where ora_pet_gtid.GTID=0;
+
+##delete##
+--error ER_GET_ERRMSG
+delete from ora_pet_gtid where GTID=110;
+--error ER_GET_ERRMSG
+delete from ora_pet_gtid where GTID=0;
+--error ER_GET_ERRMSG
+delete from ora_pet_gtid where name='Puff' and GTID=0;
+delete from ora_pet_gtid where name='Puff';
+select * from ora_pet_gtid order by age;
+
+
+--echo ##########################################################
+--echo # test2: test for reserved GDB_BID field not in oracle
+--echo ##########################################################
+##create table##
+--disable_result_log
+select * from runSQL where command = 'drop table pet_gdb_bid';
+--enable_result_log
+select * from runSQL where command =
+'create table pet_gdb_bid
+( 
+  name VARCHAR(20) , 
+  species VARCHAR(20),
+  age INT, 
+  birth DATE
+)';
+
+drop table if exists ora_pet_gdb_bid;
+create table ora_pet_gdb_bid
+( 
+  name VARCHAR(20) , 
+  species VARCHAR(20),
+  age INT, 
+  birth DATE,
+  GDB_BID int(11) NOT NULL DEFAULT '-1'
+)
+engine=CONNECT 
+table_type=ODBC 
+tabname='pet_gdb_bid' 
+Connection='DSN=mysrc';
+
+##insert##
+insert into ora_pet_gdb_bid values ('Puff','bird', 1, date'1999-03-30',110);
+insert into ora_pet_gdb_bid(name,species,age,birth,GDB_BID) values ('Fluffy','cat', 2 , date'1993-02-04',1111111);
+insert into ora_pet_gdb_bid(name,species,age,birth) values ('Fang','dog', 3 , date'1980-08-27');
+
+##select##
+select * from ora_pet_gdb_bid order by age;
+select name,age,birth,GDB_BID from ora_pet_gdb_bid order by age;
+select name,age,GDB_BID from ora_pet_gdb_bid where age=1;
+--error ER_GET_ERRMSG
+select name,age,GDB_BID from ora_pet_gdb_bid where GDB_BID=-1 order by age;
+--error ER_GET_ERRMSG
+select name,age,GDB_BID from ora_pet_gdb_bid where GDB_BID=0;
+
+
+##update##
+update ora_pet_gdb_bid set age=11 where name='Puff';
+select * from ora_pet_gdb_bid order by age;
+--error ER_GET_ERRMSG
+update ora_pet_gdb_bid set age=11,GDB_BID=111 where name='Puff';
+--error ER_GET_ERRMSG
+update ora_pet_gdb_bid set GDB_BID=111 where age=11;
+--error ER_GET_ERRMSG
+update ora_pet_gdb_bid set ora_pet_gdb_bid.GDB_BID=111 where age=11;
+--error ER_GET_ERRMSG
+update ora_pet_gdb_bid set age=12 where GDB_BID=0;
+--error ER_GET_ERRMSG
+update ora_pet_gdb_bid set age=12 where ora_pet_gdb_bid.GDB_BID=-1;
+
+##delete##
+--error ER_GET_ERRMSG
+delete from ora_pet_gdb_bid where GDB_BID=110;
+--error ER_GET_ERRMSG
+delete from ora_pet_gdb_bid where GDB_BID=-1;
+--error ER_GET_ERRMSG
+delete from ora_pet_gdb_bid where name='Puff' and GDB_BID=-1;
+delete from ora_pet_gdb_bid where name='Puff';
+select * from ora_pet_gdb_bid order by age;
+
+
+
+--echo ##########################################################
+--echo # test3: test for reserved GTID and GDB_BID field not in oracle
+--echo ##########################################################
+##create table##
+--disable_result_log
+select * from runSQL where command = 'drop table pet_gtid_gdbbid';
+--enable_result_log
+select * from runSQL where command =
+'create table pet_gtid_gdbbid
+( 
+  name VARCHAR(20) , 
+  species VARCHAR(20),
+  age INT, 
+  birth DATE
+)';
+
+drop table if exists ora_pet_gtid_gdbbid;
+create table ora_pet_gtid_gdbbid
+( 
+  name VARCHAR(20) , 
+  species VARCHAR(20),
+  age INT, 
+  birth DATE,
+  GDB_BID int(11) NOT NULL DEFAULT '-1',
+  GTID bigint(20) unsigned not null default '0'
+)
+engine=CONNECT 
+table_type=ODBC 
+tabname='pet_gtid_gdbbid' 
+Connection='DSN=mysrc';
+
+##insert##
+insert into ora_pet_gtid_gdbbid values ('Puff','bird', 1, date'1999-03-30',110,100001);
+insert into ora_pet_gtid_gdbbid(name,species,age,birth,GDB_BID,GTID) values ('Fluffy','cat', 2 , date'1993-02-04',111,100002);
+insert into ora_pet_gtid_gdbbid(name,species,age,birth) values ('Fang','dog', 3 , date'1980-08-27');
+
+##select##
+select * from ora_pet_gtid_gdbbid order by age;
+select name,age,birth,GDB_BID,GTID from ora_pet_gtid_gdbbid order by age;
+select name,age,GDB_BID,GTID from ora_pet_gtid_gdbbid where age=1;
+--error ER_GET_ERRMSG
+select name,age,GDB_BID,GTID from ora_pet_gtid_gdbbid where GDB_BID=-1 order by age;
+##value "-1" is treated as function and used in server.##
+select name,age,GDB_BID,GTID from ora_pet_gtid_gdbbid where GTID=-1 order by age;
+--error ER_GET_ERRMSG
+select name,age,GDB_BID,GTID from ora_pet_gtid_gdbbid where GDB_BID=0;
+--error ER_GET_ERRMSG
+select name,age,GDB_BID,GTID from ora_pet_gtid_gdbbid where GTID=0;
+--error ER_GET_ERRMSG
+select name,age,GDB_BID,GTID from ora_pet_gtid_gdbbid where GDB_BID=-1 and GTID=0;
+
+
+##update##
+update ora_pet_gtid_gdbbid set age=11 where name='Puff';
+select * from ora_pet_gtid_gdbbid order by age;
+--error ER_GET_ERRMSG
+update ora_pet_gtid_gdbbid set age=11,GDB_BID=111 where name='Puff';
+--error ER_GET_ERRMSG
+update ora_pet_gtid_gdbbid set age=11,GTID=100011 where name='Puff';
+--error ER_GET_ERRMSG
+update ora_pet_gtid_gdbbid set GDB_BID=111,GTID=100011 where age=11;
+--error ER_GET_ERRMSG
+update ora_pet_gtid_gdbbid set ora_pet_gtid_gdbbid.GDB_BID=111 where age=11;
+--error ER_GET_ERRMSG
+update ora_pet_gtid_gdbbid set ora_pet_gtid_gdbbid.GTID=100011 where age=11;
+--error ER_GET_ERRMSG
+update ora_pet_gtid_gdbbid set ora_pet_gtid_gdbbid.GDB_BID=111, ora_pet_gtid_gdbbid.GTID=100011 where age=11;
+--error ER_GET_ERRMSG
+update ora_pet_gtid_gdbbid set age=12 where GDB_BID=-1;
+--error ER_GET_ERRMSG
+update ora_pet_gtid_gdbbid set age=12 where GTID=0;
+--error ER_GET_ERRMSG
+update ora_pet_gtid_gdbbid set age=12 where GDB_BID=-1 and GTID=0;
+--error ER_GET_ERRMSG
+update ora_pet_gtid_gdbbid set age=12 where ora_pet_gtid_gdbbid.GDB_BID=-1;
+##value "-1" is treated as function and used in server.##
+update ora_pet_gtid_gdbbid set age=12 where ora_pet_gtid_gdbbid.GTID=-1;
+--error ER_GET_ERRMSG
+update ora_pet_gtid_gdbbid set age=12 where ora_pet_gtid_gdbbid.GTID=0 and ora_pet_gtid_gdbbid.GDB_BID=-1;
+
+##delete##
+--error ER_GET_ERRMSG
+delete from ora_pet_gtid_gdbbid where GDB_BID=110;
+--error ER_GET_ERRMSG
+delete from ora_pet_gtid_gdbbid where GTID=100001;
+--error ER_GET_ERRMSG
+delete from ora_pet_gtid_gdbbid where GDB_BID=-1;
+##value "-1" is treated as function and used in server.##
+delete from ora_pet_gtid_gdbbid where GTID=-1;
+--error ER_GET_ERRMSG
+delete from ora_pet_gtid_gdbbid where GDB_BID=-1 and GTID=0;
+--error ER_GET_ERRMSG
+delete from ora_pet_gtid_gdbbid where name='Puff' and GDB_BID=-1;
+--error ER_GET_ERRMSG
+delete from ora_pet_gtid_gdbbid where name='Puff' and GTID=0;
+delete from ora_pet_gtid_gdbbid where name='Puff';
+select * from ora_pet_gtid_gdbbid order by age;
+
+--enable_warnings
+
+--echo ##########################################################
+--echo # end
+--echo ##########################################################
+drop database if exists test_connect_engine;
+uninstall plugin connect;
+

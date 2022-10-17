@@ -1,0 +1,204 @@
+---------------------------------------------------------------
+## Fix a bug: regexp_substr return null in order_by will cause crash.
+
+---------------------------------------------------------------
+---------------------------------------------------------------
+## prepare
+---------------------------------------------------------------
+drop database if exists abczyy1_regexp;
+Warnings:
+Note	1008	Can't drop database 'abczyy1_regexp'; database doesn't exist
+create database abczyy1_regexp;
+use abczyy1_regexp;
+create table tb1(a int key, b varchar(20), c int);
+insert into tb1 values(1, '123456', 123456);
+insert into tb1 values(2, '223456', 223456);
+insert into tb1 values(3, '323456', 323456);
+insert into tb1 values(4, '423456a12', 323456);
+insert into tb1(a,c) values(5, 323456);
+insert into tb1(a,b,c) values(6, 'ab', 323456);
+create table user_card(
+card_number varchar(25) not null default '0',
+account_id int(11) default null,
+primary key(card_number)
+);
+Warnings:
+Warning	1681	Integer display width is deprecated and will be removed in a future release.
+insert into user_card values('1239adhf',11),('1278397dahfjk',12),('3678ha',13);
+insert into user_card values('1',11),('2',12),('3',13);
+insert into user_card(account_id) values(11);
+insert into user_card values('as',11);
+insert into user_card(card_number) values('a111s');
+insert into user_card values('aa11as12ab13',11);
+---------------------------------------------------------------
+## Test_1: test tb1
+---------------------------------------------------------------
+select * from tb1 order by to_number(b) asc limit 10;
+ERROR HY000: TO_NUMBER value invalid: invalid number.
+select b, regexp_replace(b,'[0-9]*[0-9]','zyy') as b_tmp from tb1 order by b_tmp asc limit 10;
+b	b_tmp
+NULL	NULL
+ab	ab
+123456	zyy
+223456	zyy
+323456	zyy
+423456a12	zyyazyy
+select b, regexp_substr(b,'[0-9]*[0-9]') as b_tmp from tb1 order by b_tmp asc limit 10;
+b	b_tmp
+NULL	NULL
+ab	NULL
+123456	123456
+223456	223456
+323456	323456
+423456a12	423456
+---------------------------------------------------------------
+## Test_2: test user_card
+---------------------------------------------------------------
+select card_number, to_number(regexp_substr(card_number,'[0-9]*[0-9]',1)) as orderalias0, account_id from user_card order by orderalias0 asc limit 10;
+card_number	orderalias0	account_id
+as	NULL	11
+0	0	11
+1	1	11
+2	2	12
+3	3	13
+aa11as12ab13	11	11
+a111s	111	NULL
+1239adhf	1239	11
+3678ha	3678	13
+1278397dahfjk	1278397	12
+select card_number,  account_id from user_card order by to_number(regexp_substr(card_number,'[0-9]*[0-9]',1)) asc limit 10;
+card_number	account_id
+as	11
+0	11
+1	11
+2	12
+3	13
+aa11as12ab13	11
+a111s	NULL
+1239adhf	11
+3678ha	13
+1278397dahfjk	12
+select card_number, to_char(regexp_substr(card_number,'[0-9]*[0-9]',1)) as orderalias0, account_id from user_card order by orderalias0 asc limit 10;
+card_number	orderalias0	account_id
+as	NULL	11
+0	0	11
+1	1	11
+aa11as12ab13	11	11
+a111s	111	NULL
+1239adhf	1239	11
+1278397dahfjk	1278397	12
+2	2	12
+3	3	13
+3678ha	3678	13
+select card_number, length(regexp_substr(card_number,'[0-9]*[0-9]',1)) as orderalias0, account_id from user_card order by orderalias0 asc limit 10;
+card_number	orderalias0	account_id
+as	NULL	11
+0	1	11
+1	1	11
+2	1	12
+3	1	13
+aa11as12ab13	2	11
+a111s	3	NULL
+1239adhf	4	11
+3678ha	4	13
+1278397dahfjk	7	12
+select card_number, cast(regexp_substr(card_number,'[0-9]*[0-9]',1) as decimal) as orderalias0, account_id from user_card order by orderalias0 asc limit 10;
+card_number	orderalias0	account_id
+as	NULL	11
+0	0	11
+1	1	11
+2	2	12
+3	3	13
+aa11as12ab13	11	11
+a111s	111	NULL
+1239adhf	1239	11
+3678ha	3678	13
+1278397dahfjk	1278397	12
+select card_number,cast(regexp_substr(account_id,'[0-9]*[0-9]',1) as decimal) as order_alis from user_card order by order_alis;
+card_number	order_alis
+a111s	NULL
+0	11
+1	11
+1239adhf	11
+aa11as12ab13	11
+as	11
+1278397dahfjk	12
+2	12
+3	13
+3678ha	13
+select card_number, regexp_substr(card_number,'[0-9]*[0-9]',1) as orderalias0, account_id from user_card order by orderalias0 asc limit 10;
+card_number	orderalias0	account_id
+as	NULL	11
+0	0	11
+1	1	11
+aa11as12ab13	11	11
+a111s	111	NULL
+1239adhf	1239	11
+1278397dahfjk	1278397	12
+2	2	12
+3	3	13
+3678ha	3678	13
+select card_number, account_id from user_card order by regexp_substr(card_number,'[0-9]*[0-9]',1) asc limit 10;
+card_number	account_id
+as	11
+0	11
+1	11
+aa11as12ab13	11
+a111s	NULL
+1239adhf	11
+1278397dahfjk	12
+2	12
+3	13
+3678ha	13
+select card_number, regexp_instr(card_number,'[0-9]*[0-9]') as orderalias0, account_id from user_card order by orderalias0 asc limit 10;
+card_number	orderalias0	account_id
+as	0	11
+0	1	11
+1	1	11
+1239adhf	1	11
+1278397dahfjk	1	12
+2	1	12
+3	1	13
+3678ha	1	13
+a111s	2	NULL
+aa11as12ab13	3	11
+select card_number, regexp_like(card_number,'[0-9]*[0-9]') as orderalias0, account_id from user_card order by orderalias0 asc limit 10;
+card_number	orderalias0	account_id
+as	0	11
+0	1	11
+1	1	11
+1239adhf	1	11
+1278397dahfjk	1	12
+2	1	12
+3	1	13
+3678ha	1	13
+a111s	1	NULL
+aa11as12ab13	1	11
+select card_number, regexp_replace(card_number,'[0-9]*[0-9]','zyy') as orderalias0, account_id from user_card order by orderalias0 asc limit 10;
+card_number	orderalias0	account_id
+aa11as12ab13	aazyyaszyyabzyy	11
+as	as	11
+a111s	azyys	NULL
+0	zyy	11
+1	zyy	11
+2	zyy	12
+3	zyy	13
+1239adhf	zyyadhf	11
+1278397dahfjk	zyydahfjk	12
+3678ha	zyyha	13
+select card_number,substr(card_number,'123',1) as tmp_1 , account_id from user_card order by tmp_1 asc limit 10;
+card_number	tmp_1	account_id
+0		11
+1		11
+1239adhf		11
+1278397dahfjk		12
+2		12
+3		13
+3678ha		13
+a111s		NULL
+aa11as12ab13		11
+as		11
+---------------------------------------------------------------
+## End test to_number function with other functions
+---------------------------------------------------------------
+drop database abczyy1_regexp;

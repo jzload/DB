@@ -1,0 +1,446 @@
+#
+# Some simple test of load data
+#
+
+--echo # --
+--echo # -- init table and insert values for load
+--echo # --
+--disable_warnings
+drop database if exists test_1;
+create database test_1;
+create table test_1.tb1(a int primary key, b int, c int, d int);
+create table test_1.tb2(a int, b int, c int, d int, primary key(a,b));
+create table test_1.tb3(a int primary key, b int, c int, d int, unique key(b));
+create table test_1.tb4(a int primary key, b int, c int, d int, key(b));
+create table test_1.tb5(a int key, a1 varchar(20), a2 double, a3 float, a4 bit, a5 bool, a6 char(20),
+                        a7 year, a8 date, a9 time, a10 timestamp, a11 datetime);
+create table test_1.tb11(a int primary key, b int, c int, d int);
+create table test_1.tb21(a int, b int, c int, d int, primary key(a,b));
+create table test_1.tb31(a int primary key, b int, c int, d int, unique key(b));
+create table test_1.tb41(a int primary key, b int, c int, d int, key(b));
+create table test_1.tb51(a int key, a1 varchar(20), a2 double, a3 float, a4 bit, a5 bool, a6 char(20),
+                        a7 year, a8 date, a9 time, a10 timestamp, a11 datetime);
+create table test_1.tb6(a int primary key, b varchar(20), c varchar(20));
+create table test_1.tb61(a int primary key, b varchar(20), c varchar(20));
+create table test_1.tb7(a int primary key, b int, c char(20));
+--enable_warnings
+
+insert into test_1.tb1 values(1,1,1,1);
+insert into test_1.tb1 values(2,NULL,2,2);
+insert into test_1.tb1 values(3,3,NULL,3);
+insert into test_1.tb1 values(4,4,4,NULL);
+insert into test_1.tb1(a,b) values(5,5);
+insert into test_1.tb2 values(1,1,1,1);
+insert into test_1.tb2 values(2,2,NULL,NULL);
+insert into test_1.tb2 values(3,3,NULL,3);
+insert into test_1.tb2 values(4,4,4,NULL);
+insert into test_1.tb3 values(1,1,1,1);
+insert into test_1.tb3 values(2,NULL,2,2);
+insert into test_1.tb3 values(3,3,NULL,3);
+insert into test_1.tb3 values(4,4,4,NULL);
+insert into test_1.tb3(a) values(5);
+insert into test_1.tb4 values(1,1,1,1);
+insert into test_1.tb4 values(2,NULL,2,2);
+insert into test_1.tb4 values(3,3,NULL,3);
+insert into test_1.tb4 values(4,4,4,NULL);
+insert into test_1.tb4(a) values(5);
+insert into test_1.tb5 values(1,"123abc",11,11,1,1,"1a",2018,"2018-4-11","18:18:18","2018-4-11 18:18:18", "2018-4-11 08:08:08");
+insert into test_1.tb5(a,a10) values(2,"2018-4-11 18:18:18");
+insert into test_1.tb5 values(3,NULL,11,11,1,1,"1a",2018,"2018-4-11","18:18:18","2018-4-11 18:18:18", "2018-4-11 08:08:08");
+insert into test_1.tb5 values(4,"123abc",NULL,11,1,1,"1a",2018,"2018-4-11","18:18:18","2018-4-11 18:18:18", "2018-4-11 08:08:08");
+insert into test_1.tb5 values(5,"123abc",11,NULL,1,1,"1a",2018,"2018-4-11","18:18:18","2018-4-11 18:18:18", "2018-4-11 08:08:08");
+insert into test_1.tb5 values(6,"123abc",11,11,NULL,1,"1a",2018,"2018-4-11","18:18:18","2018-4-11 18:18:18", "2018-4-11 08:08:08");
+insert into test_1.tb5 values(7,"123abc",11,11,1,NULL,"1a",2018,"2018-4-11","18:18:18","2018-4-11 18:18:18", "2018-4-11 08:08:08");
+insert into test_1.tb5 values(8,"123abc",11,11,1,1,NULL,2018,"2018-4-11","18:18:18","2018-4-11 18:18:18", "2018-4-11 08:08:08");
+insert into test_1.tb5 values(9,"123abc",11,11,1,1,"1a",NULL,"2018-4-11","18:18:18","2018-4-11 18:18:18", "2018-4-11 08:08:08");
+insert into test_1.tb5 values(10,"123abc",11,11,1,1,"1a",2018,NULL,"18:18:18","2018-4-11 18:18:18", "2018-4-11 08:08:08");
+insert into test_1.tb5 values(11,"123abc",11,11,1,1,"1a",2018,"2018-4-11",NULL,"2018-4-11 18:18:18", "2018-4-11 08:08:08");
+insert into test_1.tb5 values(12,"123abc",11,11,1,1,"1a",2018,"2018-4-11","18:18:18","2018-4-11 18:18:18", NULL);
+insert into test_1.tb5 values(13,"",11,11,1,1,"",2018,"2018-4-11","","2018-4-11 18:18:18", "2018-4-11 08:08:08");
+insert into test_1.tb6 values(1,"123","123abc");
+insert into test_1.tb6 values(2,NULL,"123abc");
+insert into test_1.tb6 values(3,"123",NULL);
+insert into test_1.tb6 values(4,NULL,NULL);
+insert into test_1.tb6 values(5,"","");
+
+
+--echo # --
+--echo # -- test 1: test config load dynamic
+--echo # --
+set global export_null_as_space = ON;
+show variables like '%export%';
+set global export_null_as_space = 0;
+show variables like '%export%';
+set global export_null_as_space = 1;
+show variables like '%export%';
+set global export_null_as_space = OFF;
+show variables like '%export%';
+
+set global import_space_as_null = ON;
+show variables like '%import%';
+set global import_space_as_null = 0;
+show variables like '%import%';
+set global import_space_as_null = 1;
+show variables like '%import%';
+set global import_space_as_null = OFF;
+show variables like '%import%';
+
+--echo # --
+--echo # -- test 2: export_null_as_space =OFF
+--echo # --
+set global export_null_as_space = OFF;
+set global import_space_as_null = OFF;
+disable_query_log;
+eval select * from test_1.tb1 into outfile '$MYSQLTEST_VARDIR/tmp/tb1.csv';
+eval select * from test_1.tb1 into outfile '$MYSQLTEST_VARDIR/tmp/tb1_term.csv' FIELDS TERMINATED BY ','  LINES TERMINATED BY '\n';
+eval select * from test_1.tb1 into outfile '$MYSQLTEST_VARDIR/tmp/tb1_enclose.csv' FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+delete from test_1.tb11;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb1.csv' into table test_1.tb11;
+enable_query_log;
+select * from test_1.tb11;
+delete from test_1.tb11;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb1_term.csv' into table test_1.tb11 FIELDS TERMINATED BY ','  LINES TERMINATED BY '\n';
+enable_query_log;
+select * from test_1.tb11;
+delete from test_1.tb11;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb1_enclose.csv' into table test_1.tb11 FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+select * from test_1.tb11;
+remove_file $MYSQLTEST_VARDIR/tmp/tb1.csv;
+remove_file $MYSQLTEST_VARDIR/tmp/tb1_term.csv;
+remove_file $MYSQLTEST_VARDIR/tmp/tb1_enclose.csv;
+
+disable_query_log;
+eval select * from test_1.tb2 into outfile '$MYSQLTEST_VARDIR/tmp/tb2.csv';
+eval select * from test_1.tb2 into outfile '$MYSQLTEST_VARDIR/tmp/tb2_term.csv' FIELDS TERMINATED BY ','  LINES TERMINATED BY '\n';
+eval select * from test_1.tb2 into outfile '$MYSQLTEST_VARDIR/tmp/tb2_enclose.csv' FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+delete from test_1.tb21;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb2.csv' into table test_1.tb21;
+enable_query_log;
+select * from test_1.tb21;
+delete from test_1.tb21;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb2_term.csv' into table test_1.tb21 FIELDS TERMINATED BY ','  LINES TERMINATED BY '\n';
+enable_query_log;
+select * from test_1.tb21;
+delete from test_1.tb21;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb2_enclose.csv' into table test_1.tb21 FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+select * from test_1.tb21;
+remove_file $MYSQLTEST_VARDIR/tmp/tb2.csv;
+remove_file $MYSQLTEST_VARDIR/tmp/tb2_term.csv;
+remove_file $MYSQLTEST_VARDIR/tmp/tb2_enclose.csv;
+
+disable_query_log;
+eval select * from test_1.tb3 into outfile '$MYSQLTEST_VARDIR/tmp/tb3.csv';
+eval select * from test_1.tb3 into outfile '$MYSQLTEST_VARDIR/tmp/tb3_term.csv' FIELDS TERMINATED BY ','  LINES TERMINATED BY '\n';
+eval select * from test_1.tb3 into outfile '$MYSQLTEST_VARDIR/tmp/tb3_enclose.csv' FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+delete from test_1.tb31;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb3.csv' into table test_1.tb31;
+enable_query_log;
+select * from test_1.tb31;
+delete from test_1.tb31;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb3_term.csv' into table test_1.tb31 FIELDS TERMINATED BY ','  LINES TERMINATED BY '\n';
+enable_query_log;
+select * from test_1.tb31;
+delete from test_1.tb31;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb3_enclose.csv' into table test_1.tb31 FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+select * from test_1.tb31;
+remove_file $MYSQLTEST_VARDIR/tmp/tb3.csv;
+remove_file $MYSQLTEST_VARDIR/tmp/tb3_term.csv;
+remove_file $MYSQLTEST_VARDIR/tmp/tb3_enclose.csv;
+
+disable_query_log;
+eval select * from test_1.tb4 into outfile '$MYSQLTEST_VARDIR/tmp/tb4.csv';
+eval select * from test_1.tb4 into outfile '$MYSQLTEST_VARDIR/tmp/tb4_term.csv' FIELDS TERMINATED BY ','  LINES TERMINATED BY '\n';
+eval select * from test_1.tb4 into outfile '$MYSQLTEST_VARDIR/tmp/tb4_enclose.csv' FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+delete from test_1.tb41;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb4.csv' into table test_1.tb41;
+enable_query_log;
+select * from test_1.tb41;
+delete from test_1.tb41;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb4_term.csv' into table test_1.tb41 FIELDS TERMINATED BY ','  LINES TERMINATED BY '\n';
+enable_query_log;
+select * from test_1.tb41;
+delete from test_1.tb41;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb4_enclose.csv' into table test_1.tb41 FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+select * from test_1.tb41;
+remove_file $MYSQLTEST_VARDIR/tmp/tb4.csv;
+remove_file $MYSQLTEST_VARDIR/tmp/tb4_term.csv;
+remove_file $MYSQLTEST_VARDIR/tmp/tb4_enclose.csv;
+
+disable_query_log;
+eval select * from test_1.tb5 into outfile '$MYSQLTEST_VARDIR/tmp/tb5.csv';
+eval select * from test_1.tb5 into outfile '$MYSQLTEST_VARDIR/tmp/tb5_term.csv' FIELDS TERMINATED BY ','  LINES TERMINATED BY '\n';
+eval select * from test_1.tb5 into outfile '$MYSQLTEST_VARDIR/tmp/tb5_enclose.csv' FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+delete from test_1.tb51;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb5.csv' into table test_1.tb51;
+enable_query_log;
+select * from test_1.tb51;
+delete from test_1.tb51;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb5_term.csv' into table test_1.tb51 FIELDS TERMINATED BY ','  LINES TERMINATED BY '\n';
+enable_query_log;
+select * from test_1.tb51;
+delete from test_1.tb51;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb5_enclose.csv' into table test_1.tb51 FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+select * from test_1.tb51;
+remove_file $MYSQLTEST_VARDIR/tmp/tb5.csv;
+remove_file $MYSQLTEST_VARDIR/tmp/tb5_term.csv;
+remove_file $MYSQLTEST_VARDIR/tmp/tb5_enclose.csv;
+
+
+--echo # --
+--echo # -- test 3: export_null_as_space =ON
+--echo # --
+set session export_null_as_space = ON;
+set session import_space_as_null = ON;
+
+disable_query_log;
+eval select * from test_1.tb1 into outfile '$MYSQLTEST_VARDIR/tmp/tb1.csv';
+eval select * from test_1.tb1 into outfile '$MYSQLTEST_VARDIR/tmp/tb1_term.csv' FIELDS TERMINATED BY ','  LINES TERMINATED BY '\n';
+eval select * from test_1.tb1 into outfile '$MYSQLTEST_VARDIR/tmp/tb1_enclose.csv' FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+delete from test_1.tb11;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb1.csv' into table test_1.tb11;
+enable_query_log;
+select * from test_1.tb11;
+delete from test_1.tb11;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb1_term.csv' into table test_1.tb11 FIELDS TERMINATED BY ','  LINES TERMINATED BY '\n';
+enable_query_log;
+select * from test_1.tb11;
+delete from test_1.tb11;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb1_enclose.csv' into table test_1.tb11 FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+select * from test_1.tb11;
+remove_file $MYSQLTEST_VARDIR/tmp/tb1.csv;
+remove_file $MYSQLTEST_VARDIR/tmp/tb1_term.csv;
+remove_file $MYSQLTEST_VARDIR/tmp/tb1_enclose.csv;
+
+disable_query_log;
+eval select * from test_1.tb2 into outfile '$MYSQLTEST_VARDIR/tmp/tb2.csv';
+eval select * from test_1.tb2 into outfile '$MYSQLTEST_VARDIR/tmp/tb2_term.csv' FIELDS TERMINATED BY ','  LINES TERMINATED BY '\n';
+eval select * from test_1.tb2 into outfile '$MYSQLTEST_VARDIR/tmp/tb2_enclose.csv' FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+delete from test_1.tb21;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb2.csv' into table test_1.tb21;
+enable_query_log;
+select * from test_1.tb21;
+delete from test_1.tb21;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb2_term.csv' into table test_1.tb21 FIELDS TERMINATED BY ','  LINES TERMINATED BY '\n';
+enable_query_log;
+select * from test_1.tb21;
+delete from test_1.tb21;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb2_enclose.csv' into table test_1.tb21 FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+select * from test_1.tb21;
+remove_file $MYSQLTEST_VARDIR/tmp/tb2.csv;
+remove_file $MYSQLTEST_VARDIR/tmp/tb2_term.csv;
+remove_file $MYSQLTEST_VARDIR/tmp/tb2_enclose.csv;
+
+disable_query_log;
+eval select * from test_1.tb3 into outfile '$MYSQLTEST_VARDIR/tmp/tb3.csv';
+eval select * from test_1.tb3 into outfile '$MYSQLTEST_VARDIR/tmp/tb3_term.csv' FIELDS TERMINATED BY ','  LINES TERMINATED BY '\n';
+eval select * from test_1.tb3 into outfile '$MYSQLTEST_VARDIR/tmp/tb3_enclose.csv' FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+delete from test_1.tb31;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb3.csv' into table test_1.tb31;
+enable_query_log;
+select * from test_1.tb31;
+delete from test_1.tb31;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb3_term.csv' into table test_1.tb31 FIELDS TERMINATED BY ','  LINES TERMINATED BY '\n';
+enable_query_log;
+select * from test_1.tb31;
+delete from test_1.tb31;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb3_enclose.csv' into table test_1.tb31 FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+select * from test_1.tb31;
+remove_file $MYSQLTEST_VARDIR/tmp/tb3.csv;
+remove_file $MYSQLTEST_VARDIR/tmp/tb3_term.csv;
+remove_file $MYSQLTEST_VARDIR/tmp/tb3_enclose.csv;
+
+disable_query_log;
+eval select * from test_1.tb4 into outfile '$MYSQLTEST_VARDIR/tmp/tb4.csv';
+eval select * from test_1.tb4 into outfile '$MYSQLTEST_VARDIR/tmp/tb4_term.csv' FIELDS TERMINATED BY ','  LINES TERMINATED BY '\n';
+eval select * from test_1.tb4 into outfile '$MYSQLTEST_VARDIR/tmp/tb4_enclose.csv' FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+delete from test_1.tb41;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb4.csv' into table test_1.tb41;
+enable_query_log;
+select * from test_1.tb41;
+delete from test_1.tb41;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb4_term.csv' into table test_1.tb41 FIELDS TERMINATED BY ','  LINES TERMINATED BY '\n';
+enable_query_log;
+select * from test_1.tb41;
+delete from test_1.tb41;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb4_enclose.csv' into table test_1.tb41 FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+select * from test_1.tb41;
+remove_file $MYSQLTEST_VARDIR/tmp/tb4.csv;
+remove_file $MYSQLTEST_VARDIR/tmp/tb4_term.csv;
+remove_file $MYSQLTEST_VARDIR/tmp/tb4_enclose.csv;
+
+disable_query_log;
+eval select * from test_1.tb5 into outfile '$MYSQLTEST_VARDIR/tmp/tb5.csv';
+eval select * from test_1.tb5 into outfile '$MYSQLTEST_VARDIR/tmp/tb5_term.csv' FIELDS TERMINATED BY ','  LINES TERMINATED BY '\n';
+eval select * from test_1.tb5 into outfile '$MYSQLTEST_VARDIR/tmp/tb5_enclose.csv' FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+delete from test_1.tb51;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb5.csv' into table test_1.tb51;
+enable_query_log;
+select * from test_1.tb51;
+delete from test_1.tb51;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb5_term.csv' into table test_1.tb51 FIELDS TERMINATED BY ','  LINES TERMINATED BY '\n';
+enable_query_log;
+select * from test_1.tb51;
+delete from test_1.tb51;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb5_enclose.csv' into table test_1.tb51 FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+select * from test_1.tb51;
+remove_file $MYSQLTEST_VARDIR/tmp/tb5.csv;
+remove_file $MYSQLTEST_VARDIR/tmp/tb5_term.csv;
+remove_file $MYSQLTEST_VARDIR/tmp/tb5_enclose.csv;
+
+
+--echo # --
+--echo # -- test 4: not support case test
+--echo # --
+--echo # -- export_null_as_space=ON && load the \N for int will be error
+set session export_null_as_space = OFF;
+disable_query_log;
+eval select * from test_1.tb1 into outfile '$MYSQLTEST_VARDIR/tmp/tb1.csv';
+enable_query_log;
+delete from test_1.tb11;
+set session import_space_as_null = ON;
+disable_query_log;
+-- error 1366
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb1.csv' into table test_1.tb11;
+enable_query_log;
+select * from test_1.tb11;
+remove_file $MYSQLTEST_VARDIR/tmp/tb1.csv;
+
+--echo # -- export_null_as_space=ON && load the \N for varchar will be ok, but the string will be N rather than NULL
+set session export_null_as_space = OFF;
+disable_query_log;
+eval select * from test_1.tb6 into outfile '$MYSQLTEST_VARDIR/tmp/tb6.csv';
+enable_query_log;
+delete from test_1.tb61;
+set session import_space_as_null = ON;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb6.csv' into table test_1.tb61;
+enable_query_log;
+select * from test_1.tb61;
+remove_file $MYSQLTEST_VARDIR/tmp/tb6.csv;
+
+--echo # -- export_null_as_space=ON && load the "" for varchar will be ok
+set session export_null_as_space = OFF;
+disable_query_log;
+eval select * from test_1.tb6 into outfile '$MYSQLTEST_VARDIR/tmp/tb6.csv' FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+delete from test_1.tb61;
+set session import_space_as_null = ON;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb6.csv' into table test_1.tb61 FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+select * from test_1.tb61;
+remove_file $MYSQLTEST_VARDIR/tmp/tb6.csv;
+
+--echo # -- export_null_as_space=OFF &&  load the (empty) for varchar will be empty rather NULL
+set session export_null_as_space = ON;
+disable_query_log;
+eval select * from test_1.tb6 into outfile '$MYSQLTEST_VARDIR/tmp/tb6.csv';
+enable_query_log;
+delete from test_1.tb61;
+set session import_space_as_null = OFF;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb6.csv' into table test_1.tb61;
+enable_query_log;
+select * from test_1.tb61;
+remove_file $MYSQLTEST_VARDIR/tmp/tb6.csv;
+
+--echo # -- export_null_as_space=OFF &&  load the "" for varchar will be empty ok
+set session export_null_as_space = ON;
+disable_query_log;
+eval select * from test_1.tb6 into outfile '$MYSQLTEST_VARDIR/tmp/tb6.csv' FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+delete from test_1.tb61;
+set session import_space_as_null = OFF;
+disable_query_log;
+eval load data infile '$MYSQLTEST_VARDIR/tmp/tb6.csv' into table test_1.tb61 FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+select * from test_1.tb61;
+remove_file $MYSQLTEST_VARDIR/tmp/tb6.csv;
+
+
+--echo # --
+--echo # -- test 5: not support case test by manual csv
+--echo # --
+--echo # -- 1,1,NULL
+--echo # -- 2,2,"NULL"
+delete from test_1.tb7;
+set session import_space_as_null = ON;
+disable_query_log;
+load data infile '../../std_data/loaddata_tb7.csv' into table test_1.tb7 FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+select * from test_1.tb7;
+delete from test_1.tb7;
+set session import_space_as_null = OFF;
+disable_query_log;
+load data infile '../../std_data/loaddata_tb7.csv' into table test_1.tb7 FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+select * from test_1.tb7;
+
+--echo # -- 11,11,\N
+--echo # -- 22,22,"\N"
+delete from test_1.tb7;
+set session import_space_as_null = ON;
+disable_query_log;
+load data infile '../../std_data/loaddata_tb7_1.csv' into table test_1.tb7 FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+select * from test_1.tb7;
+delete from test_1.tb7;
+set session import_space_as_null = OFF;
+disable_query_log;
+load data infile '../../std_data/loaddata_tb7_1.csv' into table test_1.tb7 FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\n';
+enable_query_log;
+select * from test_1.tb7;
+
+#back to initial state
+set session export_null_as_space = OFF;
+DROP database if exists test_1;

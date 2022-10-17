@@ -1,0 +1,240 @@
+#
+# Test：ZSQL兼容Oracle 的 NVL2() 函数
+#
+# Syntax:
+#    NVL2 ( expr1, expr2, expr3 )
+#
+
+# 创建测试数据库和测试表
+--disable_warnings
+drop database if exists nvl2_db;
+create database nvl2_db;
+use nvl2_db;
+create table if not exists nvl2_db.nvl2_t
+(
+  id          int not null primary key,
+  id1         int default NULL,
+  id2         int default NULL,
+  int_1       int default NULL,
+  double_1    double default NULL,
+  float_1     float default NULL,
+  decimal_1   decimal(65, 30) default NULL,
+  numeric_1   numeric(65,30) default NULL,
+  date_1      date default NULL,
+  time_1      time default NULL,
+  timestamp_1 timestamp default NULL,
+  datetime_1  datetime default NULL,
+  year_1      year default NULL,
+  char_1      char(10) default NULL,
+  varchar_1   varchar(80) default NULL,
+  binary_1    binary(10) default NULL,
+  enum_1      enum('1','ab','中文','') default NULL,
+  set_1       set('1','ab','中文','') default NULL,
+  blob_1      blob default NULL,
+  clob_1      clob default NULL,
+  text_1      text default NULL,
+  json_1      json
+);
+insert into nvl2_t (id) values (1);
+insert into nvl2_t (id) values (2);
+
+# 语法错误
+--error 1054
+select nvl2 from dual;
+--error 1582
+select nvl2() from dual;
+--error 1582
+select nvl2(1) from dual;
+--error 1064
+select nvl2(1,) from dual;
+--error 1064
+select nvl2(1,2,) from dual;
+--error 1064
+select nvl2(1,2,3,) from dual;
+--error 1582
+select nvl2(1,2,3,4) from dual;
+
+# NULL和空字符串(''), 保持mysql规则：NULL和空字符串('')不等价
+select nvl2(NULL, 1, 4) from dual;
+select nvl2(NULL, 1, NULL) from dual;
+select nvl2(1, NULL, 5) from dual;
+select nvl2('', 1, 4) from dual;
+select nvl2('', 1, '') from dual;
+select nvl2(1, '', 5) from dual;
+
+# 常量，特殊字符
+select nvl2('string', 'str1', 'str2') from dual;
+select nvl2('string', 'str1', 888888) from dual;
+select nvl2('string', 999999, 'str2') from dual;
+select nvl2('string', 777777, 888888) from dual;
+select nvl2(22222222, 'str1', 'str2') from dual;
+select nvl2(22222222, 'str1', 888888) from dual;
+select nvl2(22222222, 999999, 'str2') from dual;
+select nvl2(22222222, 777777, 888888) from dual;
+select hex(nvl2(null, 'x', 1)), hex(nvl2(null, 2, 1)) from dual;
+select nvl2('~!@#$%^&*()', 2, 4) from dual;
+select nvl2(NULL, '~!@#$%^&*()', '%^&*()~!@#$') from dual;
+
+# 支持列: 数据类型 int
+select nvl2(int_1, 'abc', 'xx') from nvl2_t where id = 1;
+update nvl2_t set int_1 = 0 where id = 2;
+select nvl2(int_1, int_1, 'xx') from nvl2_t where id = 2;
+update nvl2_t set int_1 = 66666 where id = 2;
+select nvl2(int_1, int_1, 'xx') from nvl2_t where id = 2;
+select nvl2(int_1, int_1, 'xx') from nvl2_t order by id;
+
+# 支持列: 数据类型 double
+select nvl2(double_1, 'abc', 'xx') from nvl2_t where id = 1;
+update nvl2_t set double_1 = 0 where id = 2;
+select nvl2(double_1, double_1, 'xx') from nvl2_t where id = 2;
+update nvl2_t set double_1 = 666666666 where id = 2;
+select nvl2(double_1, double_1, 'xx') from nvl2_t where id = 2;
+select nvl2(double_1, double_1, 'xx') from nvl2_t order by id;
+
+# 支持列: 数据类型 float
+select nvl2(float_1, 'abc', 'xx') from nvl2_t where id = 1;
+update nvl2_t set float_1 = 0.0 where id = 2;
+select nvl2(float_1, float_1, 'xx') from nvl2_t where id = 2;
+update nvl2_t set float_1 = 6666.66666 where id = 2;
+select nvl2(float_1, float_1, 'xx') from nvl2_t where id = 2;
+select nvl2(float_1, float_1, 'xx') from nvl2_t order by id;
+
+# 支持列: 数据类型 decimal
+select nvl2(decimal_1, 'abc', 'xx') from nvl2_t where id = 1;
+update nvl2_t set decimal_1 = 0.0 where id = 2;
+select nvl2(decimal_1, decimal_1, 'xx') from nvl2_t where id = 2;
+update nvl2_t set decimal_1 = 6666.66666 where id = 2;
+select nvl2(decimal_1, decimal_1, 'xx') from nvl2_t where id = 2;
+select nvl2(decimal_1, decimal_1, 'xx') from nvl2_t order by id;
+
+# 支持列: 数据类型 numeric
+select nvl2(numeric_1, 'abc', 'xx') from nvl2_t where id = 1;
+update nvl2_t set numeric_1 = 0.0 where id = 2;
+select nvl2(numeric_1, numeric_1, 'xx') from nvl2_t where id = 2;
+update nvl2_t set numeric_1 = 6666.686 where id = 2;
+select nvl2(numeric_1, numeric_1, 'xx') from nvl2_t where id = 2;
+select nvl2(numeric_1, numeric_1, 'xx') from nvl2_t order by id;
+
+# 支持列: 数据类型 date
+select nvl2(date_1, 'abc', 'xx') from nvl2_t where id = 1;
+update nvl2_t set date_1 = str_to_date('2020-05-15','%Y-%m-%d') where id = 2;
+select nvl2(date_1, date_1, 'xx') from nvl2_t where id = 2;
+select nvl2(date_1, date_1, 'xx') from nvl2_t order by id;
+
+# 支持列: 数据类型 time
+select nvl2(time_1, 'abc', 'xx') from nvl2_t where id = 1;
+update nvl2_t set time_1 = str_to_date('23:59:59','%H:%i:%s') where id = 2;
+select nvl2(time_1, time_1, 'xx') from nvl2_t where id = 2;
+--replace_regex /(..:..:..)/XX:XX:XX/
+select nvl2(time_1, time_1, time_1) from nvl2_t where id = 2;
+select nvl2(time_1, time_1, 'xx') from nvl2_t order by id;
+
+# 支持列: 数据类型 timestamp
+select nvl2(timestamp_1, 'abc', 'xx') from nvl2_t where id = 1;
+update nvl2_t set timestamp_1 = str_to_date('2020-05-15 23:59:59','%Y-%m-%d %H:%i:%s') where id = 2;
+select nvl2(timestamp_1, timestamp_1, 'xx') from nvl2_t where id = 2;
+select nvl2(timestamp_1, timestamp_1, 'xx') from nvl2_t order by id;
+
+# 支持列: 数据类型 datetime
+select nvl2(datetime_1, 'abc', 'xx') from nvl2_t where id = 1;
+update nvl2_t set datetime_1 = str_to_date('2020-05-15 23:59:59','%Y-%m-%d %H:%i:%s') where id = 2;
+select nvl2(datetime_1, datetime_1, 'xx') from nvl2_t where id = 2;
+--replace_regex /(20..-..-.. ..:..:..)/20XX-XX-XX XX:XX:XX/
+select nvl2(datetime_1, sysdate, sysdate) from nvl2_t where id = 2;
+--replace_regex /(20..-..-.. ..:..:..)/20XX-XX-XX XX:XX:XX/
+select nvl2(datetime_1, sysdate, 'xx') from nvl2_t order by id;
+
+# 支持列: 数据类型 char
+select nvl2(char_1, 'abc', 'xx') from nvl2_t where id = 1;
+update nvl2_t set char_1 = to_char('char_str') where id = 2;
+select nvl2(char_1, char_1, 'xx') from nvl2_t where id = 2;
+select nvl2(char_1, char_1, 'xx') from nvl2_t order by id;
+
+# 支持列: 数据类型 varchar
+select nvl2(varchar_1, 'abc', 'xx') from nvl2_t where id = 1;
+update nvl2_t set varchar_1 = 'varchar_str' where id = 2;
+select nvl2(varchar_1, varchar_1, 'xx') from nvl2_t where id = 2;
+select nvl2(varchar_1, varchar_1, 'xx') from nvl2_t order by id;
+
+# 支持列: 数据类型 binary
+select nvl2(binary_1, 'abc', 'xx') from nvl2_t where id = 1;
+update nvl2_t set binary_1 = 4 where id = 2;
+select nvl2(binary_1, 'abc', 'xx') from nvl2_t where id = 2;
+select nvl2(binary_1, 'abc', 'xx') from nvl2_t order by id;
+
+# 支持列: 数据类型 enum
+select nvl2(enum_1, 'abc', 'xx') from nvl2_t where id = 1;
+update nvl2_t set enum_1 = '' where id = 2;
+select nvl2(enum_1, enum_1, 'xx') from nvl2_t where id = 2;
+update nvl2_t set enum_1 = '中文' where id = 2;
+select nvl2(enum_1, enum_1, 'xx') from nvl2_t where id = 2;
+select nvl2(enum_1, enum_1, 'xx') from nvl2_t order by id;
+
+# 支持列: 数据类型 set
+select nvl2(set_1, 'abc', 'xx') from nvl2_t where id = 1;
+update nvl2_t set set_1 = '' where id = 2;
+select nvl2(set_1, set_1, 'xx') from nvl2_t where id = 2;
+update nvl2_t set set_1 = '中文' where id = 2;
+select nvl2(set_1, set_1, 'xx') from nvl2_t where id = 2;
+select nvl2(set_1, set_1, 'xx') from nvl2_t order by id;
+
+# 支持列: 数据类型 blob
+select nvl2(blob_1, 'abc', 'xx') from nvl2_t where id = 1;
+update nvl2_t set blob_1 = 5 where id = 2;
+select nvl2(blob_1, blob_1, 'xx') from nvl2_t where id = 2;
+select nvl2(blob_1, blob_1, 'xx') from nvl2_t order by id;
+
+# 支持列: 数据类型 clob
+select nvl2(clob_1, 'abc', 'xx') from nvl2_t where id = 1;
+update nvl2_t set clob_1 = 5 where id = 2;
+select nvl2(clob_1, clob_1, 'xx') from nvl2_t where id = 2;
+select nvl2(clob_1, clob_1, 'xx') from nvl2_t order by id;
+
+# 支持列: 数据类型 text
+select nvl2(text_1, 'abc', 'xx') from nvl2_t where id = 1;
+update nvl2_t set text_1 = 'text_str' where id = 2;
+select nvl2(text_1, text_1, 'xx') from nvl2_t where id = 2;
+select nvl2(text_1, text_1, 'xx') from nvl2_t order by id;
+
+# 支持列: 数据类型 json
+select nvl2(json_1, 'abc', 'xx') from nvl2_t where id = 1;
+update nvl2_t set json_1 = '{"key1": "value1", "key2": "value2"}' where id = 2;
+select nvl2(json_1, json_1, 'xx') from nvl2_t where id = 2;
+select nvl2(json_1, json_1, 'xx') from nvl2_t order by id;
+
+#支持表达式
+update nvl2_t set id1 = 1, id2 = 2 where id = 1;
+select id1,id2,nvl2((id1-id2),id2*id1, id2*id1) from nvl2_t where id = 1;
+select id1,id2,nvl2(id2-id1,id2*id1, id2*id1) from nvl2_t where id = 1;
+
+#支持函数， 或者函数嵌套
+select id1,id2,nvl2(length(id1),abs(id2),NULL) from nvl2_t where id = 1;
+select id1,id2,abs(nvl2(id1,id2, NULL)) from nvl2_t where id = 1;
+select nvl2(count(id),'x', 1) from nvl2_t where id=1;
+select nvl2(max(id),'x', 1) from nvl2_t where id=1;
+select nvl2(min(id),'x', 1) from nvl2_t where id=1;
+select nvl2(sum(id),'x', 1) from nvl2_t where id=1;
+
+# 支持子查询
+select id1,id2,nvl2_result from (select id,id1,id2,nvl2(id1,id2,null) as nvl2_result from nvl2_t) tmp where id = 1;
+select id1,id2,nvl2_result from (select id,id1,id2,nvl2(length(id1),abs(id2),null) as nvl2_result from nvl2_t) tmp where id = 1;
+select id1,id2,nvl2_result from (select id,id1,id2,abs(nvl2(-id1,id2,null)) as nvl2_result from nvl2_t) tmp where id = 1;
+select id1,id2,nvl2_result from (select id,id1,id2,nvl2((id1-2*id2),id2*id1,null) as nvl2_result from nvl2_t)tmp where id = 1;
+select id1,id2,nvl2_result from (select id,id1,id2,nvl2(abs(id1-2*id2),id2*id1,null) as nvl2_result from nvl2_t) tmp where id = 1;
+
+# 支持where子句
+select id1,id2 from nvl2_t where id in (select nvl2(id1,id2,null) from nvl2_t);
+select id1,id2 from nvl2_t where id in (select nvl2(length(id1),abs(id1),null) from nvl2_t);
+select id1,id2 from nvl2_t where id in (select abs(nvl2(-id2,id1,null)) from nvl2_t);
+select id1,id2 from nvl2_t where id in (select nvl2(abs(id1-2*id2),id1,null) from nvl2_t);
+select id1,id2 from nvl2_t where id = nvl2(id2,id1,null);
+select id1,id2 from nvl2_t where id = nvl2(length(id2),id1,null) ;
+select id1,id2 from nvl2_t where id = abs(nvl2(-id2,id1,null));
+select id1,id2 from nvl2_t where id = nvl2(-(id1-2*id2),id1,null);
+select id1,id2 from nvl2_t where id = abs(nvl2((id1-2*id2),id1,null));
+
+# 清理测试数据
+drop database if exists nvl2_db;
+--enable_warnings
+
+# End of ZSQL 兼容Oracle的 NVL2() 函数

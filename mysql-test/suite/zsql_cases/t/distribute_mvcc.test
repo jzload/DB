@@ -1,0 +1,251 @@
+SET @transaction_isolation_session_orig = @@global.transaction_isolation;
+SET global transaction_isolation= 'READ-COMMITTED';
+SET session transaction_isolation= 'READ-COMMITTED';
+--echo # Test Create table
+CREATE TABLE t (  a int,  GTID bigint) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+show create table t;
+--let $flags2= query_get_value( select  (flag2 & 2048) as FLAG2 from information_schema.innodb_tables where name='test/t', FLAG2,1)
+if ($flags2 == 2048) {
+    --echo nice,create conntain GTID success
+}
+CREATE TABLE tt  (  a int,  GTID varchar(20)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+--let $flags2= query_get_value( select  (flag2 & 2048) as FLAG2 from information_schema.innodb_tables where name='test/tt', FLAG2,1)
+if ($flags2 == 0) {
+    --echo nice, flags2 less then 2048
+}
+--echo # when gtid is not last column, no change flags2
+create table t8(a int, GTID bigint, c2 varchar(20));
+--let $flags2= query_get_value( select  (flag2 & 2048) as FLAG2 from information_schema.innodb_tables where name='test/t8', FLAG2,1)
+if ($flags2 == 0) {
+    --echo nice,flags2 not set
+}
+--echo # when gtid is not last column, no change flags2
+create table t88( GTID bigint);
+--let $flags2= query_get_value( select  (flag2 & 2048) as FLAG2 from information_schema.innodb_tables where name='test/t88', FLAG2,1)
+if ($flags2 == 0) {
+    --echo nice,flags2 not set
+}
+--echo # create table with gtid int
+drop table t88;
+create table t88(a int, GTID int);
+--let $flags2= query_get_value( select  (flag2 & 2048) as FLAG2 from information_schema.innodb_tables where name='test/t88', FLAG2,1)
+if ($flags2 == 0) {
+    --echo nice,flags2 not set
+}
+--echo # TEST THE ALTER TABLE 
+--echo # test alter table 
+create table t3(a int);
+insert into t3 values(1),(2),(3);
+alter table t3 add GTID bigint;
+--echo # check flags2 
+--let $flags2= query_get_value( select  (flag2 & 2048) as FLAG2 from information_schema.innodb_tables where name='test/t3', FLAG2,1)
+if ($flags2 == 2048) {
+    --echo nice,alter GTID add success
+}
+alter table t3 drop GTID ;
+--echo # check flags2 
+--let $flags2= query_get_value( select  (flag2 & 2048) as FLAG2 from information_schema.innodb_tables where name='test/t3', FLAG2,1)
+if ($flags2 == 0) {
+    --echo nice,alter GTID drop success
+}
+--echo # test alter table  INPLACE
+create table t4(a int);
+insert into t4 values(1),(2),(3);
+alter table t4 add GTID bigint , ALGORITHM=INPLACE;
+--echo # check flags2 
+--let $flags2= query_get_value( select  (flag2 & 2048) as FLAG2 from information_schema.innodb_tables where name='test/t4', FLAG2,1)
+if ($flags2 == 2048) {
+    --echo nice,alter GTID ALGORITHM=INPLACE add success
+}
+alter table t4 drop GTID , ALGORITHM=INPLACE;
+--echo # check flags2 
+--let $flags2= query_get_value( select  (flag2 & 2048) as FLAG2 from information_schema.innodb_tables where name='test/t4', FLAG2,1)
+if ($flags2 == 0) {
+    --echo nice,alter GTID ALGORITHM=INPLACE  drop success
+}
+--echo # test alter table  COPY
+create table t5(a int);
+insert into t5 values(1),(2),(3);
+alter table t5 add GTID bigint , ALGORITHM=COPY;
+--echo # check flags2 
+--let $flags2= query_get_value( select  (flag2 & 2048) as FLAG2 from information_schema.innodb_tables where name='test/t5', FLAG2,1)
+if ($flags2 == 2048) {
+    --echo nice,alter GTID ALGORITHM=COPY add  success
+}
+alter table t5 drop GTID , ALGORITHM=COPY;
+--echo # check flags2 
+--let $flags2= query_get_value( select  (flag2 & 2048) as FLAG2 from information_schema.innodb_tables where name='test/t5', FLAG2,1)
+if ($flags2 == 0) {
+    --echo nice,alter GTID ALGORITHM=COPY drop success
+}
+--echo # test alter table  INSTANT
+create table t6(a int);
+insert into t6 values(1),(2),(3);
+alter table t6 add GTID bigint , ALGORITHM=INSTANT ;
+--echo # check flags2 
+--let $flags2= query_get_value( select  (flag2 & 2048) as FLAG2 from information_schema.innodb_tables where name='test/t6', FLAG2,1)
+if ($flags2 == 2048) {
+    --echo nice,alter GTID ALGORITHM=INSTANT add success
+}
+--ERROR 1845
+alter table t6 drop GTID, ALGORITHM=INSTANT ;
+
+--echo # test alter table  DEFAULT
+create table t7(a int);
+insert into t7 values(1),(2),(3);
+alter table t7 add GTID bigint , ALGORITHM=DEFAULT ;
+--echo # check flags2 
+--let $flags2= query_get_value( select (flag2 & 2048) as FLAG2 from information_schema.innodb_tables where name='test/t7', FLAG2,1)
+if ($flags2 == 2048) {
+    --echo nice,alter GTID ALGORITHM=DEFAULT add success
+}
+alter table t7 drop GTID, ALGORITHM=DEFAULT ;
+--echo # check flags2 
+--let $flags2= query_get_value( select (flag2 & 2048) as FLAG2 from information_schema.innodb_tables where name='test/t7', FLAG2,1)
+if ($flags2 ==  0) {
+    --echo nice,alter GTID ALGORITHM=DEFAULT drop success
+}
+
+--echo # add two column
+alter table t7 add GTID bigint;
+alter table t7 add c2 int;
+--echo # check flags2 
+--let $flags2= query_get_value( select  (flag2 & 2048) as FLAG2 from information_schema.innodb_tables where name='test/t7', FLAG2,1)
+if ($flags2 == 0) {
+    --echo nice,alter GTID  t7 success
+}
+
+--echo rename to gtid
+create table t9(c1 int, c2 bigint);
+--let $flags2= query_get_value( select (flag2 & 2048) as FLAG2 from information_schema.innodb_tables where name='test/t9', FLAG2,1)
+if ($flags2 == 0) {
+    --echo nice, t9 do not has gtid column
+}
+alter table t9 RENAME COLUMN c2 to GTID;
+--let $flags2= query_get_value( select (flag2 & 2048) as FLAG2 from information_schema.innodb_tables where name='test/t9', FLAG2,1)
+if ($flags2 == 2048) {
+    --echo nice, t9  has gtid column now
+}
+alter table t9 RENAME COLUMN GTID to c22;
+--let $flags2= query_get_value( select (flag2 & 2048) as FLAG2 from information_schema.innodb_tables where name='test/t9', FLAG2,1)
+if ($flags2 == 0) {
+    --echo nice, t9  has no gtid column now
+}
+--echo modify gtid to other type
+alter table t9 RENAME COLUMN c22 to GTID;
+alter table t9 MODIFY   GTID varchar(200);
+--let $flags2= query_get_value( select (flag2 & 2048) as FLAG2 from information_schema.innodb_tables where name='test/t9', FLAG2,1)
+if ($flags2 == 0) {
+    --echo nice, t9  has no gtid column now
+}
+--echo # Connection con1:
+connect (con1,localhost,root,,);
+insert into t values(1,9); 
+insert into t values(2,10); 
+insert into t values(3,11); 
+insert into t values(4,12); 
+insert into t values(6,13); 
+insert into t values(7,20); 
+insert into t values(8,21);
+select * from t; 
+# 11, 13
+select /*+ SET_VAR(active_gtm_gtid_list='CwAAAAAAAAANAAAAAAAAAA==') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t;
+begin;
+--echo # update then delete ,should has 1, 9
+update t set GTID=21 where a = 1;
+delete from t where a = 1;
+select /*+ SET_VAR(active_gtm_gtid_list='CwAAAAAAAAANAAAAAAAAAA==') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t;
+commit;
+
+CREATE TABLE t2 (  a int,  GTID bigint) ENGINE=InnoDB;
+--echo  # test the self trans
+
+insert into t2 values(1,9); 
+insert into t2 values(2,10); 
+insert into t2 values(3,11); 
+insert into t2 values(4,12); 
+insert into t2 values(6,13); 
+insert into t2 values(7,20); 
+insert into t2 values(8,21);
+select * from t2;
+connection con1;
+begin;
+/*+GTID=13*/update t2 set GTID=13 where a = 1;
+select /*+ SET_VAR(active_gtm_gtid_list='CwAAAAAAAAANAAAAAAAAAA==') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t2;
+commit;
+
+--echo # empty gtmtid
+connection con1;
+begin;
+select /*+ SET_VAR(active_gtm_gtid_list=' ') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t2;
+commit;
+
+
+--echo # Connection default
+connection default;
+
+start TRANSACTION;
+--sleep 1
+--error 1412
+select /*+ SET_VAR(active_gtm_gtid_list='CwAAAAAAAAANAAAAAAAAAA==') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t2;
+commit;
+
+--echo # has the primary key
+truncate table t2;
+insert into t2 values(1,9); 
+insert into t2 values(2,10); 
+insert into t2 values(3,11); 
+insert into t2 values(4,12); 
+insert into t2 values(6,13); 
+insert into t2 values(7,20); 
+insert into t2 values(8,21);
+alter table t2 add primary key PI(a);
+select /*+ SET_VAR(active_gtm_gtid_list='CwAAAAAAAAANAAAAAAAAAA==') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t2;
+--echo # has secord primary key
+CREATE INDEX idx1 ON t (a);
+select /*+ SET_VAR(active_gtm_gtid_list='CwAAAAAAAAANAAAAAAAAAA==') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t where a = 1;
+
+--echo # use two session, one not commit, other select with gtmgtid
+connection default;
+begin;
+--send 
+/*+GTID=13*/update t2 set GTID=14 where a = 2;
+
+
+--reap
+connection con1;
+--sleep 1
+select /*+ SET_VAR(active_gtm_gtid_list='CwAAAAAAAAANAAAAAAAAAA==') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t where a = 2;
+connection default;
+commit;
+
+--echo # test set var error
+--error ER_BASE64_DECODE_ERROR
+select /*+ SET_VAR(active_gtm_gtid_list='A') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t;
+--error ER_BASE64_DECODE_ERROR
+select /*+ SET_VAR(active_gtm_gtid_list='AV') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t;
+select /*+ SET_VAR(active_gtm_gtid_list=' ') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t;
+
+--error ER_BASE64_DECODE_ERROR
+select /*+ SET_VAR(active_gtm_gtid_list='AAAA') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t;
+--error ER_BASE64_DECODE_ERROR
+select /*+ SET_VAR(active_gtm_gtid_list='~~~~') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t;
+--error ER_DISTRIBUTED_MVCC_ERROR
+select /*+ SET_VAR(active_gtm_gtid_list='CwAAAAAAAAANAAAAAAAAAA==') SET_VAR(next_gtm_gtid=10)*/ a, GTID from t;
+
+--echo "all row are same gtmgtid"
+begin;
+select * from t;
+update t set gtid=20;
+select * from t;
+select /*+ SET_VAR(active_gtm_gtid_list=' ') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t;
+commit;
+
+connection default;
+SET global transaction_isolation= @transaction_isolation_session_orig;
+set session transaction_isolation= @transaction_isolation_session_orig;
+--error ER_DISTRIBUTED_MVCC_ERROR
+select /*+ SET_VAR(active_gtm_gtid_list=' ') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t;
+DROP TABLE t,tt,t2,t3,t4, t5, t6,t7,t8, t88,t9;
+disconnect default;
+disconnect con1;

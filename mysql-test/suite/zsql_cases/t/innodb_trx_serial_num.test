@@ -1,0 +1,324 @@
+--source include/restart_mysqld.inc
+
+#
+# Test that transaction data is correctly "visualized" in
+# INFORMATION_SCHEMA.INNODB_TRX
+#
+
+
+--echo ##
+--echo ## prepare
+--echo ##
+Drop database if exists abczyy_test;
+Create database abczyy_test;
+Create table abczyy_test.tb1(a int key, b int);
+Create table abczyy_test.tb2(a int key, b int);
+Insert into abczyy_test.tb2(a,b) values(1,1),(2,2),(3,3),(4,4),(5,5),(6,6),(7,7),(8,8),(9,9);
+set global autocommit=1;
+sleep 1;
+
+-- source include/count_sessions.inc
+
+-- connect (con_trx,localhost,root,,)
+-- connect (con_verify_innodb_trx,localhost,root,,)
+
+
+--echo ##
+--echo ## Test 1.1 [comment format error] match char + error
+--echo ##
+-- connection con_trx
+/*TSN=mycase-000001*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(11,11);
+
+-- connection con_verify_innodb_trx
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+
+-- connection con_trx
+rollback;
+sleep 0.2;
+
+
+--echo ##
+--echo ## Test 1.2 [comment format error] match TSN error
+--echo ##
+-- connection con_trx
+/*+tsn=mycase-000001*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+
+-- connection con_verify_innodb_trx
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+
+-- connection con_trx
+rollback;
+sleep 0.2;
+
+
+--echo ##
+--echo ## Test 1.3 [comment format error] match char = error
+--echo ##
+-- connection con_trx
+/*+TSN:mycase-000001*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+
+-- connection con_verify_innodb_trx
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+
+-- connection con_trx
+rollback;
+sleep 0.2;
+
+
+--echo ##
+--echo ## Test 1.4 [comment format error] match long comment > MAX_TSN_LEN(32)
+--echo ##
+-- connection con_trx
+/*+TSN=mycase01234567890123456789-000001*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+
+-- connection con_verify_innodb_trx
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+
+-- connection con_trx
+rollback;
+sleep 0.2;
+
+
+--echo ##
+--echo ## Test 1.5 [comment format error] match empty comment
+--echo ##
+-- connection con_trx
+/*+TSN=*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+
+-- connection con_verify_innodb_trx
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+
+-- connection con_trx
+rollback;
+sleep 0.2;
+
+
+--echo ##
+--echo ## Test 1.6 [comment format error] match only space comment
+--echo ##
+-- connection con_trx
+/*+TSN=    */Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+
+-- connection con_verify_innodb_trx
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+
+-- connection con_trx
+rollback;
+sleep 0.2;
+
+
+--echo ##
+--echo ## Test 2.1 no special TSN comment
+--echo ##
+-- connection con_trx
+Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+
+-- connection con_verify_innodb_trx
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+
+-- connection con_trx
+rollback;
+sleep 0.2;
+
+
+--echo ##
+--echo ## Test 2.2 transaction comment
+--echo ##
+-- connection con_trx
+/*+TSN=mycase-000001*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+
+-- connection con_verify_innodb_trx
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+
+-- connection con_trx
+rollback;
+sleep 0.2;
+
+
+--echo ##
+--echo ## Test 2.3 transaction comment with max len(MAX_TSN_LEN)
+--echo ##
+-- connection con_trx
+/*+TSN=mycase-0123456789012345678901234*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+
+-- connection con_verify_innodb_trx
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+
+-- connection con_trx
+rollback;
+sleep 0.2;
+
+
+--echo ##
+--echo ## Test 2.4 STATEMENT comment
+--echo ##
+-- connection con_trx
+Start transaction;
+/*+TSN=mycase-000001*/Insert into abczyy_test.tb1(a,b) values(1,1);
+
+-- connection con_verify_innodb_trx
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+sleep 0.2;
+
+-- connection con_trx
+/*+TSN=mycase-000002*/Insert into abczyy_test.tb1(a,b) values(2,2);
+
+-- connection con_verify_innodb_trx
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+
+-- connection con_trx
+rollback;
+sleep 0.2;
+
+
+--echo ##
+--echo ## Test 2.5 mutli special comments
+--echo ##
+-- connection con_trx
+/*+TSN=mycase-000001*/Start transaction;
+/*+TSN=mycase-000002*/Insert into abczyy_test.tb1(a,b) values(1,1);
+
+-- connection con_verify_innodb_trx
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+
+-- connection con_trx
+rollback;
+sleep 0.2;
+
+
+--echo ##
+--echo ## Test 2.6 comment in the middle of sql
+--echo ##
+-- connection con_trx
+Start/*+TSN=mycase-000001*/ transaction;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+
+-- connection con_verify_innodb_trx
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+
+-- connection con_trx
+rollback;
+sleep 0.2;
+
+
+--echo ##
+--echo ## Test 2.7 comment in the end of sql
+--echo ##
+-- connection con_trx
+Start transaction/*+TSN=mycase-000001*/ ;
+Insert into abczyy_test.tb1(a,b) values(1,1);
+
+-- connection con_verify_innodb_trx
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+
+-- connection con_trx
+rollback;
+sleep 0.2;
+
+
+--echo ##
+--echo ## Test 2.8 start transaction commit the last trx
+--echo ##
+-- connection con_trx
+/*+TSN=mycase-000001*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(101,101);
+
+-- connection con_verify_innodb_trx
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+sleep 0.2;
+
+-- connection con_trx
+/*+TSN=mycase-000002*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(102,102);
+
+-- connection con_verify_innodb_trx
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+
+-- connection con_trx
+commit;
+sleep 0.2;
+
+
+--echo ##
+--echo ## Test 2.9 DDL commit the last trx
+--echo ##
+-- connection con_trx
+/*+TSN=mycase-000003*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(103,103);
+
+-- connection default
+/*+TSN=mycase-000004*/Start transaction;
+Insert into abczyy_test.tb1(a,b) values(104,104);
+
+-- connection con_verify_innodb_trx
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+sleep 0.2;
+
+-- connection con_trx
+-- send
+/*+TSN=mycase-000005*/alter table abczyy_test.tb1 engine=innodb;
+
+-- connection con_verify_innodb_trx
+sleep 0.2;
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+
+-- connection default
+commit;
+sleep 0.2;
+
+-- connection con_trx
+-- reap
+
+
+--echo ##
+--echo ## Test 2.10 auto_commit sql
+--echo ##
+-- connection con_trx
+/*+TSN=mycase-000001*/Start transaction;
+Update abczyy_test.tb2 set b = 11 where a=1;
+
+-- connection default
+-- send
+/*+TSN=mycase-000002*/Update abczyy_test.tb2 set b = 12 where a=1;
+
+-- connection con_verify_innodb_trx
+sleep 0.2;
+select TRX_SERIAL_NUM FROM INFORMATION_SCHEMA.INNODB_TRX where trx_mysql_thread_id!=0;
+
+-- connection con_trx
+commit;
+sleep 0.2;
+
+-- connection default
+-- reap
+
+
+--echo ##
+--echo ## Test 2.11 show create table
+--echo ##
+-- connection default
+Show create table information_schema.innodb_trx;
+Desc information_schema.innodb_trx;
+
+
+
+--echo ##
+--echo ## clear
+--echo ##
+-- connection default
+
+-- disconnect con_trx
+-- disconnect con_verify_innodb_trx
+
+Drop database if exists abczyy_test;
+
+-- source include/wait_until_count_sessions.inc

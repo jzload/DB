@@ -1,0 +1,99 @@
+#
+# Bug#30060690 MYSQLD CRASH WHEN ROLLBACK DURING PARALLEL READ
+#
+
+# Issue
+# =====
+# During parallel read, if the entire load table or 'insert into...select' is
+# rolled back when autocommit = 0 we hit an assertion.
+#
+# Fix
+# ===
+# The assertion is bogus as the point that the existing tree structure could be
+# changed during parallel read wasn't considered.
+
+# This test takes rather long time so let us run it only in --big-test mode
+--source include/big_test.inc
+--source include/have_debug.inc
+
+--disable_warnings
+DROP TABLE IF EXISTS t1;
+DROP TABLE IF EXISTS t2;
+--enable_warnings
+
+CREATE TABLE t1(a int primary key, b int, c varchar(2048), d varchar(2048), e varchar(2048));
+CREATE TABLE t2(a int primary key, b int, c varchar(2048), d varchar(2048), e varchar(2048));
+
+DELIMITER //;
+
+CREATE PROCEDURE sp1(a int, b int)
+BEGIN
+  declare var1 int;
+  declare var2 varchar(2048);
+  set var1=a;
+  set var2=repeat('a', 2048);
+  while var1 < b do
+    insert into t1 values(var1, var1, var2, var2, var2);
+    set var1=var1+1;
+  end while;
+END//
+
+DELIMITER ;//
+
+CALL sp1(1, 50000);
+
+connect(con1,localhost,root,,);
+connect(con2,localhost,root,,);
+
+connection con1;
+
+SET AUTOCOMMIT = 0;
+INSERT INTO t2 SELECT * FROM t1;
+
+connection con2;
+--send SELECT count(0) FROM t2;
+
+connection con1;
+ROLLBACK;
+
+connection con2;
+--reap
+
+
+##########################################################################
+# EC-YT:612004601149:MYSQLD CRASH WHEN Ctrl+c THE QUERY OF PARALLEL READ #
+##########################################################################
+
+# Issue
+# =====
+# When Ctrl+c or kill query of the parallel read 'SELECT COUNT(*) FROM t',
+# we hit an assertion that the mini-transaction (mtr) is not active. However,
+# the mtr is not committed and keeps active in this unexpected scene.
+
+#
+# Fix
+# ===
+# Commit the mtr once it is active before Parallel_reader::Ctx::traverse() exits
+# and remove the assertion.
+#
+
+connection con1;
+--send SELECT count(*) FROM t1;
+
+connection con2;
+SELECT ID FROM INFORMATION_SCHEMA.PROCESSLIST WHERE INFO = 'SELECT count(*) FROM t1' INTO @thread_id;
+KILL QUERY @thread_id;
+
+connection con1;
+--error ER_QUERY_INTERRUPTED
+--reap
+
+connection default;
+
+--disconnect con1
+--disconnect con2
+
+#cleanup
+DROP TABLE t1;
+DROP TABLE t2;
+DROP PROCEDURE sp1;

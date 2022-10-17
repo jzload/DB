@@ -1,0 +1,237 @@
+drop database if exists test_nvl_db;
+Warnings:
+Note	1008	Can't drop database 'test_nvl_db'; database doesn't exist
+create database test_nvl_db;
+use test_nvl_db;
+drop table if exists test_nvl_db.test_nvl;
+Warnings:
+Note	1051	Unknown table 'test_nvl_db.test_nvl'
+create table if not exists test_nvl_db.test_nvl
+(
+id         int not null primary key,
+id1        decimal(3, 2),
+id2        int,
+varchar1   varchar(80),
+timestamp1 timestamp,
+enum1      enum('enum_str'),
+set1       set('set_str'),
+blob1      blob
+);
+start transaction;
+insert into test_nvl (id, id1, id2, varchar1, timestamp1,enum1, set1, blob1) values
+(1, 1.11, 1, '语文', '2020-04-17 10:35:59', 'enum_str', 'set_str', 5),
+(2, 2.22, 2, '数学', '2020-04-17 10:35:59', 'enum_str', 'set_str', 5),
+(3, 3.33, 3, '几何', '2020-04-17 10:35:59', 'enum_str', 'set_str', 5),
+(5, 5.55, 5, '英语', '2020-04-17 10:35:59', 'enum_str', 'set_str', 5),
+(6,6.01, 200, '数学', '2020-04-17 10:35:59', 'enum_str', 'set_str', 5);
+insert into test_nvl (id, id2, varchar1) values (4, 4, null);
+commit;
+select nvl from dual;
+ERROR 42S22: Unknown column 'nvl' in 'field list'
+select nvl() from dual;
+ERROR 42000: Incorrect parameter count in the call to native function 'nvl'
+select nvl(1) from dual;
+ERROR 42000: Incorrect parameter count in the call to native function 'nvl'
+select nvl(1,) from dual;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ') from dual' at line 1
+select nvl(1,2,) from dual;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ') from dual' at line 1
+select nvl(1,2,3) from dual;
+ERROR 42000: Incorrect parameter count in the call to native function 'nvl'
+select nvl(NULL, 1) from dual;
+nvl(NULL, 1)
+1
+select nvl(NULL, 'X') from dual;
+nvl(NULL, 'X')
+X
+select nvl(NULL, NULL) from dual;
+nvl(NULL, NULL)
+NULL
+select nvl('', 1) from dual;
+nvl('', 1)
+1
+select nvl('', 'X') from dual;
+nvl('', 'X')
+X
+select nvl('', '') from dual;
+nvl('', '')
+NULL
+select id1,id2,nvl(timestamp1,id2) from test_nvl order by id;
+id1	id2	nvl(timestamp1,id2)
+1.11	1	2020-04-17 10:35:59
+2.22	2	2020-04-17 10:35:59
+3.33	3	2020-04-17 10:35:59
+NULL	4	4
+5.55	5	2020-04-17 10:35:59
+6.01	200	2020-04-17 10:35:59
+select id1,id2,nvl(enum1,id2) from test_nvl order by id;
+id1	id2	nvl(enum1,id2)
+1.11	1	enum_str
+2.22	2	enum_str
+3.33	3	enum_str
+NULL	4	4
+5.55	5	enum_str
+6.01	200	enum_str
+select id1,id2,nvl(set1,id2) from test_nvl order by id;
+id1	id2	nvl(set1,id2)
+1.11	1	set_str
+2.22	2	set_str
+3.33	3	set_str
+NULL	4	4
+5.55	5	set_str
+6.01	200	set_str
+select id1,id2,nvl(blob1,id2) from test_nvl order by id;
+id1	id2	nvl(blob1,id2)
+1.11	1	5
+2.22	2	5
+3.33	3	5
+NULL	4	4
+5.55	5	5
+6.01	200	5
+select nvl('~!@#$%^&*()', 2) from dual;
+nvl('~!@#$%^&*()', 2)
+~!@#$%^&*()
+select nvl(NULL, '~!@#$%^&*()') from dual;
+nvl(NULL, '~!@#$%^&*()')
+~!@#$%^&*()
+select id1,id2,nvl(id1,id2) from test_nvl order by id;
+id1	id2	nvl(id1,id2)
+1.11	1	1.11
+2.22	2	2.22
+3.33	3	3.33
+NULL	4	4.00
+5.55	5	5.55
+6.01	200	6.01
+select id1,varchar1,nvl(id1,varchar1) from test_nvl order by id;
+id1	varchar1	nvl(id1,varchar1)
+1.11	语文	1.11
+2.22	数学	2.22
+3.33	几何	3.33
+NULL	NULL	NULL
+5.55	英语	5.55
+6.01	数学	6.01
+select id1,varchar1,nvl(varchar1,id1) from test_nvl order by id;
+id1	varchar1	nvl(varchar1,id1)
+1.11	语文	语文
+2.22	数学	数学
+3.33	几何	几何
+NULL	NULL	NULL
+5.55	英语	英语
+6.01	数学	数学
+select id1,id2,nvl((id1-2*id2),id2*id1) from test_nvl order by id;
+id1	id2	nvl((id1-2*id2),id2*id1)
+1.11	1	-0.89
+2.22	2	-1.78
+3.33	3	-2.67
+NULL	4	NULL
+5.55	5	-4.45
+6.01	200	-393.99
+select id1,id2,nvl(abs(id1-2*id2),id2*id1) as nvl_result from test_nvl order by id;
+id1	id2	nvl_result
+1.11	1	0.89
+2.22	2	1.78
+3.33	3	2.67
+NULL	4	NULL
+5.55	5	4.45
+6.01	200	393.99
+select id1,id2,nvl(length(id1),abs(id2)) from test_nvl order by id;
+id1	id2	nvl(length(id1),abs(id2))
+1.11	1	4
+2.22	2	4
+3.33	3	4
+NULL	4	4
+5.55	5	4
+6.01	200	4
+select id1,id2,abs(nvl(id1,id2)) from test_nvl order by id;
+id1	id2	abs(nvl(id1,id2))
+1.11	1	1.11
+2.22	2	2.22
+3.33	3	3.33
+NULL	4	4.00
+5.55	5	5.55
+6.01	200	6.01
+select id1,id2 from (select id,id1,id2,nvl(id1,id2) from test_nvl) tmp order by id;
+id1	id2
+1.11	1
+2.22	2
+3.33	3
+NULL	4
+5.55	5
+6.01	200
+select id1,id2,nvl_result from (select id,id1,id2,nvl(id1,id2) as nvl_result from test_nvl) tmp order by id;
+id1	id2	nvl_result
+1.11	1	1.11
+2.22	2	2.22
+3.33	3	3.33
+NULL	4	4.00
+5.55	5	5.55
+6.01	200	6.01
+select id1,id2 from (select *,nvl(id1,id2),id as nvl_result from test_nvl) tmp order by id;
+id1	id2
+1.11	1
+2.22	2
+3.33	3
+NULL	4
+5.55	5
+6.01	200
+select id1,id2 from (select id,id1,id2,nvl(length(id1),abs(id2)) from test_nvl order by id) tmp order by id;
+id1	id2
+1.11	1
+2.22	2
+3.33	3
+NULL	4
+5.55	5
+6.01	200
+select id1,id2 from (select id,id1,id2,abs(nvl(-id1,id2)) from test_nvl order by id) tmp order by id;
+id1	id2
+1.11	1
+2.22	2
+3.33	3
+NULL	4
+5.55	5
+6.01	200
+select id1,id2 from (select id,id1,id2,nvl((id1-2*id2),id2*id1) from test_nvl order by id)tmp order by id;
+id1	id2
+1.11	1
+2.22	2
+3.33	3
+NULL	4
+5.55	5
+6.01	200
+select id1,id2 from (select id,id1,id2,nvl(abs(id1-2*id2),id2*id1) as nvl_result from test_nvl order by id)tmp order by id;
+id1	id2
+1.11	1
+2.22	2
+3.33	3
+NULL	4
+5.55	5
+6.01	200
+select id1,id2 from test_nvl where id in (select nvl(id1,id2) from test_nvl) order by id;
+id1	id2
+NULL	4
+select id1,id2 from test_nvl where id in (select nvl(id1,id2) as nvl_result from test_nvl) order by id;
+id1	id2
+NULL	4
+select id1,id2 from test_nvl where id in (select id1,id2,nvl(length(id1),abs(id2)) from test_nvl) order by id;
+ERROR 21000: Operand should contain 1 column(s)
+select id1,id2 from test_nvl where id in (select abs(nvl(-id1,id2)) from test_nvl) order by id;
+id1	id2
+NULL	4
+select id1,id2 from test_nvl where id in (select -nvl((id1-2*id2),id2*id1) from test_nvl) order by id;
+id1	id2
+select id1,id2 from test_nvl where id in (select nvl(abs(id1-2*id2),id2*id1) from test_nvl) order by id;
+id1	id2
+select id1,id2 from test_nvl where id = nvl(id1,id2) order by id;
+id1	id2
+NULL	4
+select id1,id2 from test_nvl where id = nvl(length(id1),abs(id2)) order by id;
+id1	id2
+NULL	4
+select id1,id2 from test_nvl where id = abs(nvl(-id1,id2)) order by id;
+id1	id2
+NULL	4
+select id1,id2 from test_nvl where id = nvl(-(id1-2*id2),id2*id1) order by id;
+id1	id2
+select id1,id2 from test_nvl where id = abs(nvl((id1-2*id2),id2*id1)) order by id;
+id1	id2
+drop database if exists test_nvl_db;

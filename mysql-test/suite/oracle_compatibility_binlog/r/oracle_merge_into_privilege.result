@@ -1,0 +1,63 @@
+create database merge_db;
+use merge_db;
+create table tm1 (a int, b int);
+create table tm2 (a int, b int);
+create table tm3 (a int, b int);
+insert into tm1 values (1,1),(2,2);
+insert into tm2 values (1,2),(2,1),(3,3),(4,4);
+insert into tm3 values (1,4),(2,3),(3,1),(4,2);
+CREATE USER dummy@localhost;
+GRANT SELECT ON merge_db.tm1 TO dummy@localhost;
+GRANT SELECT ON merge_db.tm2 TO dummy@localhost;
+FLUSH PRIVILEGES;
+SET @old_lock_wait_timeout=@@global.lock_wait_timeout;
+SET @old_innodb_lock_wait_timeout=@@global.innodb_lock_wait_timeout;
+SET @@global.lock_wait_timeout=1;
+SET @@global.innodb_lock_wait_timeout=1;
+merge into merge_db.tm1 using merge_db.tm2 on(merge_db.tm1.a = merge_db.tm2.a) when matched then update set merge_db.tm1.b=merge_db.tm2.b when not matched then insert values (merge_db.tm2.a,merge_db.tm2.b);
+ERROR 42000: INSERT, UPDATE command denied to user 'dummy'@'localhost' for table 'tm1'
+merge into merge_db.tm1 using merge_db.tm2 on(merge_db.tm1.a = merge_db.tm2.a) when not matched then insert values (merge_db.tm2.a,merge_db.tm2.b);
+ERROR 42000: INSERT command denied to user 'dummy'@'localhost' for table 'tm1'
+merge into merge_db.tm1 using merge_db.tm2 on(merge_db.tm1.a = merge_db.tm2.a) when matched then update set merge_db.tm1.b=merge_db.tm2.b;
+ERROR 42000: UPDATE command denied to user 'dummy'@'localhost' for table 'tm1'
+GRANT UPDATE ON merge_db.tm1 TO dummy@localhost;
+FLUSH PRIVILEGES;
+merge into merge_db.tm1 using merge_db.tm2 on(merge_db.tm1.a = merge_db.tm2.a) when matched then update set merge_db.tm1.b=merge_db.tm2.b when not matched then insert values (merge_db.tm2.a,merge_db.tm2.b);
+ERROR 42000: INSERT command denied to user 'dummy'@'localhost' for table 'tm1'
+merge into merge_db.tm1 using merge_db.tm2 on(merge_db.tm1.a = merge_db.tm2.a) when not matched then insert values (merge_db.tm2.a,merge_db.tm2.b);
+ERROR 42000: INSERT command denied to user 'dummy'@'localhost' for table 'tm1'
+merge into merge_db.tm1 using merge_db.tm2 on(merge_db.tm1.a = merge_db.tm2.a) when matched then update set merge_db.tm1.b=merge_db.tm2.b;
+merge into (select * from merge_db.tm1) t using merge_db.tm2 on(t.a = merge_db.tm2.a) when matched then update set t.b=merge_db.tm2.b when not matched then insert values (merge_db.tm2.a,merge_db.tm2.b);
+ERROR 42000: INSERT command denied to user 'dummy'@'localhost' for table 'tm1'
+REVOKE UPDATE ON merge_db.tm1 FROM dummy@localhost;
+GRANT INSERT ON merge_db.tm1 TO dummy@localhost;
+FLUSH PRIVILEGES;
+merge into merge_db.tm1 using merge_db.tm2 on(merge_db.tm1.a = merge_db.tm2.a) when matched then update set merge_db.tm1.b=merge_db.tm2.b when not matched then insert values (merge_db.tm2.a,merge_db.tm2.b);
+ERROR 42000: UPDATE command denied to user 'dummy'@'localhost' for table 'tm1'
+merge into merge_db.tm1 using merge_db.tm2 on(merge_db.tm1.a = merge_db.tm2.a) when not matched then insert values (merge_db.tm2.a,merge_db.tm2.b);
+merge into merge_db.tm1 using merge_db.tm2 on(merge_db.tm1.a = merge_db.tm2.a) when matched then update set merge_db.tm1.b=merge_db.tm2.b;
+ERROR 42000: UPDATE command denied to user 'dummy'@'localhost' for table 'tm1'
+merge into (select * from merge_db.tm1) t using merge_db.tm2 on(t.a = merge_db.tm2.a) when matched then update set t.b=merge_db.tm2.b when not matched then insert values (merge_db.tm2.a,merge_db.tm2.b);
+ERROR 42000: UPDATE command denied to user 'dummy'@'localhost' for table 'tm1'
+GRANT INSERT,UPDATE,SELECT ON merge_db.tm1 TO dummy@localhost;
+FLUSH PRIVILEGES;
+delete from tm1;
+insert into tm2 values (1,2),(2,1),(3,3),(4,4);
+merge into merge_db.tm1 using merge_db.tm2 on(merge_db.tm1.a = merge_db.tm2.a) when matched then update set merge_db.tm1.b=merge_db.tm2.b when not matched then insert values (merge_db.tm2.a,merge_db.tm2.b);
+merge into (select * from merge_db.tm1) t using merge_db.tm2 on(t.a = merge_db.tm2.a) when matched then update set t.b=merge_db.tm2.b when not matched then insert values (merge_db.tm2.a,merge_db.tm2.b);
+merge into merge_db.tm1 using (select tm2.b a ,tm3.b b from merge_db.tm2 join merge_db.tm3 on tm2.a=tm3.a)dt on(merge_db.tm1.a = dt.a) when matched then update set merge_db.tm1.b=dt.b when not matched then insert values (dt.a,dt.b);
+ERROR 42000: SELECT command denied to user 'dummy'@'localhost' for table 'tm3'
+create view merge_db.v1 as select * from merge_db.tm1;
+insert into merge_db.v1 values (1,1);
+merge into merge_db.v1 using merge_db.tm2 on(v1.a = merge_db.tm2.a) when matched then update set v1.b=merge_db.tm2.b when not matched then insert values (merge_db.tm2.a,merge_db.tm2.b);
+ERROR 42000: SELECT, INSERT, UPDATE command denied to user 'dummy'@'localhost' for table 'v1'
+GRANT INSERT,UPDATE,SELECT ON merge_db.v1 TO dummy@localhost;
+REVOKE INSERT,UPDATE,SELECT ON merge_db.tm1 FROM dummy@localhost;
+FLUSH PRIVILEGES;
+delete from tm1;
+insert into tm2 values (1,2),(2,1),(3,3),(4,4);
+merge into merge_db.v1 using merge_db.tm2 on(v1.a = merge_db.tm2.a) when matched then update set v1.b=merge_db.tm2.b when not matched then insert values (merge_db.tm2.a,merge_db.tm2.b);
+DROP USER dummy@localhost;
+drop database if exists merge_db;
+SET @@global.lock_wait_timeout=@old_lock_wait_timeout;
+SET @@global.innodb_lock_wait_timeout=@old_innodb_lock_wait_timeout;

@@ -1,0 +1,97 @@
+# parse_mode: the way DB parses queries
+# value 1: mysql 2: oracle
+
+--source include/have_nodebug.inc
+
+let $initial_timeout=`select @@innodb_lock_wait_timeout`;
+set global innodb_lock_wait_timeout=1;
+let $initial_lock_wait_timeout=`select @@lock_wait_timeout`;
+set global lock_wait_timeout=1;
+
+
+connect (a,localhost,root,,);
+connect (b,localhost,root,,);
+
+connection a;
+let $session_parse_mode_a=`select @@parse_mode`;
+set parse_mode=2;
+select @@innodb_lock_wait_timeout;
+
+connection b;
+let $session_parse_mode_b=`select @@parse_mode`;
+set parse_mode=2;
+let $connection_b_id=`SELECT CONNECTION_ID()`;
+
+
+--echo ###################################################################
+--echo # Test Case 13: single table        alter and then select for update
+--echo ###################################################################
+connection default;
+delimiter $$;
+
+drop procedure if exists myp3;
+create procedure myp3 (in num int)
+begin
+declare x int default 0;
+declare str blob;
+declare i int default 0;
+while i < num do
+    set x = 0;
+    set str="insert into tx(id) values";
+    while x < 5000 do
+        set str = concat(str, "(", x, "),");
+        set x=x+1;
+    end while;
+    set @s = concat(str, "(", x, ")");
+    prepare stmt from @s;
+    execute stmt;
+    DEALLOCATE prepare stmt;
+    set i=i+1;
+end while;  
+end
+$$
+delimiter ;$$
+
+drop table if exists tx;
+create table tx(id int, name varchar(20) default 'abc');
+
+# Takes about 11 seconds (release)
+call myp3(80); 
+
+
+connection a;
+# Takes about 3 seconds  LOCK_TYPE:SHARED_UPGRADABLE (release)
+--send
+alter table tx ALGORITHM=copy, modify name varchar(1034) not null default 'xxx';
+ 
+connection b;
+# Make sure a is executed first
+select count(*) from tx;
+--error ER_LOCK_WAIT_TIMEOUT
+select id from tx where id < 10 for update of id;
+
+connection a;
+reap;
+
+drop procedure if exists myp3;
+drop table if exists tx;
+
+
+--echo ###################################################################
+--echo # end test case
+--echo ###################################################################
+connection a;
+--replace_result $session_parse_mode_a <session_parse_mode_a>
+eval set parse_mode=$session_parse_mode_a;
+
+connection b;
+--replace_result $session_parse_mode_b <session_parse_mode_b>
+eval set parse_mode=$session_parse_mode_b;
+
+connection default;
+
+--replace_result $initial_timeout <initial_timeout>
+eval set global innodb_lock_wait_timeout=$initial_timeout;
+
+--replace_result $initial_lock_wait_timeout <initial_lock_wait_timeout>
+eval set global lock_wait_timeout=$initial_lock_wait_timeout;

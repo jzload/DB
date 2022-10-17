@@ -1,0 +1,43 @@
+/** @file include/row0gtmrow.ic
+ General row routines for gtmgtid
+
+ Created 6/30/2020 ke yuchang
+ *******************************************************/
+#include <cmath>
+#include <cstdint>
+
+#include "dict0dict.h"
+#include "rem0rec.h"
+#include "trx0undo.h"
+
+/** Reads the gtmgtid id field from a clustered index record.
+ @return value of the field */
+UNIV_INLINE
+ulonglong row_get_rec_gtmgtid(
+    const rec_t *rec,          /*!< in: record */
+    const dict_index_t *index, /*!< in: clustered index */
+    const ulint *offsets)      /*!< in: rec_get_offsets(rec, index) */
+{
+  ulint len;
+
+  ut_ad(rec);
+  //imposiable ,just resolve kw error
+  if (!rec) return 0;
+
+  ut_ad(index->is_clustered());
+  ut_ad(rec_offs_validate(rec, index, offsets));
+
+  if (!index->table || 
+      !DICT_TF2_FLAG_IS_SET(index->table, DICT_TF2_HAS_GTID)) return 0;
+
+  if (rec_offs_nth_sql_null(offsets, index->n_fields - 1)) {
+    /* is null  */
+    return 0;
+  }
+
+  dict_field_t *dfield = index->get_field(index->n_fields - 1);
+  ibool unsigned_type = (dfield->col->prtype & DATA_UNSIGNED);
+  const byte *data = rec_get_nth_field(rec, offsets, index->n_fields - 1, &len);
+
+  return row_parse_int(data, len, dfield->col->mtype, unsigned_type);
+}

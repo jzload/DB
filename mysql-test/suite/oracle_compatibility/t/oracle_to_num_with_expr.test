@@ -1,0 +1,303 @@
+--echo ---------------------------------------------------------------
+--echo ## Test to_number func used in expr for oracle  compatibility
+--echo purpose to test the decimal and precision
+--echo ---------------------------------------------------------------
+set @@sql_mode = STRICT_TRANS_TABLES;
+select @@sql_mode;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_1: test '+' result 12.1
+--echo ---------------------------------------------------------------
+select 1+to_number('11.1', '99D9') as result from dual;
+
+select 1.123451 + to_number('99.999') as result from dual;
+
+select 1.12345 + to_number('99.999999999') as result from dual;
+
+select 1+(1+to_number('10.1', '99D9')) as result from dual;
+
+select 1+to_number(-111111111111111111111111111111111111.12345678901234567890123456789) as result from dual;
+
+select -111111111111111111111111111111111111.12345678901234567890123456789 + 1 as result from dual;
+
+select 1+to_number(-999999999099999999999999999999999999.12345678901234567890123456789) as result from dual;
+
+select -999999999099999999999999999999999999.12345678901234567890123456789 + 1 as result from dual;
+
+select 111111111111111111111111111111111111.12345678901234567890123456789 +1 as result from dual;
+
+select 999999999999999999999999999999999999.12345678901234567890123456789 +1 as result from dual;
+
+select 9999999999999999999999999999999999999999999999999.12345678901234567890123456789 +1 as result from dual;
+
+select 10 +((1+to_number('11.123', '99D999')) -10) as result from dual;
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_2: test '-' result 8.89
+--echo ---------------------------------------------------------------
+select 20 - to_number('11.11', '99D99') as result from dual;
+
+select (20 - to_number('11.11', '99D99')) * 10 as result from dual;
+
+select 10 + ((20 - to_number('11.11', '99D99')) * 10) as result from dual;
+
+select 10 + ((20 - 11.11) * 10) as result from dual;
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_3: test '/' result 2.8002
+--echo ---------------------------------------------------------------
+select 20/to_number('11.11', '99D99') +1 as result from dual;
+
+select 20/11.11 +1 as result from dual;
+
+select to_number('20')/to_number('11.11', '99D99') +1 as result from dual;
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_4: test '*' result 223.20
+--echo ---------------------------------------------------------------
+select 20*to_number('11.11', '99D99') +1 as result from dual;
+
+select 20*11.11 +1 as result from dual;
+
+select to_number('10') *(20*to_number('11.11', '99D99') +1) as result from dual;
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_5: test '%' result 9.89
+--echo ---------------------------------------------------------------
+select 20%to_number('11.11', '99D99') +1 as result from dual;
+
+select 20%11.11 +1 as result from dual;
+
+select (20%to_number('11.11', '99D99') +1) -10 as result from dual;
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_6: test '-' neg result -1.11
+--echo ---------------------------------------------------------------
+select -to_number('11.11', '99D99') + 10 as result from dual;
+
+select 10 * (-to_number('11.11', '99D99')) + 10 as result from dual;
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_7: test ABS() result 21.11
+--echo ---------------------------------------------------------------
+select ABS(-to_number('11.11', '99D99')) + 10 as result from dual;
+
+select (ABS(to_number('11.11', '99D99')) + 10) +0.001 as result from dual;
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_8: test ROUND() result 21.1, 21, 21.11000
+--echo ---------------------------------------------------------------
+select round(to_number('11.11', '99D99'), 1) + 10 as result from dual;
+
+select round(11.11, 1) + 10 as result from dual;
+
+select round(to_number('11.11', '99D99')) + 10 as result from dual;
+
+select round(11.11) + 10 as result from dual;
+
+select round(to_number('11.11', '99D99'), 5) + 10 as result from dual;
+
+select round(11.11, 5) + 10 as result from dual;
+
+select -(round(to_number('11.11', '99D99'), 5)) + 10 as result from dual;
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_9: test CEIL() result  22, -1
+--echo ---------------------------------------------------------------
+select CEIL(to_number('11.11', '99D99')) + 10 as result from dual;
+
+select CEIL(11.11) + 10 as result from dual;
+
+select CEIL(to_number('-11.11', 'S99D99')) + 10 as result from dual;
+
+select CEIL(-11.11) + 10 as result from dual;
+
+select (CEIL(to_number('-11', 'S99D99')) + 10) +0.1 as result from dual;
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_10: test CEILING() result  22, -1
+--echo ---------------------------------------------------------------
+select CEILING(to_number('11.11', '99D99')) + 10 as result from dual;
+
+select CEILING(to_number('-11.11', 'S99D99')) + 10 as result from dual;
+
+select -CEILING(to_number('-11.11', 'S99D99')) + 10 as result from dual;
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_11: test FLOOR() result  21, -2
+--echo ---------------------------------------------------------------
+select FLOOR(to_number('11.11', '99D99')) + 10 as result from dual;
+
+select FLOOR(to_number('-11.11', 'S99D99')) + 10 as result from dual;
+
+select (FLOOR(to_number('-11.11', 'S99D99')) + 10) *0.001 as result from dual;
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_12: test LEAST() result 21.11, 20.00
+--echo ---------------------------------------------------------------
+select LEAST(to_number('11.11', '99D99'), 20) + 10 as result from dual;
+
+select LEAST(11.11, 20) + 10 as result from dual;
+
+select LEAST(to_number('11.11', '99D99'), 10) + 10 as result from dual;
+
+select LEAST(11.11, 10) + 10 as result from dual;
+
+select LEAST(to_number('11.11', '99D99'), 10.1234) + 10 as result from dual;
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_13: test GREATEST() result 21.11, 30.00
+--echo ---------------------------------------------------------------
+select GREATEST(to_number('11.11', '99D99'), 10) + 10 as result from dual;
+
+select GREATEST(11.11, 10) + 10 as result from dual;
+
+select GREATEST(to_number('11.11', '99D99'), 20) + 10 as result from dual;
+
+select GREATEST(to_number('11.11', '99D99'), 20.1234) + 10 as result from dual;
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_14: test COALESCE() result 21.11, 30.00
+--echo ---------------------------------------------------------------
+select COALESCE(to_number('11.11', '99D99'), 20) + 10 as result from dual;
+
+select COALESCE(11.11, 20) + 10 as result from dual;
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_15: test IFNULL() result 21.11
+--echo ---------------------------------------------------------------
+select IFNULL(to_number('11.11', '99D99'), 20) + 10 as result from dual;
+
+select IFNULL(11.11, 20) + 10 as result from dual;
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_16: test NVL() result 21.11
+--echo ---------------------------------------------------------------
+select NVL(to_number('11.11', '99D99'), 20) + 10 as result from dual;
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_17: test ANY_VALUE() result 21.11
+--echo ---------------------------------------------------------------
+select ANY_VALUE(to_number('11.11', '99D99')) + 10 as result from dual;
+
+select ANY_VALUE(11.11) + 10 as result from dual;
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_18: test case when, Not all same as the original.
+--echo ---------------------------------------------------------------
+select (case 1 when 1 then to_number('-11.11') else to_number('11.1111') end) as result from dual;
+
+select (case 1 when 1 then -11.11 else 11.1111 end) as result from dual;
+
+select (case 1 when 1 then to_number('-11.11') else to_number('11.1111') end) + 1 as result from dual;
+
+select (case 1 when 1 then -11.11 else 11.1111 end) + 1 as result from dual;
+
+select 10*((case 1 when 1 then to_number('-11.11') else to_number('11.1111') end) + 1) as result from dual;
+
+select 10*((case 1 when 1 then -11.11 else 11.1111 end) + 1) as result from dual;
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_19: test NULLIF.
+--echo ---------------------------------------------------------------
+select NULLIF(to_number('-11.11'), to_number('11.111')) as result from dual;
+
+select NULLIF(-11.11, 11.111) as result from dual;
+
+select NULLIF(to_number('-11.11'), to_number('11.111')) + 1 as result from dual;
+
+select NULLIF(-11.11, 11.111) + 1 as result from dual;
+
+select 10 * (NULLIF(to_number('-11.11'), to_number('11.111')) + 1) as result from dual;
+
+select 10 * (NULLIF(-11.11, 11.111) + 1) as result from dual;
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_20: test IF, Not all same as the original.
+--echo ---------------------------------------------------------------
+select IF(1, to_number('-11.11'), to_number('11.11')) as result from dual;
+
+select IF(1, -11.11, 11.111) as result from dual;
+
+select IF(1, to_number('-11.11'), to_number('11.111')) -10 as result from dual;
+
+select IF(1, -11.11, 11.111) -10 as result from dual;
+
+select 10 * (IF(1, to_number('-11.11'), to_number('11.111')) -10) as result from dual;
+
+select 10 * (IF(1, -11.11, 11.111) -10) as result from dual;
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_21: test SQRT.
+--echo ---------------------------------------------------------------
+select SQRT(to_number('11.11')) as result from dual;
+
+select SQRT(11.11) as result from dual;
+
+select SQRT(to_number('1.44')) as result from dual;
+
+select SQRT(1.44) as result from dual;
+
+select SQRT(to_number('1.44')) +1 as result from dual;
+
+select SQRT(1.44)+1 as result from dual;
+
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_22: test CAST/CONVERT.
+--echo ---------------------------------------------------------------
+select CAST(to_number('11.11') AS DECIMAL) as result from dual;
+
+select CAST(11.11 AS DECIMAL) as result from dual;
+
+select CAST(to_number('11.11') AS DECIMAL(10,5)) +1 as result from dual;
+
+select CAST(11.11 AS DECIMAL(10,5)) +1 as result from dual;
+
+select CONVERT(to_number('11.11'), DECIMAL(6,3)) -1 as result from dual;
+
+select CONVERT(11.11, DECIMAL(6,3)) -1 as result from dual;
+
+select CONVERT(to_number('-11.11'), DECIMAL) -1 as result from dual;
+
+select CONVERT(-11.11, DECIMAL) -1 as result from dual;
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_23: test SUM. TODO: BUG: will loss the precision of to_number result
+--echo ---------------------------------------------------------------
+select SUM(to_number('11.11')) as result from dual;
+
+select SUM(to_number('11.11')) +1 as result from dual;
+
+select SUM(11.11) +1 as result from dual;
+
+
+
+
+
+
+--echo ---------------------------------------------------------------
+--echo ## End test to_number function with other functions
+--echo ---------------------------------------------------------------

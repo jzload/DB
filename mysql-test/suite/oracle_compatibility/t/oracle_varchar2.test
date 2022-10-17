@@ -1,0 +1,292 @@
+#
+# Test: Data type - VARCHAR2
+#
+# Syntax:
+#    VARCHAR2(size [BYTE | CHAR])
+#
+
+###################################################################
+#           Check system variable: nls_length_semantics           #
+###################################################################
+## session level
+select @@nls_length_semantics, @@session.nls_length_semantics, @@local.nls_length_semantics, @@global.nls_length_semantics;
+
+set nls_length_semantics = 0;
+select @@nls_length_semantics, @@session.nls_length_semantics, @@local.nls_length_semantics, @@global.nls_length_semantics;
+
+set nls_length_semantics = 1;
+select @@nls_length_semantics, @@session.nls_length_semantics, @@local.nls_length_semantics, @@global.nls_length_semantics;
+
+set nls_length_semantics = 'BYTE';
+select @@nls_length_semantics, @@session.nls_length_semantics, @@local.nls_length_semantics, @@global.nls_length_semantics;
+
+set nls_length_semantics = 'CHAR';
+select @@nls_length_semantics, @@session.nls_length_semantics, @@local.nls_length_semantics, @@global.nls_length_semantics;
+
+--error ER_WRONG_VALUE_FOR_VAR
+set nls_length_semantics = -1;
+--error ER_WRONG_VALUE_FOR_VAR
+set nls_length_semantics = 2;
+--error ER_WRONG_VALUE_FOR_VAR
+set nls_length_semantics = 'BYTE1';
+--error ER_WRONG_VALUE_FOR_VAR
+set nls_length_semantics = 'CHAR1';
+
+## global level
+set @@global.nls_length_semantics = 0;
+select @@nls_length_semantics, @@session.nls_length_semantics, @@local.nls_length_semantics, @@global.nls_length_semantics;
+
+set @@global.nls_length_semantics = 1;
+select @@nls_length_semantics, @@session.nls_length_semantics, @@local.nls_length_semantics, @@global.nls_length_semantics;
+
+set @@global.nls_length_semantics = 'BYTE';
+select @@nls_length_semantics, @@session.nls_length_semantics, @@local.nls_length_semantics, @@global.nls_length_semantics;
+
+set @@global.nls_length_semantics = 'CHAR';
+select @@nls_length_semantics, @@session.nls_length_semantics, @@local.nls_length_semantics, @@global.nls_length_semantics;
+
+--error ER_WRONG_VALUE_FOR_VAR
+set @@global.nls_length_semantics = -1;
+--error ER_WRONG_VALUE_FOR_VAR
+set @@global.nls_length_semantics = 2;
+--error ER_WRONG_VALUE_FOR_VAR
+set @@global.nls_length_semantics = 'BYTE1';
+--error ER_WRONG_VALUE_FOR_VAR
+set @@global.nls_length_semantics = 'CHAR1';
+
+###################################################################
+#                   Check date type VARCHAR2                      #
+###################################################################
+--disable_warnings
+DROP DATABASE IF EXISTS test_varchar2;
+--enable_warnings
+CREATE DATABASE test_varchar2;
+USE test_varchar2;
+
+####################### test VARCHAR2(size) #######################
+# default length semantics: BYTE
+set @@nls_length_semantics = 'BYTE';
+CREATE TABLE t1(a int primary key, b varchar2(8)) default charset = utf8mb4;
+SHOW CREATE TABLE t1;
+
+INSERT INTO t1(a) VALUES(1);
+INSERT INTO t1 VALUES(2, '');
+INSERT INTO t1 VALUES(3, '12345');
+INSERT INTO t1 VALUES(4, '12345678');
+INSERT INTO t1 VALUES(5, 'abc');
+INSERT INTO t1 VALUES(6, 'abcdefgh');
+INSERT INTO t1 VALUES(7, '中');
+INSERT INTO t1 VALUES(8, '中兴');
+INSERT INTO t1 VALUES(9, '中兴AB');
+SELECT * FROM t1;
+
+--error ER_DATA_TOO_LONG
+INSERT INTO t1 VALUES(10, '123456789');
+--error ER_DATA_TOO_LONG
+INSERT INTO t1 VALUES(11, 'abcdefghi');
+--error ER_DATA_TOO_LONG
+INSERT INTO t1 VALUES(12, '中兴通');
+
+## default length semantics: CHAR
+set @@nls_length_semantics = 'CHAR';
+CREATE TABLE t2(a int primary key, b varchar2(8)) default charset = utf8mb4;
+SHOW CREATE TABLE t2;
+
+INSERT INTO t2(a) VALUES(1);
+INSERT INTO t2 VALUES(2, '');
+INSERT INTO t2 VALUES(3, '12345');
+INSERT INTO t2 VALUES(4, '12345678');
+INSERT INTO t2 VALUES(5, 'abc');
+INSERT INTO t2 VALUES(6, 'abcdefgh');
+INSERT INTO t2 VALUES(7, '中');
+INSERT INTO t2 VALUES(8, '中兴通讯有限责任');
+SELECT * FROM t2;
+
+--error ER_DATA_TOO_LONG
+INSERT INTO t2 VALUES(9, '123456789');
+--error ER_DATA_TOO_LONG
+INSERT INTO t2 VALUES(10, 'abcdefghi');
+--error ER_DATA_TOO_LONG
+INSERT INTO t2 VALUES(11, '中兴通讯有限责任公');
+
+####################### test VARCHAR2(size BYTE) #######################
+set @@nls_length_semantics = 'CHAR';
+CREATE TABLE t3(a int primary key, b varchar2(8 BYTE)) default charset = utf8mb4;
+SHOW CREATE TABLE t3;
+
+INSERT INTO t3(a) VALUES(1);
+INSERT INTO t3 VALUES(2, '');
+INSERT INTO t3 VALUES(3, '12345');
+INSERT INTO t3 VALUES(4, '12345678');
+INSERT INTO t3 VALUES(5, 'abc');
+INSERT INTO t3 VALUES(6, 'abcdefgh');
+INSERT INTO t3 VALUES(7, '中');
+INSERT INTO t3 VALUES(8, '中兴');
+INSERT INTO t3 VALUES(9, '中兴AB');
+SELECT * FROM t3;
+
+--error ER_DATA_TOO_LONG
+INSERT INTO t3 VALUES(9, '123456789');
+--error ER_DATA_TOO_LONG
+INSERT INTO t3 VALUES(10, 'abcdefghi');
+--error ER_DATA_TOO_LONG
+INSERT INTO t3 VALUES(11, '中兴通');
+
+####################### test VARCHAR2(size CHAR) #######################
+set @@nls_length_semantics = 'BYTE';
+CREATE TABLE t4(a int primary key, b varchar2(8 CHAR)) default charset = utf8mb4;
+SHOW CREATE TABLE t4;
+
+INSERT INTO t4(a) VALUES(1);
+INSERT INTO t4 VALUES(2, '');
+INSERT INTO t4 VALUES(3, '12345');
+INSERT INTO t4 VALUES(4, '12345678');
+INSERT INTO t4 VALUES(5, 'abc');
+INSERT INTO t4 VALUES(6, 'abcdefgh');
+INSERT INTO t4 VALUES(7, '中');
+INSERT INTO t4 VALUES(8, '中兴通讯有限责任');
+SELECT * FROM t4;
+
+--error ER_DATA_TOO_LONG
+INSERT INTO t4 VALUES(9, '123456789');
+--error ER_DATA_TOO_LONG
+INSERT INTO t4 VALUES(10, 'abcdefghi');
+--error ER_DATA_TOO_LONG
+INSERT INTO t4 VALUES(11, '中兴通讯有限责任公');
+
+################### test incorrect length qualifier ###################
+--error ER_PARSE_ERROR
+CREATE TABLE t5(a int primary key, b varchar2(8 cha));
+
+##################### test incorrect field length #####################
+--error ER_SYNTAX_ERROR
+CREATE TABLE t5(a int primary key, b varchar2);
+
+################### test VARCHAR2 as database name ####################
+--error ER_PARSE_ERROR
+CREATE DATABASE varchar2;
+
+##################### test VARCHAR2 as table name #####################
+--error ER_PARSE_ERROR
+CREATE TABLE varchar2(a int primary key);
+
+##################### test VARCHAR2 as view name ######################
+--error ER_PARSE_ERROR
+CREATE VIEW varchar2 AS SELECT a,b from t1;
+
+################# test VARCHAR2 in stored procedure ###################
+set parse_mode=2;
+
+## VARCHAR2 is stored procedure name
+--error ER_PARSE_ERROR
+CREATE PROCEDURE varchar2(a int) SELECT 1;
+
+## VARCHAR2 is parameter name
+--error ER_PARSE_ERROR
+CREATE OR REPLACE PROCEDURE tp1(varchar2 IN INT) SELECT 1;
+
+--delimiter //
+--error ER_PARSE_ERROR
+CREATE OR REPLACE PROCEDURE tp1(varchar2 OUT INT) IS
+begin
+ResBuff := 1;
+end //
+
+## VARCHAR2 is label name
+--error ER_PARSE_ERROR
+create procedure doiterate(in p1 int, out p2 int)
+BEGIN
+varchar2: LOOP
+set p1 = p1 + 1;
+if p1 < 10 then 
+  iterate varchar;
+END if;
+leave varchar2;
+END LOOP varchar2;
+set p2=p1;
+END //
+
+## normal test
+# ORACLE format
+# varchar2 with or without field length is the data type of parameter
+# varchar2 with field length is the data type of local variable in sp
+CREATE PROCEDURE tp1(p1 in varchar2(64 CHAR), p2 out varchar2)
+AS
+    local_var varchar2(64 CHAR);
+BEGIN
+    local_var:=p1;
+    select local_var into p2 from dual;
+END //
+
+CALL tp1('中国Chinese',@var2) //
+SELECT @var2 //
+
+# MySQL format
+CREATE PROCEDURE tp2(p1 in varchar2(64 CHAR), p2 out varchar2)
+BEGIN
+    DECLARE local_var varchar2(64 CHAR);
+    SET local_var = p1;
+    SET p2 = local_var;
+END //
+
+CALL tp2('中国Chinese',@var2) //
+SELECT @var2 //
+--delimiter ;
+
+################## test VARCHAR2 in stored function ###################
+# save status
+
+SET @old_log_bin_trust_function_creators= @@global.log_bin_trust_function_creators;
+SET GLOBAL log_bin_trust_function_creators = 1;
+
+# varchar2 is function name
+--error ER_PARSE_ERROR
+CREATE FUNCTION varchar2(a int) RETURNS INT RETURN a+1;
+
+## normal test
+# varchar2 is the data type of parameter and return value
+CREATE FUNCTION func1(a varchar2(64)) RETURNS varchar2(64) RETURN a;
+
+SELECT func1('中国Chinese');
+
+SET @@global.log_bin_trust_function_creators= @old_log_bin_trust_function_creators;
+
+#################### test VARCHAR2 as trigger name ###################
+CREATE TABLE t_tgr(a int primary key);
+
+--error ER_PARSE_ERROR
+CREATE TRIGGER varchar2 AFTER INSERT ON t_tgr FOR EACH ROW
+SELECT 't_tgr added' INTO @var;
+
+#################### test VARCHAR2 as event name #####################
+--error ER_PARSE_ERROR
+CREATE EVENT IF NOT EXISTS varchar2 ON SCHEDULE EVERY 5 SECOND
+ON COMPLETION PRESERVE DO SELECT 1;
+
+################## test VARCHAR2 as user variable ####################
+SET @varchar2=8;
+SELECT @varchar2;
+
+#################### test VARCHAR2 as role name ######################
+--error ER_PARSE_ERROR
+CREATE ROLE varchar2;
+
+#######################################################################
+##                            recovery                               ##
+#######################################################################
+set @@global.nls_length_semantics = default;
+set @@nls_length_semantics = default;
+set parse_mode = default;
+DROP DATABASE test_varchar2;
+
+#######################################################################
+##                               NOTES                               ##
+#######################################################################
+##                *** ORACLE SUPPORT, WE DONT ***                    ##
+#######################################################################
+## VARCHAR2 is parameter name in sp:                                  #
+#    create or replace procedure te4(varchar2 out varchar2) is        #
+#    begin                                                            #
+#    varchar2 := LPAD('a',2001,'b');                                  #
+#    end //                                                           #
+#######################################################################

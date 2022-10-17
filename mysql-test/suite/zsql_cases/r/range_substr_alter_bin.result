@@ -1,0 +1,1161 @@
+创建测试数据库
+drop database if exists test_db;
+create database test_db;
+use test_db;
+=========================================================
+ALTER 命令可以重新定义分区规则
+=========================================================
+alter 语句支持非分区表转换为range substr分区表
+CREATE TABLE test (
+id INT,
+name char(7),
+unique key(id,name))COLLATE=utf8mb4_bin;
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+insert into test values (1, '');
+insert into test values (2, NULL);
+insert into test values (3, 'aaa');
+insert into test values (4, 'ddd');
+insert into test values (5, 'jjj');
+insert into test values (6, 'zzz');
+insert into test values (7, '多字节');
+insert into test values (11, '###');
+insert into test values (12, '<<<');
+insert into test values (13, '???');
+insert into test values (14, '{{{');
+insert into test values (15, '|||');
+insert into test values (16, '}}}');
+select * from test order by id;
+id	name
+1	
+2	NULL
+3	aaa
+4	ddd
+5	jjj
+6	zzz
+7	多字节
+11	###
+12	<<<
+13	???
+14	{{{
+15	|||
+16	}}}
+alter table test
+PARTITION BY RANGE (substr(name, 1))
+( PARTITION p_ccc VALUES LESS THAN ('ccc'),
+PARTITION p_fff VALUES LESS THAN ('fff'),
+PARTITION p_kkk VALUES LESS THAN ('kkk'),
+PARTITION p_max VALUES LESS THAN (MAXVALUE));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+(PARTITION p_ccc VALUES LESS THAN ('ccc') ENGINE = InnoDB,
+ PARTITION p_fff VALUES LESS THAN ('fff') ENGINE = InnoDB,
+ PARTITION p_kkk VALUES LESS THAN ('kkk') ENGINE = InnoDB,
+ PARTITION p_max VALUES LESS THAN MAXVALUE ENGINE = InnoDB) */
+select * from test order by id;
+id	name
+1	
+2	NULL
+3	aaa
+4	ddd
+5	jjj
+6	zzz
+7	多字节
+11	###
+12	<<<
+13	???
+14	{{{
+15	|||
+16	}}}
+select * from test partition (p_ccc) order by id;
+id	name
+1	
+2	NULL
+3	aaa
+11	###
+12	<<<
+13	???
+select * from test partition (p_fff) order by id;
+id	name
+4	ddd
+select * from test partition (p_kkk) order by id;
+id	name
+5	jjj
+select * from test partition (p_max) order by id;
+id	name
+6	zzz
+7	多字节
+14	{{{
+15	|||
+16	}}}
+drop table if exists test;
+alter语句支持range substr分区表转换为其他分区表(hash分区)
+CREATE TABLE test (
+id INT,
+name char(7),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1))
+( PARTITION p_ccc VALUES LESS THAN ('ccc'),
+PARTITION p_fff VALUES LESS THAN ('fff'),
+PARTITION p_kkk VALUES LESS THAN ('kkk'),
+PARTITION p_max VALUES LESS THAN (MAXVALUE));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+(PARTITION p_ccc VALUES LESS THAN ('ccc') ENGINE = InnoDB,
+ PARTITION p_fff VALUES LESS THAN ('fff') ENGINE = InnoDB,
+ PARTITION p_kkk VALUES LESS THAN ('kkk') ENGINE = InnoDB,
+ PARTITION p_max VALUES LESS THAN MAXVALUE ENGINE = InnoDB) */
+insert into test values (1, '');
+insert into test values (2, NULL);
+insert into test values (3, 'aaa');
+insert into test values (4, 'ddd');
+insert into test values (5, 'jjj');
+insert into test values (6, 'zzz');
+insert into test values (7, '多字节');
+insert into test values (11, '###');
+insert into test values (12, '<<<');
+insert into test values (13, '???');
+insert into test values (14, '{{{');
+insert into test values (15, '|||');
+insert into test values (16, '}}}');
+alter table test
+partition by hash (id) partitions 3;
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY HASH (`id`)
+PARTITIONS 3 */
+select * from test partition (p0) order by id;
+id	name
+3	aaa
+6	zzz
+12	<<<
+15	|||
+select * from test partition (p1) order by id;
+id	name
+1	
+4	ddd
+7	多字节
+13	???
+16	}}}
+select * from test partition (p2) order by id;
+id	name
+2	NULL
+5	jjj
+11	###
+14	{{{
+drop table if exists test;
+alter语句支持其他分区表(hash分区)转换为range substr分区表
+CREATE TABLE test (
+id INT,
+name char(7),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY hash (id) partitions 3;
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY HASH (`id`)
+PARTITIONS 3 */
+insert into test values (1, '');
+insert into test values (2, NULL);
+insert into test values (3, 'aaa');
+insert into test values (4, 'ddd');
+insert into test values (5, 'jjj');
+insert into test values (6, 'zzz');
+insert into test values (7, '多字节');
+insert into test values (11, '###');
+insert into test values (12, '<<<');
+insert into test values (13, '???');
+insert into test values (14, '{{{');
+insert into test values (15, '|||');
+insert into test values (16, '}}}');
+select * from test partition (p0) order by id;
+id	name
+3	aaa
+6	zzz
+12	<<<
+15	|||
+select * from test partition (p1) order by id;
+id	name
+1	
+4	ddd
+7	多字节
+13	???
+16	}}}
+select * from test partition (p2) order by id;
+id	name
+2	NULL
+5	jjj
+11	###
+14	{{{
+alter table test
+PARTITION BY RANGE (substr(name, 1))
+( PARTITION p_ccc VALUES LESS THAN ('ccc'),
+PARTITION p_fff VALUES LESS THAN ('fff'),
+PARTITION p_kkk VALUES LESS THAN ('kkk'),
+PARTITION p_max VALUES LESS THAN (MAXVALUE));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+(PARTITION p_ccc VALUES LESS THAN ('ccc') ENGINE = InnoDB,
+ PARTITION p_fff VALUES LESS THAN ('fff') ENGINE = InnoDB,
+ PARTITION p_kkk VALUES LESS THAN ('kkk') ENGINE = InnoDB,
+ PARTITION p_max VALUES LESS THAN MAXVALUE ENGINE = InnoDB) */
+select * from test partition (p_ccc) order by id;
+id	name
+1	
+2	NULL
+3	aaa
+11	###
+12	<<<
+13	???
+select * from test partition (p_fff) order by id;
+id	name
+4	ddd
+select * from test partition (p_kkk) order by id;
+id	name
+5	jjj
+select * from test partition (p_max) order by id;
+id	name
+6	zzz
+7	多字节
+14	{{{
+15	|||
+16	}}}
+drop table if exists test;
+=========================================================
+ALTER 语句支持 ADD PARTITION 功能
+=========================================================
+CREATE TABLE test (
+id INT,
+name char(7),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1, 2))
+( PARTITION p_ccc VALUES LESS THAN ('cc'),
+PARTITION p_fff VALUES LESS THAN ('ff'),
+PARTITION p_kkk VALUES LESS THAN ('kk'));
+alter table test add partition (partition p_ddd values less than ('dd'));
+ERROR HY000: VALUES LESS THAN value must be strictly increasing for each partition
+alter table if not exists test add partition (partition p_ddd values less than ('dd'));
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'if not exists test add partition (partition p_ddd values less than ('dd'))' at line 1
+alter table test add partition (partition p_678 values less than (678));
+ERROR HY000: VALUES value for partition 'p_678' must have type STRING
+alter table test add partition (partition p_kkk values less than ('mm'));
+ERROR HY000: Duplicate partition name p_kkk
+alter table test add partition (partition p_mmm values less than ('mm'));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1,2))
+(PARTITION p_ccc VALUES LESS THAN ('cc') ENGINE = InnoDB,
+ PARTITION p_fff VALUES LESS THAN ('ff') ENGINE = InnoDB,
+ PARTITION p_kkk VALUES LESS THAN ('kk') ENGINE = InnoDB,
+ PARTITION p_mmm VALUES LESS THAN ('mm') ENGINE = InnoDB) */
+alter table test add partition 
+(partition p_ppp values less than ('pp'),
+partition p_qqq values less than ('qq'));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1,2))
+(PARTITION p_ccc VALUES LESS THAN ('cc') ENGINE = InnoDB,
+ PARTITION p_fff VALUES LESS THAN ('ff') ENGINE = InnoDB,
+ PARTITION p_kkk VALUES LESS THAN ('kk') ENGINE = InnoDB,
+ PARTITION p_mmm VALUES LESS THAN ('mm') ENGINE = InnoDB,
+ PARTITION p_ppp VALUES LESS THAN ('pp') ENGINE = InnoDB,
+ PARTITION p_qqq VALUES LESS THAN ('qq') ENGINE = InnoDB) */
+drop table test;
+=========================================================
+ALTER 语句支持 DROP PARTITION 功能
+=========================================================
+CREATE TABLE test (
+id INT,
+name char(7),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1))
+SUBPARTITION BY hash(id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('ccc')
+(subpartition s0, subpartition s1),
+PARTITION p_fff VALUES LESS THAN ('fff')
+(subpartition s2, subpartition s3),
+PARTITION p_kkk VALUES LESS THAN ('kkk')
+(subpartition s4, subpartition s5),
+PARTITION p_max VALUES LESS THAN (MAXVALUE)
+(subpartition s6, subpartition s7));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+SUBPARTITION BY HASH (`id`)
+(PARTITION p_ccc VALUES LESS THAN ('ccc')
+ (SUBPARTITION s0 ENGINE = InnoDB,
+  SUBPARTITION s1 ENGINE = InnoDB),
+ PARTITION p_fff VALUES LESS THAN ('fff')
+ (SUBPARTITION s2 ENGINE = InnoDB,
+  SUBPARTITION s3 ENGINE = InnoDB),
+ PARTITION p_kkk VALUES LESS THAN ('kkk')
+ (SUBPARTITION s4 ENGINE = InnoDB,
+  SUBPARTITION s5 ENGINE = InnoDB),
+ PARTITION p_max VALUES LESS THAN MAXVALUE
+ (SUBPARTITION s6 ENGINE = InnoDB,
+  SUBPARTITION s7 ENGINE = InnoDB)) */
+insert into test values (1, '');
+insert into test values (2, NULL);
+insert into test values (3, 'aaa');
+insert into test values (4, 'ddd');
+insert into test values (5, 'jjj');
+insert into test values (6, 'zzz');
+insert into test values (7, '多字节');
+insert into test values (11, '###');
+insert into test values (12, '<<<');
+insert into test values (13, '???');
+insert into test values (14, '{{{');
+insert into test values (15, '|||');
+insert into test values (16, '}}}');
+select * from test partition (p_ccc) order by id;
+id	name
+1	
+2	NULL
+3	aaa
+11	###
+12	<<<
+13	???
+select * from test partition (p_fff) order by id;
+id	name
+4	ddd
+select * from test partition (p_kkk) order by id;
+id	name
+5	jjj
+select * from test partition (p_max) order by id;
+id	name
+6	zzz
+7	多字节
+14	{{{
+15	|||
+16	}}}
+drop partition 不支持子分区
+alter table test drop partition s0;
+ERROR HY000: Error in list of partitions to DROP
+alter table test drop partition s2, s4;
+ERROR HY000: Error in list of partitions to DROP
+drop partition 中指定的分区名字不存在，需报错
+alter table test drop partition p_xxx, p_ccc;
+ERROR HY000: Error in list of partitions to DROP
+drop partition 不支持if exist
+alter table if exists test drop partition p_ccc;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'if exists test drop partition p_ccc' at line 1
+alter table test drop partition p_ccc;
+select * from test partition (p_ccc) order by id;
+ERROR HY000: Unknown partition 'p_ccc' in table 'test'
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+SUBPARTITION BY HASH (`id`)
+(PARTITION p_fff VALUES LESS THAN ('fff')
+ (SUBPARTITION s2 ENGINE = InnoDB,
+  SUBPARTITION s3 ENGINE = InnoDB),
+ PARTITION p_kkk VALUES LESS THAN ('kkk')
+ (SUBPARTITION s4 ENGINE = InnoDB,
+  SUBPARTITION s5 ENGINE = InnoDB),
+ PARTITION p_max VALUES LESS THAN MAXVALUE
+ (SUBPARTITION s6 ENGINE = InnoDB,
+  SUBPARTITION s7 ENGINE = InnoDB)) */
+alter table test drop partition p_kkk, p_fff;
+select * from test partition (p_kkk, p_fff) order by id;
+ERROR HY000: Unknown partition 'p_kkk' in table 'test'
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+SUBPARTITION BY HASH (`id`)
+(PARTITION p_max VALUES LESS THAN MAXVALUE
+ (SUBPARTITION s6 ENGINE = InnoDB,
+  SUBPARTITION s7 ENGINE = InnoDB)) */
+drop table test;
+CREATE TABLE test (
+id INT,
+name char(7),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY hash (id) partitions 2
+(partition p_1, partition p_2);
+drop partition 只支持range/list分区
+alter table test drop partition p_1;
+ERROR HY000: DROP PARTITION can only be used on RANGE/LIST partitions
+drop table test;
+=========================================================
+ALTER 语句支持 TRUNCATE PARTITION 功能
+=========================================================
+CREATE TABLE test (
+id INT,
+name char(7),
+primary key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1, 3))
+( PARTITION p_ccc VALUES LESS THAN ('ccc'),
+PARTITION p_fff VALUES LESS THAN ('fff'),
+PARTITION p_kkk VALUES LESS THAN ('kkk'),
+PARTITION p_max VALUES LESS THAN (MAXVALUE));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) NOT NULL,
+  `name` char(7) COLLATE utf8mb4_bin NOT NULL,
+  PRIMARY KEY (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1,3))
+(PARTITION p_ccc VALUES LESS THAN ('ccc') ENGINE = InnoDB,
+ PARTITION p_fff VALUES LESS THAN ('fff') ENGINE = InnoDB,
+ PARTITION p_kkk VALUES LESS THAN ('kkk') ENGINE = InnoDB,
+ PARTITION p_max VALUES LESS THAN MAXVALUE ENGINE = InnoDB) */
+insert into test values (1, '');
+insert into test values (3, 'aaa');
+insert into test values (4, 'ddd');
+insert into test values (5, 'jjj');
+insert into test values (6, 'zzz');
+insert into test values (7, '多字节');
+insert into test values (11, '###');
+insert into test values (12, '<<<');
+insert into test values (13, '???');
+insert into test values (14, '{{{');
+insert into test values (15, '|||');
+insert into test values (16, '}}}');
+select * from test partition (p_ccc) order by id;
+id	name
+1	
+3	aaa
+11	###
+12	<<<
+13	???
+select * from test partition (p_fff) order by id;
+id	name
+4	ddd
+select * from test partition (p_kkk) order by id;
+id	name
+5	jjj
+select * from test partition (p_max) order by id;
+id	name
+6	zzz
+7	多字节
+14	{{{
+15	|||
+16	}}}
+truncate partiton 对应的分区名不存在，需报错
+alter table test truncate partition p_xxx;
+ERROR HY000: Unknown partition 'p_xxx' in table 'test'
+truncate partition 不支持if exists
+alter table if exists test truncate partition p_xxx;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'if exists test truncate partition p_xxx' at line 1
+清空单个分区
+select * from test partition (p_kkk) order by id;
+id	name
+5	jjj
+alter table test truncate partition p_ccc, p_fff;
+select * from test partition (p_kkk) order by id;
+id	name
+5	jjj
+清空多个分区
+select * from test partition (p_ccc, p_fff) order by id;
+id	name
+alter table test truncate partition p_ccc, p_fff;
+select * from test partition (p_ccc, p_fff) order by id;
+id	name
+支持truncate partition all
+truncate table test;
+insert into test values (1, '');
+insert into test values (3, 'aaa');
+insert into test values (4, 'ddd');
+insert into test values (5, 'jjj');
+insert into test values (6, 'zzz');
+insert into test values (7, '多字节');
+insert into test values (11, '###');
+insert into test values (12, '<<<');
+insert into test values (13, '???');
+insert into test values (14, '{{{');
+insert into test values (15, '|||');
+insert into test values (16, '}}}');
+select * from test order by id;
+id	name
+1	
+3	aaa
+4	ddd
+5	jjj
+6	zzz
+7	多字节
+11	###
+12	<<<
+13	???
+14	{{{
+15	|||
+16	}}}
+alter table test truncate partition all;
+select * from test order by id;
+id	name
+drop table test;
+CREATE TABLE test (
+id INT,
+name char(7),
+primary key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1, 3))
+subpartition by hash(id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('ccc')
+(subpartition s0, subpartition s1),
+PARTITION p_fff VALUES LESS THAN ('fff')
+(subpartition s2, subpartition s3),
+PARTITION p_max VALUES LESS THAN (MAXVALUE)
+(subpartition s4, subpartition s5));
+insert into test values (1, '');
+insert into test values (3, 'aaa');
+insert into test values (4, 'ddd');
+insert into test values (6, 'zzz');
+insert into test values (7, '多字节');
+insert into test values (11, '###');
+insert into test values (12, '<<<');
+insert into test values (13, '???');
+insert into test values (14, '{{{');
+insert into test values (15, '|||');
+insert into test values (16, '}}}');
+truncate partition 为单个子分区时，对应分区上数据全部清空
+select * from test partition (s0) order by id;
+id	name
+12	<<<
+alter table test truncate partition s0;
+select * from test partition (s0) order by id;
+id	name
+truncate partition 为多个子分区时，对应分区上数据全部清空
+select * from test partition (s1,s2,s3) order by id;
+id	name
+1	
+3	aaa
+4	ddd
+11	###
+13	???
+alter table test truncate partition s1,s2,s3;
+select * from test partition (s1,s2,s3) order by id;
+id	name
+truncate partition 为分区和子分区混合时，对应分区上数据全部清空
+select * from test partition (p_max,s4,s5) order by id;
+id	name
+6	zzz
+7	多字节
+14	{{{
+15	|||
+16	}}}
+alter table test truncate partition p_max,s4,s5;
+select * from test partition (p_max,s4,s5) order by id;
+id	name
+drop table test;
+=========================================================
+ALTER 语句支持 REORGANIZE PARTITION 功能
+=========================================================
+CREATE TABLE test (
+id INT,
+name char(7),
+primary key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1, 3))
+( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+PARTITION p_ddd VALUES LESS THAN ('ddd'),
+PARTITION p_fff VALUES LESS THAN ('fff'),
+PARTITION p_iii VALUES LESS THAN ('iii'),
+PARTITION p_mmm VALUES LESS THAN ('mmm'));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) NOT NULL,
+  `name` char(7) COLLATE utf8mb4_bin NOT NULL,
+  PRIMARY KEY (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1,3))
+(PARTITION p_bbb VALUES LESS THAN ('bbb') ENGINE = InnoDB,
+ PARTITION p_ddd VALUES LESS THAN ('ddd') ENGINE = InnoDB,
+ PARTITION p_fff VALUES LESS THAN ('fff') ENGINE = InnoDB,
+ PARTITION p_iii VALUES LESS THAN ('iii') ENGINE = InnoDB,
+ PARTITION p_mmm VALUES LESS THAN ('mmm') ENGINE = InnoDB) */
+insert into test values (1, 'aaa');
+insert into test values (2, 'bbb');
+insert into test values (3, 'ccc');
+insert into test values (4, 'ddd');
+insert into test values (5, 'eee');
+insert into test values (6, 'fff');
+insert into test values (7, 'ggg');
+insert into test values (8, 'hhh');
+insert into test values (9, 'iii');
+insert into test values (10, 'jjj');
+insert into test values (11, 'kkk');
+多个分区合并合并为一个分区时，分区不存在，需报错
+alter table test reorganize partition p_bbb, p_kkk into
+(partition p_iii values less than ('iii'));
+ERROR HY000: Error in list of partitions to REORGANIZE
+多个分区合并合并为一个分区时，多个分区若不连续，需报错
+alter table test reorganize partition p_bbb, p_fff into
+(partition p_iii values less than ('iii'));
+ERROR HY000: When reorganizing a set of partitions they must be in consecutive order
+多个分区合并为一个分区，范围变小，需报错
+alter table test reorganize partition p_ddd, p_fff into
+(partition p_eee values less than ('eee'));
+ERROR HY000: Reorganize of range partitions cannot change total ranges except for last partition where it can extend the range
+多个分区合并为一个分区，范围变大，需报错
+alter table test reorganize partition p_ddd, p_fff into
+(partition p_ggg values less than ('ggg'));
+ERROR HY000: Reorganize of range partitions cannot change total ranges except for last partition where it can extend the range
+多个分区合并为一个分区时，多个分区需连续且合并的分区范围保持不变
+select * from test partition (p_ddd) order by id;
+id	name
+2	bbb
+3	ccc
+select * from test partition (p_fff) order by id;
+id	name
+4	ddd
+5	eee
+alter table test reorganize partition p_ddd, p_fff into
+(partition p_fff values less than ('fff'));
+select * from test partition (p_ddd) order by id;
+ERROR HY000: Unknown partition 'p_ddd' in table 'test'
+select * from test partition (p_fff) order by id;
+id	name
+2	bbb
+3	ccc
+4	ddd
+5	eee
+多个分区合并为多个分区时，多个分区需连续且合并的分区范围保持不变
+select * from test partition (p_bbb) order by id;
+id	name
+1	aaa
+select * from test partition (p_fff) order by id;
+id	name
+2	bbb
+3	ccc
+4	ddd
+5	eee
+alter table test reorganize partition p_bbb, p_fff into
+(partition p_ccc values less than ('ccc'),
+partition p_fff values less than ('fff'));
+select * from test partition (p_bbb) order by id;
+ERROR HY000: Unknown partition 'p_bbb' in table 'test'
+select * from test partition (p_fff) order by id;
+id	name
+3	ccc
+4	ddd
+5	eee
+多个分区合并为一个分区时，若包含最后一个分区，可以扩充分区范围
+select * from test partition (p_iii) order by id;
+id	name
+6	fff
+7	ggg
+8	hhh
+select * from test partition (p_mmm) order by id;
+id	name
+9	iii
+10	jjj
+11	kkk
+alter table test reorganize partition p_iii, p_mmm into
+(partition p_kkk values less than ('kkk'),
+partition p_nnn values less than ('nnn'));
+select * from test partition (p_kkk) order by id;
+id	name
+6	fff
+7	ggg
+8	hhh
+9	iii
+10	jjj
+select * from test partition (p_nnn) order by id;
+id	name
+11	kkk
+一个分区拆分为多个分区时，分区范围变小，需报错
+alter table test reorganize partition p_fff into
+(partition p_ddd values less than ('ddd'),
+partition p_eee values less than ('eee'));
+ERROR HY000: Reorganize of range partitions cannot change total ranges except for last partition where it can extend the range
+一个分区拆分为多个分区时，分区范围变大，需报错
+alter table test reorganize partition p_fff into
+(partition p_ddd values less than ('ddd'),
+partition p_ggg values less than ('ggg'));
+ERROR HY000: Reorganize of range partitions cannot change total ranges except for last partition where it can extend the range
+一个分区拆分为多个分区时，分区范围需保持不变
+select * from test partition (p_fff) order by id;
+id	name
+3	ccc
+4	ddd
+5	eee
+alter table test reorganize partition p_fff into
+(partition p_eee values less than ('eee'),
+partition p_fff values less than ('fff'));
+select * from test partition (p_eee) order by id;
+id	name
+3	ccc
+4	ddd
+select * from test partition (p_fff) order by id;
+id	name
+5	eee
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) NOT NULL,
+  `name` char(7) COLLATE utf8mb4_bin NOT NULL,
+  PRIMARY KEY (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1,3))
+(PARTITION p_ccc VALUES LESS THAN ('ccc') ENGINE = InnoDB,
+ PARTITION p_eee VALUES LESS THAN ('eee') ENGINE = InnoDB,
+ PARTITION p_fff VALUES LESS THAN ('fff') ENGINE = InnoDB,
+ PARTITION p_kkk VALUES LESS THAN ('kkk') ENGINE = InnoDB,
+ PARTITION p_nnn VALUES LESS THAN ('nnn') ENGINE = InnoDB) */
+一个分区拆分为一个分区时，可以实现修改分区名字的功能
+select * from test partition (p_fff) order by id;
+id	name
+5	eee
+alter table test reorganize partition p_fff into
+(partition p_rename_fff values less than ('fff'));
+select * from test partition (p_rename_fff) order by id;
+id	name
+5	eee
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) NOT NULL,
+  `name` char(7) COLLATE utf8mb4_bin NOT NULL,
+  PRIMARY KEY (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1,3))
+(PARTITION p_ccc VALUES LESS THAN ('ccc') ENGINE = InnoDB,
+ PARTITION p_eee VALUES LESS THAN ('eee') ENGINE = InnoDB,
+ PARTITION p_rename_fff VALUES LESS THAN ('fff') ENGINE = InnoDB,
+ PARTITION p_kkk VALUES LESS THAN ('kkk') ENGINE = InnoDB,
+ PARTITION p_nnn VALUES LESS THAN ('nnn') ENGINE = InnoDB) */
+drop table test;
+CREATE TABLE test (
+id INT,
+name char(7),
+unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1)) partitions 2
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('ccc')
+(subpartition s0, subpartition s1),
+PARTITION p_kkk VALUES LESS THAN ('kkk')
+(subpartition s2, subpartition s3));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) DEFAULT NULL,
+  `name` char(7) COLLATE utf8mb4_bin DEFAULT NULL,
+  UNIQUE KEY `id` (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+SUBPARTITION BY HASH (`id`)
+(PARTITION p_ccc VALUES LESS THAN ('ccc')
+ (SUBPARTITION s0 ENGINE = InnoDB,
+  SUBPARTITION s1 ENGINE = InnoDB),
+ PARTITION p_kkk VALUES LESS THAN ('kkk')
+ (SUBPARTITION s2 ENGINE = InnoDB,
+  SUBPARTITION s3 ENGINE = InnoDB)) */
+insert into test values (1, 'aaa'), (2, 'bbb');
+insert into test values (3, 'ddd'), (4, 'fff');
+reorganize partition 中包含子分区，需报错
+select * from test partition (s0) order by id;
+id	name
+2	bbb
+alter table test reorganize partition s0 into
+(partition p_rename_s0 values less than ('fff'));
+ERROR HY000: Error in list of partitions to REORGANIZE
+drop table test;
+=========================================================
+alter 语句针对 range substr 不支持 COALESCE PARTITION 功能
+=========================================================
+CREATE TABLE test (
+id INT,
+name char(7),
+primary key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1, 3))
+( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+PARTITION p_ddd VALUES LESS THAN ('ddd'),
+PARTITION p_fff VALUES LESS THAN ('fff'),
+PARTITION p_iii VALUES LESS THAN ('iii'),
+PARTITION p_mmm VALUES LESS THAN ('mmm'));
+alter table test coalesce partition 3;
+ERROR HY000: COALESCE PARTITION can only be used on HASH/KEY partitions
+drop table test;
+=========================================================
+ALTER 语句支持 EXCHANGE PARTITION 功能
+=========================================================
+含有子分区的场景
+CREATE TABLE test (
+id INT,
+name char(7),
+primary key(id, name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1)) partitions 2
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('ccc')
+(subpartition s0, subpartition s1),
+PARTITION p_kkk VALUES LESS THAN ('kkk')
+(subpartition s2, subpartition s3));
+create table test_noPartition like test;
+alter table test_noPartition remove partitioning;
+某个子分区和非分区表都为空
+select * from test_noPartition order by id;
+id	name
+select * from test partition (s0) order by id;
+id	name
+alter table test exchange partition s0 with table test_noPartition;
+select * from test_noPartition order by id;
+id	name
+select * from test partition (s0) order by id;
+id	name
+子分区表非空，非分区表空
+truncate table test;
+truncate table test_noPartition;
+insert into test values (1, 'aaa'), (2, 'bbb');
+select * from test partition (s0) order by id;
+id	name
+2	bbb
+select * from test_noPartition order by id;
+id	name
+alter table test exchange partition s0 with table test_noPartition;
+select * from test partition (s0) order by id;
+id	name
+select * from test_noPartition order by id;
+id	name
+2	bbb
+子分区表空，非分区表不空
+truncate table test;
+truncate table test_noPartition;
+insert into test_noPartition values (1, 'aaa');
+select * from test partition (s1) order by id;
+id	name
+select * from test_noPartition order by id;
+id	name
+1	aaa
+alter table test exchange partition s1 with table test_noPartition;
+select * from test partition (s1) order by id;
+id	name
+1	aaa
+select * from test_noPartition order by id;
+id	name
+子分区表不空，非分区表不空
+truncate table test;
+truncate table test_noPartition;
+insert into test values (1, 'aaa');
+insert into test_noPartition values (1, 'abbb');
+select * from test partition (s0) order by id;
+id	name
+select * from test partition (s1) order by id;
+id	name
+1	aaa
+select * from test_noPartition order by id;
+id	name
+1	abbb
+alter table test exchange partition s1 with table test_noPartition;
+select * from test partition (s0) order by id;
+id	name
+select * from test partition (s1) order by id;
+id	name
+1	abbb
+select * from test_noPartition order by id;
+id	name
+1	aaa
+子分区表不空，非分区表不空, 使用 WITH VALIDATION 报错
+truncate table test;
+truncate table test_noPartition;
+insert into test values (1, 'aaa');
+insert into test_noPartition values (1, 'azzz');
+alter table test exchange partition s0 with table test_noPartition;
+ERROR HY000: Found a row that does not match the partition
+alter table test exchange partition s0 with table test_noPartition with validation;
+ERROR HY000: Found a row that does not match the partition
+alter table test exchange partition s0 with table test_noPartition without validation;
+drop table test;
+drop table test_noPartition;
+含有分区(没有子分区)的场景
+CREATE TABLE test (
+id INT,
+name char(7),
+primary key(id, name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1)) partitions 2
+( PARTITION p_ccc VALUES LESS THAN ('ccc'),
+PARTITION p_kkk VALUES LESS THAN ('kkk'));
+create table test_noPartition like test;
+alter table test_noPartition remove partitioning;
+某个子分区和非分区表都为空
+select * from test_noPartition order by id;
+id	name
+select * from test partition (p_ccc) order by id;
+id	name
+alter table test exchange partition p_ccc with table test_noPartition;
+select * from test_noPartition order by id;
+id	name
+select * from test partition (p_ccc) order by id;
+id	name
+子分区表非空，非分区表空
+truncate table test;
+truncate table test_noPartition;
+insert into test values (1, 'aaa'), (2, 'bbb');
+select * from test partition (p_ccc) order by id;
+id	name
+1	aaa
+2	bbb
+select * from test_noPartition order by id;
+id	name
+alter table test exchange partition p_ccc with table test_noPartition;
+select * from test partition (p_ccc) order by id;
+id	name
+select * from test_noPartition order by id;
+id	name
+1	aaa
+2	bbb
+子分区表空，非分区表不空
+truncate table test;
+truncate table test_noPartition;
+insert into test_noPartition values (1, 'aaa'), (2, 'bbb');
+select * from test partition (p_ccc) order by id;
+id	name
+select * from test_noPartition order by id;
+id	name
+1	aaa
+2	bbb
+alter table test exchange partition p_ccc with table test_noPartition;
+select * from test partition (p_ccc) order by id;
+id	name
+1	aaa
+2	bbb
+select * from test_noPartition order by id;
+id	name
+子分区表不空，非分区表不空, 使用 WITH VALIDATION 报错
+truncate table test;
+truncate table test_noPartition;
+insert into test values (1, 'aaa');
+insert into test_noPartition values (2, 'zzz');
+alter table test exchange partition p_ccc with table test_noPartition;
+ERROR HY000: Table has no partition for value 'zzz'
+alter table test exchange partition p_ccc with table test_noPartition with validation;
+ERROR HY000: Table has no partition for value 'zzz'
+alter table test exchange partition p_ccc with table test_noPartition without validation;
+drop table test;
+drop table test_noPartition;
+=========================================================
+ALTER 语句支持 OPTIMIZE/REBUILD/ANALYZE PARTITION 功能
+=========================================================
+CREATE TABLE test (
+id INT,
+name char(7),
+primary key(id, name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1)) partitions 2
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('ccc')
+(subpartition s0, subpartition s1),
+PARTITION p_kkk VALUES LESS THAN ('kkk')
+(subpartition s2, subpartition s3));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) NOT NULL,
+  `name` char(7) COLLATE utf8mb4_bin NOT NULL,
+  PRIMARY KEY (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+SUBPARTITION BY HASH (`id`)
+(PARTITION p_ccc VALUES LESS THAN ('ccc')
+ (SUBPARTITION s0 ENGINE = InnoDB,
+  SUBPARTITION s1 ENGINE = InnoDB),
+ PARTITION p_kkk VALUES LESS THAN ('kkk')
+ (SUBPARTITION s2 ENGINE = InnoDB,
+  SUBPARTITION s3 ENGINE = InnoDB)) */
+alter table test OPTIMIZE PARTITION p_ccc;
+Table	Op	Msg_type	Msg_text
+test_db.test	optimize	note	Table does not support optimize on partitions. All partitions will be rebuilt and analyzed.
+test_db.test	optimize	status	OK
+alter table test OPTIMIZE PARTITION p_kkk;
+Table	Op	Msg_type	Msg_text
+test_db.test	optimize	note	Table does not support optimize on partitions. All partitions will be rebuilt and analyzed.
+test_db.test	optimize	status	OK
+alter table test OPTIMIZE PARTITION all;
+Table	Op	Msg_type	Msg_text
+test_db.test	optimize	note	Table does not support optimize on partitions. All partitions will be rebuilt and analyzed.
+test_db.test	optimize	status	OK
+alter table test REBUILD PARTITION p_ccc;
+alter table test REBUILD PARTITION p_kkk;
+alter table test REBUILD PARTITION all;
+alter table test ANALYZE PARTITION p_ccc;
+Table	Op	Msg_type	Msg_text
+test_db.test	analyze	status	OK
+alter table test ANALYZE PARTITION p_kkk;
+Table	Op	Msg_type	Msg_text
+test_db.test	analyze	status	OK
+alter table test ANALYZE PARTITION all;
+Table	Op	Msg_type	Msg_text
+test_db.test	analyze	status	OK
+drop table test;
+=========================================================
+ALTER 语句支持 CHECK/REPAIR PARTITION 功能
+=========================================================
+CREATE TABLE test (
+id INT,
+name char(7),
+primary key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1, 3))
+( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+PARTITION p_ddd VALUES LESS THAN ('ddd'),
+PARTITION p_fff VALUES LESS THAN ('fff'),
+PARTITION p_iii VALUES LESS THAN ('iii'),
+PARTITION p_mmm VALUES LESS THAN ('mmm'));
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) NOT NULL,
+  `name` char(7) COLLATE utf8mb4_bin NOT NULL,
+  PRIMARY KEY (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1,3))
+(PARTITION p_bbb VALUES LESS THAN ('bbb') ENGINE = InnoDB,
+ PARTITION p_ddd VALUES LESS THAN ('ddd') ENGINE = InnoDB,
+ PARTITION p_fff VALUES LESS THAN ('fff') ENGINE = InnoDB,
+ PARTITION p_iii VALUES LESS THAN ('iii') ENGINE = InnoDB,
+ PARTITION p_mmm VALUES LESS THAN ('mmm') ENGINE = InnoDB) */
+insert into test values (1, 'aaa'), (2, 'bbb');
+insert into test values (3, 'fff'), (4, 'iii');
+数据正常
+alter table test check partition p_xx;
+Table	Op	Msg_type	Msg_text
+test_db.test	check	Error	Error in list of partitions to test_db.test
+test_db.test	check	status	Operation failed
+alter table test repair partition p_xx;
+Table	Op	Msg_type	Msg_text
+test_db.test	repair	Error	Error in list of partitions to test_db.test
+test_db.test	repair	status	Operation failed
+alter table test check partition p_bbb, p_iii;
+Table	Op	Msg_type	Msg_text
+test_db.test	check	status	OK
+alter table test repair partition p_bbb, p_iii;
+Table	Op	Msg_type	Msg_text
+test_db.test	repair	status	OK
+alter table test check partition all;
+Table	Op	Msg_type	Msg_text
+test_db.test	check	status	OK
+alter table test repair partition all;
+Table	Op	Msg_type	Msg_text
+test_db.test	repair	status	OK
+数据异常
+truncate table test;
+create table test_noPartition like test;
+alter table test_noPartition remove partitioning;
+insert into test_noPartition values (1, 'kkk');
+alter table test exchange partition p_fff with table test_noPartition without validation;
+alter table test check partition all;
+Table	Op	Msg_type	Msg_text
+test_db.test	check	error	Found a misplaced row in part 2 should be in part 4:
+ name:kkk
+test_db.test	check	error	Partition p_fff returned error
+test_db.test	check	error	Table upgrade required. Please do "REPAIR TABLE `test`" or dump/reload to fix it!
+alter table test repair partition all;
+Table	Op	Msg_type	Msg_text
+test_db.test	repair	warning	Moved 1 misplaced rows
+test_db.test	repair	status	OK
+drop table test, test_noPartition;
+=========================================================
+ALTER 语句支持 DISCARD/IMPORT PARTITIONING utf8mb4_bin功能
+=========================================================
+=========================================================
+ALTER 语句支持 REMOVE PARTITIONING 功能
+=========================================================
+CREATE TABLE test (
+id INT,
+name char(7),
+primary key(id, name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name, 1)) partitions 2
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('ccc')
+(subpartition s0, subpartition s1),
+PARTITION p_kkk VALUES LESS THAN ('kkk')
+(subpartition s2, subpartition s3));
+insert into test values (1, 'aaa'), (2, 'bbb');
+insert into test values (3, 'ccc'), (4, 'ddd');
+insert into test values (5, 'eee'), (6, 'jjj');
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) NOT NULL,
+  `name` char(7) COLLATE utf8mb4_bin NOT NULL,
+  PRIMARY KEY (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+/*!50100 PARTITION BY RANGE (substr(`name`,1))
+SUBPARTITION BY HASH (`id`)
+(PARTITION p_ccc VALUES LESS THAN ('ccc')
+ (SUBPARTITION s0 ENGINE = InnoDB,
+  SUBPARTITION s1 ENGINE = InnoDB),
+ PARTITION p_kkk VALUES LESS THAN ('kkk')
+ (SUBPARTITION s2 ENGINE = InnoDB,
+  SUBPARTITION s3 ENGINE = InnoDB)) */
+select * from test order by id;
+id	name
+1	aaa
+2	bbb
+3	ccc
+4	ddd
+5	eee
+6	jjj
+alter table test remove partitioning;
+show create table test;
+Table	Create Table
+test	CREATE TABLE `test` (
+  `id` int(11) NOT NULL,
+  `name` char(7) COLLATE utf8mb4_bin NOT NULL,
+  PRIMARY KEY (`id`,`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+select * from test order by id;
+id	name
+1	aaa
+2	bbb
+3	ccc
+4	ddd
+5	eee
+6	jjj
+drop table test;
+清理测试数据
+drop database if exists test_db;

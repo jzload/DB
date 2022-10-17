@@ -1,0 +1,136 @@
+set global innodb_lock_wait_timeout=42;
+select @@innodb_lock_wait_timeout;
+@@innodb_lock_wait_timeout
+42
+###################################################################
+# Test Case1: TimeOut
+###################################################################
+SET @connection_b_id = <connection_b_id>;
+create table t(a int primary key, b int)engine=innodb;
+begin;
+insert into t values(1,2),(2,3),(3,4),(4,5);
+select * from t for update wait 2;
+commit;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+###################################################################
+# Test Case2: Success
+###################################################################
+start transaction;
+update t set b = 5 where a=1;
+select * from t for update wait 2;
+commit;
+a	b
+1	5
+2	3
+3	4
+4	5
+commit;
+###################################################################
+# Test Case3: select .. for update / select .. for update wait n
+###################################################################
+start transaction;
+update t set b = 5 where a=1;
+select * from t for update;
+select @@innodb_lock_wait_timeout;
+@@innodb_lock_wait_timeout
+42
+commit;
+a	b
+1	5
+2	3
+3	4
+4	5
+commit;
+###################################################################
+# Test Case4: TimeOut select .. for update / select .. for update wait n 
+###################################################################
+start transaction;
+update t set b = 125 where a=1;
+set  innodb_lock_wait_timeout=5;
+select @@innodb_lock_wait_timeout;
+@@innodb_lock_wait_timeout
+5
+select * from t for update;
+select @@innodb_lock_wait_timeout;
+@@innodb_lock_wait_timeout
+42
+commit;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+###################################################################
+# Test Case5: Double TimeOut select .. for update / select .. for update wait n 
+###################################################################
+start transaction;
+update t set b = 5 where a=1;
+set  innodb_lock_wait_timeout=5;
+select @@innodb_lock_wait_timeout;
+@@innodb_lock_wait_timeout
+5
+select * from t for update wait 2;
+select @@innodb_lock_wait_timeout;
+@@innodb_lock_wait_timeout
+42
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+select * from t for update;
+select @@innodb_lock_wait_timeout;
+@@innodb_lock_wait_timeout
+42
+commit;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+###################################################################
+# Test Case6:   select .. for update wait 0
+###################################################################
+start transaction;
+update t set b = 15 where a=1;
+set  innodb_lock_wait_timeout=5;
+select @@innodb_lock_wait_timeout;
+@@innodb_lock_wait_timeout
+5
+select * from t for update wait 0;
+select @@innodb_lock_wait_timeout;
+@@innodb_lock_wait_timeout
+42
+commit;
+a	b
+1	15
+2	3
+3	4
+4	5
+commit;
+###################################################################
+# Test Case7:   select .. for update wait verylarge
+###################################################################
+start transaction;
+update t set b = 15 where a=1;
+select * from t for update wait 100000000000;
+select @@innodb_lock_wait_timeout;
+@@innodb_lock_wait_timeout
+42
+Timeout in wait_condition.inc for SELECT COUNT(*) = 1 FROM information_schema.processlist
+WHERE id = @connection_b_id AND INFO = 'select * from t for update wait 100000000000'
+commit;
+ERROR HY000: Incorrect arguments to wait seconds too large
+commit;
+###################################################################
+# Test Case8:   select .. for update wait -1, -0, 'abcd', 1073741824
+###################################################################
+select * from t for update wait -1;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '-1' at line 1
+select * from t for update wait -0;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '-0' at line 1
+select * from t for update wait 'abc';
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ''abc'' at line 1
+select * from t for update wait 1073741824;
+a	b
+1	15
+2	3
+3	4
+4	5
+###################################################################
+# Test Case9:   select .. for update wait
+###################################################################
+select * from t for update wait;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1
+drop table t;
+set global innodb_lock_wait_timeout=<initial_timeout>;

@@ -1,0 +1,75 @@
+SET @transaction_isolation_session_orig = @@global.transaction_isolation;
+SET global transaction_isolation= 'READ-COMMITTED';
+SET session transaction_isolation= 'READ-COMMITTED';
+set @old_mvcc_purge = @@global.innodb_distributed_mvcc_purge;
+set @old_purge_gtmgtid = @@global.innodb_distributed_mvcc_purge_gtmgtid;
+CREATE TABLE t (  a int,  GTID bigint) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+
+--echo
+--echo ############################################################
+--echo # 1. prepare the data
+--echo # set the variables
+
+set global innodb_distributed_mvcc_purge = on;
+set global innodb_distributed_mvcc_purge_gtmgtid = 8;
+
+--echo # Connection con1:
+connect (con1,localhost,root,,);
+connection con1;
+
+--echo ######### 1.1 test the varaibles ########
+select @@innodb_distributed_mvcc_purge;
+select @@innodb_distributed_mvcc_purge_gtmgtid;
+--error ER_GLOBAL_VARIABLE
+set session innodb_distributed_mvcc_purge = on;
+--error ER_GLOBAL_VARIABLE
+set session innodb_distributed_mvcc_purge_gtmgtid = 9;
+
+insert into t values(1,9); 
+insert into t values(2,10); 
+insert into t values(3,11); 
+insert into t values(4,12); 
+insert into t values(6,13); 
+insert into t values(7,20); 
+insert into t values(8,21);
+
+--echo
+--echo ############################################################
+--echo # 2. normal select
+--echo # set the variables # active list  11, 13
+select /*+ SET_VAR(active_gtm_gtid_list='CwAAAAAAAAANAAAAAAAAAA==') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t;
+
+
+--echo
+--echo ############################################################
+--echo # 3. update delete then select
+--echo #  active list  11, 13
+/*+GTID=13*/update t set GTID=13 where a = 1;
+/*+GTID=13*/delete from t where a = 1;
+select /*+ SET_VAR(active_gtm_gtid_list='CwAAAAAAAAANAAAAAAAAAA==') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t;
+
+--echo
+--echo ############################################################
+--echo # 4. update delete success
+--echo #  active list  11, 13
+connection default;
+set global innodb_distributed_mvcc_purge_gtmgtid = 15;
+connection con1;
+/*+GTID=14*/update t set GTID=14;
+/*+GTID=14*/delete from t;
+--sleep 2
+--echo #### after purge it has no result set
+select /*+ SET_VAR(active_gtm_gtid_list='CwAAAAAAAAANAAAAAAAAAA==') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t;
+connection default;
+--echo
+--echo ############################################################
+--echo #  clean up
+--echo #  
+connection default;
+SET global transaction_isolation= @transaction_isolation_session_orig;
+set session transaction_isolation= @transaction_isolation_session_orig;
+set global  innodb_distributed_mvcc_purge = @old_mvcc_purge;
+set global innodb_distributed_mvcc_purge_gtmgtid = @old_purge_gtmgtid;
+DROP TABLE t;
+disconnect default;
+disconnect con1;

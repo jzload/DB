@@ -1,0 +1,12 @@
+SELECT @@GLOBAL.thread_handling;
+@@GLOBAL.thread_handling
+one-thread-per-connection
+show threadpool status;
+Group	Super_queue_events	High_queue_events	Low_queue_events	Threadpool_active_threads	Threadpool_waiting_threads	Threadpool_idle_threads	Wait_time
+show status like '%threadpool%';
+Variable_name	Value
+Com_show_threadpool_status	1
+Threadpool_active_threads	0
+Threadpool_idle_threads	0
+Threadpool_threads	0
+Threadpool_waiting_threads	0

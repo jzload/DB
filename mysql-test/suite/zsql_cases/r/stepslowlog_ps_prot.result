@@ -1,0 +1,80 @@
+SET @old_log_output=          @@global.log_output;
+SET @old_slow_query_log=      @@global.slow_query_log;
+SET @old_slow_query_log_file= @@global.slow_query_log_file;
+SET GLOBAL slow_query_log_file= '.../log/slow_query_temp.log';
+SET GLOBAL log_output=       'FILE';
+SET GLOBAL slow_query_log=   'ON';
+SET SESSION long_query_time=  0;
+select * from information_schema.OPTIMIZER_TRACE;
+QUERY	TRACE	MISSING_BYTES_BEYOND_MAX_MEM_SIZE	INSUFFICIENT_PRIVILEGES
+set optimizer_trace_max_mem_size=1048576;
+set @@session.optimizer_trace="enabled=on";
+select * from information_schema.OPTIMIZER_TRACE;
+QUERY	TRACE	MISSING_BYTES_BEYOND_MAX_MEM_SIZE	INSUFFICIENT_PRIVILEGES
+DROP TABLE IF EXISTS t1;
+Warnings:
+Note	1051	Unknown table 'test.t1'
+CREATE TABLE t1 (c int);
+INSERT INTO t1 VALUES (NULL);
+DROP TABLE IF EXISTS t2;
+Warnings:
+Note	1051	Unknown table 'test.t2'
+CREATE TABLE t2 (d int , KEY (d));
+INSERT INTO t2 VALUES (NULL),(NULL);
+SELECT (SELECT 1 FROM t2 WHERE d = c) AS RESULT FROM t1 ;
+RESULT
+NULL
+DROP TABLE IF EXISTS t3;
+Warnings:
+Note	1051	Unknown table 'test.t3'
+CREATE TABLE t3(time_string varchar(20));
+SET SESSION long_query_time=  10;
+SET SESSION long_query_time=  0;
+select * from t3;
+time_string
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+0
+DROP TABLE t1;
+DROP TABLE t2;
+DROP TABLE t3;
+SET GLOBAL  log_output=         @old_log_output;
+SET GLOBAL  slow_query_log=     @old_slow_query_log;
+SET GLOBAL  slow_query_log_file=@old_slow_query_log_file;
+End of test!

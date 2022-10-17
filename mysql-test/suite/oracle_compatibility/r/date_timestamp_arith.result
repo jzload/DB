@@ -1,0 +1,592 @@
+select to_date('', 'yyyy-mm-dd') + 1 from dual;
+to_date('', 'yyyy-mm-dd') + 1
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '' for function to_date
+select 1 + to_date('', 'yyyy-mm-dd') from dual;
+1 + to_date('', 'yyyy-mm-dd')
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '' for function to_date
+select 1 + to_date('', 'yyyy-mm-dd') + 1 from dual;
+1 + to_date('', 'yyyy-mm-dd') + 1
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '' for function to_date
+select 1 + to_date(NULL, 'yyyy-mm-dd') + 1 from dual;
+1 + to_date(NULL, 'yyyy-mm-dd') + 1
+NULL
+select 1 + to_date(' ', NULL) + 1 from dual;
+1 + to_date(' ', NULL) + 1
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: ' ' for function to_date
+select (-1) + to_date('','yyyy-mm-dd') + (-1) from dual;
+(-1) + to_date('','yyyy-mm-dd') + (-1)
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '' for function to_date
+select to_date('2020-01-20','yyyy-mm-dd') + NULL from dual;
+to_date('2020-01-20','yyyy-mm-dd') + NULL
+NULL
+select NULL + to_date('2020-01-20','yyyy-mm-dd') from dual;
+NULL + to_date('2020-01-20','yyyy-mm-dd')
+NULL
+select NULL + to_date('2020-01-20','yyyy-mm-dd') + '1234' from dual;
+NULL + to_date('2020-01-20','yyyy-mm-dd') + '1234'
+NULL
+select NULL + to_date('2020-01-20','yyyy-mm-dd') + 'abcd' from dual;
+NULL + to_date('2020-01-20','yyyy-mm-dd') + 'abcd'
+NULL
+select NULL + to_date('2020-01-20','yyyy-mm-dd') + '-12345678910111212134' from dual;
+NULL + to_date('2020-01-20','yyyy-mm-dd') + '-12345678910111212134'
+NULL
+select to_date('','yyyy-mm-dd') + NULL from dual;
+to_date('','yyyy-mm-dd') + NULL
+NULL
+select to_date(NULL,'yyyy-mm-dd') + NULL from dual;
+to_date(NULL,'yyyy-mm-dd') + NULL
+NULL
+select NULL + to_date(' ', NULL) + 1 from dual;
+NULL + to_date(' ', NULL) + 1
+NULL
+select NULL + to_date('','yyyy-mm-dd') from dual;
+NULL + to_date('','yyyy-mm-dd')
+NULL
+select NULL + to_date('','yyyy-mm-dd') + NULL from dual;
+NULL + to_date('','yyyy-mm-dd') + NULL
+NULL
+select to_date('2020-01-20','yyyy-mm-dd') + 0 from dual;
+to_date('2020-01-20','yyyy-mm-dd') + 0
+2020-01-20 00:00:00
+select to_date('2020-01-20','yyyy-mm-dd') + 1 from dual;
+to_date('2020-01-20','yyyy-mm-dd') + 1
+2020-01-21 00:00:00
+select to_date('2020-01-20','yyyy-mm-dd') + 1.123 from dual;
+to_date('2020-01-20','yyyy-mm-dd') + 1.123
+2020-01-21 02:57:07
+select to_date('2020-01-20','yyyy-mm-dd') + '1' from dual;
+to_date('2020-01-20','yyyy-mm-dd') + '1'
+2020-01-21 00:00:00
+select to_date('2020-01-20','yyyy-mm-dd') + '1.123' from dual;
+to_date('2020-01-20','yyyy-mm-dd') + '1.123'
+2020-01-21 02:57:07
+select 0 + to_date('2020-01-20','yyyy-mm-dd') + 1 from dual;
+0 + to_date('2020-01-20','yyyy-mm-dd') + 1
+2020-01-21 00:00:00
+select 1.23 + to_date('2020-01-20','yyyy-mm-dd') + 1.123 from dual;
+1.23 + to_date('2020-01-20','yyyy-mm-dd') + 1.123
+2020-01-22 08:28:19
+select '12' + to_date('2020-01-20','yyyy-mm-dd') + '1' from dual;
+'12' + to_date('2020-01-20','yyyy-mm-dd') + '1'
+2020-02-02 00:00:00
+select '1.23456' + to_date('2020-01-20','yyyy-mm-dd') + '1.123' from dual;
+'1.23456' + to_date('2020-01-20','yyyy-mm-dd') + '1.123'
+2020-01-22 08:34:53
+select '2914615' + to_date('2020-01-20','yyyy-mm-dd') from dual;
+'2914615' + to_date('2020-01-20','yyyy-mm-dd')
+9999-12-31 00:00:00
+select '2914615.999994' + to_date('2020-01-20','yyyy-mm-dd') from dual;
+'2914615.999994' + to_date('2020-01-20','yyyy-mm-dd')
+9999-12-31 23:59:59
+select '2914616' + to_date('2020-01-20','yyyy-mm-dd') from dual;
+'2914616' + to_date('2020-01-20','yyyy-mm-dd')
+NULL
+Warnings:
+Warning	1441	Datetime function: datetime field overflow
+select '2914615.999995' + to_date('2020-01-20','yyyy-mm-dd') from dual;
+'2914615.999995' + to_date('2020-01-20','yyyy-mm-dd')
+NULL
+Warnings:
+Warning	1441	Datetime function: datetime field overflow
+select to_date('2020-01-20','yyyy-mm-dd') + -1 from dual;
+to_date('2020-01-20','yyyy-mm-dd') + -1
+2020-01-19 00:00:00
+select to_date('2020-01-20','yyyy-mm-dd') + -1.12345678910111213 from dual;
+to_date('2020-01-20','yyyy-mm-dd') + -1.12345678910111213
+2020-01-18 21:02:13
+select to_date('2020-01-20','yyyy-mm-dd') + '-1' from dual;
+to_date('2020-01-20','yyyy-mm-dd') + '-1'
+2020-01-19 00:00:00
+select to_date('2020-01-20','yyyy-mm-dd') + '-1.12345678910111213' from dual;
+to_date('2020-01-20','yyyy-mm-dd') + '-1.12345678910111213'
+2020-01-18 21:02:13
+select -1 + to_date('2020-01-20','yyyy-mm-dd') + -11 from dual;
+-1 + to_date('2020-01-20','yyyy-mm-dd') + -11
+2020-01-08 00:00:00
+select -1.23 + to_date('2020-01-20','yyyy-mm-dd') + -1.123 from dual;
+-1.23 + to_date('2020-01-20','yyyy-mm-dd') + -1.123
+2020-01-17 15:31:41
+select '-12' + to_date('2020-01-20','yyyy-mm-dd') + '-1' from dual;
+'-12' + to_date('2020-01-20','yyyy-mm-dd') + '-1'
+2020-01-07 00:00:00
+select -737809 + to_date('2020-01-20','yyyy-mm-dd') from dual;
+-737809 + to_date('2020-01-20','yyyy-mm-dd')
+0000-00-00 00:00:00
+select '-12345678910111213.23456' + to_date('2020-01-20','yyyy-mm-dd') + '-1.123' from dual;
+'-12345678910111213.23456' + to_date('2020-01-20','yyyy-mm-dd') + '-1.123'
+NULL
+Warnings:
+Warning	1441	Datetime function: datetime field overflow
+create database ttt;
+use ttt;
+drop table if exists t;
+Warnings:
+Note	1051	Unknown table 'ttt.t'
+create table t (field_fl float, 
+field_int int,
+field_str varchar2(20),
+field_dc decimal(10,5),
+field_tm time,
+field_dt date,
+field_dttm datetime,
+filed_tmst timestamp);
+insert into t values (2.3, 10, '1.256', 2365.25416, '10:12:30', '2012-12-12', 
+'2012-12-12 10:12:30', '2012-12-12 10:12:30');
+insert into t values (NULL, 654122321, '1.256', 2365.25416, '10:12:30', '2012-12-12', 
+'2012-12-12 10:12:30', '2012-12-12 10:12:30');
+insert into t values (-2.3, NULL, '-1.256', -2365.25416, '10:12:30', '2012-12-12', 
+'2012-12-12 10:12:30', '2012-12-12 10:12:30');
+insert into t values (2.3, 10, NULL, 2365.25416, '10:12:30', '2012-12-12', 
+'2012-12-12 10:12:30', '2012-12-12 10:12:30');
+insert into t values (2.3, 10, '-1.256', NULL, '10:12:30', '2012-12-12', 
+'2012-12-12 10:12:30', '2012-12-12 10:12:30');
+insert into t values (2.3, 10, '1.256', -2365.25416, NULL, '2012-12-12', 
+'2012-12-12 10:12:30', '2012-12-12 10:12:30');
+insert into t values (2.3, 10, '1.256', 2365.25416, '10:12:30', NULL, 
+'2012-12-12 10:12:30', '2012-12-12 10:12:30');
+insert into t values (-2.3, 10, '1.256', 2365.25416, '10:12:30', '2012-12-12', 
+NULL, '2012-12-12 10:12:30');
+insert into t values (2.3, 10, '1.256', -2365.25416, '10:12:30', '2012-12-12', 
+'2012-12-12 10:12:30', NULL);
+select to_date('','yyyy-mm-dd') + field_fl from t;
+to_date('','yyyy-mm-dd') + field_fl
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+select to_date('','yyyy-mm-dd') + field_int from t;
+to_date('','yyyy-mm-dd') + field_int
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+select to_date('','yyyy-mm-dd') + field_str from t;
+to_date('','yyyy-mm-dd') + field_str
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+select to_date('','yyyy-mm-dd') + field_dc from t;
+to_date('','yyyy-mm-dd') + field_dc
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+select to_date('','yyyy-mm-dd') + field_tm from t;
+to_date('','yyyy-mm-dd') + field_tm
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+select to_date('','yyyy-mm-dd') + field_dt from t;
+to_date('','yyyy-mm-dd') + field_dt
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+select to_date('','yyyy-mm-dd') + field_dttm from t;
+to_date('','yyyy-mm-dd') + field_dttm
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+select to_date('','yyyy-mm-dd') + filed_tmst from t;
+to_date('','yyyy-mm-dd') + filed_tmst
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+Warnings:
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+Warning	1411	Incorrect datetime value: '' for function to_date
+select to_date('2020-01-20','yyyy-mm-dd') + field_fl from t;
+to_date('2020-01-20','yyyy-mm-dd') + field_fl
+2020-01-22 07:12:00
+NULL
+2020-01-17 16:48:00
+2020-01-22 07:12:00
+2020-01-22 07:12:00
+2020-01-22 07:12:00
+2020-01-22 07:12:00
+2020-01-17 16:48:00
+2020-01-22 07:12:00
+select to_date('2020-01-20','yyyy-mm-dd') + field_int from t;
+to_date('2020-01-20','yyyy-mm-dd') + field_int
+2020-01-30 00:00:00
+NULL
+NULL
+2020-01-30 00:00:00
+2020-01-30 00:00:00
+2020-01-30 00:00:00
+2020-01-30 00:00:00
+2020-01-30 00:00:00
+2020-01-30 00:00:00
+Warnings:
+Warning	1441	Datetime function: datetime field overflow
+select to_date('2020-01-20','yyyy-mm-dd') + field_str from t;
+to_date('2020-01-20','yyyy-mm-dd') + field_str
+2020-01-21 06:08:38
+2020-01-21 06:08:38
+2020-01-18 17:51:22
+NULL
+2020-01-18 17:51:22
+2020-01-21 06:08:38
+2020-01-21 06:08:38
+2020-01-21 06:08:38
+2020-01-21 06:08:38
+select to_date('2020-01-20','yyyy-mm-dd') + field_dc from t;
+to_date('2020-01-20','yyyy-mm-dd') + field_dc
+2026-07-12 06:05:59
+2026-07-12 06:05:59
+2013-07-29 17:54:01
+2026-07-12 06:05:59
+NULL
+2013-07-29 17:54:01
+2026-07-12 06:05:59
+2026-07-12 06:05:59
+2013-07-29 17:54:01
+select to_date('2020-01-20','yyyy-mm-dd') + field_tm from t;
+to_date('2020-01-20','yyyy-mm-dd') + field_tm
+2297-03-18 00:00:00
+2297-03-18 00:00:00
+2297-03-18 00:00:00
+2297-03-18 00:00:00
+2297-03-18 00:00:00
+NULL
+2297-03-18 00:00:00
+2297-03-18 00:00:00
+2297-03-18 00:00:00
+select to_date('2020-01-20','yyyy-mm-dd') + field_dt from t;
+to_date('2020-01-20','yyyy-mm-dd') + field_dt
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+Warnings:
+Warning	1441	Datetime function: datetime field overflow
+Warning	1441	Datetime function: datetime field overflow
+Warning	1441	Datetime function: datetime field overflow
+Warning	1441	Datetime function: datetime field overflow
+Warning	1441	Datetime function: datetime field overflow
+Warning	1441	Datetime function: datetime field overflow
+Warning	1441	Datetime function: datetime field overflow
+Warning	1441	Datetime function: datetime field overflow
+select to_date('2020-01-20','yyyy-mm-dd') + field_dttm from t;
+to_date('2020-01-20','yyyy-mm-dd') + field_dttm
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+Warnings:
+Warning	1441	Datetime function: datetime field overflow
+Warning	1441	Datetime function: datetime field overflow
+Warning	1441	Datetime function: datetime field overflow
+Warning	1441	Datetime function: datetime field overflow
+Warning	1441	Datetime function: datetime field overflow
+Warning	1441	Datetime function: datetime field overflow
+Warning	1441	Datetime function: datetime field overflow
+Warning	1441	Datetime function: datetime field overflow
+select to_date('2020-01-20','yyyy-mm-dd') + filed_tmst from t;
+to_date('2020-01-20','yyyy-mm-dd') + filed_tmst
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+NULL
+Warnings:
+Warning	1441	Datetime function: datetime field overflow
+Warning	1441	Datetime function: datetime field overflow
+Warning	1441	Datetime function: datetime field overflow
+Warning	1441	Datetime function: datetime field overflow
+Warning	1441	Datetime function: datetime field overflow
+Warning	1441	Datetime function: datetime field overflow
+Warning	1441	Datetime function: datetime field overflow
+Warning	1441	Datetime function: datetime field overflow
+insert into t values (2.3, 10, '1.256', -2365.25416, '10:12:30', '2012-12-12', 
+to_timestamp('2012-12-10 10:12:30','yyyy-mm-dd hh:mi:ss') + 2, 
+to_date('2012-12-10 10:12:30','yyyy-mm-dd hh:mi:ss') + 2);
+select * from t where filed_tmst = to_date('2012-12-10 10:12:30','yyyy-mm-dd hh:mi:ss') + 2;
+field_fl	field_int	field_str	field_dc	field_tm	field_dt	field_dttm	filed_tmst
+2.3	10	1.256	2365.25416	10:12:30	2012-12-12	2012-12-12 10:12:30	2012-12-12 10:12:30
+NULL	654122321	1.256	2365.25416	10:12:30	2012-12-12	2012-12-12 10:12:30	2012-12-12 10:12:30
+-2.3	NULL	-1.256	-2365.25416	10:12:30	2012-12-12	2012-12-12 10:12:30	2012-12-12 10:12:30
+2.3	10	NULL	2365.25416	10:12:30	2012-12-12	2012-12-12 10:12:30	2012-12-12 10:12:30
+2.3	10	-1.256	NULL	10:12:30	2012-12-12	2012-12-12 10:12:30	2012-12-12 10:12:30
+2.3	10	1.256	-2365.25416	NULL	2012-12-12	2012-12-12 10:12:30	2012-12-12 10:12:30
+2.3	10	1.256	2365.25416	10:12:30	NULL	2012-12-12 10:12:30	2012-12-12 10:12:30
+-2.3	10	1.256	2365.25416	10:12:30	2012-12-12	NULL	2012-12-12 10:12:30
+2.3	10	1.256	-2365.25416	10:12:30	2012-12-12	2012-12-12 10:12:30	2012-12-12 10:12:30
+update t set field_dttm = to_date('2012-12-10 10:12:30','yyyy-mm-dd hh:mi:ss') + '2.231' 
+where filed_tmst = to_date('2012-12-10 10:12:30','yyyy-mm-dd hh:mi:ss') + 2;
+delete from t where filed_tmst = to_date('2012-12-10 10:12:30','yyyy-mm-dd hh:mi:ss') + 2;
+select * from (select to_date('2020-01-20' , 'yyyy-mm-dd') from  t) as alias_t;
+to_date('2020-01-20' , 'yyyy-mm-dd')
+2020-01-20 00:00:00
+select * from t;
+field_fl	field_int	field_str	field_dc	field_tm	field_dt	field_dttm	filed_tmst
+2.3	10	1.256	-2365.25416	10:12:30	2012-12-12	2012-12-12 10:12:30	NULL
+select to_date('2020-01-20','yyyy-mm-dd') + to_date('2020-01-20','yyyy-mm-dd') from dual;
+ERROR HY000: Plus operation is disallowed on multiple to_date/to_timestamp functions 
+select to_date('2020-01-20','yyyy-mm-dd') + to_timestamp('2020-01-20','yyyy-mm-dd') from dual;
+ERROR HY000: Plus operation is disallowed on multiple to_date/to_timestamp functions 
+select to_timestamp('2020-01-20','yyyy-mm-dd') + to_date('2020-01-20','yyyy-mm-dd') from dual;
+ERROR HY000: Plus operation is disallowed on multiple to_date/to_timestamp functions 
+select to_timestamp('2020-01-20','yyyy-mm-dd') + to_timestamp('2020-01-20','yyyy-mm-dd') from dual;
+ERROR HY000: Plus operation is disallowed on multiple to_date/to_timestamp functions 
+select to_date(to_date('2020-07-01 01:00:00', 'yyyy-mm-dd hh:mi:ss'), 'yyyy-mm-dd hh:mi:ss') from dual;
+to_date(to_date('2020-07-01 01:00:00', 'yyyy-mm-dd hh:mi:ss'), 'yyyy-mm-dd hh:mi:ss')
+2020-07-01 01:00:00
+select to_date(to_date('2020-07-01 01:00:00', 'yyyy-mm-dd hh:mi:ss') + 1, 'yyyy-mm-dd hh:mi:ss') from dual;
+to_date(to_date('2020-07-01 01:00:00', 'yyyy-mm-dd hh:mi:ss') + 1, 'yyyy-mm-dd hh:mi:ss')
+2020-07-02 01:00:00
+select to_date('1.23' + to_date('2020-07-01 01:00:00', 'yyyy-mm-dd hh:mi:ss') + 1, 'yyyy-mm-dd hh:mi:ss') from dual;
+to_date('1.23' + to_date('2020-07-01 01:00:00', 'yyyy-mm-dd hh:mi:ss') + 1, 'yyyy-mm-dd hh:mi:ss')
+2020-07-03 06:31:12
+select to_date('2020-01-20','yyyy-mm-dd') + to_char(123.56) from dual;
+to_date('2020-01-20','yyyy-mm-dd') + to_char(123.56)
+2020-05-22 13:26:24
+select to_date('2020-01-20','yyyy-mm-dd') + substr('789.635243', 1, 8) from dual;
+to_date('2020-01-20','yyyy-mm-dd') + substr('789.635243', 1, 8)
+2022-03-19 15:14:41
+select floor(to_date('2020-01-20','yyyy-mm-dd')) from dual;
+floor(to_date('2020-01-20','yyyy-mm-dd'))
+20200120000000
+select floor(to_date('2020-01-20','yyyy-mm-dd') + 10000) from dual;
+floor(to_date('2020-01-20','yyyy-mm-dd') + 10000)
+20470607000000
+select floor(1.23 + to_date('2020-01-20','yyyy-mm-dd') + '0.645') from dual;
+floor(1.23 + to_date('2020-01-20','yyyy-mm-dd') + '0.645')
+20200121210000
+select round(to_date('2020-01-20','yyyy-mm-dd')) from dual;
+round(to_date('2020-01-20','yyyy-mm-dd'))
+20200120000000
+select round(to_date('2020-01-20','yyyy-mm-dd') + '3.4589') from dual;
+round(to_date('2020-01-20','yyyy-mm-dd') + '3.4589')
+20200123110049
+select round(-1.7896 + to_date('2020-01-20','yyyy-mm-dd') + '3.4589') from dual;
+round(-1.7896 + to_date('2020-01-20','yyyy-mm-dd') + '3.4589')
+20200121160348
+select ceil(to_date('2020-01-20','yyyy-mm-dd') + 1) from dual;
+ceil(to_date('2020-01-20','yyyy-mm-dd') + 1)
+20200121000000
+select to_date('2020-01-20','yyyy-mm-dd') - 1 from dual;
+to_date('2020-01-20','yyyy-mm-dd') - 1
+20200119999999
+select to_timestamp('2020-01-20','yyyy-mm-dd') * 100 from t;
+to_timestamp('2020-01-20','yyyy-mm-dd') * 100
+2020012000000000
+select to_timestamp('2020-01-20','yyyy-mm-dd') / to_date('2019-01-20','yyyy-mm-dd') from dual;
+to_timestamp('2020-01-20','yyyy-mm-dd') / to_date('2019-01-20','yyyy-mm-dd')
+1.0004952910
+select to_timestamp('2020-01-20','yyyy-mm-dd') % to_date('2019-01-20','yyyy-mm-dd') from dual;
+to_timestamp('2020-01-20','yyyy-mm-dd') % to_date('2019-01-20','yyyy-mm-dd')
+10000000000
+select -to_date('2020-01-20','yyyy-mm-dd') + 1 from dual;
+-to_date('2020-01-20','yyyy-mm-dd') + 1
+-20200119999999
+select abs(to_date('2020-01-20','yyyy-mm-dd') + 1) from dual;
+abs(to_date('2020-01-20','yyyy-mm-dd') + 1)
+20200121000000
+select to_char(SYSTIMESTAMP, 'yyyy-mm-dd hh24:mi:ss.ff3') + 1 from dual;
+to_char(SYSTIMESTAMP, 'yyyy-mm-dd hh24:mi:ss.ff3') + 1
+2021
+drop table if exists TEST_TBL_1;
+Warnings:
+Note	1051	Unknown table 'ttt.TEST_TBL_1'
+create table TEST_TBL_1(a varchar(100), b varchar(50));
+drop table if exists TEST_TBL_2;
+Warnings:
+Note	1051	Unknown table 'ttt.TEST_TBL_2'
+create table TEST_TBL_2(a varchar(100));
+drop procedure if exists TO_DATE;
+create procedure TO_DATE (in TO_DATE int, out result int)
+TO_DATE1:begin
+declare TO_DATE int default 1;
+while TO_DATE < 2 do
+set TO_DATE=TO_DATE+1;
+select to_date('520-12-14', 'yyy-mm-dd') + 1 from dual;
+select '1.2356' + to_timestamp('520-12-14', 'yyy-mm-dd') from dual;
+end while;
+set result=TO_DATE;
+end TO_DATE1 $$
+set @TO_DATE=1;
+call TO_DATE(8, @TO_DATE);
+to_date('520-12-14', 'yyy-mm-dd') + 1
+2520-12-15 00:00:00
+'1.2356' + to_timestamp('520-12-14', 'yyy-mm-dd')
+2520-12-15 05:39:16
+select @TO_DATE as TO_DATE;
+TO_DATE
+2
+drop procedure TO_DATE;
+drop trigger if exists TO_DATE;
+Warnings:
+Note	1360	Trigger does not exist
+create trigger TO_DATE after insert on TEST_TBL_1 for each row begin insert into TEST_TBL_2 
+select to_timestamp(TEST_TBL_1.a, 'Yyy-MM-DD') + '2356' from TEST_TBL_1; 
+end $$
+insert into TEST_TBL_1 values ('2-05-21', 'Y-MM-DD');
+select * from TEST_TBL_2;
+a
+2008-11-01 00:00:00
+drop trigger TO_DATE;
+truncate TEST_TBL_2;
+drop event if exists TO_DATE;
+Warnings:
+Note	1305	Event TO_DATE does not exist
+create event if not exists TO_DATE on schedule every 1 minute on completion preserve do 
+insert into TEST_TBL_2 select '23.6985' + to_timestamp(TEST_TBL_1.a, 'Yyy-MM-DD') from TEST_TBL_1;
+alter event TO_DATE on completion preserve enable;
+alter event TO_DATE on completion  preserve disable;
+drop event TO_DATE;
+prepare pron from 'select to_date(?, ?) + 2.36985 from dual';
+set @p = '222-10-11';
+set @q = 'yyy-mm-dd';
+execute pron using @p, @q;
+to_date(?, ?) + 2.36985
+2222-10-13 08:52:35
+drop table TEST_TBL_1;
+drop table TEST_TBL_2;
+drop database ttt;

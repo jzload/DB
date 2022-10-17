@@ -1,0 +1,471 @@
+# --
+# -- init table and insert values for load
+# --
+drop database if exists test_1;
+create database test_1;
+create table test_1.tb1(a int primary key, b int, c int, d int);
+create table test_1.tb2(a int, b int, c int, d int, primary key(a,b));
+create table test_1.tb3(a int primary key, b int, c int, d int, unique key(b));
+create table test_1.tb4(a int primary key, b int, c int, d int, key(b));
+create table test_1.tb5(a int key, a1 varchar(20), a2 double, a3 float, a4 bit, a5 bool, a6 char(20),
+a7 year, a8 date, a9 time, a10 timestamp, a11 datetime);
+create table test_1.tb11(a int primary key, b int, c int, d int);
+create table test_1.tb21(a int, b int, c int, d int, primary key(a,b));
+create table test_1.tb31(a int primary key, b int, c int, d int, unique key(b));
+create table test_1.tb41(a int primary key, b int, c int, d int, key(b));
+create table test_1.tb51(a int key, a1 varchar(20), a2 double, a3 float, a4 bit, a5 bool, a6 char(20),
+a7 year, a8 date, a9 time, a10 timestamp, a11 datetime);
+create table test_1.tb6(a int primary key, b varchar(20), c varchar(20));
+create table test_1.tb61(a int primary key, b varchar(20), c varchar(20));
+create table test_1.tb7(a int primary key, b int, c char(20));
+insert into test_1.tb1 values(1,1,1,1);
+insert into test_1.tb1 values(2,NULL,2,2);
+insert into test_1.tb1 values(3,3,NULL,3);
+insert into test_1.tb1 values(4,4,4,NULL);
+insert into test_1.tb1(a,b) values(5,5);
+insert into test_1.tb2 values(1,1,1,1);
+insert into test_1.tb2 values(2,2,NULL,NULL);
+insert into test_1.tb2 values(3,3,NULL,3);
+insert into test_1.tb2 values(4,4,4,NULL);
+insert into test_1.tb3 values(1,1,1,1);
+insert into test_1.tb3 values(2,NULL,2,2);
+insert into test_1.tb3 values(3,3,NULL,3);
+insert into test_1.tb3 values(4,4,4,NULL);
+insert into test_1.tb3(a) values(5);
+insert into test_1.tb4 values(1,1,1,1);
+insert into test_1.tb4 values(2,NULL,2,2);
+insert into test_1.tb4 values(3,3,NULL,3);
+insert into test_1.tb4 values(4,4,4,NULL);
+insert into test_1.tb4(a) values(5);
+insert into test_1.tb5 values(1,"123abc",11,11,1,1,"1a",2018,"2018-4-11","18:18:18","2018-4-11 18:18:18", "2018-4-11 08:08:08");
+insert into test_1.tb5(a,a10) values(2,"2018-4-11 18:18:18");
+insert into test_1.tb5 values(3,NULL,11,11,1,1,"1a",2018,"2018-4-11","18:18:18","2018-4-11 18:18:18", "2018-4-11 08:08:08");
+insert into test_1.tb5 values(4,"123abc",NULL,11,1,1,"1a",2018,"2018-4-11","18:18:18","2018-4-11 18:18:18", "2018-4-11 08:08:08");
+insert into test_1.tb5 values(5,"123abc",11,NULL,1,1,"1a",2018,"2018-4-11","18:18:18","2018-4-11 18:18:18", "2018-4-11 08:08:08");
+insert into test_1.tb5 values(6,"123abc",11,11,NULL,1,"1a",2018,"2018-4-11","18:18:18","2018-4-11 18:18:18", "2018-4-11 08:08:08");
+insert into test_1.tb5 values(7,"123abc",11,11,1,NULL,"1a",2018,"2018-4-11","18:18:18","2018-4-11 18:18:18", "2018-4-11 08:08:08");
+insert into test_1.tb5 values(8,"123abc",11,11,1,1,NULL,2018,"2018-4-11","18:18:18","2018-4-11 18:18:18", "2018-4-11 08:08:08");
+insert into test_1.tb5 values(9,"123abc",11,11,1,1,"1a",NULL,"2018-4-11","18:18:18","2018-4-11 18:18:18", "2018-4-11 08:08:08");
+insert into test_1.tb5 values(10,"123abc",11,11,1,1,"1a",2018,NULL,"18:18:18","2018-4-11 18:18:18", "2018-4-11 08:08:08");
+insert into test_1.tb5 values(11,"123abc",11,11,1,1,"1a",2018,"2018-4-11",NULL,"2018-4-11 18:18:18", "2018-4-11 08:08:08");
+insert into test_1.tb5 values(12,"123abc",11,11,1,1,"1a",2018,"2018-4-11","18:18:18","2018-4-11 18:18:18", NULL);
+insert into test_1.tb5 values(13,"",11,11,1,1,"",2018,"2018-4-11","","2018-4-11 18:18:18", "2018-4-11 08:08:08");
+insert into test_1.tb6 values(1,"123","123abc");
+insert into test_1.tb6 values(2,NULL,"123abc");
+insert into test_1.tb6 values(3,"123",NULL);
+insert into test_1.tb6 values(4,NULL,NULL);
+insert into test_1.tb6 values(5,"","");
+# --
+# -- test 1: test config load dynamic
+# --
+set global export_null_as_space = ON;
+show variables like '%export%';
+Variable_name	Value
+export_null_as_space	OFF
+set global export_null_as_space = 0;
+show variables like '%export%';
+Variable_name	Value
+export_null_as_space	OFF
+set global export_null_as_space = 1;
+show variables like '%export%';
+Variable_name	Value
+export_null_as_space	OFF
+set global export_null_as_space = OFF;
+show variables like '%export%';
+Variable_name	Value
+export_null_as_space	OFF
+set global import_space_as_null = ON;
+show variables like '%import%';
+Variable_name	Value
+import_space_as_null	OFF
+set global import_space_as_null = 0;
+show variables like '%import%';
+Variable_name	Value
+import_space_as_null	OFF
+set global import_space_as_null = 1;
+show variables like '%import%';
+Variable_name	Value
+import_space_as_null	OFF
+set global import_space_as_null = OFF;
+show variables like '%import%';
+Variable_name	Value
+import_space_as_null	OFF
+# --
+# -- test 2: export_null_as_space =OFF
+# --
+set global export_null_as_space = OFF;
+set global import_space_as_null = OFF;
+delete from test_1.tb11;
+select * from test_1.tb11;
+a	b	c	d
+1	1	1	1
+2	NULL	2	2
+3	3	NULL	3
+4	4	4	NULL
+5	5	NULL	NULL
+delete from test_1.tb11;
+select * from test_1.tb11;
+a	b	c	d
+1	1	1	1
+2	NULL	2	2
+3	3	NULL	3
+4	4	4	NULL
+5	5	NULL	NULL
+delete from test_1.tb11;
+select * from test_1.tb11;
+a	b	c	d
+1	1	1	1
+2	NULL	2	2
+3	3	NULL	3
+4	4	4	NULL
+5	5	NULL	NULL
+delete from test_1.tb21;
+select * from test_1.tb21;
+a	b	c	d
+1	1	1	1
+2	2	NULL	NULL
+3	3	NULL	3
+4	4	4	NULL
+delete from test_1.tb21;
+select * from test_1.tb21;
+a	b	c	d
+1	1	1	1
+2	2	NULL	NULL
+3	3	NULL	3
+4	4	4	NULL
+delete from test_1.tb21;
+select * from test_1.tb21;
+a	b	c	d
+1	1	1	1
+2	2	NULL	NULL
+3	3	NULL	3
+4	4	4	NULL
+delete from test_1.tb31;
+select * from test_1.tb31;
+a	b	c	d
+1	1	1	1
+2	NULL	2	2
+3	3	NULL	3
+4	4	4	NULL
+5	NULL	NULL	NULL
+delete from test_1.tb31;
+select * from test_1.tb31;
+a	b	c	d
+1	1	1	1
+2	NULL	2	2
+3	3	NULL	3
+4	4	4	NULL
+5	NULL	NULL	NULL
+delete from test_1.tb31;
+select * from test_1.tb31;
+a	b	c	d
+1	1	1	1
+2	NULL	2	2
+3	3	NULL	3
+4	4	4	NULL
+5	NULL	NULL	NULL
+delete from test_1.tb41;
+select * from test_1.tb41;
+a	b	c	d
+1	1	1	1
+2	NULL	2	2
+3	3	NULL	3
+4	4	4	NULL
+5	NULL	NULL	NULL
+delete from test_1.tb41;
+select * from test_1.tb41;
+a	b	c	d
+1	1	1	1
+2	NULL	2	2
+3	3	NULL	3
+4	4	4	NULL
+5	NULL	NULL	NULL
+delete from test_1.tb41;
+select * from test_1.tb41;
+a	b	c	d
+1	1	1	1
+2	NULL	2	2
+3	3	NULL	3
+4	4	4	NULL
+5	NULL	NULL	NULL
+delete from test_1.tb51;
+select * from test_1.tb51;
+a	a1	a2	a3	a4	a5	a6	a7	a8	a9	a10	a11
+1	123abc	11	11		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+2	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	2018-04-11 18:18:18	NULL
+3	NULL	11	11		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+4	123abc	NULL	11		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+5	123abc	11	NULL		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+6	123abc	11	11	NULL	1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+7	123abc	11	11		NULL	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+8	123abc	11	11		1	NULL	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+9	123abc	11	11		1	1a	NULL	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+10	123abc	11	11		1	1a	2018	NULL	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+11	123abc	11	11		1	1a	2018	2018-04-11	NULL	2018-04-11 18:18:18	2018-04-11 08:08:08
+12	123abc	11	11		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	NULL
+13		11	11		1		2018	2018-04-11	00:00:00	2018-04-11 18:18:18	2018-04-11 08:08:08
+delete from test_1.tb51;
+select * from test_1.tb51;
+a	a1	a2	a3	a4	a5	a6	a7	a8	a9	a10	a11
+1	123abc	11	11		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+2	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	2018-04-11 18:18:18	NULL
+3	NULL	11	11		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+4	123abc	NULL	11		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+5	123abc	11	NULL		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+6	123abc	11	11	NULL	1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+7	123abc	11	11		NULL	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+8	123abc	11	11		1	NULL	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+9	123abc	11	11		1	1a	NULL	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+10	123abc	11	11		1	1a	2018	NULL	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+11	123abc	11	11		1	1a	2018	2018-04-11	NULL	2018-04-11 18:18:18	2018-04-11 08:08:08
+12	123abc	11	11		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	NULL
+13		11	11		1		2018	2018-04-11	00:00:00	2018-04-11 18:18:18	2018-04-11 08:08:08
+delete from test_1.tb51;
+select * from test_1.tb51;
+a	a1	a2	a3	a4	a5	a6	a7	a8	a9	a10	a11
+1	123abc	11	11		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+2	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	2018-04-11 18:18:18	NULL
+3	NULL	11	11		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+4	123abc	NULL	11		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+5	123abc	11	NULL		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+6	123abc	11	11	NULL	1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+7	123abc	11	11		NULL	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+8	123abc	11	11		1	NULL	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+9	123abc	11	11		1	1a	NULL	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+10	123abc	11	11		1	1a	2018	NULL	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+11	123abc	11	11		1	1a	2018	2018-04-11	NULL	2018-04-11 18:18:18	2018-04-11 08:08:08
+12	123abc	11	11		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	NULL
+13		11	11		1		2018	2018-04-11	00:00:00	2018-04-11 18:18:18	2018-04-11 08:08:08
+# --
+# -- test 3: export_null_as_space =ON
+# --
+set session export_null_as_space = ON;
+set session import_space_as_null = ON;
+delete from test_1.tb11;
+select * from test_1.tb11;
+a	b	c	d
+1	1	1	1
+2	NULL	2	2
+3	3	NULL	3
+4	4	4	NULL
+5	5	NULL	NULL
+delete from test_1.tb11;
+select * from test_1.tb11;
+a	b	c	d
+1	1	1	1
+2	NULL	2	2
+3	3	NULL	3
+4	4	4	NULL
+5	5	NULL	NULL
+delete from test_1.tb11;
+select * from test_1.tb11;
+a	b	c	d
+1	1	1	1
+2	NULL	2	2
+3	3	NULL	3
+4	4	4	NULL
+5	5	NULL	NULL
+delete from test_1.tb21;
+select * from test_1.tb21;
+a	b	c	d
+1	1	1	1
+2	2	NULL	NULL
+3	3	NULL	3
+4	4	4	NULL
+delete from test_1.tb21;
+select * from test_1.tb21;
+a	b	c	d
+1	1	1	1
+2	2	NULL	NULL
+3	3	NULL	3
+4	4	4	NULL
+delete from test_1.tb21;
+select * from test_1.tb21;
+a	b	c	d
+1	1	1	1
+2	2	NULL	NULL
+3	3	NULL	3
+4	4	4	NULL
+delete from test_1.tb31;
+select * from test_1.tb31;
+a	b	c	d
+1	1	1	1
+2	NULL	2	2
+3	3	NULL	3
+4	4	4	NULL
+5	NULL	NULL	NULL
+delete from test_1.tb31;
+select * from test_1.tb31;
+a	b	c	d
+1	1	1	1
+2	NULL	2	2
+3	3	NULL	3
+4	4	4	NULL
+5	NULL	NULL	NULL
+delete from test_1.tb31;
+select * from test_1.tb31;
+a	b	c	d
+1	1	1	1
+2	NULL	2	2
+3	3	NULL	3
+4	4	4	NULL
+5	NULL	NULL	NULL
+delete from test_1.tb41;
+select * from test_1.tb41;
+a	b	c	d
+1	1	1	1
+2	NULL	2	2
+3	3	NULL	3
+4	4	4	NULL
+5	NULL	NULL	NULL
+delete from test_1.tb41;
+select * from test_1.tb41;
+a	b	c	d
+1	1	1	1
+2	NULL	2	2
+3	3	NULL	3
+4	4	4	NULL
+5	NULL	NULL	NULL
+delete from test_1.tb41;
+select * from test_1.tb41;
+a	b	c	d
+1	1	1	1
+2	NULL	2	2
+3	3	NULL	3
+4	4	4	NULL
+5	NULL	NULL	NULL
+delete from test_1.tb51;
+select * from test_1.tb51;
+a	a1	a2	a3	a4	a5	a6	a7	a8	a9	a10	a11
+1	123abc	11	11		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+2	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	2018-04-11 18:18:18	NULL
+3	NULL	11	11		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+4	123abc	NULL	11		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+5	123abc	11	NULL		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+6	123abc	11	11	NULL	1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+7	123abc	11	11		NULL	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+8	123abc	11	11		1	NULL	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+9	123abc	11	11		1	1a	NULL	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+10	123abc	11	11		1	1a	2018	NULL	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+11	123abc	11	11		1	1a	2018	2018-04-11	NULL	2018-04-11 18:18:18	2018-04-11 08:08:08
+12	123abc	11	11		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	NULL
+13	NULL	11	11		1	NULL	2018	2018-04-11	00:00:00	2018-04-11 18:18:18	2018-04-11 08:08:08
+delete from test_1.tb51;
+select * from test_1.tb51;
+a	a1	a2	a3	a4	a5	a6	a7	a8	a9	a10	a11
+1	123abc	11	11		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+2	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	2018-04-11 18:18:18	NULL
+3	NULL	11	11		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+4	123abc	NULL	11		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+5	123abc	11	NULL		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+6	123abc	11	11	NULL	1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+7	123abc	11	11		NULL	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+8	123abc	11	11		1	NULL	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+9	123abc	11	11		1	1a	NULL	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+10	123abc	11	11		1	1a	2018	NULL	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+11	123abc	11	11		1	1a	2018	2018-04-11	NULL	2018-04-11 18:18:18	2018-04-11 08:08:08
+12	123abc	11	11		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	NULL
+13	NULL	11	11		1	NULL	2018	2018-04-11	00:00:00	2018-04-11 18:18:18	2018-04-11 08:08:08
+delete from test_1.tb51;
+select * from test_1.tb51;
+a	a1	a2	a3	a4	a5	a6	a7	a8	a9	a10	a11
+1	123abc	11	11		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+2	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	NULL	2018-04-11 18:18:18	NULL
+3	NULL	11	11		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+4	123abc	NULL	11		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+5	123abc	11	NULL		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+6	123abc	11	11	NULL	1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+7	123abc	11	11		NULL	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+8	123abc	11	11		1	NULL	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+9	123abc	11	11		1	1a	NULL	2018-04-11	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+10	123abc	11	11		1	1a	2018	NULL	18:18:18	2018-04-11 18:18:18	2018-04-11 08:08:08
+11	123abc	11	11		1	1a	2018	2018-04-11	NULL	2018-04-11 18:18:18	2018-04-11 08:08:08
+12	123abc	11	11		1	1a	2018	2018-04-11	18:18:18	2018-04-11 18:18:18	NULL
+13		11	11		1		2018	2018-04-11	00:00:00	2018-04-11 18:18:18	2018-04-11 08:08:08
+# --
+# -- test 4: not support case test
+# --
+# -- export_null_as_space=ON && load the \N for int will be error
+set session export_null_as_space = OFF;
+delete from test_1.tb11;
+set session import_space_as_null = ON;
+ERROR HY000: Incorrect integer value: 'N' for column 'b' at row 2
+select * from test_1.tb11;
+a	b	c	d
+# -- export_null_as_space=ON && load the \N for varchar will be ok, but the string will be N rather than NULL
+set session export_null_as_space = OFF;
+delete from test_1.tb61;
+set session import_space_as_null = ON;
+select * from test_1.tb61;
+a	b	c
+1	123	123abc
+2	N	123abc
+3	123	N
+4	N	N
+5	NULL	NULL
+# -- export_null_as_space=ON && load the "" for varchar will be ok
+set session export_null_as_space = OFF;
+delete from test_1.tb61;
+set session import_space_as_null = ON;
+select * from test_1.tb61;
+a	b	c
+1	123	123abc
+2	N	123abc
+3	123	N
+4	N	N
+5		
+# -- export_null_as_space=OFF &&  load the (empty) for varchar will be empty rather NULL
+set session export_null_as_space = ON;
+delete from test_1.tb61;
+set session import_space_as_null = OFF;
+select * from test_1.tb61;
+a	b	c
+1	123	123abc
+2		123abc
+3	123	
+4		
+5		
+# -- export_null_as_space=OFF &&  load the "" for varchar will be empty ok
+set session export_null_as_space = ON;
+delete from test_1.tb61;
+set session import_space_as_null = OFF;
+select * from test_1.tb61;
+a	b	c
+1	123	123abc
+2		123abc
+3	123	
+4		
+5		
+# --
+# -- test 5: not support case test by manual csv
+# --
+# -- 1,1,NULL
+# -- 2,2,"NULL"
+delete from test_1.tb7;
+set session import_space_as_null = ON;
+select * from test_1.tb7;
+a	b	c
+1	1	NULL
+2	2	NULL
+delete from test_1.tb7;
+set session import_space_as_null = OFF;
+select * from test_1.tb7;
+a	b	c
+1	1	NULL
+2	2	NULL
+# -- 11,11,\N
+# -- 22,22,"\N"
+delete from test_1.tb7;
+set session import_space_as_null = ON;
+select * from test_1.tb7;
+a	b	c
+11	11	N
+22	22	N
+delete from test_1.tb7;
+set session import_space_as_null = OFF;
+select * from test_1.tb7;
+a	b	c
+11	11	NULL
+22	22	NULL
+set session export_null_as_space = OFF;
+DROP database if exists test_1;

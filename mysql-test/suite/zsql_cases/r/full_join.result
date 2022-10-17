@@ -1,0 +1,982 @@
+DROP DATABASE IF EXISTS test_db_full_join;
+Warnings:
+Note	1008	Can't drop database 'test_db_full_join'; database doesn't exist
+CREATE DATABASE test_db_full_join;
+USE test_db_full_join;
+create table t1 (a int,a1 int);
+create table t2 (b int,a1 int);
+create table t3 (c int,a1 int);
+create table t4 (d int);
+create table t5 (a int, b int);
+create table t7 (d int, e varchar(20));
+insert into t1 values(0,0),(1,1),(4,4),(5,5);
+insert into t2 values(0,0),(2,2),(4,4),(6,6);
+insert into t3 values(0,0),(3,3),(5,5),(6,6);
+insert into t4 values(0),(1),(2),(3),(4),(5),(6),(NULL);
+insert into t5 values(0,0),(4,4);
+insert into t7 values(0,'a'),(1,'b'),(2,'c'),(3,'d'),(NULL,'e'),(4,NULL);
+select * from t1 full join t2 on a=b order by a,b;
+a	a1	b	a1
+NULL	NULL	2	2
+NULL	NULL	6	6
+0	0	0	0
+1	1	NULL	NULL
+4	4	4	4
+5	5	NULL	NULL
+select * from t1 natural full join t2 order by a,b;
+a1	a	b
+2	NULL	2
+6	NULL	6
+0	0	0
+1	1	NULL
+4	4	4
+5	5	NULL
+select * from t1 full join t2 using(a1) order by a,b;
+a1	a	b
+2	NULL	2
+6	NULL	6
+0	0	0
+1	1	NULL
+4	4	4
+5	5	NULL
+select * from (select * from t1 natural full join t2)dt order by a,b;
+a1	a	b
+2	NULL	2
+6	NULL	6
+0	0	0
+1	1	NULL
+4	4	4
+5	5	NULL
+select * from (select * from t1 full join t2 on a=b)dt;
+ERROR 42S21: Duplicate column name 'a1'
+select * from (select a,b from t1 full join t2 on a=b)dt order by a,b;
+a	b
+NULL	2
+NULL	6
+0	0
+1	NULL
+4	4
+5	NULL
+select * from (select * from t1 full join t2 using(a1))dt order by a,b;
+a1	a	b
+2	NULL	2
+6	NULL	6
+0	0	0
+1	1	NULL
+4	4	4
+5	5	NULL
+select * from t1 full join t2 full join t3 on b=c on a=b order by a,b;
+a	a1	b	a1	c	a1
+NULL	NULL	NULL	NULL	3	3
+NULL	NULL	NULL	NULL	5	5
+NULL	NULL	2	2	NULL	NULL
+NULL	NULL	6	6	6	6
+0	0	0	0	0	0
+1	1	NULL	NULL	NULL	NULL
+4	4	4	4	NULL	NULL
+5	5	NULL	NULL	NULL	NULL
+select * from t1 natural full join t2 natural full join t3 order by a,b,c;
+a1	a	b	c
+3	NULL	NULL	3
+2	NULL	2	NULL
+6	NULL	6	6
+0	0	0	0
+1	1	NULL	NULL
+4	4	4	NULL
+5	5	NULL	5
+select * from t1 full join t2 on a=b where t1.a1<5 order by a,b;
+a	a1	b	a1
+0	0	0	0
+1	1	NULL	NULL
+4	4	4	4
+select * from t1 full join t2 using(a1) where a1<7 order by a,b;
+a1	a	b
+2	NULL	2
+6	NULL	6
+0	0	0
+1	1	NULL
+4	4	4
+5	5	NULL
+select * from t1 full join t2 using(a1) where t1.a1<7;
+ERROR HY000: Column 'a1' used in NATURAL join cannot have qualifier
+select * from t1 a full join t2 b on a=b, t1 c natural full join t2 d where a.a1=d.b order by a.a,b.b,c.a,d.b;
+a	a1	b	a1	a1	a	b
+0	0	0	0	0	0	0
+4	4	4	4	4	4	4
+select /*+ FULL_JOIN_ANTI() */ * from t1 left join t2 on a=b order by a,b;
+a	a1	b	a1
+1	1	NULL	NULL
+5	5	NULL	NULL
+select /*+ FULL_JOIN_ANTI() */ * from t1 right join t2 on a=b order by a,b;
+a	a1	b	a1
+NULL	NULL	2	2
+NULL	NULL	6	6
+0	0	0	0
+4	4	4	4
+Warnings:
+Warning	8035	FULL_JOIN_ANTI hint is misused in query.
+select /*+ FULL_JOIN_ANTI() */ * from t1 left join t2 on a=b,t4 order by a,b,d;
+a	a1	b	a1	d
+0	0	0	0	NULL
+0	0	0	0	0
+0	0	0	0	1
+0	0	0	0	2
+0	0	0	0	3
+0	0	0	0	4
+0	0	0	0	5
+0	0	0	0	6
+1	1	NULL	NULL	NULL
+1	1	NULL	NULL	0
+1	1	NULL	NULL	1
+1	1	NULL	NULL	2
+1	1	NULL	NULL	3
+1	1	NULL	NULL	4
+1	1	NULL	NULL	5
+1	1	NULL	NULL	6
+4	4	4	4	NULL
+4	4	4	4	0
+4	4	4	4	1
+4	4	4	4	2
+4	4	4	4	3
+4	4	4	4	4
+4	4	4	4	5
+4	4	4	4	6
+5	5	NULL	NULL	NULL
+5	5	NULL	NULL	0
+5	5	NULL	NULL	1
+5	5	NULL	NULL	2
+5	5	NULL	NULL	3
+5	5	NULL	NULL	4
+5	5	NULL	NULL	5
+5	5	NULL	NULL	6
+Warnings:
+Warning	8035	FULL_JOIN_ANTI hint is misused in query.
+select /*+ FULL_JOIN_ANTI() */ * from (t1,t2,t4) order by a,b,d;
+a	a1	b	a1	d
+0	0	0	0	NULL
+0	0	0	0	0
+0	0	0	0	1
+0	0	0	0	2
+0	0	0	0	3
+0	0	0	0	4
+0	0	0	0	5
+0	0	0	0	6
+0	0	2	2	NULL
+0	0	2	2	0
+0	0	2	2	1
+0	0	2	2	2
+0	0	2	2	3
+0	0	2	2	4
+0	0	2	2	5
+0	0	2	2	6
+0	0	4	4	NULL
+0	0	4	4	0
+0	0	4	4	1
+0	0	4	4	2
+0	0	4	4	3
+0	0	4	4	4
+0	0	4	4	5
+0	0	4	4	6
+0	0	6	6	NULL
+0	0	6	6	0
+0	0	6	6	1
+0	0	6	6	2
+0	0	6	6	3
+0	0	6	6	4
+0	0	6	6	5
+0	0	6	6	6
+1	1	0	0	NULL
+1	1	0	0	0
+1	1	0	0	1
+1	1	0	0	2
+1	1	0	0	3
+1	1	0	0	4
+1	1	0	0	5
+1	1	0	0	6
+1	1	2	2	NULL
+1	1	2	2	0
+1	1	2	2	1
+1	1	2	2	2
+1	1	2	2	3
+1	1	2	2	4
+1	1	2	2	5
+1	1	2	2	6
+1	1	4	4	NULL
+1	1	4	4	0
+1	1	4	4	1
+1	1	4	4	2
+1	1	4	4	3
+1	1	4	4	4
+1	1	4	4	5
+1	1	4	4	6
+1	1	6	6	NULL
+1	1	6	6	0
+1	1	6	6	1
+1	1	6	6	2
+1	1	6	6	3
+1	1	6	6	4
+1	1	6	6	5
+1	1	6	6	6
+4	4	0	0	NULL
+4	4	0	0	0
+4	4	0	0	1
+4	4	0	0	2
+4	4	0	0	3
+4	4	0	0	4
+4	4	0	0	5
+4	4	0	0	6
+4	4	2	2	NULL
+4	4	2	2	0
+4	4	2	2	1
+4	4	2	2	2
+4	4	2	2	3
+4	4	2	2	4
+4	4	2	2	5
+4	4	2	2	6
+4	4	4	4	NULL
+4	4	4	4	0
+4	4	4	4	1
+4	4	4	4	2
+4	4	4	4	3
+4	4	4	4	4
+4	4	4	4	5
+4	4	4	4	6
+4	4	6	6	NULL
+4	4	6	6	0
+4	4	6	6	1
+4	4	6	6	2
+4	4	6	6	3
+4	4	6	6	4
+4	4	6	6	5
+4	4	6	6	6
+5	5	0	0	NULL
+5	5	0	0	0
+5	5	0	0	1
+5	5	0	0	2
+5	5	0	0	3
+5	5	0	0	4
+5	5	0	0	5
+5	5	0	0	6
+5	5	2	2	NULL
+5	5	2	2	0
+5	5	2	2	1
+5	5	2	2	2
+5	5	2	2	3
+5	5	2	2	4
+5	5	2	2	5
+5	5	2	2	6
+5	5	4	4	NULL
+5	5	4	4	0
+5	5	4	4	1
+5	5	4	4	2
+5	5	4	4	3
+5	5	4	4	4
+5	5	4	4	5
+5	5	4	4	6
+5	5	6	6	NULL
+5	5	6	6	0
+5	5	6	6	1
+5	5	6	6	2
+5	5	6	6	3
+5	5	6	6	4
+5	5	6	6	5
+5	5	6	6	6
+Warnings:
+Warning	8035	FULL_JOIN_ANTI hint is misused in query.
+select /*+ FULL_JOIN_ANTI() */ * from t1 order by a;
+a	a1
+0	0
+1	1
+4	4
+5	5
+Warnings:
+Warning	8035	FULL_JOIN_ANTI hint is misused in query.
+drop view if exists v1;
+Warnings:
+Note	1051	Unknown table 'test_db_full_join.v1'
+create view v1 as select t1.a1,a,b from t1 full join t2 on a=b;
+select * from v1 order by a,b;
+a1	a	b
+NULL	NULL	2
+NULL	NULL	6
+0	0	0
+1	1	NULL
+4	4	4
+5	5	NULL
+select * from v1 a join v1 b on a.a1=b.a1 order by a.a,a.b,b.a,b.b;
+a1	a	b	a1	a	b
+0	0	0	0	0	0
+1	1	NULL	1	1	NULL
+4	4	4	4	4	4
+5	5	NULL	5	5	NULL
+select * from (select * from t1)dt1 full join (select * from t2)dt2 using(a1) order by a,b;
+a1	a	b
+2	NULL	2
+6	NULL	6
+0	0	0
+1	1	NULL
+4	4	4
+5	5	NULL
+select * from (select * from t1)dt1 full join (select * from t2)dt2 on a=b order by a,b;
+a	a1	b	a1
+NULL	NULL	2	2
+NULL	NULL	6	6
+0	0	0	0
+1	1	NULL	NULL
+4	4	4	4
+5	5	NULL	NULL
+select * from (select * from t1)dt1 full join (select * from t2)dt2 on dt1.a=b order by a,b;
+a	a1	b	a1
+NULL	NULL	2	2
+NULL	NULL	6	6
+0	0	0	0
+1	1	NULL	NULL
+4	4	4	4
+5	5	NULL	NULL
+select * from (select * from t1)dt1 full join (select * from t2)dt2 on test.dt1.a=b order by a,b;
+a	a1	b	a1
+NULL	NULL	2	2
+NULL	NULL	6	6
+0	0	0	0
+1	1	NULL	NULL
+4	4	4	4
+5	5	NULL	NULL
+select * from (select * from t1)dt1 full join (select * from t2)dt2 on t1.a=b;
+ERROR 42S22: Unknown column 't1.a' in 'on clause'
+select * from (t1 join t2 on a=b) full join (t3 join t4 on c=d) on t1.a1 = t3.a1 order by a,b,c,d;
+a	a1	b	a1	c	a1	d
+NULL	NULL	NULL	NULL	3	3	3
+NULL	NULL	NULL	NULL	5	5	5
+NULL	NULL	NULL	NULL	6	6	6
+0	0	0	0	0	0	0
+4	4	4	4	NULL	NULL	NULL
+select * from t1 natural full join t2 natural full join t3 where t1.a>0 or t2.b>0 or c>0 order by a,b,c;
+a1	a	b	c
+3	NULL	NULL	3
+2	NULL	2	NULL
+6	NULL	6	6
+1	1	NULL	NULL
+4	4	4	NULL
+5	5	NULL	5
+select * from t1 full join t2 on a=b full join t3 on b=c join t4 on t1.a1=d or t1.a1 is null order by a,b,c,d;
+a	a1	b	a1	c	a1	d
+NULL	NULL	NULL	NULL	3	3	NULL
+NULL	NULL	NULL	NULL	3	3	0
+NULL	NULL	NULL	NULL	3	3	1
+NULL	NULL	NULL	NULL	3	3	2
+NULL	NULL	NULL	NULL	3	3	3
+NULL	NULL	NULL	NULL	3	3	4
+NULL	NULL	NULL	NULL	3	3	5
+NULL	NULL	NULL	NULL	3	3	6
+NULL	NULL	NULL	NULL	5	5	NULL
+NULL	NULL	NULL	NULL	5	5	0
+NULL	NULL	NULL	NULL	5	5	1
+NULL	NULL	NULL	NULL	5	5	2
+NULL	NULL	NULL	NULL	5	5	3
+NULL	NULL	NULL	NULL	5	5	4
+NULL	NULL	NULL	NULL	5	5	5
+NULL	NULL	NULL	NULL	5	5	6
+NULL	NULL	2	2	NULL	NULL	NULL
+NULL	NULL	2	2	NULL	NULL	0
+NULL	NULL	2	2	NULL	NULL	1
+NULL	NULL	2	2	NULL	NULL	2
+NULL	NULL	2	2	NULL	NULL	3
+NULL	NULL	2	2	NULL	NULL	4
+NULL	NULL	2	2	NULL	NULL	5
+NULL	NULL	2	2	NULL	NULL	6
+NULL	NULL	6	6	6	6	NULL
+NULL	NULL	6	6	6	6	0
+NULL	NULL	6	6	6	6	1
+NULL	NULL	6	6	6	6	2
+NULL	NULL	6	6	6	6	3
+NULL	NULL	6	6	6	6	4
+NULL	NULL	6	6	6	6	5
+NULL	NULL	6	6	6	6	6
+0	0	0	0	0	0	0
+1	1	NULL	NULL	NULL	NULL	1
+4	4	4	4	NULL	NULL	4
+5	5	NULL	NULL	NULL	NULL	5
+select * from ((t1 full join t2 on a=b) natural left join t5) full join t3 on a=c order by a,b,c;
+a	b	a1	a1	c	a1
+NULL	NULL	NULL	NULL	3	3
+NULL	NULL	NULL	NULL	6	6
+NULL	2	NULL	2	NULL	NULL
+NULL	6	NULL	6	NULL	NULL
+0	0	0	0	0	0
+1	NULL	1	NULL	NULL	NULL
+4	4	4	4	NULL	NULL
+5	NULL	5	NULL	5	5
+select * from ((t1 full join t2 on a=b) natural left join t5) full join t3 on t1.a=c order by a,b,c;
+a	b	a1	a1	c	a1
+NULL	NULL	NULL	NULL	3	3
+NULL	NULL	NULL	NULL	6	6
+NULL	2	NULL	2	NULL	NULL
+NULL	6	NULL	6	NULL	NULL
+0	0	0	0	0	0
+1	NULL	1	NULL	NULL	NULL
+4	4	4	4	NULL	NULL
+5	NULL	5	NULL	5	5
+select * from ((t1 full join t2 on a=b) natural full join t5) full join t3 on t1.a=c;
+ERROR HY000: Column 'a' used in NATURAL join cannot have qualifier
+create procedure full_join_test (IN min int, IN max int)
+begin
+select * from t1 full join t2 on a=b where min <= a and max >= a order by a,b;
+select * from t1 natural full join t2 where min <= a1 and max >= a1 order by a,b;
+select * from t1 full join t2 using(a1) where min <=a1 and max >=a1 order by a,b;
+end//
+call full_join_test(1,5);
+a	a1	b	a1
+1	1	NULL	NULL
+4	4	4	4
+5	5	NULL	NULL
+a1	a	b
+2	NULL	2
+1	1	NULL
+4	4	4
+5	5	NULL
+a1	a	b
+2	NULL	2
+1	1	NULL
+4	4	4
+5	5	NULL
+drop table if exists t6;
+Warnings:
+Note	1051	Unknown table 'test_db_full_join.t6'
+create table t6 as select a, t1.a1 as d, b, t2.a1 as e, c, t3.a1 as f from t1 full join t2 full join t3 on b=c on a=c;
+select * from t6 order by a,b,c;
+a	d	b	e	c	f
+NULL	NULL	NULL	NULL	3	3
+NULL	NULL	2	2	NULL	NULL
+NULL	NULL	4	4	NULL	NULL
+NULL	NULL	6	6	6	6
+0	0	0	0	0	0
+1	1	NULL	NULL	NULL	NULL
+4	4	NULL	NULL	NULL	NULL
+5	5	NULL	NULL	5	5
+select * from t1 full join (select rownum r,a,b from t5)dt5 on dt5.r=a1 order by t1.a;
+a	a1	r	a	b
+NULL	NULL	2	4	4
+0	0	NULL	NULL	NULL
+1	1	1	0	0
+4	4	NULL	NULL	NULL
+5	5	NULL	NULL	NULL
+select * from t4 full join t7 on t4.d=t7.d order by t4.d,t7.d;
+d	d	e
+NULL	NULL	NULL
+NULL	NULL	e
+0	0	a
+1	1	b
+2	2	c
+3	3	d
+4	4	NULL
+5	NULL	NULL
+6	NULL	NULL
+select * from t4 full join t7 on t4.d<=>t7.d order by t4.d,t7.d;
+d	d	e
+NULL	NULL	e
+0	0	a
+1	1	b
+2	2	c
+3	3	d
+4	4	NULL
+5	NULL	NULL
+6	NULL	NULL
+select * from (select * from t7 where d>=2 or d is null) x
+full join
+(select * from t7 where d<=4 or d is null) y
+on (x.e like '%a' or y.e like '%b') and x.e = y.e
+order by x.d,y.d;
+d	e	d	e
+NULL	e	NULL	NULL
+NULL	NULL	NULL	e
+NULL	NULL	0	a
+NULL	NULL	1	b
+NULL	NULL	2	c
+NULL	NULL	3	d
+NULL	NULL	4	NULL
+2	c	NULL	NULL
+3	d	NULL	NULL
+4	NULL	NULL	NULL
+select * from t1 full join t2 on a in (select t2.a1 from t2 full join t3 on b<=c) order by a,b;
+a	a1	b	a1
+0	0	0	0
+0	0	2	2
+0	0	4	4
+0	0	6	6
+1	1	NULL	NULL
+4	4	0	0
+4	4	2	2
+4	4	4	4
+4	4	6	6
+5	5	NULL	NULL
+select * from t1 full join t2 on a in (select t2.a1 from t2 full join t3 on b<=c) and a=b order by a,b;
+a	a1	b	a1
+NULL	NULL	2	2
+NULL	NULL	6	6
+0	0	0	0
+1	1	NULL	NULL
+4	4	4	4
+5	5	NULL	NULL
+select * from t1 where exists (select * from t3 natural full join t2 where a1=t1.a1) order by a;
+a	a1
+0	0
+4	4
+5	5
+select * from t1 where a1 not in (select c from t3 full join t2 on t2.a1=t3.a1) order by a;
+a	a1
+select a1 from t1 group by a1 having not exists (select * from t3 full join t2 on t2.a1=t3.a1 where t1.a1=t2.a1 or t1.a1=t3.a1);
+a1
+1
+select a1 from t1 group by a1 having a1 not in (select c from t3 full join t2 on t2.a1=t3.a1);
+a1
+prepare stmt from 'select * from t1 full join t2 on a=b where t1.a1<=? or t1.a1 is null order by a,b';
+set @var1 = 2;
+execute stmt using @var1;
+a	a1	b	a1
+NULL	NULL	2	2
+NULL	NULL	6	6
+0	0	0	0
+1	1	NULL	NULL
+prepare stmt1 from 'select * from t1 full join t2 on a=b and t1.a1<=? order by a,b';
+set @var1 = 7;
+execute stmt1 using @var1;
+a	a1	b	a1
+NULL	NULL	2	2
+NULL	NULL	6	6
+0	0	0	0
+1	1	NULL	NULL
+4	4	4	4
+5	5	NULL	NULL
+select * from t1 a, t1 b full join lateral(select * from t1 where a=a.a)dt1 on b.a=dt1.a;
+ERROR 42S22: Unknown column 'a.a' in 'where clause'
+select * from t1 a, t1 b full join lateral(select * from t1 where a=b.a)dt1 on b.a=dt1.a;
+ERROR HY000: INNER or LEFT JOIN must be used for LATERAL references made by 'dt1'
+select * from t2 b full join (t1 a ,lateral(select * from t1 where a=a.a)dt1) on b.b=dt1.a order by b,dt1.a;
+b	a1	a	a1	a	a1
+NULL	NULL	1	1	1	1
+NULL	NULL	5	5	5	5
+0	0	0	0	0	0
+2	2	NULL	NULL	NULL	NULL
+4	4	4	4	4	4
+6	6	NULL	NULL	NULL	NULL
+create or replace procedure full_join_test(x int)
+begin
+declare t int default 1;
+while t<5
+do
+select *
+from t1 full join t2 on a<b+1 and x+t>t1.a1
+where a < t+2
+order by a,b;
+set t=t+1;
+end while;
+end;//
+call full_join_test(2);
+a	a1	b	a1
+0	0	0	0
+0	0	2	2
+0	0	4	4
+0	0	6	6
+1	1	2	2
+1	1	4	4
+1	1	6	6
+a	a1	b	a1
+0	0	0	0
+0	0	2	2
+0	0	4	4
+0	0	6	6
+1	1	2	2
+1	1	4	4
+1	1	6	6
+a	a1	b	a1
+0	0	0	0
+0	0	2	2
+0	0	4	4
+0	0	6	6
+1	1	2	2
+1	1	4	4
+1	1	6	6
+4	4	4	4
+4	4	6	6
+a	a1	b	a1
+0	0	0	0
+0	0	2	2
+0	0	4	4
+0	0	6	6
+1	1	2	2
+1	1	4	4
+1	1	6	6
+4	4	4	4
+4	4	6	6
+5	5	6	6
+create schema FULL;
+use FULL;
+create table FULL(FULL int);
+drop schema FULL;
+create schema FulL;
+use FulL;
+create table fULl(FULL int);
+drop schema FulL;
+USE test_db_full_join;
+create or replace procedure full()
+begin
+declare full int default 1;
+while full < 5
+do
+select * from t1 full join t2 on a=b and a>=2*full-2 order by a,b;
+set full = full + 1;
+end while;
+end;//
+call full();
+a	a1	b	a1
+NULL	NULL	2	2
+NULL	NULL	6	6
+0	0	0	0
+1	1	NULL	NULL
+4	4	4	4
+5	5	NULL	NULL
+a	a1	b	a1
+NULL	NULL	0	0
+NULL	NULL	2	2
+NULL	NULL	6	6
+0	0	NULL	NULL
+1	1	NULL	NULL
+4	4	4	4
+5	5	NULL	NULL
+a	a1	b	a1
+NULL	NULL	0	0
+NULL	NULL	2	2
+NULL	NULL	6	6
+0	0	NULL	NULL
+1	1	NULL	NULL
+4	4	4	4
+5	5	NULL	NULL
+a	a1	b	a1
+NULL	NULL	0	0
+NULL	NULL	2	2
+NULL	NULL	4	4
+NULL	NULL	6	6
+0	0	NULL	NULL
+1	1	NULL	NULL
+4	4	NULL	NULL
+5	5	NULL	NULL
+drop procedure full;
+create role full;
+drop role full;
+create user full;
+drop user full;
+set @full = 1;
+drop view if exists full;
+Warnings:
+Note	1051	Unknown table 'test_db_full_join.full'
+create view full as select * from t1 natural full join t2;
+select * from full join t2 on full.a1=t2.b order by full.a1,t2.b;
+a1	a	b	b	a1
+0	0	0	0	0
+2	NULL	2	2	2
+4	4	4	4	4
+6	NULL	6	6	6
+select * from full full join t2 on full.a1=t2.b order by full.a1,t2.b;
+a1	a	b	b	a1
+0	0	0	0	0
+1	1	NULL	NULL	NULL
+2	NULL	2	2	2
+4	4	4	4	4
+5	5	NULL	NULL	NULL
+6	NULL	6	6	6
+drop view full;
+create function full(x int)
+returns int reads sql data
+begin
+declare ret int;
+select count(*)
+into ret
+from t1 full join t2 on a=b
+where a<=x;
+return ret;
+end//
+Warnings:
+Note	1585	This function 'full' has the same name as a native function
+select test_db_full_join.full(8);
+test_db_full_join.full(8)
+4
+Warnings:
+Note	1585	This function 'full' has the same name as a native function
+drop function if exists full;
+create table tt as select * from t1 natural full join t2;
+create table tt1 like tt;
+create trigger full before insert on tt
+for each row
+begin
+insert into tt1
+select * from t1 natural full join t2
+where a1<NEW.a1;
+end;//
+insert into tt values(3,3,3);
+select * from tt order by a1,a,b;
+a1	a	b
+0	0	0
+1	1	NULL
+2	NULL	2
+3	3	3
+4	4	4
+5	5	NULL
+6	NULL	6
+select * from tt1 order by a1,a,b;
+a1	a	b
+0	0	0
+1	1	NULL
+2	NULL	2
+drop trigger full;
+drop table tt1;
+drop table tt;
+drop table if exists tt;
+Warnings:
+Note	1051	Unknown table 'test_db_full_join.tt'
+drop event if exists full;
+Warnings:
+Note	1305	Event full does not exist
+create event full
+on schedule at current_timestamp+interval 3 second
+do
+create table tt as
+select *
+from t1 natural full join t2;
+show tables like 'tt';
+Tables_in_test_db_full_join (tt)
+show tables like 'tt';
+Tables_in_test_db_full_join (tt)
+tt
+drop table if exists tt;
+create table tt as select * from t1 natural full join t2;
+insert into tt select t1.a1,a,c from t1 full join t3 on a=c;
+select * from tt order by a,b;
+a1	a	b
+2	NULL	2
+NULL	NULL	3
+6	NULL	6
+NULL	NULL	6
+0	0	0
+0	0	0
+1	1	NULL
+1	1	NULL
+4	4	NULL
+4	4	4
+5	5	NULL
+5	5	5
+update tt set (a1,a,b) = (select * from t2 natural full join t3  where a=c limit 1) where tt.a in (select c from t3);
+select * from tt order by a,b;
+a1	a	b
+2	NULL	2
+NULL	NULL	3
+5	NULL	5
+5	NULL	5
+6	NULL	6
+NULL	NULL	6
+0	0	0
+0	0	0
+1	1	NULL
+1	1	NULL
+4	4	NULL
+4	4	4
+delete from tt where a1 in (select a1 from t3 full join t2 using(a1));
+select * from tt order by a,b;
+a1	a	b
+NULL	NULL	3
+NULL	NULL	6
+1	1	NULL
+1	1	NULL
+drop table tt;
+drop view if exists v1;
+create view v1 as select /*+ SEMIJOIN() */ * from t1 natural full join t2;
+Warnings:
+Warning	3515	Hints aren't supported in CREATE or ALTER VIEW
+show create view v1;
+View	Create View	character_set_client	collation_connection
+v1	CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v1` AS select `#fj0_xxxxxx`.`#fjc0` AS `a1`,`#fj0_xxxxxx`.`#fjc1` AS `a`,`#fj0_xxxxxx`.`#fjc2` AS `b` from (select /*+ FULL_JOIN_ANTI( ) */ `t1`.`a1` AS `a1`,`t1`.`a` AS `a`,`t2`.`b` AS `b` from (`t1` left join (`t2`) on((`t1`.`a1` = `t2`.`a1`))) union all select `t2`.`a1` AS `a1`,`t1`.`a` AS `a`,`t2`.`b` AS `b` from (`t2` left join `t1` on((`t1`.`a1` = `t2`.`a1`)))) `#fj0_xxxxxx` (`#fjc0`,`#fjc1`,`#fjc2`)	utf8mb4	utf8mb4_0900_ai_ci
+drop view v1;
+drop view if exists v1;
+Warnings:
+Note	1051	Unknown table 'test_db_full_join.v1'
+create view v1 as select /*+ SEMIJOIN() FULL_JOIN_ANTI() */ * from t1 natural left join t2;
+Warnings:
+Warning	3515	Hints aren't supported in CREATE or ALTER VIEW
+show create view v1;
+View	Create View	character_set_client	collation_connection
+v1	CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v1` AS select /*+ FULL_JOIN_ANTI( ) */ `t1`.`a1` AS `a1`,`t1`.`a` AS `a`,`t2`.`b` AS `b` from (`t1` left join (`t2`) on((`t1`.`a1` = `t2`.`a1`)))	utf8mb4	utf8mb4_0900_ai_ci
+drop view v1;
+select * from (select * from t1)full full join t2 on a=b;
+ERROR 42000: Every derived table must have its own alias
+select * from t1 full full join t2 on a=b;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'full join t2 on a=b' at line 1
+with full as
+(select *
+from t1 natural full join t2
+where a1 in (select a1 from t1 natural full join t3))
+select * from full order by a,b;
+a1	a	b
+6	NULL	6
+0	0	0
+1	1	NULL
+4	4	4
+5	5	NULL
+with recursive full as
+(select * from t1 where a1 = 0
+union all
+select t2.* from full full join t2 on a<b)
+select * from full;
+ERROR HY000: In recursive query block of Recursive Common Table Expression 'full', the recursive table must be referenced only once, and not in any subquery
+with recursive full as
+(select * from t1 where a1 = 0
+union all
+select t2.* from full join t2 on a<b)
+select * from full order by a;
+a	a1
+0	0
+2	2
+4	4
+4	4
+6	6
+6	6
+6	6
+6	6
+select * from t1 full join t2 on a=b having a>2 order by a,b;
+a	a1	b	a1
+4	4	4	4
+5	5	NULL	NULL
+select * from t1 full join t2 on a=b having t1.a>2 order by a,b;
+a	a1	b	a1
+4	4	4	4
+5	5	NULL	NULL
+select t1.a b,t1.a1,t2.b a,t2.a1 from t1 full join t2 on a=b having b>2 order by b,a;
+b	a1	a	a1
+4	4	4	4
+5	5	NULL	NULL
+select t1.a b,t1.a1,t2.b a,t2.a1 from t1 full join t2 on a=b having t1.a>2 order by t1.a,a;
+b	a1	a	a1
+4	4	4	4
+5	5	NULL	NULL
+select t1.a b,t1.a1,t2.b a,t2.a1 from t1 full join t2 on a=b having t2.b>2 order by t2.b,b;
+b	a1	a	a1
+4	4	4	4
+NULL	NULL	6	6
+select t1.a b,t1.a1,t2.b a,t2.a1 from t1 full join t2 on a=b having t2.a>2;
+ERROR 42S22: Unknown column 't2.a' in 'having clause'
+select * from t1 full join t2 full join t3 on b=c on a=c having t1.a>2 order by a,b,c;
+a	a1	b	a1	c	a1
+4	4	NULL	NULL	NULL	NULL
+5	5	NULL	NULL	5	5
+select t1.a b,t2.b c,t3.c a from t1 full join t2 full join t3 on b=c on a=c having a>2 order by a,b,c;
+b	c	a
+NULL	NULL	3
+5	NULL	5
+NULL	6	6
+select sum(b) from t1 full join t2 on a=b group by t1.a1 having a1>0 order by t1.a1;
+sum(b)
+NULL
+4
+NULL
+select sum(b) from t1 full join t2 on a=b group by t1.a1 having t1.a1>0 order by t1.a1;
+sum(b)
+NULL
+4
+NULL
+select sum(b) from t1 full join t2 on a=b group by t1.a1 having t1.a1>0 order by a1;
+ERROR 23000: Column 'a1' in order clause is ambiguous
+select t1.a1 aa,sum(b) from t1 full join t2 on a=b group by a1 having sum(t2.a1)>0;
+ERROR 23000: Column 'a1' in group statement is ambiguous
+select t1.a1,sum(b) from t1 full join t2 on a=b group by a1 having a1>0 order by a1;
+a1	sum(b)
+1	NULL
+4	4
+5	NULL
+select t1.a1,t2.a1,sum(b) from t1 full join t2 on a=b group by a1 having a1>0;
+ERROR 23000: Column 'a1' in group statement is ambiguous
+select t1.a1,t2.a1,sum(b) from t1 full join t2 on a=b group by t1.a1 having a1>0;
+ERROR 23000: Column 'a1' in having clause is ambiguous
+select t1.a1,t2.a1,sum(b) from t1 full join t2 on a=b group by t1.a1,t2.a1 having t2.a1>0 order by sum(b);
+a1	a1	sum(b)
+NULL	2	2
+4	4	4
+NULL	6	6
+select t1.a1,b from t1 full join t2 on a=b group by a1,b having a1>0 order by a1;
+a1	b
+1	NULL
+4	4
+5	NULL
+drop database if exists test2;
+Warnings:
+Note	1008	Can't drop database 'test2'; database doesn't exist
+create database test2;
+create table test2.t1 (a int, a1 int);
+insert into test2.t1 values(1,1);
+select * from t1 full join test2.t1 on t1.a=test2.t1.a;
+ERROR 23000: Column 't1.a' in on clause is ambiguous
+select * from t1 full join test2.t1 on test_db_full_join.t1.a=test2.t1.a order by test_db_full_join.t1.a;
+a	a1	a	a1
+0	0	NULL	NULL
+1	1	1	1
+4	4	NULL	NULL
+5	5	NULL	NULL
+select test_db_full_join.t1.a1 from t1 full join test2.t1 using(a) join t5 using(a) group by t1.a1 order by t1.a1;
+ERROR 23000: Column 't1.a1' in group statement is ambiguous
+drop database test2;
+select * from t1 full join t2 on a=b, t1;
+ERROR 42000: Not unique table/alias: 't1'
+select * from t1 , t2 full join (t1 full join t3 on a=c) on b=c;
+ERROR 42000: Not unique table/alias: 't1'
+select * from t1 full join t2 on a=b, t1 a order by t1.a,a.a;
+a	a1	b	a1	a	a1
+NULL	NULL	6	6	0	0
+NULL	NULL	2	2	0	0
+NULL	NULL	6	6	1	1
+NULL	NULL	2	2	1	1
+NULL	NULL	6	6	4	4
+NULL	NULL	2	2	4	4
+NULL	NULL	6	6	5	5
+NULL	NULL	2	2	5	5
+0	0	0	0	0	0
+0	0	0	0	1	1
+0	0	0	0	4	4
+0	0	0	0	5	5
+1	1	NULL	NULL	0	0
+1	1	NULL	NULL	1	1
+1	1	NULL	NULL	4	4
+1	1	NULL	NULL	5	5
+4	4	4	4	0	0
+4	4	4	4	1	1
+4	4	4	4	4	4
+4	4	4	4	5	5
+5	5	NULL	NULL	0	0
+5	5	NULL	NULL	1	1
+5	5	NULL	NULL	4	4
+5	5	NULL	NULL	5	5
+select * from t1 full join t2 b on a=b, t1 a, t1 full join t3 on a=c;
+ERROR 42000: Not unique table/alias: 't1'
+select * from t1 full join t2 on a=b, t1 a, t1 t2;
+ERROR 42000: Not unique table/alias: 't2'
+select * from t1 full join t2 full join t3 using (a1) on a=b order by a,b,c;
+a	a1	a1	b	c
+NULL	NULL	3	NULL	3
+NULL	NULL	5	NULL	5
+NULL	NULL	2	2	NULL
+NULL	NULL	6	6	6
+0	0	0	0	0
+1	1	NULL	NULL	NULL
+4	4	4	4	NULL
+5	5	NULL	NULL	NULL
+select t1.* from t1 full join t2 on a=b order by a;
+a	a1
+NULL	NULL
+NULL	NULL
+0	0
+1	1
+4	4
+5	5
+set @save_sql_mode = @@sql_mode;
+set @@sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
+select count(*),t1.* from t3 left join t1 full join t2 on a=b on c=b where a>100;
+count(*)	a	a1
+0	NULL	NULL
+set sql_mode = @save_sql_mode;
+DROP DATABASE IF EXISTS test_db_full_join;

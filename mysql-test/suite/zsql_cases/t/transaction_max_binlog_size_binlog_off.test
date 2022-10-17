@@ -1,0 +1,13 @@
+##########################################################
+# test cases for "transaction_max_binlog_size" with binlog OFF
+##########################################################
+
+--source include/not_log_bin.inc
+ 
+select @@log_bin;
+show variables like '%transaction_max_binlog_size%';
+set transaction_max_binlog_size=1; 
+create table tb1 (id int);
+insert into tb1 values(1),(2),(3);
+select * from tb1;
+drop table tb1;

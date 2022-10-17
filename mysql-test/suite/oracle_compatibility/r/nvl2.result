@@ -1,0 +1,395 @@
+drop database if exists nvl2_db;
+create database nvl2_db;
+use nvl2_db;
+create table if not exists nvl2_db.nvl2_t
+(
+id          int not null primary key,
+id1         int default NULL,
+id2         int default NULL,
+int_1       int default NULL,
+double_1    double default NULL,
+float_1     float default NULL,
+decimal_1   decimal(65, 30) default NULL,
+numeric_1   numeric(65,30) default NULL,
+date_1      date default NULL,
+time_1      time default NULL,
+timestamp_1 timestamp default NULL,
+datetime_1  datetime default NULL,
+year_1      year default NULL,
+char_1      char(10) default NULL,
+varchar_1   varchar(80) default NULL,
+binary_1    binary(10) default NULL,
+enum_1      enum('1','ab','中文','') default NULL,
+set_1       set('1','ab','中文','') default NULL,
+blob_1      blob default NULL,
+clob_1      clob default NULL,
+text_1      text default NULL,
+json_1      json
+);
+insert into nvl2_t (id) values (1);
+insert into nvl2_t (id) values (2);
+select nvl2 from dual;
+ERROR 42S22: Unknown column 'nvl2' in 'field list'
+select nvl2() from dual;
+ERROR 42000: Incorrect parameter count in the call to native function 'nvl2'
+select nvl2(1) from dual;
+ERROR 42000: Incorrect parameter count in the call to native function 'nvl2'
+select nvl2(1,) from dual;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ') from dual' at line 1
+select nvl2(1,2,) from dual;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ') from dual' at line 1
+select nvl2(1,2,3,) from dual;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ') from dual' at line 1
+select nvl2(1,2,3,4) from dual;
+ERROR 42000: Incorrect parameter count in the call to native function 'nvl2'
+select nvl2(NULL, 1, 4) from dual;
+nvl2(NULL, 1, 4)
+4
+select nvl2(NULL, 1, NULL) from dual;
+nvl2(NULL, 1, NULL)
+NULL
+select nvl2(1, NULL, 5) from dual;
+nvl2(1, NULL, 5)
+NULL
+select nvl2('', 1, 4) from dual;
+nvl2('', 1, 4)
+1
+select nvl2('', 1, '') from dual;
+nvl2('', 1, '')
+1
+select nvl2(1, '', 5) from dual;
+nvl2(1, '', 5)
+
+select nvl2('string', 'str1', 'str2') from dual;
+nvl2('string', 'str1', 'str2')
+str1
+select nvl2('string', 'str1', 888888) from dual;
+nvl2('string', 'str1', 888888)
+str1
+select nvl2('string', 999999, 'str2') from dual;
+nvl2('string', 999999, 'str2')
+999999
+select nvl2('string', 777777, 888888) from dual;
+nvl2('string', 777777, 888888)
+777777
+select nvl2(22222222, 'str1', 'str2') from dual;
+nvl2(22222222, 'str1', 'str2')
+str1
+select nvl2(22222222, 'str1', 888888) from dual;
+nvl2(22222222, 'str1', 888888)
+str1
+select nvl2(22222222, 999999, 'str2') from dual;
+nvl2(22222222, 999999, 'str2')
+999999
+select nvl2(22222222, 777777, 888888) from dual;
+nvl2(22222222, 777777, 888888)
+777777
+select hex(nvl2(null, 'x', 1)), hex(nvl2(null, 2, 1)) from dual;
+hex(nvl2(null, 'x', 1))	hex(nvl2(null, 2, 1))
+31	1
+select nvl2('~!@#$%^&*()', 2, 4) from dual;
+nvl2('~!@#$%^&*()', 2, 4)
+2
+select nvl2(NULL, '~!@#$%^&*()', '%^&*()~!@#$') from dual;
+nvl2(NULL, '~!@#$%^&*()', '%^&*()~!@#$')
+%^&*()~!@#$
+select nvl2(int_1, 'abc', 'xx') from nvl2_t where id = 1;
+nvl2(int_1, 'abc', 'xx')
+xx
+update nvl2_t set int_1 = 0 where id = 2;
+select nvl2(int_1, int_1, 'xx') from nvl2_t where id = 2;
+nvl2(int_1, int_1, 'xx')
+0
+update nvl2_t set int_1 = 66666 where id = 2;
+select nvl2(int_1, int_1, 'xx') from nvl2_t where id = 2;
+nvl2(int_1, int_1, 'xx')
+66666
+select nvl2(int_1, int_1, 'xx') from nvl2_t order by id;
+nvl2(int_1, int_1, 'xx')
+xx
+66666
+select nvl2(double_1, 'abc', 'xx') from nvl2_t where id = 1;
+nvl2(double_1, 'abc', 'xx')
+xx
+update nvl2_t set double_1 = 0 where id = 2;
+select nvl2(double_1, double_1, 'xx') from nvl2_t where id = 2;
+nvl2(double_1, double_1, 'xx')
+0
+update nvl2_t set double_1 = 666666666 where id = 2;
+select nvl2(double_1, double_1, 'xx') from nvl2_t where id = 2;
+nvl2(double_1, double_1, 'xx')
+666666666
+select nvl2(double_1, double_1, 'xx') from nvl2_t order by id;
+nvl2(double_1, double_1, 'xx')
+xx
+666666666
+select nvl2(float_1, 'abc', 'xx') from nvl2_t where id = 1;
+nvl2(float_1, 'abc', 'xx')
+xx
+update nvl2_t set float_1 = 0.0 where id = 2;
+select nvl2(float_1, float_1, 'xx') from nvl2_t where id = 2;
+nvl2(float_1, float_1, 'xx')
+0
+update nvl2_t set float_1 = 6666.66666 where id = 2;
+select nvl2(float_1, float_1, 'xx') from nvl2_t where id = 2;
+nvl2(float_1, float_1, 'xx')
+6666.67
+select nvl2(float_1, float_1, 'xx') from nvl2_t order by id;
+nvl2(float_1, float_1, 'xx')
+xx
+6666.67
+select nvl2(decimal_1, 'abc', 'xx') from nvl2_t where id = 1;
+nvl2(decimal_1, 'abc', 'xx')
+xx
+update nvl2_t set decimal_1 = 0.0 where id = 2;
+select nvl2(decimal_1, decimal_1, 'xx') from nvl2_t where id = 2;
+nvl2(decimal_1, decimal_1, 'xx')
+0.000000000000000000000000000000
+update nvl2_t set decimal_1 = 6666.66666 where id = 2;
+select nvl2(decimal_1, decimal_1, 'xx') from nvl2_t where id = 2;
+nvl2(decimal_1, decimal_1, 'xx')
+6666.666660000000000000000000000000
+select nvl2(decimal_1, decimal_1, 'xx') from nvl2_t order by id;
+nvl2(decimal_1, decimal_1, 'xx')
+xx
+6666.666660000000000000000000000000
+select nvl2(numeric_1, 'abc', 'xx') from nvl2_t where id = 1;
+nvl2(numeric_1, 'abc', 'xx')
+xx
+update nvl2_t set numeric_1 = 0.0 where id = 2;
+select nvl2(numeric_1, numeric_1, 'xx') from nvl2_t where id = 2;
+nvl2(numeric_1, numeric_1, 'xx')
+0.000000000000000000000000000000
+update nvl2_t set numeric_1 = 6666.686 where id = 2;
+select nvl2(numeric_1, numeric_1, 'xx') from nvl2_t where id = 2;
+nvl2(numeric_1, numeric_1, 'xx')
+6666.686000000000000000000000000000
+select nvl2(numeric_1, numeric_1, 'xx') from nvl2_t order by id;
+nvl2(numeric_1, numeric_1, 'xx')
+xx
+6666.686000000000000000000000000000
+select nvl2(date_1, 'abc', 'xx') from nvl2_t where id = 1;
+nvl2(date_1, 'abc', 'xx')
+xx
+update nvl2_t set date_1 = str_to_date('2020-05-15','%Y-%m-%d') where id = 2;
+select nvl2(date_1, date_1, 'xx') from nvl2_t where id = 2;
+nvl2(date_1, date_1, 'xx')
+2020-05-15
+select nvl2(date_1, date_1, 'xx') from nvl2_t order by id;
+nvl2(date_1, date_1, 'xx')
+xx
+2020-05-15
+select nvl2(time_1, 'abc', 'xx') from nvl2_t where id = 1;
+nvl2(time_1, 'abc', 'xx')
+xx
+update nvl2_t set time_1 = str_to_date('23:59:59','%H:%i:%s') where id = 2;
+select nvl2(time_1, time_1, 'xx') from nvl2_t where id = 2;
+nvl2(time_1, time_1, 'xx')
+23:59:59
+select nvl2(time_1, time_1, time_1) from nvl2_t where id = 2;
+nvl2(time_1, time_1, time_1)
+XX:XX:XX
+select nvl2(time_1, time_1, 'xx') from nvl2_t order by id;
+nvl2(time_1, time_1, 'xx')
+xx
+23:59:59
+select nvl2(timestamp_1, 'abc', 'xx') from nvl2_t where id = 1;
+nvl2(timestamp_1, 'abc', 'xx')
+xx
+update nvl2_t set timestamp_1 = str_to_date('2020-05-15 23:59:59','%Y-%m-%d %H:%i:%s') where id = 2;
+select nvl2(timestamp_1, timestamp_1, 'xx') from nvl2_t where id = 2;
+nvl2(timestamp_1, timestamp_1, 'xx')
+2020-05-15 23:59:59
+select nvl2(timestamp_1, timestamp_1, 'xx') from nvl2_t order by id;
+nvl2(timestamp_1, timestamp_1, 'xx')
+xx
+2020-05-15 23:59:59
+select nvl2(datetime_1, 'abc', 'xx') from nvl2_t where id = 1;
+nvl2(datetime_1, 'abc', 'xx')
+xx
+update nvl2_t set datetime_1 = str_to_date('2020-05-15 23:59:59','%Y-%m-%d %H:%i:%s') where id = 2;
+select nvl2(datetime_1, datetime_1, 'xx') from nvl2_t where id = 2;
+nvl2(datetime_1, datetime_1, 'xx')
+2020-05-15 23:59:59
+select nvl2(datetime_1, sysdate, sysdate) from nvl2_t where id = 2;
+nvl2(datetime_1, sysdate, sysdate)
+20XX-XX-XX XX:XX:XX
+select nvl2(datetime_1, sysdate, 'xx') from nvl2_t order by id;
+nvl2(datetime_1, sysdate, 'xx')
+xx
+20XX-XX-XX XX:XX:XX
+select nvl2(char_1, 'abc', 'xx') from nvl2_t where id = 1;
+nvl2(char_1, 'abc', 'xx')
+xx
+update nvl2_t set char_1 = to_char('char_str') where id = 2;
+select nvl2(char_1, char_1, 'xx') from nvl2_t where id = 2;
+nvl2(char_1, char_1, 'xx')
+char_str
+select nvl2(char_1, char_1, 'xx') from nvl2_t order by id;
+nvl2(char_1, char_1, 'xx')
+xx
+char_str
+select nvl2(varchar_1, 'abc', 'xx') from nvl2_t where id = 1;
+nvl2(varchar_1, 'abc', 'xx')
+xx
+update nvl2_t set varchar_1 = 'varchar_str' where id = 2;
+select nvl2(varchar_1, varchar_1, 'xx') from nvl2_t where id = 2;
+nvl2(varchar_1, varchar_1, 'xx')
+varchar_str
+select nvl2(varchar_1, varchar_1, 'xx') from nvl2_t order by id;
+nvl2(varchar_1, varchar_1, 'xx')
+xx
+varchar_str
+select nvl2(binary_1, 'abc', 'xx') from nvl2_t where id = 1;
+nvl2(binary_1, 'abc', 'xx')
+xx
+update nvl2_t set binary_1 = 4 where id = 2;
+select nvl2(binary_1, 'abc', 'xx') from nvl2_t where id = 2;
+nvl2(binary_1, 'abc', 'xx')
+abc
+select nvl2(binary_1, 'abc', 'xx') from nvl2_t order by id;
+nvl2(binary_1, 'abc', 'xx')
+xx
+abc
+select nvl2(enum_1, 'abc', 'xx') from nvl2_t where id = 1;
+nvl2(enum_1, 'abc', 'xx')
+xx
+update nvl2_t set enum_1 = '' where id = 2;
+select nvl2(enum_1, enum_1, 'xx') from nvl2_t where id = 2;
+nvl2(enum_1, enum_1, 'xx')
+
+update nvl2_t set enum_1 = '中文' where id = 2;
+select nvl2(enum_1, enum_1, 'xx') from nvl2_t where id = 2;
+nvl2(enum_1, enum_1, 'xx')
+中文
+select nvl2(enum_1, enum_1, 'xx') from nvl2_t order by id;
+nvl2(enum_1, enum_1, 'xx')
+xx
+中文
+select nvl2(set_1, 'abc', 'xx') from nvl2_t where id = 1;
+nvl2(set_1, 'abc', 'xx')
+xx
+update nvl2_t set set_1 = '' where id = 2;
+select nvl2(set_1, set_1, 'xx') from nvl2_t where id = 2;
+nvl2(set_1, set_1, 'xx')
+
+update nvl2_t set set_1 = '中文' where id = 2;
+select nvl2(set_1, set_1, 'xx') from nvl2_t where id = 2;
+nvl2(set_1, set_1, 'xx')
+中文
+select nvl2(set_1, set_1, 'xx') from nvl2_t order by id;
+nvl2(set_1, set_1, 'xx')
+xx
+中文
+select nvl2(blob_1, 'abc', 'xx') from nvl2_t where id = 1;
+nvl2(blob_1, 'abc', 'xx')
+xx
+update nvl2_t set blob_1 = 5 where id = 2;
+select nvl2(blob_1, blob_1, 'xx') from nvl2_t where id = 2;
+nvl2(blob_1, blob_1, 'xx')
+5
+select nvl2(blob_1, blob_1, 'xx') from nvl2_t order by id;
+nvl2(blob_1, blob_1, 'xx')
+xx
+5
+select nvl2(clob_1, 'abc', 'xx') from nvl2_t where id = 1;
+nvl2(clob_1, 'abc', 'xx')
+xx
+update nvl2_t set clob_1 = 5 where id = 2;
+select nvl2(clob_1, clob_1, 'xx') from nvl2_t where id = 2;
+nvl2(clob_1, clob_1, 'xx')
+5
+select nvl2(clob_1, clob_1, 'xx') from nvl2_t order by id;
+nvl2(clob_1, clob_1, 'xx')
+xx
+5
+select nvl2(text_1, 'abc', 'xx') from nvl2_t where id = 1;
+nvl2(text_1, 'abc', 'xx')
+xx
+update nvl2_t set text_1 = 'text_str' where id = 2;
+select nvl2(text_1, text_1, 'xx') from nvl2_t where id = 2;
+nvl2(text_1, text_1, 'xx')
+text_str
+select nvl2(text_1, text_1, 'xx') from nvl2_t order by id;
+nvl2(text_1, text_1, 'xx')
+xx
+text_str
+select nvl2(json_1, 'abc', 'xx') from nvl2_t where id = 1;
+nvl2(json_1, 'abc', 'xx')
+xx
+update nvl2_t set json_1 = '{"key1": "value1", "key2": "value2"}' where id = 2;
+select nvl2(json_1, json_1, 'xx') from nvl2_t where id = 2;
+nvl2(json_1, json_1, 'xx')
+{"key1": "value1", "key2": "value2"}
+select nvl2(json_1, json_1, 'xx') from nvl2_t order by id;
+nvl2(json_1, json_1, 'xx')
+xx
+{"key1": "value1", "key2": "value2"}
+update nvl2_t set id1 = 1, id2 = 2 where id = 1;
+select id1,id2,nvl2((id1-id2),id2*id1, id2*id1) from nvl2_t where id = 1;
+id1	id2	nvl2((id1-id2),id2*id1, id2*id1)
+1	2	2
+select id1,id2,nvl2(id2-id1,id2*id1, id2*id1) from nvl2_t where id = 1;
+id1	id2	nvl2(id2-id1,id2*id1, id2*id1)
+1	2	2
+select id1,id2,nvl2(length(id1),abs(id2),NULL) from nvl2_t where id = 1;
+id1	id2	nvl2(length(id1),abs(id2),NULL)
+1	2	2
+select id1,id2,abs(nvl2(id1,id2, NULL)) from nvl2_t where id = 1;
+id1	id2	abs(nvl2(id1,id2, NULL))
+1	2	2
+select nvl2(count(id),'x', 1) from nvl2_t where id=1;
+nvl2(count(id),'x', 1)
+x
+select nvl2(max(id),'x', 1) from nvl2_t where id=1;
+nvl2(max(id),'x', 1)
+x
+select nvl2(min(id),'x', 1) from nvl2_t where id=1;
+nvl2(min(id),'x', 1)
+x
+select nvl2(sum(id),'x', 1) from nvl2_t where id=1;
+nvl2(sum(id),'x', 1)
+x
+select id1,id2,nvl2_result from (select id,id1,id2,nvl2(id1,id2,null) as nvl2_result from nvl2_t) tmp where id = 1;
+id1	id2	nvl2_result
+1	2	2
+select id1,id2,nvl2_result from (select id,id1,id2,nvl2(length(id1),abs(id2),null) as nvl2_result from nvl2_t) tmp where id = 1;
+id1	id2	nvl2_result
+1	2	2
+select id1,id2,nvl2_result from (select id,id1,id2,abs(nvl2(-id1,id2,null)) as nvl2_result from nvl2_t) tmp where id = 1;
+id1	id2	nvl2_result
+1	2	2
+select id1,id2,nvl2_result from (select id,id1,id2,nvl2((id1-2*id2),id2*id1,null) as nvl2_result from nvl2_t)tmp where id = 1;
+id1	id2	nvl2_result
+1	2	2
+select id1,id2,nvl2_result from (select id,id1,id2,nvl2(abs(id1-2*id2),id2*id1,null) as nvl2_result from nvl2_t) tmp where id = 1;
+id1	id2	nvl2_result
+1	2	2
+select id1,id2 from nvl2_t where id in (select nvl2(id1,id2,null) from nvl2_t);
+id1	id2
+NULL	NULL
+select id1,id2 from nvl2_t where id in (select nvl2(length(id1),abs(id1),null) from nvl2_t);
+id1	id2
+1	2
+select id1,id2 from nvl2_t where id in (select abs(nvl2(-id2,id1,null)) from nvl2_t);
+id1	id2
+1	2
+select id1,id2 from nvl2_t where id in (select nvl2(abs(id1-2*id2),id1,null) from nvl2_t);
+id1	id2
+1	2
+select id1,id2 from nvl2_t where id = nvl2(id2,id1,null);
+id1	id2
+1	2
+select id1,id2 from nvl2_t where id = nvl2(length(id2),id1,null) ;
+id1	id2
+1	2
+select id1,id2 from nvl2_t where id = abs(nvl2(-id2,id1,null));
+id1	id2
+1	2
+select id1,id2 from nvl2_t where id = nvl2(-(id1-2*id2),id1,null);
+id1	id2
+1	2
+select id1,id2 from nvl2_t where id = abs(nvl2((id1-2*id2),id1,null));
+id1	id2
+1	2
+drop database if exists nvl2_db;

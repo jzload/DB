@@ -1,0 +1,110 @@
+# === HITTING CRASH WHEN USING SEMISYNC MODE WITH SSL OPTIONS ===
+#
+# With the bug, semisync did not compile with SSL.
+# The following CREATE TABLE as written below crashed with
+# invalid memory access.
+--source include/not_group_replication_plugin.inc
+--source include/master-slave.inc
+--source include/have_semisync_plugin.inc
+--source include/install_semisync.inc
+
+connection slave;
+let $id=`select @@server_id`;
+connection master;
+let $group_end = :1;
+let $group_value = $id$group_end;
+eval set global rpl_semi_sync_master_group1 = '$group_value';
+
+call mtr.add_suppression(".*Semi-sync master failed on net_flush.*before waiting for slave reply.*");
+call mtr.add_suppression(".*Timeout waiting for reply of binlog .* semi-sync up to file .*");
+call mtr.add_suppression(".*Timeout waiting for reply of binlog .* quick-sync up to file .*");
+
+--source include/sync_slave_sql_with_master.inc
+--source include/rpl_connection_slave.inc
+--source include/stop_slave.inc
+
+connection master;
+--let $active_groups_0= query_get_value(SHOW STATUS LIKE 'Rpl_semi_sync_master_active_groups', Value, 1)
+while ($active_groups_0)
+{
+  sleep 10;
+  --let $active_groups_0= query_get_value(SHOW STATUS LIKE 'Rpl_semi_sync_master_active_groups', Value, 1)
+}
+
+connection slave;
+CHANGE MASTER TO MASTER_SSL = 1;
+--source include/start_slave.inc
+
+--echo
+--echo # Try replicating CREATE TABLE and verify that everything is fine.
+--echo
+
+--source include/rpl_connection_master.inc
+
+--let $active_groups_1= query_get_value(SHOW STATUS LIKE 'Rpl_semi_sync_master_active_groups', Value, 1)
+while (!$active_groups_1)
+{
+  sleep 10;
+  --let $active_groups_1= query_get_value(SHOW STATUS LIKE 'Rpl_semi_sync_master_active_groups', Value, 1)
+}
+
+USE test;
+CREATE TABLE table1 (a INT);
+--source include/sync_slave_sql_with_master.inc
+
+--echo
+--echo # STOP SLAVE and verify that replication works fine when slave resumes.
+--echo
+
+--source include/stop_slave_io.inc
+--source include/rpl_connection_master.inc
+
+--let $active_groups_2= query_get_value(SHOW STATUS LIKE 'Rpl_semi_sync_master_active_groups', Value, 1)
+while ($active_groups_2)
+{
+  sleep 10;
+  --let $active_groups_2= query_get_value(SHOW STATUS LIKE 'Rpl_semi_sync_master_active_groups', Value, 1)
+}
+
+INSERT INTO table1 VALUES(1);
+
+--source include/rpl_connection_slave.inc
+--source include/start_slave_io.inc
+
+--echo
+--echo # RE-START SLAVE and execute on master, verify that replication works fine.
+--echo
+
+--source include/rpl_connection_master.inc
+
+--let $active_groups_3= query_get_value(SHOW STATUS LIKE 'Rpl_semi_sync_master_active_groups', Value, 1)
+while (!$active_groups_3)
+{
+  sleep 10;
+  --let $active_groups_3= query_get_value(SHOW STATUS LIKE 'Rpl_semi_sync_master_active_groups', Value, 1)
+}
+
+INSERT INTO table1 VALUES(2);
+--source include/sync_slave_sql_with_master.inc
+
+--let $assert_text= Slave should have 2 rows(1,2)
+--let $assert_cond= `SELECT COUNT(*)=2 from table1`
+--source include/assert.inc
+
+--echo
+--echo # Clean-up
+--echo
+
+--source include/rpl_connection_master.inc
+DROP TABLE table1;
+--disable_query_log
+set global rpl_semi_sync_master_group1 = NULL;
+--enable_query_log
+--source include/sync_slave_sql_with_master.inc
+
+--source include/uninstall_semisync.inc
+--source include/stop_slave.inc
+CHANGE MASTER TO MASTER_SSL = 0;
+
+--let $rpl_only_running_threads= 1
+--source include/rpl_end.inc

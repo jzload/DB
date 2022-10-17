@@ -1,0 +1,210 @@
+include/master-slave.inc
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+[connection master]
+[connection master]
+create database fangpei_test;
+use fangpei_test;
+create table t1 (id int);
+##########################################################################
+#CASE 1: many kinds of 'write' with no rotate 
+##########################################################################
+[connection master]
+use fangpei_test;
+/*+GTID=1*/start transaction;
+insert into t1 values (1);
+commit;
+/*+GTID=2*/start transaction;
+insert into t1 values (2);
+commit;
+start transaction;
+insert into t1 values (3);
+commit;
+start transaction;
+insert into t1 values (4);
+commit;
+/*+GTID=5*/insert into t1 values (5);
+/*+GTID=6*/insert into t1 values (6);
+insert into t1 values (7);
+insert into t1 values (7);
+/*+GTID=8*/create table t2 (id int);
+/*+GTID=5500*/ start transaction;
+insert into t1 values (5500);
+/*+GTID=5003*/create table t8 (id int);
+insert into t1 values (5501);
+commit;
+create table t3 (id int);
+master-bin.000001
+[connection slave]
+use fangpei_test;
+slave-bin.000001
+##########################################################################
+#CASE 2: explicit transactions with gtid hint concurrent execute 
+##########################################################################
+[connection master]
+use fangpei_test;
+start transaction;
+/*+GTID=13*/start transaction;
+insert into t1 values (13);
+use fangpei_test;
+start transaction;
+/*+GTID=14*/start transaction;
+insert into t1 values (14);
+use fangpei_test;
+start transaction;
+/*+GTID=15*/start transaction;
+insert into t1 values (15);
+commit;
+commit;
+commit;
+master-bin.000001
+[connection slave]
+use fangpei_test;
+slave-bin.000001
+##########################################################################
+#CASE 3: master & slave rotate while enable_binlog_gtmgtid_idx = true / false serval times  
+##########################################################################
+[connection master]
+SET @old_max_binlog_size   = @@global.max_binlog_size;
+SET GLOBAL max_binlog_size = 8192;
+[connection slave]
+SET @old_max_binlog_size   = @@global.max_binlog_size;
+SET GLOBAL max_binlog_size = 8192;
+[connection master]
+use fangpei_test;
+/*+GTID=7*/start transaction;
+insert into t1 values (7);
+commit;
+insert into t1 values (9);
+/*+GTID=10*/insert into t1 values (8);
+set global enable_binlog_gtmgtid_index = true;
+/*+GTID=7*/start transaction;
+insert into t1 values (7);
+commit;
+insert into t1 values (9);
+/*+GTID=10*/insert into t1 values (8);
+insert into t1 select * from t1 limit 5;
+insert into t1 select * from t1 limit 10;
+insert into t1 select * from t1 limit 20;
+insert into t1 select * from t1 limit 40;
+insert into t1 select * from t1 limit 80;
+insert into t1 select * from t1 limit 100;
+insert into t1 select * from t1 limit 200;
+insert into t1 select * from t1 limit 400;
+/*+GTID=9*/start transaction;
+insert into t1 values (7);
+commit;
+/*+GTID=10*/start transaction;
+insert into t1 values (8);
+commit;
+set global enable_binlog_gtmgtid_index = false;
+/*+GTID=9*/start transaction;
+insert into t1 values (7);
+commit;
+insert into t1 values (9);
+/*+GTID=10*/insert into t1 values (8);
+[connection slave]
+set global enable_binlog_gtmgtid_index = true;
+[connection master]
+use fangpei_test;
+/*+GTID=1006*/insert into t1 select * from t1 limit 1000;
+/*+GTID=7*/start transaction;
+insert into t1 values (7);
+commit;
+insert into t1 values (9);
+/*+GTID=10*/insert into t1 values (8);
+[connection slave]
+set global enable_binlog_gtmgtid_index = false;
+flush binary logs;
+[connection master]
+master-bin.000002
+1#gtm_gtid #binlog_start_pos
+9 5191
+10 5480
+9 5769
+10 6347
+1006 6636
+drop table if exists master_tmp_1_l3;
+drop table if exists master_tmp_2_l3;
+drop table if exists master_tmp_3_13;
+create table master_tmp_1_l3(gtm_gtid varchar(256), pos varchar(256));
+create table master_tmp_2_l3(status_flag int, other1 varchar(256), other2 varchar(256));
+create table master_tmp_3_13(gtm_gtid int);
+insert into master_tmp_3_13 select cast(gtm_gtid as signed) as gtm_gtid from master_tmp_1_l3 limit 1, 18446744073709551615;
+select * from master_tmp_1_l3 limit 1;
+gtm_gtid	pos
+1#gtm_gtid	#binlog_start_pos
+select count(*) from master_tmp_1_l3;
+count(*)
+6
+include/assert.inc [master gtid_idx file flag must be 1]
+include/assert.inc [1st gtm-gtid must be 9]
+include/assert.inc [2st gtm-gtid must be 10]
+include/assert.inc [3rd gtm-gtid must be 9]
+include/assert.inc [4th gtm-gtid must be 10]
+include/assert.inc [5th gtm-gtid must be 1006]
+truncate table master_tmp_1_l3;
+truncate table master_tmp_2_l3;
+truncate table master_tmp_3_13;
+[connection slave]
+slave-bin.000003
+1#gtm_gtid #binlog_start_pos
+drop table if exists slave_tmp_2_l3;
+create table slave_tmp_2_l3(status_flag int, other1 varchar(256), other2 varchar(256));
+include/assert.inc [slave gtid_idx file flag must be 1]
+truncate table slave_tmp_2_l3;
+[connection master]
+SET GLOBAL max_binlog_size = @old_max_binlog_size;
+[connection slave]
+SET GLOBAL max_binlog_size = @old_max_binlog_size;
+##########################################################################
+#CASE 4: 'purge' while enable_binlog_gtmgtid_idx = true / false serval times 
+##########################################################################
+[connection master]
+set global enable_binlog_gtmgtid_index = true;
+flush binary logs;
+set global enable_binlog_gtmgtid_index = false;
+flush binary logs;
+purge binary logs to 'master-bin.000002';
+purge binary logs to 'master-bin.000003';
+set global enable_binlog_gtmgtid_index = true;
+flush binary logs;
+purge binary logs to 'master-bin.000005';
+Warnings:
+Warning	1612	Being purged log ./master-bin.000003.gtid_idx was not found
+set global enable_binlog_gtmgtid_index = false;
+flush binary logs;
+##########################################################################
+#CASE 5: exec 'master / slave switch'
+##########################################################################
+[connection master]
+master-bin.000007
+[connection slave]
+slave-bin.000004
+[connection master]
+use fangpei_test;
+/*+GTID=11*/insert into t1 values (11);
+/*+GTID=12*/insert into t1 values (12);
+include/rpl_change_topology.inc
+RESET SLAVE ALL;
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+[connection slave]
+[old slave, new master]
+use fangpei_test;
+/*+GTID=13*/insert into t1 values (13);
+/*+GTID=14*/insert into t1 values (14);
+[connection master]
+[old master, new slave]
+use fangpei_test;
+master-bin.000007
+[connection slave]
+[old slave, new master]
+use fangpei_test;
+slave-bin.000004
+[connection slave]
+[old slave, new master]
+drop database fangpei_test;
+include/rpl_end.inc

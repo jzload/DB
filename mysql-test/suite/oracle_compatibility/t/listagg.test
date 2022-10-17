@@ -1,0 +1,503 @@
+--echo ###################################################################
+--echo # begin test prepare data
+--echo ###################################################################
+drop database if exists SCOTT;
+create database SCOTT;
+drop table if exists SCOTT.EMPLOYEES;
+CREATE TABLE SCOTT.EMPLOYEES
+( EMPLOYEE_ID NUMBER(6,0),
+FIRST_NAME VARCHAR(20 ),
+LAST_NAME VARCHAR(25 ),
+EMAIL VARCHAR(25 ),
+PHONE_NUMBER VARCHAR(20 ),
+HIRE_DATE DATE,
+JOB_ID VARCHAR(10 ),
+SALARY NUMBER(8,2),
+COMMISSION_PCT NUMBER(2,2),
+MANAGER_ID NUMBER(6,0),
+DEPARTMENT_ID NUMBER(4,0),
+CHAR_TEST CHAR(200),
+BLOB_TEST BLOB,
+DOUBLE_TEST double,
+TEXT_TEST text
+);
+
+use SCOTT;
+
+Insert into SCOTT.EMPLOYEES select 100,'Steven','King','SKING','515.123.4567', '03-6-17', 'AD_PRES',24000,null,null,90, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 101,'Neena','Kochhar','NKOCHHAR','515.123.4568', '05-9-21', 'AD_VP',17000,null,100,90, 'def', 'nbf2fhfaxskdgklskld54sdg56s4gdg5', 300.03658, 'sd2345ddbx';
+Insert into SCOTT.EMPLOYEES select 102,'Lex','De Haan','LDEHAAN','515.123.4569', '01-1-13', 'AD_VP',17000,null,100,90, 'ghi', 'axskdgklskld54sdg56s4gdg5', 400.03658, '12345ddbxdggx';
+Insert into SCOTT.EMPLOYEES select 103,'Alexander','Hunold','AHUNOLD','590.423.4567', '06-1-03', 'IT_PROG',9000,null,102,60, 'jkl', 'axskdgklskld54sdg56s4gdg5', 500.03658, '12345ddbsdgdg58x';
+Insert into SCOTT.EMPLOYEES select 104,'Bruce','Ernst','BERNST','590.423.4568', '07-5-21', 'IT_PROG',6000,null,103,60, 'mn', 'axskdgklskld54sdg56s4gdg5', 700.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 105,'David','Austin','DAUSTIN','590.423.4569', '05-6-25', 'IT_PROG',4800,null,103,60, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 106,'Valli','Pataballa','VPATABAL','590.423.4560', '06-2-05', 'IT_PROG',4800,null,103,60, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 107,'Diana','Lorentz','DLORENTZ','590.423.5567', '07-2-07', 'IT_PROG',4200,null,103,60, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 108,'Nancy','Greenberg','NGREENBE','515.124.4569', '02-8-17', 'FI_MGR',12008,null,101,100, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 109,'Daniel','Faviet','DFAVIET','515.124.4169', '02-8-16', 'FI_ACCOUNT',9000,null,108,100, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 110,'John','Chen','JCHEN','515.124.4269', '05-9-28', 'FI_ACCOUNT',8200,null,108,100, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 111,'Ismael','Sciarra','ISCIARRA','515.124.4369', '05-9-30', 'FI_ACCOUNT',7700,null,108,100, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 112,'Jose Manuel','Urman','JMURMAN','515.124.4469', '06-3-07', 'FI_ACCOUNT',7800,null,108,100, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 113,'Luis','Popp','LPOPP','515.124.4567', '07-12-07', 'FI_ACCOUNT',6900,null,108,100, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 114,'Den','Raphaely','DRAPHEAL','515.127.4561', '02-12-07', 'PU_MAN',11000,null,100,30, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 115,'Alexander','Khoo','AKHOO','515.127.4562', '03-5-18', 'PU_CLERK',3100,null,114,30, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 116,'Shelli','Baida','SBAIDA','515.127.4563', '05-12-24', 'PU_CLERK',2900,null,114,30, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 117,'Sigal','Tobias','STOBIAS','515.127.4564', '05-7-24', 'PU_CLERK',2800,null,114,30, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 118,'Guy','Himuro','GHIMURO','515.127.4565', '06-11-15', 'PU_CLERK',2600,null,114,30, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 119,'Karen','Colmenares','KCOLMENA','515.127.4566', '07-8-10', 'PU_CLERK',2500,null,114,30, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 120,'Matthew','Weiss','MWEISS','650.123.1234', '04-7-18', 'ST_MAN',8000,null,100,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 121,'Adam','Fripp','AFRIPP','650.123.2234', '05-4-10', 'ST_MAN',8200,null,100,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 122,'Payam','Kaufling','PKAUFLIN','650.123.3234', '03-5-01', 'ST_MAN',7900,null,100,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 123,'Shanta','Vollman','SVOLLMAN','650.123.4234', '05-10-10', 'ST_MAN',6500,null,100,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 124,'Kevin','Mourgos','KMOURGOS','650.123.5234', '07-11-16', 'ST_MAN',5800,null,100,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 125,'Julia','Nayer','JNAYER','650.124.1214', '05-7-16', 'ST_CLERK',3200,null,120,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 126,'Irene','Mikkilineni','IMIKKILI','650.124.1224', '06-9-28', 'ST_CLERK',2700,null,120,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 127,'James','Landry','JLANDRY','650.124.1334', '07-1-14', 'ST_CLERK',2400,null,120,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 128,'Steven','Markle','SMARKLE','650.124.1434', '08-3-08', 'ST_CLERK',2200,null,120,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 129,'Laura','Bissot','LBISSOT','650.124.5234', '05-8-20', 'ST_CLERK',3300,null,121,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 130,'Mozhe','Atkinson','MATKINSO','650.124.6234', '05-10-30', 'ST_CLERK',2800,null,121,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 131,'James','Marlow','JAMRLOW','650.124.7234', '05-2-16', 'ST_CLERK',2500,null,121,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 132,'TJ','Olson','TJOLSON','650.124.8234', '07-4-10', 'ST_CLERK',2100,null,121,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 133,'Jason','Mallin','JMALLIN','650.127.1934', '04-6-14', 'ST_CLERK',3300,null,122,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 134,'Michael','Rogers','MROGERS','650.127.1834', '06-8-26', 'ST_CLERK',2900,null,122,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 135,'Ki','Gee','KGEE','650.127.1734', '07-12-12', 'ST_CLERK',2400,null,122,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 136,'Hazel','Philtanker','HPHILTAN','650.127.1634', '08-2-06', 'ST_CLERK',2200,null,122,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 137,'Renske','Ladwig','RLADWIG','650.121.1234', '03-7-14', 'ST_CLERK',3600,null,123,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 138,'Stephen','Stiles','SSTILES','650.121.2034', '05-10-26', 'ST_CLERK',3200,null,123,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 139,'John','Seo','JSEO','650.121.2019', '06-2-12', 'ST_CLERK',2700,null,123,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 140,'Joshua','Patel','JPATEL','650.121.1834', '06-4-06', 'ST_CLERK',2500,null,123,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 141,'Trenna','Rajs','TRAJS','650.121.8009', '03-10-17', 'ST_CLERK',3500,null,124,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 142,'Curtis','Davies','CDAVIES','650.121.2994', '05-1-29', 'ST_CLERK',3100,null,124,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 143,'Randall','Matos','RMATOS','650.121.2874', '06-3-15', 'ST_CLERK',2600,null,124,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 144,'Peter','Vargas','PVARGAS','650.121.2004', '06-7-09', 'ST_CLERK',2500,null,124,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 145,'John','Russell','JRUSSEL','011.44.1344.429268', '04-10-01', 'SA_MAN',14000,0.4,100,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 146,'Karen','Partners','KPARTNER','011.44.1344.467268', '05-1-05', 'SA_MAN',13500,0.3,100,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 147,'Alberto','Errazuriz','AERRAZUR','011.44.1344.429278', '05-3-10', 'SA_MAN',12000,0.3,100,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 148,'Gerald','Cambrault','GCAMBRAU','011.44.1344.619268', '07-10-15', 'SA_MAN',11000,0.3,100,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 149,'Eleni','Zlotkey','EZLOTKEY','011.44.1344.429018', '08-1-29', 'SA_MAN',10500,0.2,100,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 150,'Peter','Tucker','PTUCKER','011.44.1344.129268', '05-1-30', 'SA_REP',10000,0.3,145,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 151,'David','Bernstein','DBERNSTE','011.44.1344.345268', '05-3-24', 'SA_REP',9500,0.25,145,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 152,'Peter','Hall','PHALL','011.44.1344.478968', '05-8-20', 'SA_REP',9000,0.25,145,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 153,'Christopher','Olsen','COLSEN','011.44.1344.498718', '06-3-30', 'SA_REP',8000,0.2,145,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 154,'Nanette','Cambrault','NCAMBRAU','011.44.1344.987668', '06-12-09', 'SA_REP',7500,0.2,145,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 155,'Oliver','Tuvault','OTUVAULT','011.44.1344.486508', '07-11-23', 'SA_REP',7000,0.15,145,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 156,'Janette','King','JKING','011.44.1345.429268', '04-1-30', 'SA_REP',10000,0.35,146,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 157,'Patrick','Sully','PSULLY','011.44.1345.929268', '04-3-04', 'SA_REP',9500,0.35,146,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 158,'Allan','McEwen','AMCEWEN','011.44.1345.829268', '04-8-01', 'SA_REP',9000,0.35,146,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 159,'Lindsey','Smith','LSMITH','011.44.1345.729268', '05-3-10', 'SA_REP',8000,0.3,146,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 160,'Louise','Doran','LDORAN','011.44.1345.629268', '05-12-15', 'SA_REP',7500,0.3,146,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 161,'Sarath','Sewall','SSEWALL','011.44.1345.529268', '06-11-03', 'SA_REP',7000,0.25,146,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 162,'Clara','Vishney','CVISHNEY','011.44.1346.129268', '05-11-11', 'SA_REP',10500,0.25,147,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 163,'Danielle','Greene','DGREENE','011.44.1346.229268', '07-3-19', 'SA_REP',9500,0.15,147,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 164,'Mattea','Marvins','MMARVINS','011.44.1346.329268', '08-1-24', 'SA_REP',7200,0.1,147,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 165,'David','Lee','DLEE','011.44.1346.529268', '08-2-23', 'SA_REP',6800,0.1,147,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 166,'Sundar','Ande','SANDE','011.44.1346.629268', '08-3-24', 'SA_REP',6400,0.1,147,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 167,'Amit','Banda','ABANDA','011.44.1346.729268', '08-4-21', 'SA_REP',6200,0.1,147,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 168,'Lisa','Ozer','LOZER','011.44.1343.929268', '05-3-11', 'SA_REP',11500,0.25,148,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 169,'Harrison','Bloom','HBLOOM','011.44.1343.829268', '06-3-23', 'SA_REP',10000,0.2,148,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 170,'Tayler','Fox','TFOX','011.44.1343.729268', '06-1-24', 'SA_REP',9600,0.2,148,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 171,'William','Smith','WSMITH','011.44.1343.629268', '07-2-23', 'SA_REP',7400,0.15,148,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 172,'Elizabeth','Bates','EBATES','011.44.1343.529268', '07-3-24', 'SA_REP',7300,0.15,148,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 173,'Sundita','Kumar','SKUMAR','011.44.1343.329268', '08-4-21', 'SA_REP',6100,0.1,148,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 174,'Ellen','Abel','EABEL','011.44.1644.429267', '04-5-11', 'SA_REP',11000,0.3,149,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 175,'Alyssa','Hutton','AHUTTON','011.44.1644.429266', '05-3-19', 'SA_REP',8800,0.25,149,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 176,'Jonathon','Taylor','JTAYLOR','011.44.1644.429265', '06-3-24', 'SA_REP',8600,0.2,149,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 177,'Jack','Livingston','JLIVINGS','011.44.1644.429264', '06-4-23', 'SA_REP',8400,0.2,149,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 178,'Kimberely','Grant','KGRANT','011.44.1644.429263', '07-5-24', 'SA_REP',7000,0.15,149,null, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 179,'Charles','Johnson','CJOHNSON','011.44.1644.429262', '08-1-04', 'SA_REP',6200,0.1,149,80, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 180,'Winston','Taylor','WTAYLOR','650.507.9876', '06-1-24', 'SH_CLERK',3200,null,120,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 181,'Jean','Fleaur','JFLEAUR','650.507.9877', '06-2-23', 'SH_CLERK',3100,null,120,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 182,'Martha','Sullivan','MSULLIVA','650.507.9878', '07-6-21', 'SH_CLERK',2500,null,120,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 183,'Girard','Geoni','GGEONI','650.507.9879', '08-2-03', 'SH_CLERK',2800,null,120,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 184,'Nandita','Sarchand','NSARCHAN','650.509.1876', '04-1-27', 'SH_CLERK',4200,null,121,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 185,'Alexis','Bull','ABULL','650.509.2876', '05-2-20', 'SH_CLERK',4100,null,121,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 186,'Julia','Dellinger','JDELLING','650.509.3876', '06-6-24', 'SH_CLERK',3400,null,121,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 187,'Anthony','Cabrio','ACABRIO','650.509.4876', '07-2-07', 'SH_CLERK',3000,null,121,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 188,'Kelly','Chung','KCHUNG','650.505.1876', '05-6-14', 'SH_CLERK',3800,null,122,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 189,'Jennifer','Dilly','JDILLY','650.505.2876', '05-8-13', 'SH_CLERK',3600,null,122,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 190,'Timothy','Gates','TGATES','650.505.3876', '06-7-11', 'SH_CLERK',2900,null,122,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 191,'Randall','Perkins','RPERKINS','650.505.4876', '07-12-19', 'SH_CLERK',2500,null,122,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 192,'Sarah','Bell','SBELL','650.501.1876', '04-2-04', 'SH_CLERK',4000,null,123,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 193,'Britney','Everett','BEVERETT','650.501.2876', '05-3-03', 'SH_CLERK',3900,null,123,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 194,'Samuel','McCain','SMCCAIN','650.501.3876', '06-7-01', 'SH_CLERK',3200,null,123,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 195,'Vance','Jones','VJONES','650.501.4876', '07-3-17', 'SH_CLERK',2800,null,123,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 196,'Alana','Walsh','AWALSH','650.507.9811', '06-4-24', 'SH_CLERK',3100,null,124,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 197,'Kevin','Feeney','KFEENEY','650.507.9822', '06-5-23', 'SH_CLERK',3000,null,124,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 198,'Donald','OConnell','DOCONNEL','650.507.9833', '07-6-21', 'SH_CLERK',2600,null,124,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 199,'Douglas','Grant','DGRANT','650.507.9844', '08-1-13', 'SH_CLERK',2600,null,124,50, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 200,'Jennifer','Whalen','JWHALEN','515.123.4444', '03-9-17', 'AD_ASST',4400,null,101,10, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 201,'Michael','Hartstein','MHARTSTE','515.123.5555', '04-2-17', 'MK_MAN',13000,null,100,20, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 202,'Pat','Fay','PFAY','603.123.6666', '05-8-17', 'MK_REP',6000,null,201,20, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 203,'Susan','Mavris','SMAVRIS','515.123.7777', '02-6-07', 'HR_REP',6500,null,101,40, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 204,'Hermann','Baer','HBAER','515.123.8888', '02-6-07', 'PR_REP',10000,null,101,70, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 205,'Shelley','Higgins','SHIGGINS','515.123.8080', '02-6-07', 'AC_MGR',12008,null,101,110, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+Insert into SCOTT.EMPLOYEES select 206,'William','Gietz','WGIETZ','515.123.8181', '02-6-07', 'AC_ACCOUNT',8300,null,205,110, 'abc', 'axskdgklskld54sdg56s4gdg5', 100.03658, '12345ddbx';
+
+--echo # No separator
+select listagg(last_name) within group (order by hire_date) as emp_list from EMPLOYEES where rownum<5;
+
+--echo # Separator is empty
+select listagg(last_name, '') within group (order by hire_date) as emp_list from EMPLOYEES where rownum<5;
+
+--echo # Separator is a single character
+select listagg(last_name, ';') within group (order by hire_date) as emp_list from EMPLOYEES where rownum<5;
+
+--echo # Separator is multiple characters
+select listagg(last_name, '123~!@()xyz') within group (order by hire_date) as emp_list from EMPLOYEES where rownum<3;
+
+--echo # Separator is too many characters
+select listagg(last_name, '------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------') within group (order by hire_date) as emp_list from EMPLOYEES where rownum<5;
+
+--echo # Multiple sorting
+select listagg(last_name, ';') within group (order by last_name, hire_date) as emp_list from EMPLOYEES where rownum<5;
+
+--echo # Multi-group aggregation
+select department_id "dept.", listagg(last_name, '; ') within group (order by hire_date) "EMPLOYEES" from EMPLOYEES where department_id <= 30 group by department_id order by department_id;
+
+--echo # The result set is too long
+select listagg(last_name, '------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------0') within group (order by employee_id) as con  from EMPLOYEES where rownum<80;
+show warnings;
+
+--echo # The result set is an empty string
+select listagg(DEPARTMENT_ID, ';') within group (order by last_name, hire_date) as emp_list from EMPLOYEES where EMPLOYEE_ID=178;
+
+--echo # The aggregated field is decimal
+select listagg(DEPARTMENT_ID, ';') within group (order by last_name, hire_date) as emp_list from EMPLOYEES where rownum < 10;
+
+--echo # The aggregated field is date
+select listagg(hire_date, ';') within group (order by last_name, hire_date) as emp_list from EMPLOYEES where rownum < 5;
+
+--echo # listagg in from subquery
+select * from(select listagg(department_id, ';') within group (order by last_name, hire_date) as emp_list from EMPLOYEES where rownum < 5) t;
+
+--echo # listagg in select and from subqueries
+select listagg(emp_list, '...') within group (order by emp_list) from(select listagg(department_id, ';') within group (order by last_name, hire_date) as emp_list from EMPLOYEES where rownum < 5 group by department_id) t;
+
+--echo # union all
+(select listagg(emp_list, '...') within group (order by emp_list) from(select listagg(department_id, ';') within group (order by last_name, hire_date) as emp_list from EMPLOYEES where rownum < 5 group by department_id) t1) union all (select listagg(emp_list, '...') within group (order by emp_list) from(select listagg(department_id, ';') within group (order by last_name, hire_date) as emp_list from EMPLOYEES where rownum < 5 group by department_id) t2);
+
+--echo # constant
+ select listagg(1, '...') within group (order by emp_list) from(select listagg(department_id, ';') within group (order by last_name, hire_date) as emp_list from EMPLOYEES where rownum < 5 group by department_id) t;
+
+--echo # 
+select listagg(1.123456, '...') within group (order by emp_list) from(select listagg(department_id, ';') within group (order by last_name, hire_date) as emp_list from EMPLOYEES where rownum < 5 group by department_id) t;
+
+--echo # 
+select listagg(null, ';') within group (order by last_name, hire_date) as emp_list from EMPLOYEES where rownum < 10;
+
+--echo # 
+select listagg('abc', ';') within group (order by last_name, hire_date) as emp_list from EMPLOYEES where rownum < 10;
+
+--echo # 
+select listagg(CONCAT('abc', 'xyz'), '...') within group (order by emp_list) from(select listagg(department_id, ';') within group (order by last_name, hire_date) as emp_list from EMPLOYEES where rownum < 5 group by department_id) t;
+
+--echo # 
+select listagg(char_test, ';') within group (order by last_name, hire_date) as emp_list from EMPLOYEES where rownum < 5;
+
+--echo # 
+select listagg(blob_test, ';') within group (order by last_name, hire_date) as emp_list from EMPLOYEES where rownum < 3;
+
+--echo # 
+select listagg(text_test, ';') within group (order by hire_date) as emp_list from EMPLOYEES where rownum<4;
+
+--echo # 
+select listagg(double_test, ';') within group (order by hire_date) as emp_list from EMPLOYEES where rownum<5;
+
+--echo # 
+select listagg(DEPARTMENT_ID, ';') within group (order by last_name, hire_date) as emp_list from EMPLOYEES where EMPLOYEE_ID=178 or EMPLOYEE_ID=100 or EMPLOYEE_ID=101;
+
+--echo # 
+select listagg(DEPARTMENT_ID, ';') within group (order by last_name, hire_date) as emp_list from EMPLOYEES where EMPLOYEE_ID=101 or EMPLOYEE_ID=10078 or EMPLOYEE_ID=100;
+
+--echo # 
+select listagg(last_name, ';') within group (order by null) as emp_list from EMPLOYEES where rownum<5;
+
+--echo # Analysis function
+
+--echo # 
+drop table if exists T1000;
+create table T1000(id int, name varchar(20), age int);
+
+insert into T1000 values (1,'abc', 17);
+insert into T1000 values (1,'ABC', 18);
+insert into T1000 values (2,'def', 19);
+insert into T1000 values (2,'DEF', 20);
+insert into T1000 values (3,'hij', 21);
+insert into T1000 values (3,'HIJ', 22);
+insert into T1000 values (1,'111', 10);
+insert into T1000 values (2,'222', 10);
+insert into T1000 values (3,'333', 10);
+
+--echo # 
+select id,listagg(name) within group (order by age) over (partition by id) as list from T1000 order by id;
+
+--echo # 
+select id,listagg(name) within group (order by age) over (partition by id) as list from T1000 order by id desc;
+
+--echo # 
+select id,listagg(name) within group (order by age desc) over (partition by id) as list from T1000 order by id;
+
+--echo # 
+select id,listagg(name) within group (order by age desc) over (partition by id) as list from T1000 order by id desc;
+
+--echo # 
+### 1.within
+
+#### 1.1 Common grammar
+
+drop database if exists within;
+
+create database within;
+
+create table within.within (within int, listagg char(20));
+
+insert into within.within select 1, 'within';
+
+select within, listagg from within.within within;
+
+#### 1.2 procedure
+
+use within;
+
+delimiter $$;
+drop procedure if exists within;
+create procedure within (in within int, out result int)
+within1:begin
+declare within int default 1;
+
+while within < 100 do
+set within=within+1;
+end while;
+
+set result=within;
+end within1 $$
+delimiter ;$$
+
+set @within=1;
+
+call within(10, @within);
+
+select @within as within;
+
+drop procedure within;
+
+#### 1.3 view
+
+rename table within.within to within_table;
+
+create view within.within as select within, listagg from within.within_table;
+
+select within, listagg from within.within within;
+
+drop view within.within;
+
+rename table within_table to within;
+
+#### 1.4 triger
+
+drop trigger if exists within.within; 
+
+set @within=1;
+
+create trigger within.within before insert on within.within for each row set @within=@within+new.within;
+
+insert into within.within select 100, 'within';
+
+select @within;
+
+drop trigger within.within;
+
+#### 1.5 event
+
+truncate within.within;
+
+drop event if exists within.within; 
+
+create event if not exists within.within on schedule every 1 minute on completion preserve do insert into within.within select 100, 'within';
+
+alter event within.within on completion preserve enable; 
+
+alter event within.within on completion  preserve disable;
+
+select * from within.within;
+
+drop event within.within; 
+
+drop database within;
+
+### 2.listagg
+
+#### 2.1 Common grammar
+
+drop database if exists lisgagg;
+
+create database lisgagg;
+
+create table lisgagg.lisgagg (lisgagg int, within char(20));
+
+insert into lisgagg.lisgagg select 1, 'lisgagg';
+
+select lisgagg, within from lisgagg.lisgagg lisgagg;
+
+#### 2.2 procedure
+
+use lisgagg;
+
+delimiter $$;
+drop procedure if exists lisgagg;
+create procedure lisgagg (in listagg int, out result int)
+listagg:begin
+declare lisgagg int default 1;
+
+while lisgagg < 20 do
+set lisgagg=lisgagg+1;
+end while;
+
+set result=lisgagg;
+end listagg $$
+delimiter ;$$
+
+set @lisgagg=1;
+
+call lisgagg(10, @lisgagg);
+
+select @lisgagg as lisgagg;
+
+#### 2.3 view
+
+rename table lisgagg.lisgagg to lisgagg_table;
+
+create view lisgagg.lisgagg as select lisgagg, within from lisgagg.lisgagg_table;
+
+select lisgagg, within from lisgagg.lisgagg lisgagg;
+
+drop view lisgagg.lisgagg;
+
+rename table lisgagg_table to lisgagg;
+
+#### 2.4 triger
+
+drop trigger if exists lisgagg.lisgagg; 
+
+set @lisgagg=1;
+
+create trigger lisgagg.lisgagg before insert on lisgagg.lisgagg for each row set @lisgagg=@lisgagg+new.lisgagg;
+
+insert into lisgagg.lisgagg select 100, 'lisgagg';
+
+select @lisgagg;
+
+drop trigger lisgagg.lisgagg;
+
+#### 2.5 event
+
+truncate lisgagg.lisgagg;
+
+drop event if exists lisgagg.lisgagg; 
+
+create event if not exists lisgagg.lisgagg on schedule every 1 minute on completion preserve do insert into lisgagg.lisgagg select 100, 'lisgagg';
+
+alter event lisgagg.lisgagg on completion preserve enable; 
+
+alter event lisgagg.lisgagg on completion  preserve disable;
+
+select * from lisgagg.lisgagg;
+
+drop event lisgagg.lisgagg;
+
+drop database lisgagg;
+
+--echo ###################################################################
+--echo # user and role
+--echo ###################################################################
+### 1. user:within    role:listagg
+
+
+drop user if exists 'within';
+
+drop role if exists 'listagg';
+
+CREATE USER 'within'@'localhost' IDENTIFIED BY 'withinpasswd';
+
+select count(1) from mysql.user where user='within';
+
+SHOW GRANTS FOR 'within'@'localhost';
+
+CREATE ROLE 'listagg';
+
+GRANT Replication client, Replication slave, Create routine,Create, Insert,Update,Delete, Drop, Select ON *.* TO 'listagg';
+
+select count(1) from mysql.user where user='listagg';
+
+GRANT 'listagg' TO 'within'@'localhost'; 
+
+SET DEFAULT ROLE ALL TO 'within'@'localhost';
+
+SHOW GRANTS FOR 'within'@'localhost' USING 'listagg';
+
+drop user 'within'@'localhost';
+
+drop role 'listagg';
+
+### 2. user:listagg    role:within
+
+
+drop user if exists 'listagg';
+
+drop role if exists 'within';
+
+CREATE USER 'listagg'@'localhost' IDENTIFIED BY 'listaggpasswd';
+
+select count(1) from mysql.user where user='listagg';
+
+SHOW GRANTS FOR 'listagg'@'localhost';
+
+CREATE ROLE 'within';
+
+GRANT Replication client, Replication slave, Create routine,Create, Insert,Update,Delete, Drop, Select ON *.* TO 'within';
+
+select count(1) from mysql.user where user='within';
+
+GRANT 'within' TO 'listagg'@'localhost'; 
+
+SET DEFAULT ROLE ALL TO 'listagg'@'localhost';
+
+SHOW GRANTS FOR 'listagg'@'localhost' USING 'within';
+
+drop user 'listagg'@'localhost';
+
+drop role 'within';
+
+
+--echo ###################################################################
+--echo # parameter2 is HEX_NUM or HEX_NUM 
+--echo ###################################################################
+use SCOTT;
+
+select listagg(last_name, 0xabce) within group (order by 1) as emp_list from EMPLOYEES where rownum<5;
+
+select listagg(last_name, 0x13) within group (order by 1) as emp_list from EMPLOYEES where rownum<5;
+
+select listagg(last_name, 0x123) within group (order by 1) as emp_list from EMPLOYEES where rownum<5;
+
+select listagg(last_name, 0x00) within group (order by 1) as emp_list from EMPLOYEES where rownum<5;
+
+--error ER_PARSE_ERROR
+select listagg(last_name, 0x12gg) within group (order by 1) as emp_list from EMPLOYEES where rownum<5;
+
+
+select listagg(last_name, 0b101010) within group (order by 1)  from EMPLOYEES where rownum<5;
+
+--error ER_PARSE_ERROR
+select listagg(last_name, 0b13) within group (order by 1) as emp_list from EMPLOYEES where rownum<5;
+
+select listagg(last_name, 0b00) within group (order by 1) as emp_list from EMPLOYEES where rownum<5;
+
+select listagg(last_name, 0b01) within group (order by 1) as emp_list from EMPLOYEES where rownum<5;
+
+--error ER_PARSE_ERROR
+select listagg(last_name, 0) within group (order by 1) as emp_list from EMPLOYEES where rownum<5;
+
+--echo ###################################################################
+--echo # end test case
+--echo ###################################################################
+drop database if exists SCOTT;

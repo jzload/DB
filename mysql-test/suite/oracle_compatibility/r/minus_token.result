@@ -1,0 +1,149 @@
+#
+# 准备
+#
+create database minus_token_db;
+use minus_token_db;
+#
+# MINUS 作为数据库名
+#
+create database minus;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'minus' at line 1
+drop database minus;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'minus' at line 1
+#
+# MINUS 作为表名
+#
+drop table if exists minus;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'minus' at line 1
+create table minus(a int);
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'minus(a int)' at line 1
+#
+# MINUS 作为列名
+#
+drop table if exists t_minus;
+Warnings:
+Note	1051	Unknown table 'minus_token_db.t_minus'
+create table t_minus(minus int);
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'minus int)' at line 1
+#
+# MINUS 作为存储过程名
+#
+create procedure minus
+begin
+declare i int;
+set i=0;
+select i from dual;
+end $$
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'minus
+begin
+declare i int;
+set i=0;
+select i from dual;
+end' at line 1
+#
+# MINUS 作为自定义函数名
+#
+create function minus
+begin
+declare i int;
+set i=0;
+return (select i from dual);
+end $$
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'minus
+begin
+declare i int;
+set i=0;
+return (select i from dual);
+end' at line 1
+#
+# MINUS 作为view名
+#
+create view minus as select 1 from dual;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'minus as select 1 from dual' at line 1
+#
+# MINUS 作为trigger名
+#
+# preparation
+drop table if exists t_item;
+Warnings:
+Note	1051	Unknown table 'minus_token_db.t_item'
+create table t_item(id int, no varchar(10));
+insert into t_item values(1, 'a');
+drop table if exists t_item2;
+Warnings:
+Note	1051	Unknown table 'minus_token_db.t_item2'
+create table t_item2(c1 int, c2 varchar(10));
+# test
+create trigger minus after insert on t_minus for each row
+begin
+insert into t_minus2 values (new.a, new.b, new.c);
+end $$
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'minus after insert on t_minus for each row
+begin
+insert into t_minus2 values (ne' at line 1
+#
+# MINUS 作为Event名
+#
+CREATE EVENT minus
+ON SCHEDULE
+EVERY 5 SECOND
+on completion preserve enable
+DO
+BEGIN
+truncate table ttt;
+END $$
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'minus
+ON SCHEDULE
+EVERY 5 SECOND
+on completion preserve enable
+DO
+BEGIN
+truncate' at line 1
+#
+# MINUS 作为存储过程中的变量名
+#
+CREATE PROCEDURE test_proc()
+BEGIN
+DECLARE minus INTEGER;
+SET minus=1;
+select 1 from dual;
+END $$
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'minus INTEGER;
+SET minus=1;
+select 1 from dual;
+END' at line 3
+#
+# MINUS 作为自定义变量名
+#
+set minus = 12;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'minus = 12' at line 1
+#
+# MINUS 作为存储过程中的label
+#
+create procedure doiterate(in p1 int, out p2 int)
+BEGIN
+minus: LOOP
+set p1 = p1 + 1;
+if p1 < 10 then iterate minus; END if;
+leave minus;
+END LOOP minus;
+set p2=p1;
+END $$
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'minus: LOOP
+set p1 = p1 + 1;
+if p1 < 10 then iterate minus; END if;
+leave minus;' at line 3
+#
+# MINUS 作为user name
+#
+create user minus identified by '123456';
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'minus identified by '123456'' at line 1
+#
+# MINUS 作为role name
+#
+create role minus;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'minus' at line 1
+#
+# clean up
+#
+drop database minus_token_db;

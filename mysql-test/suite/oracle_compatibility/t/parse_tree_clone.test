@@ -1,0 +1,452 @@
+#
+# Test PARSE TREE CLONE
+#
+# 创建测试数据库和测试表，并预制数据，为测试做准备
+DROP DATABASE IF EXISTS test_db_parse_tree_clone;
+CREATE DATABASE test_db_parse_tree_clone;
+USE test_db_parse_tree_clone;
+create table t1 (a int,a1 int);
+create table t2 (b int,a1 int);
+create table t3 (c int,a1 int);
+create table t4 (d int);
+create table t5 (a int, b int);
+create table t7 (d int, e varchar(20));
+create table t10 (a int unsigned auto_increment primary key, b char(20));
+alter table t10 partition by range(a) (partition p0 values less than  (4),partition p1 values less than (10));
+alter table t10 add key b(b);
+insert into t1 values(0,0),(1,1),(4,4),(5,5);
+insert into t2 values(0,0),(2,2),(4,4),(6,6);
+insert into t3 values(0,0),(3,3),(5,5),(6,6);
+insert into t4 values(0),(1),(2),(3),(4),(5),(6),(NULL);
+insert into t5 values(0,0),(4,4);
+insert into t7 values(0,'a'),(1,'b'),(2,'c'),(3,'d'),(NULL,'e'),(4,NULL);
+insert into t10 values(null,'aa'),(null,'bb'),(null,'cc'),(null,'dd'),(null,'ee'),(null,'ff');
+
+# 1. Item_func_in
+select * from t1 full join t2 on a in (1,2,3,4,5,6) and a=b order by a,b;
+
+# 2. PTI_handle_sql2003_note184_exception
+select * from t1 full join t2 on a in (1) and a=b order by a,b;
+
+# 3. Item_in_subselect
+select * from t1 full join t2 on a in (select t2.a1 from t2 full join t3 on b<=c) order by a,b;
+
+# 4. limit, order by, Item_uint
+select * from t1 full join (select * from t2 order by a1,b limit 3)dt2 using(a1) order by a,b;
+select * from t1 full join (select * from t2 order by a1,b limit 2,1)dt2 using(a1) order by a,b;
+
+# 5. order by, group by, limit, sum, avg, variance, std, max, min, count, count(distinct), PTI_context, PTI_in_sum_expr
+select * from t1 full join
+              (select a1,sum(b),avg(b),variance(b),std(b),max(b),min(b),count(b),count(distinct b)
+               from t2
+               group by a1
+               having sum(b)>=0
+               order by count(b),a1 limit 3 offset 2)dt2
+              on t1.a1 = dt2.`max(b)`
+order by a,dt2.a1;
+
+# 6. cte's
+select * from t1 full join
+              (with recursive cte1 as
+                 (select a,a1 from t1 where a = 0
+                  union all
+                  select t1.* from cte1 join t1 where cte1.a<t1.a),
+               cte2(a1,a2,a3) as
+                 (select * from t1 natural full join t2 where a1>0)
+               select cte2.* from cte1 left join cte2 on cte1.a1 = cte2.a1)dt using(a1)
+order by a1,a;
+
+# 7. PT_select_item_list, PTI_expr_with_alias
+select * from t1 full join (select b b2, a1 a, t2.*, b `bb` from t2)dt2 on t1.a=b order by t1.a,b;
+
+# 8. PT_table_factor_table_ident, Index_hint, use partition
+select * from t1 full join t10 partition(p0) t10_0 use key (b) on t1.a=t10_0.a order by t1.a,t10_0.a;
+
+# 9. PT_table_reference_list_parens, PT_table_factor_joined_table, PT_joined_table_on
+select * from t1 full join (t4,t2 join t3 on b=c) on a=c and d=a order by a,d,b;
+
+# 10. PT_derived_table
+select * from t1 full join (select * from t2 join lateral (select * from t3)dt3 on b=c)dt23(c1,c2,c3,c4) on a=c1 order by a;
+
+# 11. PT_cross_join
+select * from t1 full join (t2 cross join t3) on a=c order by a,b,c;
+
+# 12. PT_joined_table_using
+select * from t1 full join (t2 join t3 using(a1)) on a=c order by a,b;
+
+# 13. PT_hierarchical
+select * from t1 full join (select * from t2 start with a1=0 connect by b>prior a1)dt2 using(a1) order by a1;
+
+# 14. PT_window_list, PT_window, PT_frame, PT_exclusion, PT_border, Item_string
+select * from t1 full join (select t2.a1, sum(c) over(partition by t2.a1) sum_c,
+                                   avg(c) over(order by t2.a1 rows between 1 preceding and 1 following) avg_c,
+                                   variance(c) over (w1 order by t2.a1) var_c,
+                                   min(c) over w2 as min_c,
+                                   max(c) over w3 as max_c
+                                   from t2 join t3 on t2.a1<t3.a1
+                                   window w1 as (partition by t3.a1),
+                                   w2 as (partition by t3.a1 order by b range unbounded preceding),
+                                   w3 as (order by b rows between unbounded preceding and unbounded following))dt on t1.a1 = dt.a1
+order by a,min_c;
+
+# 15. PT_query_specification
+--error ER_PARSE_ERROR
+select * from t1 full join (select distinct straight_join t1.a1 into @var1 from t1 join t2 on a=b)dt12 on dt12.a1=a;
+
+# 16. PT_query_expression
+select * from t1 full join (select * from t2 union select * from t3 order by a1 limit 2 offset 2)dt on a=b order by a,b;
+
+# 17. PT_nested_query_expression
+select * from t1 full join t2 on exists((select * from t1) order by a) order by a,b;
+
+# 18. Item_int, Item_decimal, Item_float, Item_null, Item_hex_string
+select * from t1 full join (select 1 c1, 1.0 c2, 1.2e5 c3, null c4, 0x56 c5)dt1 on a=c1 order by a;
+
+# 19. Item_func_isnull, Item_func_isnotnull
+select * from t1 full join (select * from t2 where b is null and a1 is not null)dt using(a1) order by a1;
+
+# 20. Item_func_between
+select * from t1 full join (select * from t2 where b between 1 and 5)dt using(a1) order by a1;
+
+# 21. Item_func_like, Item_func_not
+select * from t1 full join (select * from t7 where e not like '%a')dt on a=d order by a,d;
+
+# 22. Item_func_false, Item_func_true, Item_func_xor
+select * from t1 full join (select * from t2 where true)dt on false where true xor false order by a,b;
+
+# 23. PTI_table_wild, PTI_truth_transform, PTI_comp_op, Item_cond_and
+select * from t1 full join (select t2.* from t2)dt on 1<2 and 2<>3 and NULL <=> NULL is true order by a,b;
+
+# 24. PTI_comp_op_all, Item_cond_or
+select * from t1 full join t2 on b < all(select a1 from t3) or b is null order by a,b;
+
+# 25. PTI_simple_ident_ident, PTI_simple_ident_q_3d, PTI_simple_ident_q_2d
+select * from t1 full join (select b,t2.b,test_db_parse_tree_clone.t2.b from t2)dt(c1,c2,c3) on a=c1 order by a,c1;
+
+# 26. PTI_function_call_nonkeyword_now, PTI_function_call_nonkeyword_sysdate
+--replace_regex /[0-9]{4}-[0-1][0-9]-[0-3][0-9] [0-2][0-9]:[0-9]{2}:[0-9]{2}(\.[0-9]{4})*/yyyy-mm-dd HH:MM:SS/
+select * from t1 full join (select 1,now(4),sysdate)dt(c1,c2,c3) on c1=a1 order by a;
+
+# 27. PTI_function_call_generic_ident_sys, PTI_udf_expr
+select * from t1 full join (select 1,md5(11124),abs(-12))dt(c1,c2,c3) on c1=a1 order by a;
+
+# 28. PTI_function_call_generic_2d, PT_item_list
+drop function if exists ftest;
+--delimiter //
+create function ftest(x int)
+returns int reads sql data
+begin
+  declare ret int;
+  select count(*)
+  into ret
+  from t1 full join t2 on a=b
+  where a<=x;
+  return ret;
+end//
+--delimiter ;
+select * from t1 full join (select 1,test_db_parse_tree_clone.ftest(5))dt(c1,c2) on c1=a1 order by a;
+
+# 29. PTI_text_literal_text_string, PTI_text_literal_nchar_string, PTI_text_literal_concat
+select * from t1 full join (select a1, 'help','help' ' 1',n'abc' from t2)dt(c1,c2,c3,c4) on a1=c1 order by a,c1;
+
+# 30. PTI_singlerow_subselect, PTI_count_sym
+select *
+from t1 full join
+     (select (select count(*) from t2) from t2)dt2(c1)
+     on (select count(*),sum(b) from t2) in (select * from t2)
+order by a,c1;
+
+# 31. PTI_exists_subselect
+select * from t1 full join t2 on exists(select * from t3 where a=c and b=c) order by a,b;
+
+# 32. Item_cond_and, Item_cond_or
+select *
+from (select * from t1 where a1>5 or a1<3 or a1=4)dt1
+     full join
+     (select * from t2 where a1>0 and a1<7)dt2
+     on a>1 or b<5 or dt1.a1>0 and dt2.a1=dt1.a1
+order by a,b;
+
+# 33. Item_param
+prepare stmt from 'select * from t1 full join t2 on a=b and t1.a1>?';
+
+# 34. Item_row, Item_in_subselect
+select * from t1 full join t2 on (a,b) in (select * from t3) order by a,b;
+
+# clone Item_func测试用例
+# 35. Item_func_plus, Item_func_minus, Item_func_mul, Item_func_div, Item_func_int_div, Item_func_mod, Item_func_neg
+select a+1, a-1, a*2, a/2, a div 2, a mod 2, -a from t1 start with a=0 connect by 0;
+
+# 36. Item_func_locate, Item_func_round
+select position('abc' in 'ddabcabcabc'),truncate(1.234,a) from t1 start with a=0 connect by 0;
+
+# 37. Item_func_ascii
+select ascii('a') from t1 start with a=0 connect by 0;
+
+# 38. Item_func_bit_or, Item_func_bit_and, Item_func_bit_xor, Item_func_shift_left, Item_func_shift_right, Item_func_bit_neg
+select a|0,a&7,a^7,1<<a,a>>1,~a from t1 start with a=0 connect by 0;
+
+# 39. Item_func_row_count
+select row_count() from t1 start with a=0 connect by 0;
+
+# 40. Item_func_match
+drop table if exists t8;
+create table t8 (c1 int primary key auto_increment, c2 varchar(50));
+insert into t8 values(null,'hello'),(null,'how'),(null,'are'),(null,'you');
+alter table t8 add fulltext index (c2);
+select * from t8 start with match c2 against ('+hello') connect by 0;
+drop table t8;
+
+# 41. Item_func_concat
+set @save_sql_mode = @@sql_mode;
+set sql_mode='pipes_as_concat';
+select 'hello' || 'how are you' from t1 start with a=0 connect by 0;
+set sql_mode = @save_sql_mode;
+
+# 42. Item_func_reverse, Item_func_replace, Item_func_insert
+select reverse('abc'),replace('1234567',a,'0'),insert('how',2,4,'wwww') from t1 start with a=0 connect by false;
+
+# 43. Item_func_left, Item_func_right, Item_func_trim
+select left('Mario No. 1',5),right('Luigi No. 2',5),trim('a' from 'aaabbababaa') from t1 start with a=0 connect by 0;
+
+# 44. Item_func_database, Item_func_user, Item_func_current_user
+select database(),user(),current_user() from t1 start with a=0 connect by 0;
+
+# 45. Item_func_soundex, Item_func_eq
+select 'peak' sounds like 'pick' from t1 start with a=0 connect by 0;
+
+# 46. Item_func_char, Item_func_format,Item_func_repeat
+select char('88',123,78),format(123456,4),repeat(123,3) from t1 start with a=0 connect by 0;
+
+# 47. Item_typecast_char, Item_func_conv_charset
+select cast(77 as char), convert('aaa' using gbk) from t1 start with a=0 connect by 0;
+
+# 48. Item_func_set_collation, Item_func_charset, Item_func_collation
+select charset('aaa'), collation(123 collate utf8mb4_bin) from t1 start with a=0 connect by 0;
+
+# 49. Item_func_weight_string
+select weight_string(123 as char(8)) from t1 start with a=0 connect by 0;
+
+# 50. Item_fun_substr
+select substr('abcdefg',2,3),substr('abcdefg',4) from t1 start with a=0 connect by 0;
+
+# 51. PT_qb_level_hint, PT_hint_list
+select/*+semijoin() full_join_anti() */ * from t1 start with a=0 connect by 0;
+
+# 52. Item_func_rownum
+select rownum from t1 start with true connect by 0;
+
+# 53. Item_typecast_date, Item_typecast_time, Item_typecast_datetime, Item_typecast_signed, Item_typecast_unsigned
+select date(19900319), time(220359),cast(220323.233 as time (4))
+from t1 start with a=0 connect by 0;
+select timestamp(19900913210202.123),cast(19900913210202.123 as datetime (5))
+from t1 start with a=0 connect by 0;
+
+# 54. Item_typecast_signed, Item_typecast_unsigned
+select cast(12 as signed), cast(-1 as unsigned)
+from t1 start with a=0 connect by 0;
+
+# 55. Item_func_year, Item_func_month, Item_func_dayofmonth, Item_func_hour,
+# Item_func_minute, Item_func_second, Item_func_microsecond, Item_func_quarter, Item_func_week
+select *
+from t1
+     full join
+     (select rownum r,year(a),month(a),day(a),hour(a),
+     minute(a),second(a),microsecond(a),quarter(a),
+     week(a),week(a,6)
+     from (select 20200202202202.222)dt(a))dt
+     on a=dt.r
+order by a;
+
+# 56. sum functions 1 window
+select * from t1 full join (select t2.a1,
+                                   variance(c) over w1 var_c,
+                                   var_samp(c) over w1 var_s_c,
+                                   std(c) over w1 std_c,
+                                   stddev_samp(c) over w1 std_s_c,
+                                   bit_and(c) over w1 as and_c,
+                                   bit_or(c) over w1 as or_c,
+                                   bit_xor(c) over w1 as xor_c
+                                   from t2 join t3 on t2.a1<t3.a1
+                                   window
+                                   w1 as (partition by t3.a1 order by b range unbounded preceding))dt on t1.a1 = dt.a1
+order by a, xor_c;
+
+# 57. sum functions 1
+select * from t1 full join
+              (select a1,variance(b),var_samp(b),std(b),stddev_samp(b),bit_and(b),bit_or(b),bit_xor(b)
+               from t2
+               group by a1
+               having sum(b)>=0
+               order by count(b),a1)dt2
+              on t1.a1 = dt2.a1
+order by a, dt2.a1;
+
+# 58. listagg window
+select * from t1 full join (select t2.a1, listagg(c) within group (order by b) over w1 gc1,
+                                          listagg(concat(b,c),';')  within group (order by b) over w1 gc2
+                            from t2 join t3 on t2.a1<t3.a1
+                            window w1 as (partition by t3.a1 order by b range unbounded preceding))dt on t1.a1 = dt.a1
+order by a,gc2;
+
+# 59. group_concat, listagg, grouping
+select * from t1 full join
+              (select t2.a1,
+                      grouping(t2.a1) grp_a1,
+                      group_concat(c) gcc1,
+                      group_concat(distinct b,c order by b desc separator ';') gcc2,
+                      listagg(c) within group (order by b) lac1,
+                      listagg(c,',') within group (order by b) lac2
+               from t2,t3
+               where b<c
+               group by t2.a1 with rollup
+               order by count(b),t2.a1)dt2
+              on t1.a1 = dt2.a1
+order by a, grp_a1;
+
+# 60. row_number, rank, cume_dist, percent_rank, ntile
+select * from t1 full join (select t2.a1,
+                                   row_number() over w1 rn,
+                                   rank() over w1 rk,
+                                   dense_rank() over w1 drank,
+                                   cume_dist() over w1 cd,
+                                   percent_rank() over w1 pr,
+                                   ntile(2) over w1 ntl
+                            from t2 join t3 on t2.a1<t3.a1
+                            window w1 as (partition by t3.a1 order by b range unbounded preceding))dt on t1.a1 = dt.a1
+order by a,cd;
+
+# 61. lead_lag, first_last, nth_value, string
+select * from t1 full join (select t2.a1,
+                                   lead(c) over w1 ld1,
+                                   lead(c,1,-1) RESPECT NULLS over w1 ld2,
+                                   lag(c) over w1 rk1,
+                                   lag(c,1,-1) RESPECT NULLS over w1 rk2,
+                                   first_value(c) over w1 fv1,
+                                   first_value(c) RESPECT NULLS over w1 fv2,
+                                   last_value(c) over w1 lv1,
+                                   last_value(c) RESPECT NULLS over w1 lv2,
+                                   nth_value(c,1) over w1 nv1,
+                                   nth_value(c,2) from first RESPECT NULLS over w1 nv2
+                            from t2 join t3 on t2.a1<t3.a1
+                            window w1 as (partition by t3.a1 order by b range unbounded preceding))dt on t1.a1 = dt.a1
+order by a,ld2;
+
+# 62. json_arrayagg, json_objectagg
+select * from t1 full join
+              (select t2.a1,
+                      grouping(t2.a1) grp_a1,
+                      json_arrayagg(c) ja_c,
+                      json_objectagg(concat('c',b,c),c) jo_c
+               from t2,t3
+               where b<c
+               group by t2.a1 with rollup
+               order by count(b),t2.a1)dt2
+              on t1.a1 = dt2.a1
+order by a, grp_a1;
+
+# 63. int, hex_string, bin_string, decimal, float, uint, PTI_simple_ident_nospvar_ident
+select 1, 0x4e,0b01001111,1.4,1.4e2, (select a from t1 limit 1), values(a), default(a) from t1 start with a=1 connect by 0;
+select * from t1 full join t2 on a=b and 1=0x1 and 9=0b1001 order by a,b;
+
+# 64. PTI_text_literal_underscore_charset, PTI_temporal_literal, PTI_literal_underscore_charset_hex_num, PTI_literal_underscore_charset_bin_num
+select _binary'abc', date'19900909', _latin1 0x4e, _binary 0b1000001 from t1 start with a=1 connect by 0;
+
+# 65. PTI_variable_aux_set_var, PTI_variable_aux_ident_or_text, PTI_variable_aux_3d
+select @a:=a+1, @a, @@global.innodb_use_native_aio from t1 start with a=1 connect by 0;
+
+# 66. PTI_limit_option_param_marker
+prepare stmt from 'select * from t1 full join (select * from t2 order by b limit ?)dt2 on a=b order by a,b';
+set @a=3;
+execute stmt using @a;
+
+# 67. PTI_limit_option_ident
+--delimiter //
+create procedure limit_clone_test (IN lmt int)
+begin
+  select * from t1 full join (select * from t2 order by b limit lmt)dt2 on a=b order by a,b;
+end//
+--delimiter ;
+call limit_clone_test(3);
+
+# 68. PTI_odbc_date
+select {d '20200202'} `date`,{t '202020.020202'} `time`, {ts '20200202 20-22-02'} `datetime` from t1 start with a=1 connect by 0;
+
+# 69. Item_func_member_of, Item_func_json_extract, Item_func_json_unquote, Item_func_array_cast
+create table t_data (id int,name varchar(50));
+insert into t_data values(1,'mario'),(2,'kuba'),(3,'pikachu'),(4,'nathan'),(5,'kratos');
+create table t_json as select json_arrayagg(name) over(order by id) ja_c,
+                      json_objectagg(name,concat(name,id)) over(order by id) jo_c
+                      from t_data;
+
+select ja_c,'mario' member of (ja_c) a, jo_c->'$.nathan' b, jo_c->>'$.nathan' c, ja_c->'$[1]' d, ja_c->>'$[2]' e from t_json start with 1 connect by 0 order by ja_c;
+--error ER_NOT_SUPPORTED_YET
+select cast(ja_c as char(30) array) from t_json start with 1 connect by 0;
+
+drop table t_json;
+drop table t_data;
+
+# 70. Item_func_regexp_like
+select 'abcd1234' regexp '[a-z]*[0-9]*' match_pattern from t1 start with a=1 connect by 0;
+
+# 71. Item_extract
+select extract(year from '20200202') from t1 start with a=1 connect by 0;
+
+# 72. Item_func_case, Item_func_if
+select case a when 1 then 'one' when 4 then 'four' else 'other' end case1 from t1 start with 1 connect by 0;
+select case when a<1 then '<1' when a<4 then '<4' else '>=4' end case2 from t1 start with 1 connect by 0;
+select if(a>3,a1,3) from t1 start with 1 connect by 0;
+
+# 73. Item_func_interval
+select interval(2,1,2,3),interval(2,3),interval(NULL,1,2) from t1 start with a=1 connect by 0;
+
+# 74. Item_func_add_time, Item_date_add_interval, Item_func_get_format, Item_func_timestamp_diff
+select timestamp('2003-12-31 12:00:00','12:00:00') from t1 start with a=1 connect by 0;
+select adddate('2008-01-02', INTERVAL 3 month) from t1 start with a=1 connect by 0;
+select get_format(datetime, 'iso') from t1 start with a=1 connect by 0;
+select timestampdiff(MONTH,'2019-08-19','2020-07-18') from t1 start with a=1 connect by 0;
+
+# 75. Item_func_curdate_utc, Item_func_curdate_local, Item_func_curtime_local, Item_func_now_utc, Item_func_now_systimestamp
+select utc_date()=utc_date() from t1 start with a=1 connect by 0;
+select curdate()=curdate() from t1 start with a=1 connect by 0;
+select curtime()=curtime() from t1 start with a=1 connect by 0;
+select utc_time()=utc_time() from t1 start with a=1 connect by 0;
+select utc_timestamp()=utc_timestamp() from t1 start with a=1 connect by 0;
+select systimestamp=systimestamp from t1 start with a=1 connect by 0;
+
+# 76. additional test cases, PTI_count_sym with window
+select * from t1 full join (select t2.a1, count(*) over(partition by t2.a1) count_c
+                                   from t2 join t3 on t2.a1<t3.a1)dt on t1.a1 = dt.a1
+order by a;
+
+# 77. qb_level_hint
+select * from t1 full join (select/*+JOIN_ORDER(t2,t3@`b`) */ b,c from t2 join t3 on b=c)dt2 on a=b order by a;
+select * from t1 full join (select/*+JOIN_ORDER(@`a` t2,t3) */ b,c from t2 join t3 on b=c)dt2 on a=b order  by a;
+
+# 78. Item_func_xor
+select a, a xor a1+1 from t1 start with a<=1 connect by 0;
+
+# 79. Item_func_like with excape
+select 'abc_' like 'abc|_' escape '|' from t1 start with a=1 connect by 0;
+
+# 80. Item_func_format with 3 arguments
+select format(12332.2,2,'de_DE') from t1 start with a=1 connect by 0;
+
+# 81. Item_func_trim with 1 argument
+select trim('  abc  ') from t1 start with a=1 connect by 0;
+
+# 82. PT_border with exclude
+--error ER_NOT_SUPPORTED_YET
+select * from t1 full join
+(select t2.a1, sum(c) over(partition by t2.a1 order by b rows between 2 preceding and unbounded following exclude current row) sum_c
+ from t2 join t3 on t2.a1<t3.a1)dt on t1.a1 = dt.a1
+order by a;
+
+# 83. PT_border with datetime
+create table ttime (time datetime, id int);
+insert into ttime values('19990909232323',1),('20000101101010',2),('20120202000001',3);
+select id,sum(id) over(order by time range interval 2 year preceding) sum_id from ttime start with 1 connect by 0 order by id;
+
+# 清理测试数据
+DROP DATABASE IF EXISTS test_db_parse_tree_clone;
+# End of ZSQL PARSE TREE CLONE tests

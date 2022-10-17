@@ -1,0 +1,322 @@
+##########################################################
+# prepare for connect engine test
+##########################################################
+install plugin connect soname 'ha_connect.so';
+create database if not exists test_connect_engine;
+use test_connect_engine;
+drop table if exists runSQL;
+create table runSQL
+(
+command varchar(128) flag=0, 
+number int(5) flag=1,
+message varchar(255) flag=2
+)
+engine=connect table_type=odbc
+Connection='DSN=mysrc'
+option_list='Execsrc=1';
+##########################################################
+# test1: test for reserved GTID field not in oracle
+##########################################################
+select * from runSQL where command = 'drop table pet_gtid';
+select * from runSQL where command =
+'create table pet_gtid
+( 
+  name VARCHAR(20) , 
+  species VARCHAR(20),
+  age INT, 
+  birth DATE
+)';
+command	number	message
+create table pet_gtid
+( 
+  name VARCHAR(20) , 
+  species VARCHAR(20),
+  age INT, 
+  birth DATE
+)	-1	Affected rows
+drop table if exists ora_pet_gtid;
+create table ora_pet_gtid
+( 
+name VARCHAR(20) , 
+species VARCHAR(20),
+age INT, 
+birth DATE,
+GTID bigint(20) unsigned not null default '0'
+)
+engine=CONNECT 
+table_type=ODBC 
+tabname='pet_gtid' 
+Connection='DSN=mysrc';
+insert into ora_pet_gtid values ('Puff','bird', 1, date'1999-03-30',110);
+insert into ora_pet_gtid(name,species,age,birth,GTID) values ('Fluffy','cat', 2 , date'1993-02-04',1111111);
+insert into ora_pet_gtid(name,species,age,birth) values ('Fang','dog', 3 , date'1980-08-27');
+select * from ora_pet_gtid order by age;
+name	species	age	birth	GTID
+Puff	bird	1	1999-03-30	0
+Fluffy	cat	2	1993-02-04	0
+Fang	dog	3	1980-08-27	0
+select name,age,birth,GTID from ora_pet_gtid order by age;
+name	age	birth	GTID
+Puff	1	1999-03-30	0
+Fluffy	2	1993-02-04	0
+Fang	3	1980-08-27	0
+select name,age,GTID from ora_pet_gtid where age=1;
+name	age	GTID
+Puff	1	0
+select name,age,GTID from ora_pet_gtid where GTID=0;
+ERROR HY000: Got error 174 'SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GTID": invalid identifier
+' from CONNECT
+update ora_pet_gtid set age=11 where name='Puff';
+select * from ora_pet_gtid order by age;
+name	species	age	birth	GTID
+Fluffy	cat	2	1993-02-04	0
+Fang	dog	3	1980-08-27	0
+Puff	bird	11	1999-03-30	0
+update ora_pet_gtid set age=11,GTID=111 where name='Puff';
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GTID": invalid identifier
+' from CONNECT
+update ora_pet_gtid set GTID=111 where age=11;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GTID": invalid identifier
+' from CONNECT
+update ora_pet_gtid set ora_pet_gtid.GTID=111 where age=11;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "ORA_PET_GTID"."GTID": invalid identifier
+' from CONNECT
+update ora_pet_gtid set age=12 where GTID=0;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GTID": invalid identifier
+' from CONNECT
+update ora_pet_gtid set age=12 where ora_pet_gtid.GTID=0;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GTID": invalid identifier
+' from CONNECT
+delete from ora_pet_gtid where GTID=110;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GTID": invalid identifier
+' from CONNECT
+delete from ora_pet_gtid where GTID=0;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GTID": invalid identifier
+' from CONNECT
+delete from ora_pet_gtid where name='Puff' and GTID=0;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GTID": invalid identifier
+' from CONNECT
+delete from ora_pet_gtid where name='Puff';
+select * from ora_pet_gtid order by age;
+name	species	age	birth	GTID
+Fluffy	cat	2	1993-02-04	0
+Fang	dog	3	1980-08-27	0
+##########################################################
+# test2: test for reserved GDB_BID field not in oracle
+##########################################################
+select * from runSQL where command = 'drop table pet_gdb_bid';
+select * from runSQL where command =
+'create table pet_gdb_bid
+( 
+  name VARCHAR(20) , 
+  species VARCHAR(20),
+  age INT, 
+  birth DATE
+)';
+command	number	message
+create table pet_gdb_bid
+( 
+  name VARCHAR(20) , 
+  species VARCHAR(20),
+  age INT, 
+  birth DATE
+)	-1	Affected rows
+drop table if exists ora_pet_gdb_bid;
+create table ora_pet_gdb_bid
+( 
+name VARCHAR(20) , 
+species VARCHAR(20),
+age INT, 
+birth DATE,
+GDB_BID int(11) NOT NULL DEFAULT '-1'
+)
+engine=CONNECT 
+table_type=ODBC 
+tabname='pet_gdb_bid' 
+Connection='DSN=mysrc';
+insert into ora_pet_gdb_bid values ('Puff','bird', 1, date'1999-03-30',110);
+insert into ora_pet_gdb_bid(name,species,age,birth,GDB_BID) values ('Fluffy','cat', 2 , date'1993-02-04',1111111);
+insert into ora_pet_gdb_bid(name,species,age,birth) values ('Fang','dog', 3 , date'1980-08-27');
+select * from ora_pet_gdb_bid order by age;
+name	species	age	birth	GDB_BID
+Puff	bird	1	1999-03-30	-1
+Fluffy	cat	2	1993-02-04	-1
+Fang	dog	3	1980-08-27	-1
+select name,age,birth,GDB_BID from ora_pet_gdb_bid order by age;
+name	age	birth	GDB_BID
+Puff	1	1999-03-30	-1
+Fluffy	2	1993-02-04	-1
+Fang	3	1980-08-27	-1
+select name,age,GDB_BID from ora_pet_gdb_bid where age=1;
+name	age	GDB_BID
+Puff	1	-1
+select name,age,GDB_BID from ora_pet_gdb_bid where GDB_BID=-1 order by age;
+ERROR HY000: Got error 174 'SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GDB_BID": invalid identifier
+' from CONNECT
+select name,age,GDB_BID from ora_pet_gdb_bid where GDB_BID=0;
+ERROR HY000: Got error 174 'SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GDB_BID": invalid identifier
+' from CONNECT
+update ora_pet_gdb_bid set age=11 where name='Puff';
+select * from ora_pet_gdb_bid order by age;
+name	species	age	birth	GDB_BID
+Fluffy	cat	2	1993-02-04	-1
+Fang	dog	3	1980-08-27	-1
+Puff	bird	11	1999-03-30	-1
+update ora_pet_gdb_bid set age=11,GDB_BID=111 where name='Puff';
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GDB_BID": invalid identifier
+' from CONNECT
+update ora_pet_gdb_bid set GDB_BID=111 where age=11;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GDB_BID": invalid identifier
+' from CONNECT
+update ora_pet_gdb_bid set ora_pet_gdb_bid.GDB_BID=111 where age=11;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "ORA_PET_GDB_BID"."GDB_BID": invalid identifier
+' from CONNECT
+update ora_pet_gdb_bid set age=12 where GDB_BID=0;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GDB_BID": invalid identifier
+' from CONNECT
+update ora_pet_gdb_bid set age=12 where ora_pet_gdb_bid.GDB_BID=-1;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "ORA_PET_GDB_BID"."GDB_BID": invalid identifier
+' from CONNECT
+delete from ora_pet_gdb_bid where GDB_BID=110;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GDB_BID": invalid identifier
+' from CONNECT
+delete from ora_pet_gdb_bid where GDB_BID=-1;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GDB_BID": invalid identifier
+' from CONNECT
+delete from ora_pet_gdb_bid where name='Puff' and GDB_BID=-1;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GDB_BID": invalid identifier
+' from CONNECT
+delete from ora_pet_gdb_bid where name='Puff';
+select * from ora_pet_gdb_bid order by age;
+name	species	age	birth	GDB_BID
+Fluffy	cat	2	1993-02-04	-1
+Fang	dog	3	1980-08-27	-1
+##########################################################
+# test3: test for reserved GTID and GDB_BID field not in oracle
+##########################################################
+select * from runSQL where command = 'drop table pet_gtid_gdbbid';
+select * from runSQL where command =
+'create table pet_gtid_gdbbid
+( 
+  name VARCHAR(20) , 
+  species VARCHAR(20),
+  age INT, 
+  birth DATE
+)';
+command	number	message
+create table pet_gtid_gdbbid
+( 
+  name VARCHAR(20) , 
+  species VARCHAR(20),
+  age INT, 
+  birth DATE
+)	-1	Affected rows
+drop table if exists ora_pet_gtid_gdbbid;
+create table ora_pet_gtid_gdbbid
+( 
+name VARCHAR(20) , 
+species VARCHAR(20),
+age INT, 
+birth DATE,
+GDB_BID int(11) NOT NULL DEFAULT '-1',
+GTID bigint(20) unsigned not null default '0'
+)
+engine=CONNECT 
+table_type=ODBC 
+tabname='pet_gtid_gdbbid' 
+Connection='DSN=mysrc';
+insert into ora_pet_gtid_gdbbid values ('Puff','bird', 1, date'1999-03-30',110,100001);
+insert into ora_pet_gtid_gdbbid(name,species,age,birth,GDB_BID,GTID) values ('Fluffy','cat', 2 , date'1993-02-04',111,100002);
+insert into ora_pet_gtid_gdbbid(name,species,age,birth) values ('Fang','dog', 3 , date'1980-08-27');
+select * from ora_pet_gtid_gdbbid order by age;
+name	species	age	birth	GDB_BID	GTID
+Puff	bird	1	1999-03-30	-1	0
+Fluffy	cat	2	1993-02-04	-1	0
+Fang	dog	3	1980-08-27	-1	0
+select name,age,birth,GDB_BID,GTID from ora_pet_gtid_gdbbid order by age;
+name	age	birth	GDB_BID	GTID
+Puff	1	1999-03-30	-1	0
+Fluffy	2	1993-02-04	-1	0
+Fang	3	1980-08-27	-1	0
+select name,age,GDB_BID,GTID from ora_pet_gtid_gdbbid where age=1;
+name	age	GDB_BID	GTID
+Puff	1	-1	0
+select name,age,GDB_BID,GTID from ora_pet_gtid_gdbbid where GDB_BID=-1 order by age;
+ERROR HY000: Got error 174 'SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GDB_BID": invalid identifier
+' from CONNECT
+select name,age,GDB_BID,GTID from ora_pet_gtid_gdbbid where GTID=-1 order by age;
+name	age	GDB_BID	GTID
+select name,age,GDB_BID,GTID from ora_pet_gtid_gdbbid where GDB_BID=0;
+ERROR HY000: Got error 174 'SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GDB_BID": invalid identifier
+' from CONNECT
+select name,age,GDB_BID,GTID from ora_pet_gtid_gdbbid where GTID=0;
+ERROR HY000: Got error 174 'SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GTID": invalid identifier
+' from CONNECT
+select name,age,GDB_BID,GTID from ora_pet_gtid_gdbbid where GDB_BID=-1 and GTID=0;
+ERROR HY000: Got error 174 'SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GDB_BID": invalid identifier
+' from CONNECT
+update ora_pet_gtid_gdbbid set age=11 where name='Puff';
+select * from ora_pet_gtid_gdbbid order by age;
+name	species	age	birth	GDB_BID	GTID
+Fluffy	cat	2	1993-02-04	-1	0
+Fang	dog	3	1980-08-27	-1	0
+Puff	bird	11	1999-03-30	-1	0
+update ora_pet_gtid_gdbbid set age=11,GDB_BID=111 where name='Puff';
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GDB_BID": invalid identifier
+' from CONNECT
+update ora_pet_gtid_gdbbid set age=11,GTID=100011 where name='Puff';
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GTID": invalid identifier
+' from CONNECT
+update ora_pet_gtid_gdbbid set GDB_BID=111,GTID=100011 where age=11;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GTID": invalid identifier
+' from CONNECT
+update ora_pet_gtid_gdbbid set ora_pet_gtid_gdbbid.GDB_BID=111 where age=11;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "ORA_PET_GTID_GDBBID"."GDB_BID": invalid identif' from CONNECT
+update ora_pet_gtid_gdbbid set ora_pet_gtid_gdbbid.GTID=100011 where age=11;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "ORA_PET_GTID_GDBBID"."GTID": invalid identifier' from CONNECT
+update ora_pet_gtid_gdbbid set ora_pet_gtid_gdbbid.GDB_BID=111, ora_pet_gtid_gdbbid.GTID=100011 where age=11;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "ORA_PET_GTID_GDBBID"."GTID": invalid identifier' from CONNECT
+update ora_pet_gtid_gdbbid set age=12 where GDB_BID=-1;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GDB_BID": invalid identifier
+' from CONNECT
+update ora_pet_gtid_gdbbid set age=12 where GTID=0;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GTID": invalid identifier
+' from CONNECT
+update ora_pet_gtid_gdbbid set age=12 where GDB_BID=-1 and GTID=0;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GTID": invalid identifier
+' from CONNECT
+update ora_pet_gtid_gdbbid set age=12 where ora_pet_gtid_gdbbid.GDB_BID=-1;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "ORA_PET_GTID_GDBBID"."GDB_BID": invalid identif' from CONNECT
+update ora_pet_gtid_gdbbid set age=12 where ora_pet_gtid_gdbbid.GTID=-1;
+update ora_pet_gtid_gdbbid set age=12 where ora_pet_gtid_gdbbid.GTID=0 and ora_pet_gtid_gdbbid.GDB_BID=-1;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GTID": invalid identifier
+' from CONNECT
+delete from ora_pet_gtid_gdbbid where GDB_BID=110;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GDB_BID": invalid identifier
+' from CONNECT
+delete from ora_pet_gtid_gdbbid where GTID=100001;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GTID": invalid identifier
+' from CONNECT
+delete from ora_pet_gtid_gdbbid where GDB_BID=-1;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GDB_BID": invalid identifier
+' from CONNECT
+delete from ora_pet_gtid_gdbbid where GTID=-1;
+delete from ora_pet_gtid_gdbbid where GDB_BID=-1 and GTID=0;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GTID": invalid identifier
+' from CONNECT
+delete from ora_pet_gtid_gdbbid where name='Puff' and GDB_BID=-1;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GDB_BID": invalid identifier
+' from CONNECT
+delete from ora_pet_gtid_gdbbid where name='Puff' and GTID=0;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "GTID": invalid identifier
+' from CONNECT
+delete from ora_pet_gtid_gdbbid where name='Puff';
+select * from ora_pet_gtid_gdbbid order by age;
+name	species	age	birth	GDB_BID	GTID
+Fluffy	cat	2	1993-02-04	-1	0
+Fang	dog	3	1980-08-27	-1	0
+##########################################################
+# end
+##########################################################
+drop database if exists test_connect_engine;
+uninstall plugin connect;

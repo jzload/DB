@@ -1,0 +1,384 @@
+#
+#Test ROWNUM
+#
+
+SET @old_session_sql_mode=@@SESSION.sql_mode;
+SET @@SESSION.sql_mode='STRICT_TRANS_TABLES';
+# 创建测试数据库和测试表，并预制数据，为测试做准备
+DROP DATABASE IF EXISTS test_db_rownum;
+CREATE DATABASE test_db_rownum;
+USE test_db_rownum;
+CREATE TABLE testtb (id INT PRIMARY KEY, name VARCHAR(10) , phone int);
+INSERT INTO testtb VALUES (1,'abc',1);
+INSERT INTO testtb VALUES (2,'def',2);
+INSERT INTO testtb VALUES (3,'fgh',3);
+INSERT INTO testtb VALUES (4,'asf',4);
+INSERT INTO testtb VALUES (5,'asdff',5);
+INSERT INTO testtb VALUES (6,'abc',6);
+INSERT INTO testtb VALUES (7,'a',7);
+INSERT INTO testtb VALUES (8,'a',8);
+INSERT INTO testtb VALUES (9,'b',9);
+INSERT INTO testtb VALUES (10,'d',10);
+
+CREATE TABLE testtb2 (id INT PRIMARY KEY, name VARCHAR(10) , phone int);
+INSERT INTO testtb2 VALUES (1,'abc',1);
+INSERT INTO testtb2 VALUES (3,'fgh',3);
+INSERT INTO testtb2 VALUES (6,'asf',6);
+
+CREATE TABLE testtb3 (id INT PRIMARY KEY, name VARCHAR(10) , phone int);
+INSERT INTO testtb3 VALUES (1,'abc',1);
+INSERT INTO testtb3 VALUES (2,'def',2);
+INSERT INTO testtb3 VALUES (5,'abc',5);
+INSERT INTO testtb3 VALUES (9,'fgh',9);
+INSERT INTO testtb3 VALUES (10,'asf',10);
+
+CREATE TABLE testtb4 (id INT PRIMARY KEY, name VARCHAR(10) , phone int);
+INSERT INTO testtb4 VALUES (1,'a',1);
+INSERT INTO testtb4 VALUES (2,'b',2);
+INSERT INTO testtb4 VALUES (3,'c',3);
+INSERT INTO testtb4 VALUES (4,'d',4);
+INSERT INTO testtb4 VALUES (5,'e',5);
+INSERT INTO testtb4 VALUES (6,'a',6);
+INSERT INTO testtb4 VALUES (7,'b',7);
+INSERT INTO testtb4 VALUES (8,'c',8);
+
+CREATE TABLE testtb5 (id INT PRIMARY KEY, name VARCHAR(10) , phone int);
+ALTER TABLE testtb5 ADD INDEX(id,name,phone);
+INSERT INTO testtb5 SELECT * FROM testtb4;
+
+CREATE TABLE testtb6 (id INT, name VARCHAR(10) , phone int);
+ALTER TABLE testtb6 ADD INDEX(id,name,phone);
+INSERT INTO testtb6 SELECT * FROM testtb4;
+
+CREATE TABLE testtb8 (id INT, name VARCHAR(10) , phone int);
+INSERT INTO testtb8 SELECT * FROM testtb4;
+
+# TEST ROWNUM IN SELECT
+# SELECT list带ROWNUM
+SELECT ROWNUM;
+SELECT ROWNUM FROM testtb;
+
+# ROWNUM在函数中
+SELECT floor(ROWNUM), ceil(ROWNUM), abs(ROWNUM) FROM testtb;
+SELECT (ROWNUM+1) FROM testtb;
+SELECT ROWNUM*2 FROM testtb;
+
+# where条件中带ROWNUM
+SELECT * FROM testtb WHERE ROWNUM < 5;
+SELECT id, ROWNUM FROM testtb WHERE ROWNUM !=4;
+SELECT id, ROWNUM FROM testtb WHERE ROWNUM <=4;
+SELECT id, ROWNUM FROM testtb WHERE ROWNUM >4;
+SELECT id FROM testtb WHERE ROWNUM > 1;
+SELECT id FROM testtb WHERE ROWNUM < 1;
+SELECT id FROM testtb WHERE ROWNUM >= 1;
+SELECT id FROM testtb WHERE ROWNUM > 0;
+SELECT id FROM testtb WHERE ROWNUM > -1;
+SELECT id FROM testtb WHERE ROWNUM in (1,3,5);
+SELECT id FROM testtb WHERE ROWNUM between 1 AND 3;
+SELECT * FROM testtb WHERE ROWNUM<(ROWNUM+1);
+SELECT id, name, phone ,ROWNUM FROM testtb4 WHERE ROWNUM>2 OR name='a';
+SELECT id FROM testtb WHERE name>'a' AND ROWNUM < 3;
+SELECT id FROM testtb WHERE name>'a' AND (name<'e' AND ROWNUM < 3);
+SELECT id FROM testtb WHERE name>'a' AND (name<'e' AND ROWNUM < 3);
+SELECT id FROM testtb WHERE name>'a' OR (name<'e' AND ROWNUM < 3);
+SELECT id FROM testtb2 WHERE(ROWNUM);
+
+# ROWNUM在聚合函数中
+SELECT MIN(ROWNUM), MAX(ROWNUM), AVG(ROWNUM), SUM(ROWNUM) FROM testtb4;
+SELECT MIN(ROWNUM), MAX(ROWNUM), AVG(ROWNUM), SUM(ROWNUM) FROM testtb4 WHERE ROWNUM<4;
+SELECT MIN(ROWNUM), MAX(ROWNUM), AVG(ROWNUM), SUM(ROWNUM) FROM testtb4 GROUP BY name;
+
+# ROWNUM与GROUP BY组合
+SELECT *, ROWNUM FROM testtb4 GROUP BY ROWNUM; 
+SELECT *, COUNT(name) FROM testtb4 WHERE ROWNUM<4 GROUP BY id;
+
+# ROWNUM与GROUP BY、HAVING、聚合函数组合
+SELECT * FROM testtb4 GROUP BY name HAVING SUM(ROWNUM)>3;
+SELECT *, ROWNUM FROM testtb4 GROUP BY name HAVING SUM(ROWNUM)>3;
+SELECT *, ROWNUM FROM testtb4 GROUP BY ROWNUM HAVING SUM(ROWNUM)>3;
+SELECT name,SUM(ROWNUM) FROM testtb4 WHERE id>3 AND id<8 GROUP BY (name) HAVING SUM(ROWNUM)<10;
+SELECT *, ROWNUM FROM testtb4 WHERE ROWNUM<7 GROUP BY name HAVING SUM(ROWNUM)>3;
+SELECT name FROM testtb4 WHERE ROWNUM<=8 GROUP BY (name) HAVING COUNT(name)>1;
+SELECT * FROM (SELECT name FROM testtb4 GROUP BY (name) HAVING COUNT(name)>1) a WHERE ROWNUM<=1;
+
+# ROWNUM在HAVING中
+SELECT ROWNUM FROM testtb4 HAVING ROWNUM>1;
+SELECT ROWNUM FROM testtb4 WHERE ROWNUM<8 HAVING ROWNUM>1;
+
+# ROWNUM在HAVING中且有GROUP BY
+SELECT ROWNUM FROM testtb4 WHERE ROWNUM<8 GROUP BY ROWNUM HAVING ROWNUM>1;
+SELECT ROWNUM FROM testtb4 WHERE ROWNUM>1 GROUP BY ROWNUM HAVING ROWNUM<8; 
+SELECT ROWNUM FROM testtb4 GROUP BY name HAVING ROWNUM>1;
+SELECT ROWNUM FROM testtb4 GROUP BY name HAVING ROWNUM<8; 
+SELECT sum(ROWNUM) FROM testtb4 GROUP BY name HAVING sum(ROWNUM)<8;
+
+# ROWNUM在HAVING中且有隐式聚合
+SELECT SUM(PHONE) FROM testtb4 HAVING ROWNUM>1;
+SELECT SUM(PHONE) FROM testtb4 HAVING ROWNUM<8; 
+SELECT sum(ROWNUM) FROM testtb4 HAVING sum(ROWNUM)=36;
+
+# ROWNUM在HAVING中无GROUP有ORDER
+SELECT ROWNUM FROM testtb4 HAVING ROWNUM<5 ORDER BY NAME;
+SELECT ROWNUM FROM testtb4 HAVING ROWNUM>5 ORDER BY NAME;
+
+SELECT name FROM testtb4 HAVING ROWNUM<5 ORDER BY NAME;
+SELECT name FROM testtb4 HAVING ROWNUM>5 ORDER BY NAME;
+
+# ROWNUM在HAVING中的ROW中
+SELECT name, ROWNUM FROM testtb4 GROUP BY name HAVING (ROWNUM,ROWNUM)>(1,1); 
+SELECT name, ROWNUM FROM testtb4 GROUP BY name HAVING (ROWNUM,ROWNUM)=(1,1); 
+SELECT distinct name FROM testtb4 HAVING (ROWNUM,ROWNUM)>(1,1); 
+SELECT distinct name FROM testtb4 HAVING (ROWNUM,ROWNUM)=(1,1); 
+
+# 排序
+# 单表排序：
+SELECT *  FROM testtb4 WHERE ROWNUM < 6  ORDER BY phone DESC;
+# 排序在子查询中
+SELECT * FROM (SELECT *  FROM testtb4 ORDER BY phone DESC)a WHERE ROWNUM < 6;
+
+# 子查询
+SELECT a.R , ROWNUM R2 FROM (SELECT ROWNUM R FROM testtb4 ORDER BY phone DESC) a;
+
+# join（迭代器）
+# 两表join：
+SELECT a.id,b.id,ROWNUM FROM testtb a JOIN testtb2 b ON a.id=b.id WHERE ROWNUM <3;
+# 三表join：
+SELECT a.id,b.id,ROWNUM FROM testtb a JOIN testtb2 b JOIN testtb3 c ON a.id=b.id AND b.name=c.name;
+SELECT *,ROWNUM FROM testtb a JOIN (SELECT * FROM testtb2 WHERE ROWNUM <4) b  ON a.id=b.id WHERE ROWNUM <3;
+
+# union
+SELECT * FROM ((SELECT a.id,a.name FROM testtb a)union (SELECT b.id ,b.name FROM testtb2 b))c WHERE ROWNUM<2;
+(SELECT id,name FROM testtb WHERE ROWNUM<2)union (SELECT id ,name FROM testtb4 WHERE ROWNUM<2);
+
+#DISTINCT
+SELECT DISTINCT ROWNUM FROM testtb4; 
+SELECT DISTINCT id FROM testtb4 ORDER BY ROWNUM;
+SELECT DISTINCT ROWNUM FROM testtb4 ORDER BY ROWNUM; 
+SELECT DISTINCT name FROM testtb4 WHERE ROWNUM<8;
+SELECT DISTINCT ROWNUM FROM testtb4 WHERE ROWNUM<8; 
+
+SELECT DISTINCT name FROM testtb4 WHERE ROWNUM<10 ORDER BY ROWNUM;
+SELECT DISTINCT name FROM testtb4 ORDER BY ROWNUM;
+
+# limit
+SELECT * FROM testtb4 WHERE ROWNUM<6 limit 2;
+SELECT * FROM testtb4 WHERE ROWNUM<4 limit 2 offset 2;
+
+# 窗口函数
+SELECT ROWNUM, SUM(ROWNUM) over() FROM testtb4;
+SELECT ROWNUM, SUM(ROWNUM) over(ORDER BY ROWNUM desc) FROM testtb4;
+SELECT ROWNUM, rank() over(ORDER BY name desc) FROM testtb4;
+SELECT ROWNUM, rank() over(ORDER BY ROWNUM desc) FROM testtb4;
+
+#窗口函数 + having
+SELECT phone, SUM(phone) OVER(ORDER BY name) FROM testtb4 HAVING PHONE<5 AND ROWNUM<4;
+SELECT phone, SUM(phone) OVER(PARTITION BY name) FROM testtb4 HAVING PHONE<5 AND ROWNUM<4;
+SELECT ROWNUM, phone, SUM(phone) OVER(PARTITION BY name) FROM testtb4 HAVING PHONE<5;
+SELECT phone, SUM(phone) OVER(ORDER BY name) FROM testtb4 GROUP BY name HAVING PHONE<5 AND ROWNUM<4;
+SELECT ROWNUM, phone, name, SUM(phone) OVER(PARTITION BY name) FROM testtb4 HAVING PHONE<7 AND ROWNUM<7 ORDER BY name DESC;
+SELECT ROWNUM, phone, name, SUM(phone) OVER(PARTITION BY phone) FROM testtb4 GROUP BY name HAVING PHONE<7 AND ROWNUM<7 ORDER BY name DESC;
+
+# 复杂聚合
+SELECT a.id, SUM(a.id) FROM testtb2 a GROUP BY a.name HAVING a.name IN (SELECT testtb.name FROM testtb WHERE ROWNUM<5) AND a.id > (SELECT MIN(ROWNUM) FROM testtb);
+SELECT SUM(a.id) FROM testtb2 a GROUP BY a.name HAVING a.name IN (SELECT testtb.name FROM testtb WHERE ROWNUM<5);
+SELECT SUM(testtb2.id) FROM testtb2 GROUP BY testtb2.name HAVING testtb2.name IN (SELECT testtb.name FROM testtb WHERE ROWNUM<5) AND testtb2.name > (SELECT MIN(testtb.name) FROM testtb);
+
+# 针对多表，先第一个表排序，后JOIN
+CREATE TABLE st1 (a int, b int);
+CREATE TABLE st2 (c int, d int);
+INSERT INTO st1 VALUES (1,1),(1,2),(2,1),(2,2),(3,1),(3,3);
+INSERT INTO st2 VALUES (1,1),(1,2),(2,1),(2,2),(3,1),(3,3);
+SELECT /*+ NO_BNL()*/ * FROM st1,st2 WHERE a<=c and ROWNUM<2 ORDER BY a;
+
+# rownum不能做联结条件，但是rownum的查询结果可以作为一个临时表进行join
+SELECT * FROM (SELECT ROWNUM FROM testtb) a JOIN testtb2 b ON a.ROWNUM=b.id;
+
+# join（非迭代器）：
+SELECT a.name,b.name FROM testtb a LEFT JOIN testtb2 b ON a.name>b.name WHERE ROWNUM<4;
+SELECT *, ROWNUM FROM testtb a LEFT JOIN testtb4 b ON a.name>b.name;
+SELECT ROWNUM, sum(ROWNUM), sum(a.id), sum(b.id) FROM testtb a LEFT JOIN testtb4 b ON a.name>b.name;
+SELECT *, ROWNUM FROM testtb3 c WHERE c.name in (SELECT a.name FROM testtb a LEFT JOIN testtb4 b ON a.name>b.name);
+SELECT *, ROWNUM FROM  (SELECT * FROM testtb4 d WHERE d.name in (SELECT e.name FROM testtb e LEFT JOIN testtb2 f ON e.name>f.name ))a GROUP BY a.name ORDER BY a.phone;
+SELECT *, ROWNUM FROM  (SELECT *, ROWNUM r FROM testtb4 d WHERE d.phone in (SELECT ROWNUM FROM testtb e LEFT JOIN testtb2 f ON e.name>f.name ) ORDER BY r desc)a GROUP BY a.name ORDER BY a.phone;
+SELECT e.id,e.name,f.name FROM testtb e LEFT JOIN testtb3 f ON e.name<f.name WHERE ROWNUM=1;
+# 三表join：
+SELECT ROWNUM, a.*, b.* ,c.* FROM testtb4 a left join testtb3 b on a.name>b.name left join testtb2 c on b.name>c.name;
+
+# 不用迭代器的end_sj_materialize分支：
+SELECT *, ROWNUM FROM testtb4 d WHERE d.name in (SELECT e.name FROM testtb e LEFT JOIN testtb2 f ON e.name>f.name);
+
+# 不用迭代器的end_write_group分支
+SELECT COUNT(*), GROUP_CONCAT(ROWNUM), GROUP_CONCAT(DISTINCT b.name) FROM testtb5 b JOIN (testtb a LEFT JOIN testtb2 c ON a.name>c.name ) ON a.name>b.name GROUP BY b.id ORDER BY GROUP_CONCAT(DISTINCT b.name);
+
+# 子查询在in中
+SELECT * FROM testtb WHERE id in (SELECT ROWNUM FROM testtb3);
+
+# 使用ROWNUM时禁止loose index scan
+SELECT name FROM testtb6 WHERE ROWNUM<4 GROUP BY name;
+SELECT MAX(id),name FROM testtb6 GROUP BY name having ROWNUM<4; 
+
+# VIEW
+CREATE OR REPLACE VIEW  v_test AS SELECT a.id a_id, a.name a_name,b.phone b_phone,ROWNUM R FROM testtb a JOIN testtb4 b ON a.id=b.id WHERE ROWNUM <5;
+
+SELECT * FROM v_test WHERE ROWNUM<3;
+
+# EXPLAIN
+EXPLAIN FORMAT=TREE SELECT id FROM testtb WHERE name>'a' AND (name<'e' AND ROWNUM < 3);
+EXPLAIN FORMAT=TREE SELECT id FROM testtb WHERE name>'a' OR (name<'e' AND ROWNUM < 3);
+EXPLAIN FORMAT=TREE SELECT *,ROWNUM FROM testtb a JOIN (SELECT * FROM testtb2 WHERE ROWNUM <4) b ON a.id=b.id WHERE ROWNUM <3;
+EXPLAIN FORMAT=TREE SELECT * FROM testtb WHERE id in (SELECT ROWNUM FROM testtb3);
+EXPLAIN FORMAT=TREE SELECT a.R , ROWNUM R2 FROM (SELECT ROWNUM R FROM testtb4 ORDER BY phone DESC) a;
+# 避免执行计划中得到的rows不同导致差异，testtb6中只保留一条数据
+DELETE FROM testtb6 limit 7;
+EXPLAIN FORMAT=TREE SELECT name FROM testtb6 WHERE rownum<4 GROUP BY name;
+EXPLAIN FORMAT=TREE SELECT phone, SUM(phone) OVER(ORDER BY name) FROM testtb4 HAVING PHONE<5 AND ROWNUM<4;
+# 一般EXPLAIN，where条件中存在ROWNUM
+EXPLAIN SELECT name FROM testtb6 WHERE ROWNUM<4;
+EXPLAIN SELECT * FROM testtb6 WHERE name LIKE "a%" and ROWNUM<4;
+
+# FULL JOIN
+select * from testtb2 full join (select id from testtb)dt5 on testtb2.id=dt5.id where rownum<3;
+--error ER_MISUSE_ROWNUM
+select * from testtb2 full join (select id from testtb)dt5 on testtb2.id=rownum where rownum<3;
+
+# 单表走非迭代器流程（derived table）
+create table tm1(a int,b int);
+create table tm2(c int,d int);
+insert into tm1 values(1,1),(2,2);
+insert into tm2 values(3,3),(4,4);
+create table tm3(e int,f int);
+insert into tm3 values(2,2);
+select * from (select * from tm1 left join tm2 on tm1.a=tm2.c union all select * from tm1 right join tm2 on tm1.a=tm2.c)dt where rownum<4;
+select * from (select * from tm1 left join tm3 on tm1.a=tm3.e union all select * from tm1 left join tm2 on tm1.a=tm2.c union all select * from tm1 right join tm2 on tm1.a=tm2.c) dt where rownum<6;
+# 单表非迭代器流程中where中有未被提取的rownum条件
+insert into tm2 values(2,2),(5,5),(1,1),(6,6);
+select * from (select * from tm1 left join tm2 on tm1.a=tm2.c union all select * from tm1 right join tm2 on tm1.a=tm2.c)dt where dt.a<2 or rownum>2;
+
+# on条件中带rownum连接
+--error ER_MISUSE_ROWNUM
+select *, rownum from tm1 left join tm2 on tm1.a=rownum;
+--error ER_MISUSE_ROWNUM
+select *, rownum from tm1 left join tm2 on tm1.a=rownum left join tm3 on tm3.e=rownum;
+--error ER_MISUSE_ROWNUM
+select *, rownum from tm1 join tm2 on tm1.a=rownum join tm3 on tm3.e=(rownum+1);
+
+# PREPARE
+PREPARE stmt_rownum FROM 'SELECT id FROM testtb WHERE ROWNUM < ?';
+SET @a = 3;
+EXECUTE stmt_rownum USING @a;
+
+# TEST ROWNUM IN DDL
+# UPDATE
+UPDATE testtb8 SET phone = ROWNUM;
+SELECT * FROM testtb8;
+UPDATE testtb8 set phone = ROWNUM WHERE id=7;
+SELECT * FROM testtb8;
+UPDATE testtb8 set phone = ROWNUM WHERE id>=6;
+SELECT * FROM testtb8;
+UPDATE testtb8 set phone = 100;
+UPDATE testtb8 set phone = ROWNUM WHERE ROWNUM<3;
+SELECT * FROM testtb8;
+UPDATE testtb8 a, testtb4 b set a.phone = ROWNUM WHERE b.name = a.name;
+SELECT * FROM testtb8;
+
+# DELETE
+DELETE FROM testtb8 WHERE ROWNUM=7;
+SELECT * FROM testtb8;
+DELETE FROM testtb8 WHERE ROWNUM<2;
+SELECT * FROM testtb8;
+DELETE FROM testtb8 WHERE ROWNUM<=2;
+SELECT * FROM testtb8;
+DELETE FROM testtb8 WHERE ROWNUM!=2;
+SELECT * FROM testtb8;
+
+# INSERT
+TRUNCATE testtb8;
+INSERT INTO testtb8 (SELECT id, name, phone FROM testtb4 WHERE ROWNUM<5 );
+SELECT * FROM testtb8;
+INSERT INTO testtb8 (SELECT id, name, ROWNUM FROM testtb4 WHERE ROWNUM<5 );
+SELECT * FROM testtb8;
+# oracle不支持 mysql现在支持 其中rownum恒为1
+INSERT INTO testtb8 VALUES(9,'g',ROWNUM),(10,'g',ROWNUM), (11,'g',ROWNUM);
+SELECT * FROM testtb8;
+
+# REPLACE
+# oracle不支持 mysql现在支持 其中rownum恒为1
+REPLACE INTO testtb8 VALUES(8,'g',ROWNUM);
+SELECT * FROM testtb8;
+
+# PROCEDURE中多次调用
+--DELIMITER $$
+CREATE OR REPLACE PROCEDURE test_select()
+BEGIN
+    DECLARE t INT DEFAULT 1;
+    WHILE t < 3 DO
+        SELECT * FROM testtb4 WHERE rownum<3;
+        SET t = t + 1;
+    END WHILE;
+END $$
+--DELIMITER ;
+CALL test_select();
+
+--DELIMITER $$
+CREATE OR REPLACE PROCEDURE test_update()
+BEGIN
+    DECLARE t INT DEFAULT 1;
+    WHILE t < 3 DO
+        UPDATE testtb8 SET phone = rownum;
+		SELECT * FROM testtb8;
+        SET t = t + 1;
+    END WHILE;
+END $$
+--DELIMITER ;
+CALL test_update();
+
+--DELIMITER $$
+CREATE OR REPLACE PROCEDURE test_delete()
+BEGIN
+    DECLARE t INT DEFAULT 1;
+    WHILE t < 3 DO
+        DELETE FROM testtb8 WHERE rownum <2;
+		SELECT * FROM testtb8;
+        SET t = t + 1;
+    END WHILE;
+END $$
+--DELIMITER ;
+CALL test_delete();
+
+# 报错，rownum不能作为联结条件：
+--error ER_BAD_FIELD_ERROR
+SELECT a.name,b.name FROM testtb a JOIN testtb2 b ON a.ROWNUM=b.ROWNUM;
+--error ER_MISUSE_ROWNUM
+UPDATE testtb8 SET phone = ROWNUM ORDER BY name;
+--error ER_MISUSE_ROWNUM
+UPDATE testtb8 SET phone = 1 WHERE ROWNUM<4 ORDER BY name;
+--error ER_MISUSE_ROWNUM
+DELETE FROM testtb8 WHERE ROWNUM<4 ORDER BY name;
+--error ER_MISUSE_ROWNUM
+SELECT name,SUM(ROWNUM),ROWNUM FROM testtb8 GROUP BY name with rollup;
+
+# LOCK TIMEOUT
+connect (conn1, 127.0.0.1,root,,);
+connect (conn2, 127.0.0.1,root,,);
+
+connection conn1;
+START TRANSACTION;
+UPDATE test_db_rownum.testtb SET phone=1 WHERE id<3;
+
+connection conn2;
+--error ER_LOCK_WAIT_TIMEOUT
+SELECT * FROM test_db_rownum.testtb WHERE ROWNUM<4 FOR UPDATE;
+
+connection conn1;
+commit;
+
+DISCONNECT conn1;
+DISCONNECT conn2;
+
+connection default;
+
+# 清理测试数据
+DROP DATABASE IF EXISTS test_db_rownum;
+
+SET @@SESSION.sql_mode=@old_session_sql_mode;
+# End of ZSQL兼容Oracle的'ROWNUM'语法 tests

@@ -1,0 +1,218 @@
+#########################
+#CASE 1: Grammar error
+#########################
+drop database if exists test_db;
+create database if not exists test_db;
+use test_db;
+create table tb1 (id int primary key , c1 int);
+create table tb2 (id int primary key , c1 int);
+create table tb3 (id int primary key , c1 int);
+insert into tb1 values(1,1);
+insert into tb1 values(2,2);
+copy tb1 to tb2;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'tb1 to tb2' at line 1
+copy table tb1 to tb2;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'tb1 to tb2' at line 1
+copy table from tb1 to tb2,tb3 ;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ',tb3' at line 1
+copy table from tb1 to tb2 and tb3 ;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'and tb3' at line 1
+copy table from tb1 to tb2;
+select * from tb1 for update;
+id	c1
+1	1
+2	2
+select * from tb2 for update;
+id	c1
+1	1
+2	2
+#########################
+#CASE 2: do not support tmp table
+#########################
+drop database if exists test_db;
+create database if not exists test_db;
+use test_db;
+create temporary table tmp1(id int ,c1 int);
+create temporary table tmp2(id int ,c1 int);
+insert into tmp1 values(1,1);
+insert into tmp1 values(2,2);
+select * from tmp1;
+id	c1
+1	1
+2	2
+copy table from tmp1 to tmp2;
+ERROR 42S02: Table 'test_db.tmp1' doesn't exist
+select * from tmp1 for update;
+id	c1
+1	1
+2	2
+select * from tmp2 for update;
+id	c1
+#########################
+#CASE 3:  only support individual table space
+#########################
+drop database if exists test_db;
+create database if not exists test_db;
+use test_db;
+set global innodb_file_per_table=OFF;
+show variables like 'innodb_file_per_table';
+Variable_name	Value
+innodb_file_per_table	OFF
+create table tb1(id int primary key,c1 int);
+create table tb2(id int primary key,c1 int);
+insert into tb1 values (1,1);
+insert into tb1 values (2,2);
+copy table from tb1 to tb2;
+ERROR HY000: Table 'test_db/tb2' in system tablespace
+select * from tb1 for update;
+id	c1
+1	1
+2	2
+select * from tb2 for update;
+id	c1
+set global innodb_file_per_table=ON;
+#################################
+#CASE 4:  do not support encrypted table space
+#################################
+set global  keyring_operations=ON;
+show variables like 'keyring_operations';
+Variable_name	Value
+keyring_operations	ON
+drop database if exists test_db;
+create database if not exists test_db;
+use test_db;
+create table tb1(id int primary key,c1 int);
+create table tb2(id int primary key,c1 int);
+insert into tb1 values (1,1);
+insert into tb1 values (2,2);
+ALTER TABLE tb1 ENCRYPTION='Y';
+copy table from tb1 to tb2;
+ERROR HY000: Copy table failed: table encrypiton is not supported.
+select * from tb1 for update;
+id	c1
+1	1
+2	2
+select * from tb2 for update;
+id	c1
+#################################
+#CASE 5:  do not support virtual table
+#################################
+drop database if exists test_db;
+create database if not exists test_db;
+use test_db;
+create table tb1(id int primary key,c1 int);
+create table tb2(id int primary key,c1 int);
+create view v1 as select * from tb1;
+create view v2 as select * from tb2;
+insert into tb1 values (1,1);
+insert into tb1 values (2,2);
+copy table from v1 to v2;
+ERROR HY000: 'test_db.v1' is not BASE TABLE
+select * from v1 for update;
+id	c1
+1	1
+2	2
+select * from v2 for update;
+id	c1
+##################################
+#CASE 6: do not support copy system table  
+##################################
+drop database if exists test_db;
+create database if not exists test_db;
+use test_db;
+create table tb1 like information_schema.PLUGINS;
+copy table from information_schema.PLUGINS to tb1;
+ERROR 42000: Access denied for user 'root'@'localhost' to database 'information_schema'
+select PLUGIN_TYPE from information_schema.PLUGINS  where PLUGIN_NAME='InnoDB' for update;
+ERROR 42000: SELECT with locking clause command denied to user 'root'@'localhost' for table 'PLUGINS'
+select PLUGIN_TYPE from tb1 for update;
+PLUGIN_TYPE
+##############################
+#CASE 7: do not support foreign key either A or B, even if the foreign_key_checks=off
+##############################
+case7.1 : A has fk but B hasn't
+drop database if exists test_db;
+create database if not exists test_db;
+use test_db;
+create table tb1(id int primary key,c1 int);
+create table fk_tb1(age int, id int, constraint fk_tb1_id foreign key(id) references tb1(id));
+create table tb2(id int primary key,c1 int);
+insert into tb1 values (1,1);
+insert into fk_tb1 values (1,1);
+copy table from tb1 to tb2;
+ERROR HY000: Copy table failed: table has foreign key constraint.
+select * from tb1 for update;
+id	c1
+1	1
+select * from tb2 for update;
+id	c1
+case7.2: A do not has fk but B has,do not support when foreign_key_checks=ON
+create table tb3(id int primary key,c1 int);
+create table tb4(id int primary key,c1 int);
+create table fk_tb4(age int, id int, constraint fk_tb4_id foreign key(id) references tb4(id));
+insert into tb3 values (1,1);
+set foreign_key_checks=ON;
+show variables like '%foreign_key_checks%';
+Variable_name	Value
+foreign_key_checks	ON
+copy table from tb3 to tb4;
+ERROR HY000: Copy table failed: table has foreign key constraint.
+select * from tb3 for update;
+id	c1
+1	1
+select * from tb4 for update;
+id	c1
+set foreign_key_checks=OFF;
+show variables like '%foreign_key_checks%';
+Variable_name	Value
+foreign_key_checks	OFF
+copy table from tb3 to tb4;
+ERROR HY000: Copy table failed: table has foreign key constraint.
+select * from tb3 for update;
+id	c1
+1	1
+select * from tb4 for update;
+id	c1
+case7.3 A has fk and B has,do not support when foreign_key_checks=ON
+create table tb5(id int primary key,c1 int);
+create table tb6(id int primary key,c1 int);
+create table fk_tb5(age int, id int, constraint fk_tb5_id foreign key(id) references tb5(id));
+create table fk_tb6(age int, id int, constraint fk_tb6_id foreign key(id) references tb6(id));
+insert into tb5 values (1,1);
+set foreign_key_checks=ON;
+show variables like '%foreign_key_checks%';
+Variable_name	Value
+foreign_key_checks	ON
+copy table from tb5 to tb6;
+ERROR HY000: Copy table failed: table has foreign key constraint.
+select * from tb5 for update;
+id	c1
+1	1
+select * from tb6 for update;
+id	c1
+set foreign_key_checks=OFF;
+show variables like '%foreign_key_checks%';
+Variable_name	Value
+foreign_key_checks	OFF
+copy table from tb5 to tb6;
+ERROR HY000: Copy table failed: table has foreign key constraint.
+select * from tb5 for update;
+id	c1
+1	1
+select * from tb6 for update;
+id	c1
+CASE 8: support table has fulltext index 
+drop database if exists test_db;
+create database if not exists test_db;
+use test_db;
+create table tb1 (id int ,c1 varchar(10), fulltext(c1));
+create table tb2 (id int ,c1 varchar(10), fulltext(c1));
+insert into tb1 values(1,'my');
+copy table from tb1 to tb2;
+ERROR HY000: Copy table failed: table has fulltext index.
+select * from tb1 for update;
+id	c1
+1	my
+select * from tb2 for update;
+id	c1
+drop database test_db;

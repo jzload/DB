@@ -1,0 +1,188 @@
+include/master-slave.inc
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+[connection master]
+[connection slave]
+include/stop_slave.inc
+include/start_slave.inc
+[connection master]
+drop database if exists test_db;
+create database if not exists test_db;
+use test_db;
+create table tb1 (id int primary key , c1 int)ENGINE=InnoDB;
+insert into tb1 values(1,1);
+insert into tb1 values(2,2);
+#########################################################
+#CASE 1 normal test: table A and B have the same table structure
+#########################################################
+create table tb0 (id int primary key , c1 int)ENGINE=InnoDB;
+copy table from tb1 to tb0;
+select * from tb1 for update;
+id	c1
+1	1
+2	2
+select * from tb0 for update;
+id	c1
+1	1
+2	2
+include/rpl_sync.inc
+[connection slave]
+use test_db;
+select * from tb1 for update;
+id	c1
+1	1
+2	2
+select * from tb0 for update;
+id	c1
+1	1
+2	2
+#########################################################
+#CASE 2: table A and B have the diff engine
+#########################################################
+[connection master]
+create table tb2 (id int primary key , c1 int)ENGINE=MEMORY;
+create table tb3 (id int primary key , c1 int)ENGINE=MyISAM;
+copy table from tb1 to tb2;
+ERROR HY000: Table storage engine for 'tb2' doesn't have this option
+select * from tb1 for update;
+id	c1
+1	1
+2	2
+select * from tb2 for update;
+id	c1
+copy table from tb1 to tb3;
+ERROR HY000: Table storage engine for 'tb3' doesn't have this option
+select * from tb1 for update;
+id	c1
+1	1
+2	2
+select * from tb3 for update;
+id	c1
+include/rpl_sync.inc
+[connection slave]
+use test_db;
+select * from tb1 for update;
+id	c1
+1	1
+2	2
+select * from tb2 for update;
+id	c1
+select * from tb3 for update;
+id	c1
+#########################################################
+#CASE 3: table A and B have different index
+#########################################################
+[connection master]
+create table tb4 (id int , c1 int)ENGINE=InnoDB;
+copy table from tb1 to tb4;
+ERROR HY000: Copy table failed: table field def is different.
+select * from tb1 for update;
+id	c1
+1	1
+2	2
+select * from tb4 for update;
+id	c1
+include/rpl_sync.inc
+[connection slave]
+use test_db;
+select * from tb1 for update;
+id	c1
+1	1
+2	2
+select * from tb4 for update;
+id	c1
+#########################################################
+#CASE 4: table A and B have different column numbers
+#########################################################
+[connection master]
+create table tb5 (id int primary key , c1 int,c2 int)ENGINE=InnoDB;
+copy table from tb1 to tb5;
+ERROR HY000: Copy table failed: table field count is different.
+select * from tb1 for update;
+id	c1
+1	1
+2	2
+select * from tb5 for update;
+id	c1	c2
+include/rpl_sync.inc
+[connection slave]
+use test_db;
+select * from tb1 for update;
+id	c1
+1	1
+2	2
+select * from tb5 for update;
+id	c1	c2
+#########################################################
+#CASE 5: table A and B have different column types
+#########################################################
+[connection master]
+create table tb6 (id int primary key , c1 varchar(10))ENGINE=InnoDB;
+copy table from tb1 to tb6;
+ERROR HY000: Copy table failed: table field def is different.
+select * from tb1 for update;
+id	c1
+1	1
+2	2
+select * from tb6 for update;
+id	c1
+include/rpl_sync.inc
+[connection slave]
+use test_db;
+select * from tb1 for update;
+id	c1
+1	1
+2	2
+select * from tb5 for update;
+id	c1	c2
+#########################################################
+#CASE 6: table A and B have different row_format
+#########################################################
+[connection master]
+create table tb8 (id int primary key , c1 int)ENGINE=InnoDB, row_format=compact;
+insert into tb8 values(1,1);
+insert into tb8 values(2,2);
+create table tb9 (id int primary key , c1 int)ENGINE=InnoDB, row_format=dynamic;
+create table tb10 (id int primary key , c1 int)ENGINE=InnoDB, row_format=Redundant;
+create table tb11 (id int primary key , c1 int)ENGINE=InnoDB, row_format=Compressed;
+copy table from tb8 to tb9;
+ERROR HY000: Copy table failed: table row_format is different.
+select * from tb8 for update;
+id	c1
+1	1
+2	2
+select * from tb9 for update;
+id	c1
+copy table from tb8 to tb10;
+ERROR HY000: Copy table failed: table row_format is different.
+select * from tb8 for update;
+id	c1
+1	1
+2	2
+select * from tb10 for update;
+id	c1
+copy table from tb8 to tb11;
+ERROR HY000: Copy table failed: table row_format is different.
+select * from tb8 for update;
+id	c1
+1	1
+2	2
+select * from tb11 for update;
+id	c1
+include/rpl_sync.inc
+[connection slave]
+use test_db;
+select * from tb8 for update;
+id	c1
+1	1
+2	2
+select * from tb9 for update;
+id	c1
+select * from tb10 for update;
+id	c1
+select * from tb11 for update;
+id	c1
+[connection master]
+drop database test_db;
+include/rpl_end.inc

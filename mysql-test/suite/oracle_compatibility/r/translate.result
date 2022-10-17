@@ -1,0 +1,131 @@
+SELECT TRANSLATE('MAPT-SSSL-PAET', 'AMST', 'BDFL') FROM DUAL;
+TRANSLATE('MAPT-SSSL-PAET', 'AMST', 'BDFL')
+DBPL-FFFL-PBEL
+SELECT TRANSLATE('MAPT-SSSL-PAET', 'AMTT', 'BDFL') FROM DUAL;
+TRANSLATE('MAPT-SSSL-PAET', 'AMTT', 'BDFL')
+DBPF-SSSL-PBEF
+SELECT TRANSLATE('MAPT-SSSL-PAQE', 'AMSTEQ', 'BDFL') FROM DUAL;
+TRANSLATE('MAPT-SSSL-PAQE', 'AMSTEQ', 'BDFL')
+DBPL-FFFL-PB
+SELECT TRANSLATE('MAPT-SSSL-PAQE', 'AMSSTEQ', 'BDFL') FROM DUAL;
+TRANSLATE('MAPT-SSSL-PAQE', 'AMSSTEQ', 'BDFL')
+DBP-FFFL-PB
+SELECT TRANSLATE('MAPT-SSSL-PAQE', 'AMS', 'BDFLK') FROM DUAL;
+TRANSLATE('MAPT-SSSL-PAQE', 'AMS', 'BDFLK')
+DBPT-FFFL-PBQE
+SELECT TRANSLATE('MAPT-SSSL-PAQE', 'MMS', 'BDFLK') FROM DUAL;
+TRANSLATE('MAPT-SSSL-PAQE', 'MMS', 'BDFLK')
+BAPT-FFFL-PAQE
+SELECT TRANSLATE('SQL*Plus User\'s Guide', ' *\'', '___') FROM DUAL;
+TRANSLATE('SQL*Plus User\'s Guide', ' *\'', '___')
+SQL_Plus_User_s_Guide
+SELECT TRANSLATE('`~!@#$%^&*', '`~!@#$%^&*', '__________') FROM DUAL;
+TRANSLATE('`~!@#$%^&*', '`~!@#$%^&*', '__________')
+__________
+SELECT TRANSLATE('`~!@#$%^&*', '`~!@#$%^&*', '$$$$$$$$$$') FROM DUAL;
+TRANSLATE('`~!@#$%^&*', '`~!@#$%^&*', '$$$$$$$$$$')
+$$$$$$$$$$
+SELECT TRANSLATE('MAPT-SaSL-PAQE', 'AMaT', 'BDFL') FROM DUAL;
+TRANSLATE('MAPT-SaSL-PAQE', 'AMaT', 'BDFL')
+DBPL-SFSL-PBQE
+SELECT TRANSLATE(453563535354, '565', 'xy') FROM DUAL;
+TRANSLATE(453563535354, '565', 'xy')
+4x3xy3x3x3x4
+SELECT TRANSLATE('我是中国人,我爱中国', '中国', 'China') FROM DUAL;
+TRANSLATE('我是中国人,我爱中国', '中国', 'China')
+我是Ch人,我爱Ch
+SELECT TRANSLATE('I am Chinese, I love China', 'China', '中国') FROM DUAL;
+TRANSLATE('I am Chinese, I love China', 'China', '中国')
+I m 中国ese, I love 中国
+SELECT translate('aにbほfんa', 'aに', 'ごれ') FROM DUAL;
+translate('aにbほfんa', 'aに', 'ごれ')
+ごれbほfんご
+SELECT TRANSLATE(34567, 567, 890) FROM DUAL;
+TRANSLATE(34567, 567, 890)
+34890
+SELECT TRANSLATE(34567x, 567, 890) FROM DUAL;
+ERROR 42S22: Unknown column '34567x' in 'field list'
+SELECT TRANSLATE(34567, 567x, 890) FROM DUAL;
+ERROR 42S22: Unknown column '567x' in 'field list'
+SELECT TRANSLATE(34567, 567, 89x) FROM DUAL;
+ERROR 42S22: Unknown column '89x' in 'field list'
+SELECT TRANSLATE(34567+456, 300+50, 800+88) FROM DUAL;
+TRANSLATE(34567+456, 300+50, 800+88)
+88828
+SELECT TRANSLATE(repeat('35', 2), 350, 878) FROM DUAL;
+TRANSLATE(repeat('35', 2), 350, 878)
+8787
+SELECT TRANSLATE(concat('35', 35), repeat('35', 1), 87) FROM DUAL;
+TRANSLATE(concat('35', 35), repeat('35', 1), 87)
+8787
+SELECT TRANSLATE(concat('35', 35), repeat('35', 1), upper('ab')) FROM DUAL;
+TRANSLATE(concat('35', 35), repeat('35', 1), upper('ab'))
+ABAB
+CREATE DATABASE db_test;
+CREATE TABLE db_test.t1 (expr_col varchar(10), from_string varchar(10), to_string varchar(10));
+INSERT INTO db_test.t1 VALUES ('abcedfg', 'ef', '89');
+INSERT INTO db_test.t1 VALUES ('', 'ef', '89');
+INSERT INTO db_test.t1 VALUES (NULL, 'ef', '89');
+SELECT TRANSLATE(expr_col, from_string, to_string) FROM db_test.t1;
+TRANSLATE(expr_col, from_string, to_string)
+abc8d9g
+
+NULL
+DROP DATABASE db_test;
+SELECT TRANSLATE(-453563535354, '56', 'xy') FROM DUAL;
+TRANSLATE(-453563535354, '56', 'xy')
+-4x3xy3x3x3x4
+SELECT TRANSLATE(453563535354, '56', 'xy') FROM DUAL;
+TRANSLATE(453563535354, '56', 'xy')
+4x3xy3x3x3x4
+SELECT TRANSLATE(-453563535354.566756, '56', '98') FROM DUAL;
+TRANSLATE(-453563535354.566756, '56', '98')
+-493983939394.988798
+SELECT BIN(18), TRANSLATE(BIN(18),'10', '01') FROM DUAL;
+BIN(18)	TRANSLATE(BIN(18),'10', '01')
+10010	01101
+SELECT TRANSLATE(NULL, 'X', 'y') FROM DUAL;
+TRANSLATE(NULL, 'X', 'y')
+NULL
+SELECT TRANSLATE('ABC', NULL, 'y') FROM DUAL;
+TRANSLATE('ABC', NULL, 'y')
+NULL
+SELECT TRANSLATE('ABC', 'X', NULL) FROM DUAL;
+TRANSLATE('ABC', 'X', NULL)
+NULL
+SELECT TRANSLATE('', 'X', 'y') FROM DUAL;
+TRANSLATE('', 'X', 'y')
+
+SELECT TRANSLATE('ABC', '', 'y') FROM DUAL;
+TRANSLATE('ABC', '', 'y')
+
+SELECT TRANSLATE('ABC', 'B', '') FROM DUAL;
+TRANSLATE('ABC', 'B', '')
+
+SELECT TRANSLATE(453563535354, 'dd') FROM DUAL;
+ERROR 42000: Incorrect parameter count in the call to native function 'TRANSLATE'
+SELECT TRANSLATE(4535,) FROM DUAL;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ') FROM DUAL' at line 1
+SELECT TRANSLATE(4535, '56',) FROM DUAL;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ') FROM DUAL' at line 1
+SET @tmp_max_allowed_packet=@@global.max_allowed_packet;
+SET @tmp_net_buffer_length=@@global.net_buffer_length;
+CREATE DATABASE a;
+CREATE TABLE a.t (str varchar(5000));
+INSERT INTO a.t VALUES(repeat('ab',1000));
+SET global net_buffer_length=1024;
+SET global max_allowed_packet=1024;
+SELECT @@net_buffer_length, @@max_allowed_packet;
+@@net_buffer_length	@@max_allowed_packet
+16384	67108864
+SELECT @@net_buffer_length, @@max_allowed_packet;
+@@net_buffer_length	@@max_allowed_packet
+1024	1024
+SELECT TRANSLATE(str,'ab','Xz') FROM a.t;
+TRANSLATE(str,'ab','Xz')
+NULL
+Warnings:
+Warning	1301	Result of translate() was larger than max_allowed_packet (1024) - truncated
+SET global max_allowed_packet=@tmp_max_allowed_packet;
+SET global net_buffer_length=@tmp_net_buffer_length;
+DROP DATABASE a;

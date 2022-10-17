@@ -1,0 +1,69 @@
+##########################################################
+# test cases for "tmp_table_max_rows"
+##########################################################
+
+--source include/not_windows.inc
+
+SET @GOLD_TMP_TABLE_MAX_ROWS= @@global.TMP_TABLE_MAX_ROWS;
+SET @OLD_TMP_TABLE_MAX_ROWS= @@global.TMP_TABLE_MAX_ROWS;
+set @old_tmp_table_size = @@global.tmp_table_size;
+
+--disable_warnings
+drop database if exists dbtest;
+--enable_warnings
+create database dbtest;
+create temporary table tmp_t2(id int ,c1 int,c2 varchar(500),c3 varchar(500));
+
+set tmp_table_size=1024;
+
+
+--echo ##########################################################
+--echo # test case 1:  configuration  tmp_table_max_rows
+--echo ##########################################################
+#default 0
+show variables like "tmp_table_max_rows";
+
+# min 1
+set tmp_table_max_rows=1;
+show variables like "tmp_table_max_rows";
+
+#max 2^64-1 (18446744073709551615)
+--disable_abort_on_error
+set tmp_table_max_rows= 18446744073709551615+2;
+--enable_abort_on_error
+show variables like "tmp_table_max_rows";
+
+# normal value
+set tmp_table_max_rows=18446744073709551615;
+show variables like "tmp_table_max_rows";
+set tmp_table_max_rows=10;
+show variables like "tmp_table_max_rows";
+
+#Session value
+set global tmp_table_max_rows=11;
+show variables like "tmp_table_max_rows";
+
+--echo ##########################################################
+--echo # test case 2:  tmp_table_max_rows do not work on Explicit tmp table
+--echo ##########################################################
+
+set tmp_table_max_rows=4;
+INSERT INTO tmp_t2 select 1,1,repeat('A',500),repeat('A',500);
+INSERT INTO tmp_t2 select 1,1,repeat('A',500),repeat('A',500);
+INSERT INTO tmp_t2 select 1,1,repeat('A',500),repeat('A',500);
+INSERT INTO tmp_t2 select 1,1,repeat('A',500),repeat('A',500);
+INSERT INTO tmp_t2 select 1,1,repeat('A',500),repeat('A',500);
+update tmp_t2 set c1=1 ;
+--disable_result_log
+select * from tmp_t2;
+--enable_result_log
+drop temporary table if exists tmp_t2;
+
+
+set global TMP_TABLE_MAX_ROWS= @GOLD_TMP_TABLE_MAX_ROWS;  
+set TMP_TABLE_MAX_ROWS= @OLD_TMP_TABLE_MAX_ROWS; 
+set global tmp_table_size = @@global.tmp_table_size;
+set tmp_table_size = @@global.tmp_table_size;
+drop database if exists dbtest;
+
+

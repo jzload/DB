@@ -1,0 +1,245 @@
+--echo # Tests of asymmetric encryption and decryption functions
+
+--echo ---------------------------------------------------------
+--echo #### PREPARE
+--echo ---------------------------------------------------------
+
+--disable_warnings
+DROP DATABASE IF EXISTS asyfunc;
+--enable_warnings
+CREATE DATABASE asyfunc;
+USE asyfunc;
+
+set @rsa_priv_header = '-----BEGIN RSA PRIVATE KEY-----';
+set @rsa_priv_header_len = length(@rsa_priv_header);
+set @pub_header = '-----BEGIN PUBLIC KEY-----';
+set @pub_header_len = length(@pub_header);
+set @org_plaintext = 'zte中兴~!@#$%^&*(_-+{[<ZTE>]}+-_)*&^%$#@!~中兴zte';
+
+CREATE TABLE t1(bit int, algo char(16));
+INSERT INTO t1 VALUES(2048, 'RSa');
+INSERT INTO t1 VALUES(NULL, 'RSA');
+INSERT INTO t1 VALUES(2048, NULL);
+INSERT INTO t1 VALUES(NULL, NULL);
+
+CREATE TABLE t2(a int primary key, plain char(64), privkey varchar(2048), pubkey varchar(512));
+
+CREATE TABLE t3(cipher varchar(256) byte);
+
+CREATE TABLE t4(plain varchar(256));
+
+--echo ---------------------------------------------------------
+--echo #### case 1 CREATE_ASYMMETRIC_PRIV_KEY valid parameters
+--echo ---------------------------------------------------------
+--echo # RSA
+set @rsa_priv = CREATE_ASYMMETRIC_PRIV_KEY('RSA', 2048);
+select if(SUBSTRING(@rsa_priv, 1, @rsa_priv_header_len) = @rsa_priv_header, 1, 0);
+
+set @rsa_priv = CREATE_ASYMMETRIC_PRIV_KEY('RSA', 2048.0);
+select if(SUBSTRING(@rsa_priv, 1, @rsa_priv_header_len) = @rsa_priv_header, 1, 0);
+
+set @rsa_priv = CREATE_ASYMMETRIC_PRIV_KEY('RSA', '2048');
+select if(SUBSTRING(@rsa_priv, 1, @rsa_priv_header_len) = @rsa_priv_header, 1, 0);
+
+--echo # parameters from table fields
+select substr(CREATE_ASYMMETRIC_PRIV_KEY(algo, bit), 1, 31) as key_header from t1;
+
+--echo ---------------------------------------------------------
+--echo #### case 2 CREATE_ASYMMETRIC_PRIV_KEY invalid parameters
+--echo ---------------------------------------------------------
+--echo # RSA
+--error ER_DATA_OUT_OF_RANGE
+select CREATE_ASYMMETRIC_PRIV_KEY('RSA', 2047);
+
+--error ER_DATA_OUT_OF_RANGE
+select CREATE_ASYMMETRIC_PRIV_KEY('RSA', 16385);
+
+--echo # unsupported algorithm
+--error ER_ASYMMETRIC_ENCRYPTION_FUNC_FAILED
+select CREATE_ASYMMETRIC_PRIV_KEY('DSA', 2048);
+
+--echo ---------------------------------------------------------
+--echo #### case 3 CREATE_ASYMMETRIC_PUB_KEY valid parameters
+--echo ---------------------------------------------------------
+set @rsa_pub = CREATE_ASYMMETRIC_PUB_KEY('RSA', @rsa_priv);
+select if(SUBSTRING(@rsa_pub, 1, @pub_header_len) = @pub_header, 1, 0);
+
+select CREATE_ASYMMETRIC_PUB_KEY('RSA', NULL);
+
+select CREATE_ASYMMETRIC_PUB_KEY(NULL, NULL);
+
+--echo ---------------------------------------------------------
+--echo #### case 4 CREATE_ASYMMETRIC_PUB_KEY invalid parameters
+--echo ---------------------------------------------------------
+--echo # RSA
+--error ER_ASYMMETRIC_ENCRYPTION_FUNC_FAILED
+select CREATE_ASYMMETRIC_PUB_KEY('RSA', 'fake private key');
+
+--echo ---------------------------------------------------------
+--echo #### case 5 ASYMMETRIC_ENCRYPT & ASYMMETRIC_DECRYPT
+--echo ---------------------------------------------------------
+
+--echo ########### 5.1 valid parameters ###########
+
+--echo # encrypt using private key
+set @cipher1 = ASYMMETRIC_ENCRYPT('RSA', @org_plaintext, @rsa_priv);
+select length(@cipher1);
+
+--echo # decrypt using public key
+set @plain1 = ASYMMETRIC_DECRYPT('RSA', @cipher1, @rsa_pub);
+select if(@plain1 = @org_plaintext, 1, 0);
+
+--echo # encrypt using public key
+set @cipher2 = ASYMMETRIC_ENCRYPT('RSA', @org_plaintext, @rsa_pub);
+select length(@cipher2);
+
+--echo # decrypt using private key
+set @plain2 = ASYMMETRIC_DECRYPT('RSA', @cipher2, @rsa_priv);
+select if(@plain2 = @org_plaintext, 1, 0);
+
+--echo # NULL values
+select ASYMMETRIC_ENCRYPT(NULL, @org_plaintext, @rsa_priv);
+
+select ASYMMETRIC_ENCRYPT('RSA', NULL, @rsa_priv);
+
+select ASYMMETRIC_ENCRYPT('RSA', @org_plaintext, NULL);
+
+--echo ########### 5.2 invalid parameters ###########
+--echo # too long plaintext
+set @longtext = repeat('zte中兴', 30);
+
+--error ER_ASYMMETRIC_ENCRYPTION_FUNC_FAILED
+select ASYMMETRIC_ENCRYPT('RSA', @longtext, @rsa_priv);
+
+--echo # invalid key string
+--error ER_ASYMMETRIC_ENCRYPTION_FUNC_FAILED
+select ASYMMETRIC_ENCRYPT('RSA', @longtext, 'fake key string');
+
+--echo ########### 5.3 parameters from table fields ###########
+
+insert into t2 values (1, @org_plaintext, @rsa_priv, @rsa_pub);
+insert into t2 values (2, @org_plaintext, NULL, @rsa_pub);
+insert into t2 values (3, @org_plaintext, @rsa_priv, NULL);
+insert into t2 values (4, @org_plaintext, NULL, NULL);
+insert into t2 values (5, @org_plaintext, @rsa_priv, @rsa_pub);
+
+insert into t3 select ASYMMETRIC_ENCRYPT('RSA', plain, privkey) from t2;
+select length(cipher) from t3;
+
+insert into t4 select ASYMMETRIC_DECRYPT('RSA', cipher, @rsa_pub) from t3;
+select plain from t4;
+
+truncate table t3;
+truncate table t4;
+
+insert into t3 select ASYMMETRIC_ENCRYPT('RSA', plain, pubkey) from t2;
+insert into t3 values (ASYMMETRIC_ENCRYPT('RSA', @org_plaintext, @rsa_pub));
+select length(cipher) from t3;
+
+insert into t4 select ASYMMETRIC_DECRYPT('RSA', cipher, @rsa_priv) from t3;
+insert into t4 values (ASYMMETRIC_DECRYPT('RSA', ASYMMETRIC_ENCRYPT('RSA', @org_plaintext, @rsa_pub), @rsa_priv));
+select plain from t4;
+
+update t3 set cipher=ASYMMETRIC_ENCRYPT('RSA', @org_plaintext, @rsa_pub) where cipher is NULL;
+select length(cipher) from t3;
+
+update t4 set plain=ASYMMETRIC_DECRYPT('RSA', @cipher2, @rsa_priv) where plain is NULL;
+select plain from t4;
+delete from t4 where plain = ASYMMETRIC_DECRYPT('RSA', @cipher2, @rsa_priv);
+select plain from t4;
+
+--echo ---------------------------------------------------------
+--echo #### case 6 PREPARE STATEMENTS
+--echo ---------------------------------------------------------
+truncate table t3;
+truncate table t4;
+set @algo = 'rsa';
+prepare stmt1 from 'insert into t3 values (ASYMMETRIC_ENCRYPT(?, ?, ?))';
+execute stmt1 using @algo, @org_plaintext, @rsa_pub;
+select length(cipher) from t3;
+
+prepare stmt2 from 'insert into t4 values (ASYMMETRIC_DECRYPT(?, ASYMMETRIC_ENCRYPT(?, ?, ?), ?))';
+execute stmt2 using @algo, @algo, @org_plaintext, @rsa_pub, @rsa_priv;
+select plain from t4;
+
+deallocate prepare stmt1;
+deallocate prepare stmt2;
+
+--echo ---------------------------------------------------------
+--echo #### case 7 DIFFERENT CHARSETS
+--echo ---------------------------------------------------------
+CREATE TABLE t5(
+  a int primary key,
+  b char(255) CHARACTER SET utf8mb4,
+  c char(255) CHARACTER SET utf16,
+  d char(255) CHARACTER SET utf32,
+  e char(255) CHARACTER SET gbk,
+  f char(255) CHARACTER SET gb2312,
+  g char(255) CHARACTER SET gb18030,
+  h char(255) CHARACTER SET binary);
+
+CREATE TABLE t6(
+  a int primary key,
+  b char(64) CHARACTER SET utf8mb4,
+  c char(64) CHARACTER SET utf16,
+  d char(64) CHARACTER SET utf32,
+  e char(64) CHARACTER SET gbk,
+  f char(64) CHARACTER SET gb2312,
+  g char(64) CHARACTER SET gb18030,
+  h char(64) CHARACTER SET binary);
+
+CREATE TABLE t7(
+  a int primary key, b varchar(2048), c varchar(2048), d varchar(2048),
+  e varchar(2048), f varchar(2048), g varchar(2048), h varchar(2048));
+
+CREATE TABLE t8(
+  a int primary key, b varchar(2048), c varchar(2048), d varchar(2048),
+  e varchar(2048), f varchar(2048), g varchar(2048), h varchar(2048));
+
+CREATE TABLE t9(
+  a int primary key,
+  b varchar(255) CHARACTER SET utf8mb4,
+  c varchar(255) CHARACTER SET utf16,
+  d varchar(255) CHARACTER SET utf32,
+  e varchar(255) CHARACTER SET gbk,
+  f varchar(255) CHARACTER SET gb2312,
+  g varchar(255) CHARACTER SET gb18030,
+  h varchar(255) CHARACTER SET binary);
+
+set @plaintext2='zte中兴~!@#$%^&*(_-+{[<Z';
+insert into t5 values(1,'rsa','rsa','rsa','rsa','rsa','rsa','rsa');
+insert into t6 values(1, @plaintext2,@plaintext2,@plaintext2,@plaintext2,@plaintext2,@plaintext2,@plaintext2);
+
+insert into t7 values(1,
+(select CREATE_ASYMMETRIC_PRIV_KEY(b,2048) from t5 where a=1),
+(select CREATE_ASYMMETRIC_PRIV_KEY(c,2048) from t5 where a=1),
+(select CREATE_ASYMMETRIC_PRIV_KEY(d,2048) from t5 where a=1),
+(select CREATE_ASYMMETRIC_PRIV_KEY(e,2048) from t5 where a=1),
+(select CREATE_ASYMMETRIC_PRIV_KEY(f,2048) from t5 where a=1),
+(select CREATE_ASYMMETRIC_PRIV_KEY(g,2048) from t5 where a=1),
+(select CREATE_ASYMMETRIC_PRIV_KEY(h,2048) from t5 where a=1));
+
+insert into t8 values(1,
+(select CREATE_ASYMMETRIC_PUB_KEY('rsa',b) from t7 where a=1),
+(select CREATE_ASYMMETRIC_PUB_KEY('rsa',c) from t7 where a=1),
+(select CREATE_ASYMMETRIC_PUB_KEY('rsa',d) from t7 where a=1),
+(select CREATE_ASYMMETRIC_PUB_KEY('rsa',e) from t7 where a=1),
+(select CREATE_ASYMMETRIC_PUB_KEY('rsa',f) from t7 where a=1),
+(select CREATE_ASYMMETRIC_PUB_KEY('rsa',g) from t7 where a=1),
+(select CREATE_ASYMMETRIC_PUB_KEY('rsa',h) from t7 where a=1));
+
+insert into t9 values(1,
+(select ASYMMETRIC_DECRYPT(d1.b,ASYMMETRIC_ENCRYPT(d1.b,d2.b,d3.b), d4.b) from t5 d1,t6 d2,t7 d3,t8 d4),
+(select ASYMMETRIC_DECRYPT(d1.c,ASYMMETRIC_ENCRYPT(d1.c,d2.c,d3.c), d4.c) from t5 d1,t6 d2,t7 d3,t8 d4),
+(select ASYMMETRIC_DECRYPT(d1.d,ASYMMETRIC_ENCRYPT(d1.d,d2.d,d3.d), d4.d) from t5 d1,t6 d2,t7 d3,t8 d4),
+(select ASYMMETRIC_DECRYPT(d1.e,ASYMMETRIC_ENCRYPT(d1.e,d2.e,d3.e), d4.e) from t5 d1,t6 d2,t7 d3,t8 d4),
+(select ASYMMETRIC_DECRYPT(d1.f,ASYMMETRIC_ENCRYPT(d1.f,d2.f,d3.f), d4.f) from t5 d1,t6 d2,t7 d3,t8 d4),
+(select ASYMMETRIC_DECRYPT(d1.g,ASYMMETRIC_ENCRYPT(d1.g,d2.g,d3.g), d4.g) from t5 d1,t6 d2,t7 d3,t8 d4),
+(select ASYMMETRIC_DECRYPT(d1.h,ASYMMETRIC_ENCRYPT(d1.h,d2.h,d3.h), d4.h) from t5 d1,t6 d2,t7 d3,t8 d4));
+
+query_vertical select * from t9;
+
+--echo ---------------------------------------------------------
+--echo #### RECOVERY
+--echo ---------------------------------------------------------
+DROP DATABASE asyfunc;

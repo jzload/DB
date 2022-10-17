@@ -1,0 +1,103 @@
+include/rpl_init.inc [topology=1->2]
+Warnings:
+Note	####	Sending passwords in plain text without SSL/TLS is extremely insecure.
+Note	####	Storing MySQL user name or password information in the master info repository is not secure and is therefore not recommended. Please consider using the USER and PASSWORD connection options for START SLAVE; see the 'START SLAVE Syntax' in the MySQL Manual for more information.
+include/rpl_default_connections.inc
+include/rpl_reset.inc
+[connection slave]
+SHOW CREATE TABLE t1;
+ERROR 42S02: Table 'test.t1' doesn't exist
+[connection master]
+select @@gtid_mode;
+@@gtid_mode
+ON
+create table t (a bigint primary key, b varchar(100));
+insert into t values (1, 'a'), (2, 'b'),(3, 'c');
+create table t1 as select * from t;
+# 1. Create table and have data
+include/rpl_sync.inc
+SHOW CREATE TABLE t1;
+Table	Create Table
+t1	CREATE TABLE `t1` (
+  `a` bigint(20) NOT NULL,
+  `b` varchar(100) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+select * from t1;
+a	b
+1	a
+2	b
+3	c
+# check the data wether same
+include/diff_tables.inc [server_1:test.t1, server_2:test.t1]
+# check the executed_Gtid_set is continuous
+-1
+# 2. master delete can rpl to salve
+delete  from t1;
+include/rpl_sync.inc
+select * from t1;
+a	b
+# 3. select some column to create 
+[connection master]
+begin;
+insert into t values (4, 'd');
+create table t2 as select a from t;
+commit;
+include/rpl_sync.inc
+[connection slave]
+select * from t2;
+a
+1
+2
+3
+4
+# check the data wether same
+include/diff_tables.inc [server_1:test.t2, server_2:test.t2]
+ 1
+# 4. select not exist table to create 
+[connection master]
+create table t4 as select a from t3;
+ERROR 42S02: Table 'test.t3' doesn't exist
+# 5 . create as select not affect the normal create table
+[connection master]
+drop table t2;
+create table t2 as select a from t;
+create table t3(a bigint primary key);
+include/rpl_sync.inc
+[connection slave]
+select * from t2;
+a
+1
+2
+3
+4
+select * from t3;
+a
+# 6. Create table not with binlog_format
+set @sav_binlog_format=  @@session.binlog_format;
+set @@session.binlog_format= statement;
+create table t11 as select * from t;
+ERROR HY000: Statement violates GTID consistency: CREATE TABLE ... SELECT.
+set @@session.binlog_format= @sav_binlog_format;
+# 7 . create as select 
+[connection master]
+drop table t2;
+create table t2(a int primary key, b varchar(20), key(a, b)) as select a from t;
+include/rpl_sync.inc
+[connection slave]
+show create table t2;
+Table	Create Table
+t2	CREATE TABLE `t2` (
+  `b` varchar(20) DEFAULT NULL,
+  `a` int(11) NOT NULL,
+  PRIMARY KEY (`a`),
+  KEY `a` (`a`,`b`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+DROP TABLE t;
+DROP TABLE t1;
+DROP TABLE t2;
+DROP TABLE t3;
+SET sql_mode = default;
+include/rpl_sync.inc
+SHOW CREATE TABLE t1;
+ERROR 42S02: Table 'test.t1' doesn't exist
+include/rpl_end.inc

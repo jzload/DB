@@ -1,0 +1,116 @@
+--echo ---------------------------------------------------------------
+--echo ## Test to_number func used for order_by for oracle  compatibility
+--echo purpose to test the decimal and precision
+--echo ---------------------------------------------------------------
+set @@sql_mode = STRICT_TRANS_TABLES;
+select @@sql_mode;
+
+
+drop database if exists abczyy_num;
+create database abczyy_num;
+create table abczyy_num.tb1(a int key, b int);
+insert into abczyy_num.tb1(a,b) values(1,1),(2,2),(11,11),(22,22);
+
+--echo ---------------------------------------------------------------
+--echo ## Test_1: test tb1 order by use to_number()
+--echo ---------------------------------------------------------------
+
+select * from abczyy_num.tb1 order by to_number(b);
+
+select * from abczyy_num.tb1 order by to_number(a);
+
+select * from abczyy_num.tb1 order by b;
+
+select * from abczyy_num.tb1 order by cast(b as decimal);
+
+select * from abczyy_num.tb1 order by to_number(a)+1;
+
+select * from abczyy_num.tb1 order by to_number(a)+b desc;
+
+select * from abczyy_num.tb1 order by to_number(a)*b desc;
+
+select * from abczyy_num.tb1 order by to_number(a)*(-1);
+
+select * from abczyy_num.tb1 order by ((to_number(a)+1)/1)*(-1);
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_2: test tb2 order by use to_number()
+--echo ---------------------------------------------------------------
+create table abczyy_num.tb2(a int key, b decimal(65,30));
+insert into abczyy_num.tb2(a,b) values(1,1.1),(2,2.2),(11,11.11),(22,22.22);
+
+select * from abczyy_num.tb2 order by to_number(b);
+
+select * from abczyy_num.tb2 order by to_number(a);
+
+select * from abczyy_num.tb2 order by to_number(a)+1 desc;
+
+select * from abczyy_num.tb2 order by to_number(a)+b;
+
+select * from abczyy_num.tb2 order by to_number(a)*b;
+
+select * from abczyy_num.tb2 order by to_number(a)*(-1) desc;
+
+select * from abczyy_num.tb2 order by ((to_number(a)*(-1))/1)*(-1) desc;
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_3: test tb3 order by use to_number()
+--echo ---------------------------------------------------------------
+create table abczyy_num.tb3(a varchar(100) key, b varchar(100));
+insert into abczyy_num.tb3(a,b) values('1.1','1.1'),('2.2','2.2'),('11.11','11.11'),('22.22','22.22');
+insert into abczyy_num.tb3(a,b) values('111.111','111.111'),('222.222','222.222'),('1111.1111','1111.1111'),('2222.2222','2222.2222');
+insert into abczyy_num.tb3(a,b) values('1111111111.1111111111','1111111111.1111111111'),('11111111111111111111.11111111111111111111','11111111111111111111.11111111111111111111');
+insert into abczyy_num.tb3(a,b) values('0.2222222222','0.2222222222');
+
+select * from abczyy_num.tb3 order by to_number(b);
+
+select * from abczyy_num.tb3 order by to_number(a);
+
+select * from abczyy_num.tb3 order by to_number(a)+1;
+
+select * from abczyy_num.tb3 order by to_number(a)+b;
+
+select * from abczyy_num.tb3 order by to_number(a)*b;
+
+select * from abczyy_num.tb3 order by to_number(a)*(-1);
+
+select * from abczyy_num.tb3 order by ((to_number(a)*(-1))/1)*(-1);
+
+insert into abczyy_num.tb3(a,b) values('1234','12345678901234567890123456789012345');
+
+select * from abczyy_num.tb3 order by to_number(b);
+
+select * from abczyy_num.tb3 order by to_number(a);
+
+insert into abczyy_num.tb3(a,b) values('12345','123456789012345678901234567890123456');
+
+select * from abczyy_num.tb3 order by to_number(a);
+
+--error ER_TO_NUM_OUT_OF_RANGE
+select * from abczyy_num.tb3 order by to_number(b);
+
+delete from abczyy_num.tb3 where a = '12345';
+
+
+
+--echo ---------------------------------------------------------------
+--echo ## Test_4: test sum and order by use to_number()
+--echo ---------------------------------------------------------------
+select * from abczyy_num.tb3 order by if(1,to_number(a),to_number(b))-1;
+
+select * from abczyy_num.tb3 order by if(0,to_number(a),to_number(b))-1;
+
+select * from abczyy_num.tb3 order by if(1,to_number(a)+1,to_number(b)+1)-1;
+
+select * from abczyy_num.tb3 order by if(0,-1,((to_number(b)+1)*(-1)))-1;
+
+
+
+--echo ---------------------------------------------------------------
+--echo ## End test to_number function with other functions
+--echo ---------------------------------------------------------------
+drop database if exists abczyy_num;
+
+

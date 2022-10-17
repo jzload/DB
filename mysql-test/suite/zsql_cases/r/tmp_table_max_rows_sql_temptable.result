@@ -1,0 +1,275 @@
+set @old_temptable_use_mmap = @@temptable_use_mmap;
+set @old_temptable_max_ram = @@temptable_max_ram;
+set @@global.temptable_max_ram = 2097152;
+set @@global.temptable_use_mmap = OFF;
+set sql_mode=STRICT_TRANS_TABLES;
+drop database if exists dbtest;
+create database dbtest;
+create table dbtest.tb1(id int, 
+`c1` char(255) COLLATE utf8mb4_bin,
+`c2` char(255) COLLATE utf8mb4_bin,
+`c3` char(255) COLLATE utf8mb4_bin,
+`c4` char(255) COLLATE utf8mb4_bin);
+create table dbtest.tb2(id int,
+`c1` char(255) COLLATE utf8mb4_bin,
+`c2` char(255) COLLATE utf8mb4_bin,
+`c3` char(255) COLLATE utf8mb4_bin,
+`c4` char(255) COLLATE utf8mb4_bin);
+create table dbtest.tb3(id int primary key,
+`c1` char(255) COLLATE utf8mb4_bin,
+`c2` char(255) COLLATE utf8mb4_bin,
+`c3` char(255) COLLATE utf8mb4_bin,
+`c4` char(255) COLLATE utf8mb4_bin);
+create table dbtest.tb4(id int, c1 int, c2 int, c3 int, c4 int, c5 int, c6 int, c7 int);
+create table dbtest.tb5(id int, c1 int, c2 int, c3 int, c4 int, c5 int, c6 int, c7 int);
+create procedure dbtest.load_tb1(count int unsigned)
+begin
+set @c=0;
+start transaction;
+while @c <count DO
+INSERT INTO dbtest.tb1 values(@c,""+@c, "", "", "");
+set @c=@c+1;
+end while;
+commit;
+end;
+//
+create procedure dbtest.load_tb2(count int unsigned)
+begin
+set @c=0;
+start transaction;
+while @c <count DO
+INSERT INTO dbtest.tb2 values(@c, ""+@c, "", "", "");
+set @c=@c+1;
+end while;
+commit;
+end;
+//
+create procedure dbtest.load_tb3(count int unsigned)
+begin
+set @c=0;
+start transaction;
+while @c <count DO
+INSERT INTO dbtest.tb3 values(@c,""+@c, "", "", "");
+set @c=@c+1;
+end while;
+commit;
+end;
+//
+create procedure dbtest.load_tb4(count int unsigned)
+begin
+set @c=0;
+start transaction;
+while @c <count DO
+INSERT INTO dbtest.tb4 values(@c, @c, @c, @c, @c, @c, @c, @c);
+set @c=@c+1;
+end while;
+commit;
+end;
+//
+create procedure dbtest.load_tb5(count int unsigned)
+begin
+set @c=0;
+start transaction;
+while @c <count DO
+INSERT INTO dbtest.tb5 values(@c, @c, @c, @c, @c, @c, @c, @c);
+set @c=@c+1;
+end while;
+commit;
+end;
+//
+##########################################################
+# test case 1:  insert select
+##########################################################
+call dbtest.load_tb1(100);
+set tmp_table_max_rows=100;
+insert into dbtest.tb1 select * from dbtest.tb1;
+insert into dbtest.tb1 select * from dbtest.tb1;
+insert into dbtest.tb1 select * from dbtest.tb1;
+insert into dbtest.tb1 select * from dbtest.tb1;
+ERROR HY000: The internal tmp table is too big, see the limit of tmp_table_max_rows
+set tmp_table_max_rows=1;
+insert into dbtest.tb1 select * from dbtest.tb1;
+ERROR HY000: The internal tmp table is too big, see the limit of tmp_table_max_rows
+set tmp_table_max_rows=800;
+insert into dbtest.tb1 select * from dbtest.tb1;
+set tmp_table_max_rows=0;
+insert into dbtest.tb1 select * from dbtest.tb1;
+truncate table dbtest.tb1;
+call dbtest.load_tb1(510);
+set tmp_table_max_rows=500;
+insert into dbtest.tb1 select * from dbtest.tb1;
+delete from dbtest.tb1 limit 507;
+insert into dbtest.tb1 select * from dbtest.tb1;
+ERROR HY000: The internal tmp table is too big, see the limit of tmp_table_max_rows
+truncate table dbtest.tb1;
+##########################################################
+# test case 2:    union
+##########################################################
+use dbtest;
+call dbtest.load_tb1(512);
+insert into tb2 values(600,"", "", "", "");
+set tmp_table_max_rows=0;
+select * from dbtest.tb1 union select * from dbtest.tb2;
+set tmp_table_max_rows=513;
+select * from dbtest.tb1 union select * from dbtest.tb2;
+set tmp_table_max_rows=512;
+select * from dbtest.tb1 union select * from dbtest.tb2;
+ERROR HY000: The internal tmp table is too big, see the limit of tmp_table_max_rows
+set tmp_table_max_rows=1;
+select * from dbtest.tb1 union select * from dbtest.tb2;
+ERROR HY000: The internal tmp table is too big, see the limit of tmp_table_max_rows
+truncate table tb1;
+truncate table tb2;
+##########################################################
+# test case 3:  view
+##########################################################
+use dbtest;
+call dbtest.load_tb1(512);
+insert into tb2 values(600,"","","","");
+create view v1 as select * from tb1 union select * from tb2;
+set tmp_table_max_rows=0;
+select * from v1;
+set tmp_table_max_rows=513;
+select * from v1;
+set tmp_table_max_rows=512;
+select * from v1;
+ERROR HY000: The internal tmp table is too big, see the limit of tmp_table_max_rows
+set tmp_table_max_rows=1;
+select * from v1;
+ERROR HY000: The internal tmp table is too big, see the limit of tmp_table_max_rows
+drop view v1;
+insert into tb1 values (512,"","","","");
+create algorithm=temptable view v1 as select * from tb1;
+set tmp_table_max_rows=0;
+select * from v1;
+set tmp_table_max_rows=513;
+select * from v1;
+set tmp_table_max_rows=512;
+select * from v1;
+ERROR HY000: The internal tmp table is too big, see the limit of tmp_table_max_rows
+set tmp_table_max_rows=1;
+select * from v1;
+ERROR HY000: The internal tmp table is too big, see the limit of tmp_table_max_rows
+drop view v1;
+create view v1 as select sum(id), c1,c2,c3,c4 from tb1 group by id;
+set tmp_table_max_rows=0;
+select * from v1;
+set tmp_table_max_rows=513;
+select * from v1;
+set tmp_table_max_rows=512;
+select * from v1;
+ERROR HY000: The internal tmp table is too big, see the limit of tmp_table_max_rows
+set tmp_table_max_rows=1;
+select * from v1;
+ERROR HY000: The internal tmp table is too big, see the limit of tmp_table_max_rows
+drop view v1;
+truncate table tb1;
+truncate table tb2;
+##########################################################
+# test case 4:  order by +group by
+##########################################################
+use dbtest;
+call dbtest.load_tb1(513);
+call dbtest.load_tb2(513);
+set tmp_table_max_rows=0;
+select * from tb1 group by id order by c1 ;
+set tmp_table_max_rows=513;
+select * from tb1 group by id order by c1 ;
+set tmp_table_max_rows=512;
+select * from tb1 group by id order by c1 ;
+ERROR HY000: The internal tmp table is too big, see the limit of tmp_table_max_rows
+set tmp_table_max_rows=1;
+select * from tb1 group by id order by c1 ;
+ERROR HY000: The internal tmp table is too big, see the limit of tmp_table_max_rows
+call dbtest.load_tb3(513);
+set tmp_table_max_rows=0;
+select * from tb3 group by c1 order by id ;
+set tmp_table_max_rows=513;
+select * from tb3 group by c1 order by id ;
+set tmp_table_max_rows=512;
+select * from tb3 group by c1 order by id ;
+ERROR HY000: The internal tmp table is too big, see the limit of tmp_table_max_rows
+set tmp_table_max_rows=1;
+select * from tb3 group by c1 order by id ;
+ERROR HY000: The internal tmp table is too big, see the limit of tmp_table_max_rows
+truncate table tb3;
+set tmp_table_max_rows=0;
+select tb1.id,tb1.c1,tb1.c2,tb2.c1,tb2.c2 from tb1,tb2 where tb1.id=tb2.id group by tb1.id;
+set tmp_table_max_rows=513;
+select tb1.id,tb1.c1,tb1.c2,tb2.c1,tb2.c2 from tb1,tb2 where tb1.id=tb2.id group by tb1.id;
+set tmp_table_max_rows=512;
+select tb1.id,tb1.c1,tb1.c2,tb2.c1,tb2.c2 from tb1,tb2 where tb1.id=tb2.id group by tb1.id;
+ERROR HY000: The internal tmp table is too big, see the limit of tmp_table_max_rows
+set tmp_table_max_rows=1;
+select tb1.id,tb1.c1,tb1.c2,tb2.c1,tb2.c2 from tb1,tb2 where tb1.id=tb2.id group by tb1.id;
+ERROR HY000: The internal tmp table is too big, see the limit of tmp_table_max_rows
+truncate table tb1;
+truncate table tb2;
+##########################################################
+# test case 5:  subquery and semi join 
+##########################################################
+use dbtest;
+call dbtest.load_tb1(1024);
+set tmp_table_max_rows=0;
+insert into tb2 select * from tb1;
+set tmp_table_max_rows=0;
+select * from tb2 where (id,c1,c2,c3) in (select id,c1,c2,c3 from tb1);
+set tmp_table_max_rows=1024;
+select * from tb2 where (id,c1,c2,c3) in (select id,c1,c2,c3 from tb1);
+set tmp_table_max_rows=1023;
+select * from tb2 where (id,c1,c2,c3) in (select id,c1,c2,c3 from tb1);
+ERROR HY000: The internal tmp table is too big, see the limit of tmp_table_max_rows
+set tmp_table_max_rows=1;
+select * from tb2 where (id,c1,c2,c3) in (select id,c1,c2,c3 from tb1);
+ERROR HY000: The internal tmp table is too big, see the limit of tmp_table_max_rows
+use dbtest;
+create view v1 as select * from tb2 where (id,c1,c2,c3) in (select id,c1,c2,c3 from tb1);
+set tmp_table_max_rows=0;
+select * from v1;
+set tmp_table_max_rows=1024;
+select * from v1;
+set tmp_table_max_rows=1023;
+select * from v1;
+ERROR HY000: The internal tmp table is too big, see the limit of tmp_table_max_rows
+set tmp_table_max_rows=1;
+select * from v1;
+ERROR HY000: The internal tmp table is too big, see the limit of tmp_table_max_rows
+truncate table tb1;
+truncate table tb2;
+truncate table tb3;
+drop view v1;
+##########################################################
+# test case 6:  distinct and order by 
+##########################################################
+use dbtest;
+call dbtest.load_tb1(513);
+set tmp_table_max_rows=0;
+select distinct * from tb1 order by tb1.id;
+set tmp_table_max_rows=513;
+select distinct * from tb1 order by tb1.id;
+set tmp_table_max_rows=512;
+select distinct * from tb1 order by tb1.id;
+ERROR HY000: The internal tmp table is too big, see the limit of tmp_table_max_rows
+set tmp_table_max_rows=1;
+select distinct * from tb1 order by tb1.id;
+ERROR HY000: The internal tmp table is too big, see the limit of tmp_table_max_rows
+truncate table tb1;
+##########################################################
+# test case 7:  multi-table update
+##########################################################
+use dbtest;
+call dbtest.load_tb1(513);
+call dbtest.load_tb2(513);
+set tmp_table_max_rows=0;
+update tb1 ,tb2 set tb1.c1="",tb1.c2="",tb1.c3="",tb1.c4="",tb2.c1="",tb2.c2="",tb2.c3="",tb2.c4="" where tb1.id=tb2.id;
+set tmp_table_max_rows=513;
+update tb1 ,tb2 set tb1.c1="",tb1.c2="",tb1.c3="",tb1.c4="",tb2.c1="",tb2.c2="",tb2.c3="",tb2.c4="" where tb1.id=tb2.id;
+set tmp_table_max_rows=512;
+update tb1 ,tb2 set tb1.c1="",tb1.c2="",tb1.c3="",tb1.c4="",tb2.c1="",tb2.c2="",tb2.c3="",tb2.c4="" where tb1.id=tb2.id;
+ERROR HY000: The internal tmp table is too big, see the limit of tmp_table_max_rows
+set tmp_table_max_rows=1;
+update tb1 ,tb2 set tb1.c1="",tb1.c2="",tb1.c3="",tb1.c4="",tb2.c1="",tb2.c2="",tb2.c3="",tb2.c4="" where tb1.id=tb2.id;
+ERROR HY000: The internal tmp table is too big, see the limit of tmp_table_max_rows
+set @@global.temptable_max_ram = @old_temptable_max_ram;
+set @@global.temptable_use_mmap = @old_temptable_use_mmap;
+drop database dbtest;

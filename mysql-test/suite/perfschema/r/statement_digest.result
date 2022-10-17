@@ -1,0 +1,231 @@
+SET sql_mode='NO_ENGINE_SUBSTITUTION';
+####################################
+# SETUP
+####################################
+CREATE DATABASE statements_digest;
+USE statements_digest;
+CREATE TABLE t1(a int);
+CREATE TABLE t2(a int);
+CREATE TABLE t3(a int, b int);
+CREATE TABLE t4(a int, b int);
+CREATE TABLE t5(a int, b int, c int);
+CREATE TABLE t6(a int, b int, c int, d int);
+CREATE TABLE t11 (c CHAR(4));
+CREATE TABLE t12 (c CHAR(4));
+TRUNCATE TABLE performance_schema.events_statements_summary_by_digest;
+####################################
+# EXECUTION
+####################################
+SELECT 1 FROM t1;
+1
+SELECT 1 FROM `t1`;
+1
+SELECT 1,2 FROM t1;
+1	2
+SELECT 1, 2, 3, 4 FROM t1;
+1	2	3	4
+SELECT 1 FROM t2;
+1
+SELECT 1,2 FROM t2;
+1	2
+SELECT 1, 2, 3, 4 FROM t2;
+1	2	3	4
+INSERT INTO t1 VALUES (1);
+INSERT INTO t2 VALUES (1);
+INSERT INTO t3 VALUES (1, 2);
+INSERT INTO t4 VALUES (1, 2);
+INSERT INTO t5 VALUES (1, 2, 3);
+INSERT INTO t1 VALUES (1), (2), (3);
+INSERT INTO t1 VALUES (1), (2), (3), (4);
+INSERT INTO t3 VALUES (1, 2), (3, 4), (5, 6);
+INSERT INTO t5 VALUES (1, 2, 3), (4, 5, 6), (7, 8, 9);
+SELECT * FROM t1 WHERE a IN (1);
+a
+1
+1
+1
+SELECT * FROM t1 WHERE a IN (1, 2, 3);
+a
+1
+1
+2
+3
+1
+2
+3
+INSERT INTO t1 VALUES (NULL);
+INSERT INTO t3 VALUES (NULL,NULL);
+INSERT INTO t3 VALUES (1,NULL);
+INSERT INTO t3 VALUES (NULL,1);
+INSERT INTO t6 VALUES (NULL, NULL, NULL, NULL);
+INSERT INTO t6 VALUES (1, NULL, NULL, NULL);
+INSERT INTO t6 VALUES (NULL, 2, NULL, NULL);
+INSERT INTO t6 VALUES (1, 2, 3, NULL);
+INSERT INTO t6 VALUES (1, 2, NULL, 4);
+SELECT                                          1           +        1;
+1           +        1
+2
+SELECT 1;
+1
+1
+SELECT 1 /* This is an inline comment */ + 1;
+1 /* This is an inline comment */ + 1
+2
+SELECT 1+
+/*
+this is a
+multiple-line comment
+*/
+1;
+1+
+/*
+this is a
+multiple-line comment
+*/
+1
+2
+CREATE SCHEMA statements_digest_temp;
+DROP SCHEMA statements_digest_temp;
+CREATE DATABASE statements_digest_temp;
+DROP DATABASE statements_digest_temp;
+SELECT 1 FROM no_such_table;
+ERROR 42S02: Table 'statements_digest.no_such_table' doesn't exist
+CREATE TABLE dup_table (c char(4));
+CREATE TABLE dup_table (c char(4));
+ERROR 42S01: Table 'dup_table' already exists
+DROP TABLE dup_table;
+INSERT IGNORE INTO t11 VALUES("MySQL");
+Warnings:
+Warning	1265	Data truncated for column 'c' at row 1
+PREPARE stmt FROM "SELECT * FROM t12";
+EXECUTE stmt;
+c
+EXECUTE stmt;
+c
+DEALLOCATE PREPARE stmt;
+CREATE PROCEDURE p1() BEGIN SELECT * FROM t12; END//
+CALL p1();
+c
+CALL p1();
+c
+DROP PROCEDURE p1;
+CREATE FUNCTION `func`(a INT, b INT) RETURNS int(11) RETURN a+b //
+Warnings:
+Warning	1681	Integer display width is deprecated and will be removed in a future release.
+select func(3,4);
+func(3,4)
+7
+select func(13,42);
+func(13,42)
+55
+DROP FUNCTION func;
+CREATE TRIGGER trg BEFORE INSERT ON t12 FOR EACH ROW SET @a:=1;
+INSERT INTO t12 VALUES ("abc");
+INSERT INTO t12 VALUES ("def");
+DROP TRIGGER trg;
+DELETE FROM t1;
+INSERT INTO t1 VALUES (1),(2);
+SELECT * FROM (SELECT a,1,1 FROM t1) AS dt (x,y,z);
+x	y	z
+1	1	1
+2	1	1
+SELECT * FROM (SELECT a,2,2 FROM t1) AS dt (x,y,z);
+x	y	z
+1	2	2
+2	2	2
+WITH cte (x,y,z)AS (SELECT a,1,1 FROM t1) SELECT 1, cte.* FROM cte;
+1	x	y	z
+1	1	1	1
+1	2	1	1
+WITH cte (x,y,z)AS (SELECT a,2,2 FROM t1) SELECT 2, cte.* FROM cte;
+2	x	y	z
+2	1	2	2
+2	2	2	2
+WITH cte (x,y,z)AS (SELECT a,1,1 FROM t1) SELECT 1, cte.*, cte2.* FROM cte, cte AS cte2;
+1	x	y	z	x	y	z
+1	1	1	1	1	1	1
+1	1	1	1	2	1	1
+1	2	1	1	1	1	1
+1	2	1	1	2	1	1
+WITH cte (x,y,z)AS (SELECT a,2,2 FROM t1) SELECT 2, cte.*, cte2.* FROM cte, cte AS cte2;
+2	x	y	z	x	y	z
+2	1	2	2	1	2	2
+2	1	2	2	2	2	2
+2	2	2	2	1	2	2
+2	2	2	2	2	2	2
+WITH RECURSIVE cte (x,y,z) AS
+(SELECT a,1,1 FROM t1 UNION ALL SELECT a+1,a*1,11 FROM t1 WHERE 0)
+SELECT 1, cte.*, cte2.* FROM cte, cte AS cte2;
+1	x	y	z	x	y	z
+1	1	1	1	1	1	1
+1	1	1	1	2	1	1
+1	2	1	1	1	1	1
+1	2	1	1	2	1	1
+WITH RECURSIVE cte (x,y,z) AS
+(SELECT a,2,2 FROM t1 UNION ALL SELECT a+2,a*2,22 FROM t1 WHERE 0)
+SELECT 2, cte.*, cte2.* FROM cte, cte AS cte2;
+2	x	y	z	x	y	z
+2	1	2	2	1	2	2
+2	1	2	2	2	2	2
+2	2	2	2	1	2	2
+2	2	2	2	2	2	2
+####################################
+# QUERYING PS STATEMENT DIGEST
+####################################
+SELECT SCHEMA_NAME, DIGEST, DIGEST_TEXT, COUNT_STAR, SUM_ROWS_AFFECTED, SUM_WARNINGS,
+SUM_ERRORS FROM performance_schema.events_statements_summary_by_digest;
+SCHEMA_NAME	DIGEST	DIGEST_TEXT	COUNT_STAR	SUM_ROWS_AFFECTED	SUM_WARNINGS	SUM_ERRORS
+statements_digest	c613ccabb60a015e468900aea0ffb335564052b6b019a9286260a38e1b61b576	TRUNCATE TABLE `performance_schema` . `events_statements_summary_by_digest`	1	0	0	0
+statements_digest	172ee9556dcb2ffda079cb866500f2cb0c3355bedbeb7badd4a3c6f9f2ba0df9	SELECT ? FROM `t1`	2	0	0	0
+statements_digest	d9525753bff964fa041a90dce0c3f0301690b9b54df2027d7802182e93ccb0be	SELECT ?, ... FROM `t1`	2	0	0	0
+statements_digest	93c74a578d7a679a82fcdab6df2e32a31b4b078d9e41754ed87940934f6958bf	SELECT ? FROM `t2`	1	0	0	0
+statements_digest	57ddecddd73420cd723b243cab31dbd9a57493afd0e251b5f8ab880418a34749	SELECT ?, ... FROM `t2`	2	0	0	0
+statements_digest	cb17d0539d1d0d58a1330052a782e52b971490b0e65f5f0fbd6b232f73bf6fc8	INSERT INTO `t1` VALUES (?)	2	2	0	0
+statements_digest	e960bbe7aa3454820b046b37e961c5ea4ff4b6005e476ad38eee8b38638583b4	INSERT INTO `t2` VALUES (?)	1	1	0	0
+statements_digest	6efef51283c06a173742fa508532faec058cdc039701ca7c97f43d4135756400	INSERT INTO `t3` VALUES (...)	4	4	0	0
+statements_digest	11a9536c9e1c4fe0e195f6ea91ed374d2dc8a71a2b5153a5df74d9fe8f85b6d9	INSERT INTO `t4` VALUES (...)	1	1	0	0
+statements_digest	534d3c478cccaa509988719027c53129c46ec5f8762ed506d9cc7b491d868c7d	INSERT INTO `t5` VALUES (...)	1	1	0	0
+statements_digest	e618538081ebe6de34a2228637a03a990d5e2b5ab5a83fd1a9367c9bdfc6fd56	INSERT INTO `t1` VALUES (?) /* , ... */	3	9	0	0
+statements_digest	cefc0886ca440818537893bbbde6f5a6de9779c16ca0740ad699fbfcf9bc4461	INSERT INTO `t3` VALUES (...) /* , ... */	1	3	0	0
+statements_digest	e132b11f4aaa7ab18deca19f57a4a0010b68a5cb9539daf78c9e2ba94e6c0532	INSERT INTO `t5` VALUES (...) /* , ... */	1	3	0	0
+statements_digest	f9e7e791ed176b96457755d483341122bb31c3f63fa57e64f58726317a37d2f2	SELECT * FROM `t1` WHERE `a` IN (...)	2	0	0	0
+statements_digest	efbb9428e9e5410ec894ad0f1c8fddaeefac48445e26905e26381297781b6103	INSERT INTO `t6` VALUES (...)	5	5	0	0
+statements_digest	32f2a727f2b5adc4d38ae3e37c9214da42e73e3e3fcaae67bb21367196835049	SELECT ? + ?	3	0	0	0
+statements_digest	1b1cdccb0522c4cd12522d1a87ef65e8367848eb19d1bf76302089cb68ff7659	SELECT ?	1	0	0	0
+statements_digest	d5783cd5441e39b1affec4129b4479540215dd1caf31d0c875dd8e4a1cc43581	CREATE SCHEMA `statements_digest_temp`	2	2	0	0
+statements_digest	e19fe5cc1bee9a99fd1642e5e585a22000ec925d29ad0fc714079ae1a4118eda	DROP SCHEMA `statements_digest_temp`	2	0	0	0
+statements_digest	9b451a77b6b07b9c834c9d82d9bf6e6bf1e3e121c53a00d580e6977edef67ebb	SELECT ? FROM `no_such_table`	1	0	0	1
+statements_digest	09577b7c08f163e5a1cc6cb3fa5c564bfb98efdc36298c64da04dcf948d2f5f4	CREATE TABLE `dup_table` ( `c` CHARACTER (?) )	2	0	0	1
+statements_digest	3c217f180c79f8700a7dfbd7e82ed1858f733d4787c30d9117fb764f8a7b1da2	DROP TABLE `dup_table`	1	0	0	0
+statements_digest	952874883357589c595f8f8f637a21f515ec3409bf71fda757c9a559c0f24b27	INSERT IGNORE INTO `t11` VALUES (?)	1	1	1	0
+statements_digest	118d653c380580e38366e6c2f770958c117ff4937f4a30ea3b324cc43674dc3e	SHOW WARNINGS	2	0	0	0
+statements_digest	d3a741cdc86558bad6ad7ea8f55ade2082504632c7eb04c1d19fce6ff0b6e264	PREPARE `stmt` FROM ?	1	0	0	0
+statements_digest	dd4f08367390d71443b58f36f9ef7ab3ea7d76ba9c226f833b960471ac5eb15b	EXECUTE `stmt`	2	0	0	0
+statements_digest	2051836758314226b64b3da1ad859f9d0265ce98697745a310505f2bb4711314	DEALLOCATE PREPARE `stmt`	1	0	0	0
+statements_digest	db9cb9fd608ed1c766326687a77c1015bbcd80c4b4c43f1dea5416e6e80570e8	CREATE PROCEDURE `p1` ( ) BEGIN SELECT * FROM `t12` ; END	1	0	0	0
+statements_digest	4256dbf2635902f8b4a2defcb7ccf8c64d12103836cfe078b4d4a47e872b980c	CALL `p1` ( )	2	0	0	0
+statements_digest	8c9ea6033547c58d7595ae6ee6a7ff7eb2810d666a951c427361c39656b33bd4	DROP PROCEDURE `p1`	1	0	0	0
+statements_digest	a466cf7f4abad4d8ebcd82c29230b0e274cae0e4c176c61e2537a6a249889e05	CREATE FUNCTION `func` ( `a` INTEGER , `b` INTEGER ) RETURNS INTEGER (?) RETURN `a` + `b`	1	0	1	0
+statements_digest	42dbbaa67e5efc3d741b5c2e6f8a06ce9c16aa49b3b30736ea55c55dfb381a18	SELECT `func` (...)	2	0	0	0
+statements_digest	f41817b8323e0d66975a453418362bf885125e30cfb25e2e2fc3cf5b4199041c	DROP FUNCTION `func`	1	0	0	0
+statements_digest	79bf0464cf11878bb269a2583477a44b1f2661a135db84819b8c0c08f00f82b3	CREATE TRIGGER `trg` BEFORE INSERT ON `t12` FOR EACH ROW SET @? := ?	1	0	0	0
+statements_digest	456aa33cd729b5c93c72b178e9d53e53b0f8d4c593b06511f54bf2091373c3b2	INSERT INTO `t12` VALUES (?)	2	2	0	0
+statements_digest	307beb15e9f22dbfda8b2af83d54a824a59cc344807d0cb70f1aefccb2495a32	DROP TRIGGER `trg`	1	0	0	0
+statements_digest	b9c724f4a385b4f85fd676163a1235ddc6e6c43be9781fbad33b6ecc06066f87	DELETE FROM `t1`	1	9	0	0
+statements_digest	6592c39dbca8e9693e84b90d2bea39cc497d257e215dde9022d1cd02803e157c	SELECT * FROM ( SELECT `a` , ?, ... FROM `t1` ) AS `dt` ( `x` , `y` , `z` )	2	0	0	0
+statements_digest	15aee8f53119433f763bfc6079a8ba0dd7a5d8c3dfb22271fe86799d9ca6f7aa	WITH `cte` ( `x` , `y` , `z` ) AS ( SELECT `a` , ?, ... FROM `t1` ) SELECT ? , `cte` . * FROM `cte`	2	0	0	0
+statements_digest	802b2a01754513a819b31fa34624203cab6ab53ccef86dff431147e09ece0a46	WITH `cte` ( `x` , `y` , `z` ) AS ( SELECT `a` , ?, ... FROM `t1` ) SELECT ? , `cte` . * , `cte2` . * FROM `cte` , `cte` AS `cte2`	2	0	0	0
+statements_digest	f7ff71504e5cadf48ee0fc24e9c0b5f2594b3b4431c10871afc8cbc626c6a1d8	WITH RECURSIVE `cte` ( `x` , `y` , `z` ) AS ( SELECT `a` , ?, ... FROM `t1` UNION ALL SELECT `a` + ? , `a` * ?, ... FROM `t1` WHERE ? ) SELECT ? , `cte` . * , `cte2` . * FROM `cte` , `cte` AS `cte2`	2	0	0	0
+####################################
+# CLEANUP
+####################################
+DROP TABLE IF EXISTS t1;
+DROP TABLE IF EXISTS t2;
+DROP TABLE IF EXISTS t3;
+DROP TABLE IF EXISTS t4;
+DROP TABLE IF EXISTS t5;
+DROP TABLE IF EXISTS t6;
+DROP TABLE IF EXISTS t11;
+DROP TABLE IF EXISTS t12;
+DROP DATABASE IF EXISTS statements_digest;
+SET sql_mode=default;

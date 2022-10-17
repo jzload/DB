@@ -1,0 +1,91 @@
+create schema test1;
+use test1;
+create table t1 (a int,b int,c int);
+insert into t1 values(1,2,3),(2,3,1),(3,1,2);
+create table t5 (a int, b int);
+insert into t5 values(1,1),(2,4),(4,2),(3,3);
+select a from (select a, b as c from t1 order by c)dt;
+a
+3
+1
+2
+select a from (select a, b as d from t1 order by d)dt;
+a
+3
+1
+2
+prepare stmt1 from 'select a from (select a, b as c from t1 order by c)dt';
+execute stmt1;
+a
+3
+1
+2
+prepare stmt2 from 'select a from (select a, b as d from t1 order by d)dt';
+execute stmt2;
+a
+3
+1
+2
+select a from (select a, abs(b) as d from t1 order by c)dt;
+a
+2
+3
+1
+select a from (select a, abs(b) as d from t1 order by d)dt;
+a
+3
+1
+2
+prepare stmt3 from 'select a from (select a, abs(b) as d from t1 order by c)dt';
+execute stmt3;
+a
+2
+3
+1
+prepare stmt4 from 'select a from (select a, abs(b) as d from t1 order by d)dt';
+execute stmt4;
+a
+3
+1
+2
+select a from (select a from (select a, abs(b-a) as d from t1 order by d)dt)dt;
+a
+1
+2
+3
+prepare stmt5 from 'select a from (select a from (select a, abs(b-a) as d from t1 order by d)dt)dt';
+execute stmt5;
+a
+1
+2
+3
+select a,e from (select t1.a,dt.a e from t1,(select a, abs(b-a) as d from t5 order by d)dt order by t1.a)dt;
+a	e
+1	1
+1	2
+1	4
+1	3
+2	1
+2	2
+2	4
+2	3
+3	1
+3	2
+3	4
+3	3
+prepare stmt6 from 'select a,e from (select t1.a,dt.a e from t1,(select a, abs(b-a) as d from t5 order by d)dt order by t1.a)dt';
+execute stmt6;
+a	e
+1	1
+1	2
+1	4
+1	3
+2	1
+2	2
+2	4
+2	3
+3	1
+3	2
+3	4
+3	3
+DROP DATABASE IF EXISTS test1;

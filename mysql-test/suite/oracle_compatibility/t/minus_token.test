@@ -1,0 +1,183 @@
+--echo #
+--echo # 准备
+--echo #
+create database minus_token_db;
+use minus_token_db;
+
+
+--echo #
+--echo # MINUS 作为数据库名
+--echo #
+
+--error ER_PARSE_ERROR
+create database minus;
+
+--error ER_PARSE_ERROR
+drop database minus;
+
+
+--echo #
+--echo # MINUS 作为表名
+--echo #
+
+--error ER_PARSE_ERROR
+drop table if exists minus;
+
+--error ER_PARSE_ERROR
+create table minus(a int);
+
+
+--echo #
+--echo # MINUS 作为列名
+--echo #
+
+drop table if exists t_minus;
+
+--error ER_PARSE_ERROR
+create table t_minus(minus int);
+
+
+--echo #
+--echo # MINUS 作为存储过程名
+--echo #
+
+delimiter $$;
+--error ER_PARSE_ERROR
+create procedure minus
+begin
+    declare i int;
+    set i=0;
+    select i from dual;
+end $$
+delimiter ;$$
+
+
+--echo #
+--echo # MINUS 作为自定义函数名
+--echo #
+
+delimiter $$;
+--error ER_PARSE_ERROR
+create function minus
+begin
+    declare i int;
+    set i=0;
+    return (select i from dual);
+end $$
+delimiter ;$$
+
+
+--echo #
+--echo # MINUS 作为view名
+--echo #
+
+--error ER_PARSE_ERROR
+create view minus as select 1 from dual;
+
+
+--echo #
+--echo # MINUS 作为trigger名
+--echo #
+
+--echo # preparation
+drop table if exists t_item;
+create table t_item(id int, no varchar(10));
+insert into t_item values(1, 'a');
+
+drop table if exists t_item2;
+create table t_item2(c1 int, c2 varchar(10));
+
+--echo # test
+delimiter $$;
+--error ER_PARSE_ERROR
+create trigger minus after insert on t_minus for each row
+begin
+  insert into t_minus2 values (new.a, new.b, new.c);
+end $$
+delimiter ;$$
+
+
+--echo #
+--echo # MINUS 作为Event名
+--echo #
+
+delimiter $$;
+
+--error ER_PARSE_ERROR
+CREATE EVENT minus
+ON SCHEDULE
+  EVERY 5 SECOND
+  on completion preserve enable
+DO
+BEGIN
+  truncate table ttt;
+END $$
+
+delimiter ;$$
+
+--echo #
+--echo # MINUS 作为存储过程中的变量名
+--echo #
+
+delimiter $$;
+
+--error ER_PARSE_ERROR
+CREATE PROCEDURE test_proc()
+BEGIN
+    DECLARE minus INTEGER;
+    SET minus=1;
+    select 1 from dual;
+END $$
+
+delimiter ;$$
+
+
+--echo #
+--echo # MINUS 作为自定义变量名
+--echo #
+--error ER_PARSE_ERROR
+set minus = 12;
+
+
+--echo #
+--echo # MINUS 作为存储过程中的label
+--echo #
+
+delimiter $$;
+
+--error ER_PARSE_ERROR
+
+create procedure doiterate(in p1 int, out p2 int)
+BEGIN
+    minus: LOOP
+        set p1 = p1 + 1;
+        if p1 < 10 then iterate minus; END if;
+        leave minus;
+    END LOOP minus;
+    set p2=p1;
+END $$
+
+delimiter ;$$
+
+
+--echo #
+--echo # MINUS 作为user name
+--echo #
+--error ER_PARSE_ERROR
+create user minus identified by '123456';
+
+
+--echo #
+--echo # MINUS 作为role name
+--echo #
+--error ER_PARSE_ERROR
+create role minus;
+
+
+--echo #
+--echo # clean up
+--echo #
+
+--enable_warnings
+drop database minus_token_db;
+

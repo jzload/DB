@@ -1,0 +1,523 @@
+# parse_mode: the way DB parses queries
+# value 1: mysql 2: oracle
+
+
+let $initial_timeout=`select @@innodb_lock_wait_timeout`;
+set global innodb_lock_wait_timeout=1;
+let $initial_lock_wait_timeout=`select @@lock_wait_timeout`;
+set global lock_wait_timeout=1;
+
+
+connect (a,localhost,root,,);
+connect (b,localhost,root,,);
+connect (c,localhost,root,,);
+
+connection a;
+let $session_parse_mode_a=`select @@parse_mode`;
+set parse_mode=2;
+select @@innodb_lock_wait_timeout;
+
+create table t1(id1 int primary key, name1 char(20), age int);
+create table t2(id2 int primary key, name2 char(20), age int);
+
+insert into t1 values (1, 'tom', 20),(2, 'jack', 21),(3, 'allen', 19);
+insert into t2 values (1, 'zhang', 23),(2, 'li', 24),(3, 'wang', 25);
+
+
+connection b;
+let $session_parse_mode_b=`select @@parse_mode`;
+set parse_mode=2;
+let $connection_b_id=`SELECT CONNECTION_ID()`;
+
+
+connection c;
+let $session_parse_mode_c=`select @@parse_mode`;
+set parse_mode=2;
+let $connection_c_id=`SELECT CONNECTION_ID()`;
+
+--echo ###################################################################
+--echo # Test Case 1: parse field 
+--echo ###################################################################
+connection a;
+
+--error ER_PARSE_ERROR
+select t1.* from t1,t2 where id1 = 1 for update of *;
+
+--error ER_PARSE_ERROR
+select t1.* from t1,t2 where id1 = 1 for update of t1.*;
+
+--error ER_BAD_FIELD_ERROR
+select t1.* from t1,t2 where id1 = 1 for update of t1;
+
+--error ER_BAD_FIELD_ERROR
+select t1.* from t1,t2 where id1 = 1 for update of t1.id2;
+
+--error ER_NON_UNIQ_ERROR
+select t1.* from t1,t2 where id1 = 1 for update of age;
+
+select t1.* from t1,t2 where id1 = 1 for update of t1.id1;
+select t1.* from t1,t2 where id1 = id2 for update of id1;
+select t1.* from t1 left join t2 on id1 = id2 for update of id1, t2.id2;
+select t1.* from t1,t2 where id1 = 1 order by id1, id2 for update of id1, id2;
+select t1.* from t1 join t2 on id1 = id2 for update of id1, t1.age;
+select t1.* from t1 right join t2 on id1 = id2 where id1 = 1 for update of id1, t2.age;
+
+
+--echo ###################################################################
+--echo # Test Case 3: multi tables      without where clause     timeout
+--echo ###################################################################
+connection a;
+begin;
+select id1 from t1, t2 for update of id1;
+
+connection b;
+--send
+select id1 from t1, t2 for update of name1;
+
+connection c;
+--send
+select id1 from t1, t2 for update of t1.age;
+
+connection b;
+--error ER_LOCK_WAIT_TIMEOUT
+reap;
+
+connection c;
+--error ER_LOCK_WAIT_TIMEOUT
+reap;
+
+connection a;
+commit;
+
+--echo ###################################################################
+--echo # Test Case 4: multi tables        with where           success 
+--echo ###################################################################
+connection a;
+begin;
+select id1 from t1, t2 where t2.id2 = 1 for update of id2;
+
+connection b;
+--send
+select id1 from t1, t2 for update of name1;
+
+connection c;
+--send
+select id1 from t1, t2 where id2 = 2 for update of t2.age;
+
+
+connection b;
+reap;
+
+connection c;
+reap;
+
+connection a;
+commit;
+
+
+--echo ###################################################################
+--echo # Test Case 6: multi tables        with where           timeout 
+--echo ###################################################################
+connection a;
+begin;
+select id1 from t1, t2 where t2.id2 = 1 for update of t1.age, id2;
+
+connection b;
+--send
+select id1 from t1, t2 where id1 = 1 for update of name1;
+
+connection c;
+--send
+select id1 from t1, t2 for update of t2.age;
+
+connection b;
+--error ER_LOCK_WAIT_TIMEOUT
+reap;
+
+connection c;
+--error ER_LOCK_WAIT_TIMEOUT
+reap;
+
+connection a;
+commit;
+
+
+--echo ###################################################################
+--echo # Test Case 7: multi tables        update delete  timeout 
+--echo ###################################################################
+connection a;
+begin;
+select id1 from t1, t2 where t2.id2 = 1 for update of t1.age, id2;
+
+connection b;
+--send
+update t1 set age = 30;
+
+connection c;
+--send
+delete from t2 where id2 = 1;
+
+connection b;
+--error ER_LOCK_WAIT_TIMEOUT
+reap;
+
+connection c;
+--error ER_LOCK_WAIT_TIMEOUT
+reap;
+
+connection a;
+commit;
+
+
+--echo ###################################################################
+--echo # Test Case 8: multi tables       drop truncate  timeout 
+--echo ###################################################################
+connection a;
+begin;
+select id1 from t1, t2 where t2.id2 = 1 for update of t1.age, id2;
+
+connection b;
+--send
+drop table t1;
+
+connection c;
+--send
+truncate table t2;
+
+connection b;
+--error ER_LOCK_WAIT_TIMEOUT
+reap;
+
+connection c;
+--error ER_LOCK_WAIT_TIMEOUT
+reap;
+
+connection a;
+commit;
+
+
+--echo ###################################################################
+--echo # Test Case 9: multi tables        alter             timeout 
+--echo ###################################################################
+connection a;
+begin;
+select id1 from t1, t2 where t2.id2 = 1 for update of t1.age, id2;
+
+connection b;
+--send
+alter table t1 add column sex int;
+
+connection c;
+--send
+alter table t2 add column sex int;
+
+connection b;
+--error ER_LOCK_WAIT_TIMEOUT
+reap;
+
+connection c;
+--error ER_LOCK_WAIT_TIMEOUT
+reap;
+
+connection a;
+commit;
+
+--echo ###################################################################
+--echo # Test Case 10: multi table        prepare             success 
+--echo ###################################################################
+connection a;
+begin;
+prepare pron from 'select id1 from t1, t2 where t2.id2 = ? for update of t1.age, id2';
+set @p = 1;
+ 
+connection b;
+--send
+select id1 from t1 for update of t1.age;
+
+connection c;
+--send
+select id2 from t2 for update of t2.age;
+
+connection a;
+execute pron using @p;
+commit;
+
+connection b;
+reap;
+
+connection c;
+reap;
+
+
+--echo ###################################################################
+--echo # Test Case 11: muti tables        prepare              timeout 
+--echo ###################################################################
+connection a;
+begin;
+prepare pron from 'select id1 from t1, t2 where t2.id2 = ? for update of t1.age, id2';
+set @p = 1;
+execute pron using @p;
+ 
+connection b;
+--send
+select id1 from t1 for update of t1.age;
+
+connection c;
+--send
+select id2 from t2 for update of t2.age;
+
+connection b;
+--error ER_LOCK_WAIT_TIMEOUT
+reap;
+
+connection c;
+--error ER_LOCK_WAIT_TIMEOUT
+reap;
+
+connection a;
+commit;
+
+
+--echo ###################################################################
+--echo # Test Case 12: muti tables        lock tables read         timeout 
+--echo ###################################################################
+connection a;
+lock tables t1 read;
+--error ER_TABLE_NOT_LOCKED_FOR_WRITE
+select id1 from t1 for update of t1.age;
+
+connection b;
+--error ER_LOCK_WAIT_TIMEOUT
+select id1 from t1 for update of t1.age;
+
+connection a;
+unlock tables;
+
+
+--echo ###################################################################
+--echo # Test Case 13: muti tables        lock tables write         timeout 
+--echo ###################################################################
+connection a;
+lock tables t2 write;
+select id2 from t2 for update of t2.age;
+ 
+connection c;
+--error ER_LOCK_WAIT_TIMEOUT
+select id2 from t2 for update of t2.age;
+
+connection a;
+unlock tables;
+
+
+--echo ###################################################################
+--echo # Test Case 14: muti tables        lock tables t1 write, t2 read
+--echo ###################################################################
+connection a;
+lock tables t1 write, t2 read;
+select id1 from t1 for update of t1.age;
+ 
+--error ER_TABLE_NOT_LOCKED_FOR_WRITE
+select id2 from t2 for update of t2.age;
+
+connection b;
+--send
+select id1 from t1 for update of t1.age;
+
+connection c;
+--send
+select id2 from t2 for update of t2.age;
+
+connection b;
+--error ER_LOCK_WAIT_TIMEOUT
+reap;
+
+connection c;
+--error ER_LOCK_WAIT_TIMEOUT
+reap;
+
+connection a;
+unlock tables;
+
+
+--echo ###################################################################
+--echo # Test Case 15: muti tables        flush tables with read lock
+--echo ###################################################################
+connection a;
+flush tables t1, t2 with read lock;
+
+--error ER_TABLE_NOT_LOCKED_FOR_WRITE
+select id1 from t1 for update of t1.age;
+
+--error ER_TABLE_NOT_LOCKED_FOR_WRITE
+select id2 from t2 for update of t2.age;
+ 
+connection b;
+--send
+select id1 from t1 for update of t1.age;
+
+connection c;
+--send
+select id2 from t2 for update of t2.age;
+
+connection b;
+--error ER_LOCK_WAIT_TIMEOUT
+reap;
+
+connection c;
+--error ER_LOCK_WAIT_TIMEOUT
+reap;
+
+connection a;
+unlock tables;
+
+
+--echo ###################################################################
+--echo # Test Case 16: muti tables        flush tables for export 
+--echo ###################################################################
+connection a;
+flush tables t1, t2 for export;
+
+--error ER_TABLE_NOT_LOCKED_FOR_WRITE
+select id1 from t1 for update of t1.age;
+
+--error ER_TABLE_NOT_LOCKED_FOR_WRITE
+select id2 from t2 for update of t2.age;
+ 
+connection b;
+--send
+select id1 from t1 for update of t1.age;
+
+connection c;
+--send
+select id2 from t2 for update of t2.age;
+
+connection b;
+--error ER_LOCK_WAIT_TIMEOUT
+reap;
+
+connection c;
+--error ER_LOCK_WAIT_TIMEOUT
+reap;
+
+connection a;
+unlock tables;
+
+
+
+--echo ###################################################################
+--echo # Test Case 17: multi tables      insert low_priority     timeout
+--echo ###################################################################
+connection a;
+begin;
+insert low_priority into t1 values (100, 'sun', 23);
+
+connection b;
+--send
+select id1 from t1, t2 for update of name1;
+
+connection c;
+--send
+select id1 from t1, t2 for update of t1.age;
+
+connection b;
+--error ER_LOCK_WAIT_TIMEOUT
+reap;
+
+connection c;
+--error ER_LOCK_WAIT_TIMEOUT
+reap;
+
+
+--echo ###################################################################
+--echo # Test Case 18: multi tables      insert high_priority     timeout
+--echo ###################################################################
+connection a;
+begin;
+insert high_priority into t1 values (101, 'li', 23);
+
+connection b;
+--send
+select id1 from t1, t2 for update of name1;
+
+connection c;
+--send
+select id1 from t1, t2 for update of t1.age;
+
+connection b;
+--error ER_LOCK_WAIT_TIMEOUT
+reap;
+
+connection c;
+--error ER_LOCK_WAIT_TIMEOUT
+reap;
+
+
+--echo ###################################################################
+--echo # Test Case 19: multi tables      deadlock
+--echo ###################################################################
+connection a;
+begin;
+select id1 from t1 for update of t1.age;
+
+connection b;
+begin;
+select id2 from t2 for update of t2.age;
+--send
+select id1 from t1 for update of t1.age;
+
+connection a;
+--error ER_LOCK_DEADLOCK
+select id2 from t2 for update of t2.age;
+commit;
+
+connection b;
+reap;
+
+
+--echo ###################################################################
+--echo # end test case
+--echo ###################################################################
+connection a;
+create table t(id1 int primary key, name1 char(20), age int);
+insert into t values (1, 'tom', 20),(2, 'jack', 21),(3, 'allen', 19);
+select * from t;
+update t set age = 30;
+alter table t add column sex int;
+select * from t;
+
+--replace_result $session_parse_mode_a <session_parse_mode_a>
+eval set parse_mode=$session_parse_mode_a;
+
+connection b;
+insert into t values (4, 'lily', 18, 0);
+select * from t;
+update t set age = 30;
+alter table t add column addr char(100);
+select * from t;
+truncate table t1;
+drop table t1;
+
+--replace_result $session_parse_mode_b <session_parse_mode_b>
+eval set parse_mode=$session_parse_mode_b;
+
+connection c;
+insert into t values (5, 'hellen', 18, 0, 'london');
+select * from t;
+update t set age = 30;
+alter table t add column school char(100);
+select * from t;
+truncate table t2;
+drop table t2;
+
+--replace_result $session_parse_mode_c <session_parse_mode_c>
+eval set parse_mode=$session_parse_mode_c;
+
+connection default;
+truncate table t;
+drop table t;
+
+--replace_result $initial_timeout <initial_timeout>
+eval set global innodb_lock_wait_timeout=$initial_timeout;
+
+--replace_result $initial_lock_wait_timeout <initial_lock_wait_timeout>
+eval set global lock_wait_timeout=$initial_lock_wait_timeout;

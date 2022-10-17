@@ -1,0 +1,7 @@
+#test the function of select goldendb version
+
+
+--enable_warnings
+select @@goldendb_version;
+
+

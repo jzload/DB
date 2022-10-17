@@ -1,0 +1,10 @@
+!include suite/rpl_gtid/my.cnf
+
+[mysqld.1]
+
+[mysqld.2]
+
+replicate-ignore-table=test.t_ignore
+replicate-wild-ignore-table=test.t_wild_ignore
+replicate-ignore-db=db_ignore
+binlog-ignore-db=db_binlog_ignore

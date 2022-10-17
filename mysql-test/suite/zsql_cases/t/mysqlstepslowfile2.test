@@ -1,0 +1,112 @@
+# === Purpose ===
+# test mysql slow log
+# 
+
+--source include/not_windows.inc
+
+# Disabling the ps-protocol for the test, as enabling it will
+# give result content mismatch due to logging of some additional
+# statements in the slow-query-log.
+--disable_ps_protocol
+
+# Save the old values of these variables to be restored at the end
+SET @old_log_output=          @@global.log_output;
+SET @old_slow_query_log=      @@global.slow_query_log;
+SET @old_slow_query_log_file= @@global.slow_query_log_file;
+
+show variables like '%thread_handling%';
+
+# Enable the logging of queries to slow-query-log.
+# For testing purpose, let's log all the queries.
+--replace_result $MYSQLTEST_VARDIR ...
+eval SET GLOBAL slow_query_log_file= '$MYSQLTEST_VARDIR/log/slow_query_temp.log';
+SET GLOBAL log_output=       'FILE';
+SET GLOBAL slow_query_log=   'ON';
+SET SESSION long_query_time=  0;
+
+# Populating the slow-query-log with more than one identical queries.
+--disable_warnings
+drop database if exists slow_log_test1;
+--enable_warnings
+
+create database slow_log_test1;
+use slow_log_test1;
+create table t1(id int);
+insert into t1 values(10);
+insert into t1 values(11);
+update t1 set id=12 where id=11;
+select * from t1;
+delete from t1 where id=10;
+
+# multi-statements test
+--echo "Multi-statements slow log test"
+delimiter //;
+insert into t1 values(20);
+insert into t1 values(21);
+select * from t1;
+insert into t1 values(22); 
+//
+delimiter ;//
+
+create table t2(time_string varchar(20));
+
+SET SESSION long_query_time=  10;
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/log/slow_query_temp.log' ignore into table t2 LINES STARTING BY 'Req_wait_time:' terminated by 'Pre_dispatch_time:';
+--enable_query_log
+SET SESSION long_query_time=  0;
+
+select * from t2;
+
+--disable_warnings
+truncate table t2;
+--enable_warnings
+
+SET SESSION long_query_time=  10;
+--disable_query_log
+eval load data infile '$MYSQLTEST_VARDIR/log/slow_query_temp.log' ignore into table t2 LINES STARTING BY 'Commit_queue_wait_time:' terminated by '.000000';
+--enable_query_log
+SET SESSION long_query_time=  0;
+
+select * from t2;
+
+drop table t2;
+drop table t1;
+drop database slow_log_test1;
+
+# Run mysqldumpslow
+--echo "Running mysqldumpslow on the slow-query-log"
+# Masking out the non-deterministic parameters from the results.
+--replace_regex /Time.*\n// /Req_wait_time.*\n// /Exec_prep_time.*\n// /Order_commit_time.*\n//
+--exec $MYSQLDUMPSLOW '$MYSQLTEST_VARDIR/log/slow_query_temp.log' -a -s c
+
+#test long_query_time
+--echo "Test long_query_time"
+SET SESSION long_query_time=  10;
+
+--disable_warnings
+drop database if exists slow_log_test1;
+--enable_warnings
+
+create database slow_log_test1;
+use slow_log_test1;
+create table t1(id int);
+insert into t1 values(10);
+insert into t1 values(11);
+update t1 set id=12 where id=11;
+select * from t1;
+delete from t1 where id=10;
+drop table t1;
+drop database slow_log_test1;
+
+
+# clean-up
+--remove_file $MYSQLTEST_VARDIR/log/slow_query_temp.log
+SET GLOBAL  log_output=         @old_log_output;
+SET GLOBAL  slow_query_log=     @old_slow_query_log;
+SET GLOBAL  slow_query_log_file=@old_slow_query_log_file;
+
+# Enable the ps-protocol
+--enable_ps_protocol
+
+--echo End of test!

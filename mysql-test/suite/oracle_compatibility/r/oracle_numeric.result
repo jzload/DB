@@ -1,0 +1,248 @@
+#
+# Prepare data
+#
+drop database if exists oracle_numeric_testdb;
+create database oracle_numeric_testdb;
+use oracle_numeric_testdb;
+#
+# test oracle mode: NUMERIC without arguments
+#
+set parse_mode=2;
+create table   test_tbl_01(b numeric);
+insert into    test_tbl_01 values(12.34);
+select * from  test_tbl_01;
+b
+12
+truncate table test_tbl_01;
+insert into    test_tbl_01 values(12.123456);
+select * from  test_tbl_01;
+b
+12
+truncate table test_tbl_01;
+insert into    test_tbl_01 values(23.123456789123);
+select * from  test_tbl_01;
+b
+23
+truncate table test_tbl_01;
+insert into    test_tbl_01 values(123.123456789123);
+select * from  test_tbl_01;
+b
+123
+truncate table test_tbl_01;
+insert into    test_tbl_01 values(12345678.12345678);
+select * from  test_tbl_01;
+b
+12345678
+truncate table test_tbl_01;
+insert into    test_tbl_01 values(1234567890.1234);
+select * from  test_tbl_01;
+b
+1234567890
+truncate table test_tbl_01;
+insert into    test_tbl_01 values(123456789123.12345678);
+select * from  test_tbl_01;
+b
+123456789123
+truncate table test_tbl_01;
+insert into    test_tbl_01 values(12345678901234567890123456789012345678901234567890123456789012345.12345678);
+select * from  test_tbl_01;
+b
+12345678901234567890123456789012345678901234567890123456789012345
+truncate table test_tbl_01;
+insert into    test_tbl_01 values(123456789012345678901234567890123456789012345678901234567890123456.12345678);
+ERROR 22003: Out of range value for column 'b' at row 1
+#
+# test oracle mode: NUMBER, DECIMAL without arguments
+#
+set parse_mode=2;
+create table   test_tbl_02(b number);
+insert into    test_tbl_02 values(12.56);
+select * from  test_tbl_02;
+b
+13
+truncate table test_tbl_02;
+insert into    test_tbl_02 values(123456789123.12345678);
+ERROR 22003: Out of range value for column 'b' at row 1
+#
+# test oracle mode: DECIMAL without arguments
+#
+set parse_mode=2;
+create table   test_tbl_02_2(b decimal);
+insert into    test_tbl_02_2 values(12.56);
+select * from  test_tbl_02_2;
+b
+13
+truncate table test_tbl_02_2;
+insert into    test_tbl_02_2 values(12345678901234.345678);
+select * from  test_tbl_02_2;
+b
+12345678901234
+#
+# test oracle mode: NUMERIC(p)
+#
+set parse_mode=2;
+create table   test_tbl_03(b numeric(3));
+insert into    test_tbl_03 values (12.123);
+select * from  test_tbl_03;
+b
+12
+truncate table test_tbl_03;
+insert into    test_tbl_03 values (123.123);
+select * from  test_tbl_03;
+b
+123
+truncate table test_tbl_03;
+insert into    test_tbl_03 values(1234.123);
+ERROR 22003: Out of range value for column 'b' at row 1
+#
+# test oracle mode: NUMERIC(p, s) p > s
+#
+set parse_mode=2;
+create table   test_tbl_04(a numeric(3,2));
+insert into    test_tbl_04 values(123.34);
+ERROR 22003: Out of range value for column 'a' at row 1
+truncate table test_tbl_04;
+insert into    test_tbl_04 values(5.34);
+select * from  test_tbl_04;
+a
+5.34
+truncate table test_tbl_04;
+insert into    test_tbl_04 values(0.37);
+select * from  test_tbl_04;
+a
+0.37
+truncate table test_tbl_04;
+insert into    test_tbl_04 values(4.378);
+select * from  test_tbl_04;
+a
+4.38
+truncate table test_tbl_04;
+insert into    test_tbl_04 values(4.363);
+select * from  test_tbl_04;
+a
+4.36
+truncate table test_tbl_04;
+insert into    test_tbl_04 values(-4.363);
+select * from  test_tbl_04;
+a
+-4.36
+#
+# test oracle mode: NUMERIC(p, s) p = s
+#
+set parse_mode=2;
+create table   test_tbl_05(a numeric(3,3));
+insert into    test_tbl_05 values(0.34);
+select * from  test_tbl_05;
+a
+0.340
+truncate table test_tbl_05;
+insert into    test_tbl_05 values(0.345);
+select * from  test_tbl_05;
+a
+0.345
+truncate table test_tbl_05;
+insert into    test_tbl_05 values(0.3452);
+select * from  test_tbl_05;
+a
+0.345
+truncate table test_tbl_05;
+insert into    test_tbl_05 values(0.3456);
+select * from  test_tbl_05;
+a
+0.346
+truncate table test_tbl_05;
+insert into    test_tbl_05 values(1.3);
+ERROR 22003: Out of range value for column 'a' at row 1
+truncate table test_tbl_05;
+insert into    test_tbl_05 values(1.345);
+ERROR 22003: Out of range value for column 'a' at row 1
+#
+# test mysql mode: decimal without argument, precision is 10
+#
+set parse_mode=1;
+create table   test_tbl_06(a decimal);
+insert into    test_tbl_06 values(14.345);
+select * from  test_tbl_06;
+a
+14
+truncate table test_tbl_06;
+insert into    test_tbl_06 values(1234567890.345);
+select * from  test_tbl_06;
+a
+1234567890
+truncate table test_tbl_06;
+insert into    test_tbl_06 values(123456789012.23445);
+ERROR 22003: Out of range value for column 'a' at row 1
+#
+# test mysql mode: number without argument, precision is 10
+#
+set parse_mode=1;
+create table   test_tbl_07(a number);
+insert into    test_tbl_07 values(14.345);
+select * from  test_tbl_07;
+a
+14
+truncate table test_tbl_07;
+insert into    test_tbl_07 values(1234567890.345);
+select * from  test_tbl_07;
+a
+1234567890
+truncate table test_tbl_07;
+insert into    test_tbl_07 values(123456789012.23445);
+ERROR 22003: Out of range value for column 'a' at row 1
+#
+# test mysql mode: numeric without argument, precision is 10
+#
+set parse_mode=1;
+create table   test_tbl_08(a numeric);
+insert into    test_tbl_08 values(14.345);
+select * from  test_tbl_08;
+a
+14
+truncate table test_tbl_08;
+insert into    test_tbl_08 values(1234567890.345);
+select * from  test_tbl_08;
+a
+1234567890
+truncate table test_tbl_08;
+insert into    test_tbl_08 values(123456789012.23445);
+ERROR 22003: Out of range value for column 'a' at row 1
+#
+# test mysql mode: fixed without argument, precision is 10
+#
+set parse_mode=1;
+create table   test_tbl_09(a fixed);
+insert into    test_tbl_09 values(14.345);
+select * from  test_tbl_09;
+a
+14
+truncate table test_tbl_09;
+insert into    test_tbl_09 values(1234567890.345);
+select * from  test_tbl_09;
+a
+1234567890
+truncate table test_tbl_09;
+insert into    test_tbl_08 values(123456789012.23445);
+ERROR 22003: Out of range value for column 'a' at row 1
+#
+# test oracle mode: fixed without argument, precision is 10
+#
+set parse_mode=2;
+create table   test_tbl_10(a fixed);
+insert into    test_tbl_10 values(14.345);
+select * from  test_tbl_10;
+a
+14
+truncate table test_tbl_10;
+insert into    test_tbl_10 values(1234567890.345);
+select * from  test_tbl_10;
+a
+1234567890
+truncate table test_tbl_10;
+insert into    test_tbl_10 values(123456789012.23445);
+ERROR 22003: Out of range value for column 'a' at row 1
+#
+# clean
+#
+drop database oracle_numeric_testdb;
+set parse_mode=1;

@@ -1,0 +1,173 @@
+##########################################################################################
+# a test for `outfile 'xxx' fields enclosed by '' terminated by '' gdb_format 'nospace_filling'`,
+# which makes no appended spaces between fields.
+# two format of syntax can be used to achive this target:
+# (1) fields [optionally] enclosed by '' terminated by '' gdb_format 'nospace_filling'`
+# (2) fields terminated by '' gdb_format 'nospace_filling'`
+# If you want to make an aligned result, use to_char, lpad or rpad to align each fields.
+##########################################################################################
+
+--disable_warnings
+drop database if exists yxx;
+--enable_warnings
+create database yxx;
+use yxx;
+set names utf8mb4;
+
+--echo #########################################################################
+--echo #  test case 1: combination for `enclosed`, `terminated` and `nospace_filling`
+--echo #########################################################################
+
+create table yxx.tt (id int primary key, 
+    tid tinyint,
+    sid smallint,
+    mid mediumint,
+    bid bigint,
+    did decimal(10,4),
+    fid float,
+    name_1 char(10), 
+    name_2 varchar(10),
+    name_3 tinyblob) 
+  engine=innodb, charset=utf8mb4;
+insert into yxx.tt values (66, 66, 66, 66, 66, 66.66, 66.66, 'abc', 'def', 'ghi');
+
+create table yxx.t1 (c1 int, c2 char(10), c3 varchar(10)) engine=innodb, charset=utf8mb4;
+
+disable_query_log;
+
+--echo ################################ Common outfile ################################
+
+--echo "(1) common outfile without any hint"
+eval select * from yxx.tt into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test";
+--replace_result $MYSQLTEST_VARDIR MYSQLTEST_VARDIR
+eval select load_file(concat('$MYSQLTEST_VARDIR/tmp', "/outfile-test"));
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test
+
+--echo ################################ Correct common usage for nospace_filling ################################
+
+--echo "(1) enclosed and terminated are empty string, nospace_filling"
+eval select * from yxx.tt into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test" fields enclosed by '' terminated by '' lines terminated by 'E\n' gdb_format 'nospace_filling';
+--replace_result $MYSQLTEST_VARDIR MYSQLTEST_VARDIR
+eval select load_file(concat('$MYSQLTEST_VARDIR/tmp', "/outfile-test"));
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test
+
+--echo "(2) optional enclosed and terminated are empty string, nospace_filling"
+eval select * from yxx.tt into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test" fields optionally enclosed by '' terminated by '' lines terminated by 'E\n' gdb_format 'nospace_filling';
+--replace_result $MYSQLTEST_VARDIR MYSQLTEST_VARDIR
+eval select load_file(concat('$MYSQLTEST_VARDIR/tmp', "/outfile-test"));
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test
+
+
+--echo "(3) no enclosed, terminated are empty string, nospace_filling"
+eval select * from yxx.tt into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test" fields terminated by ''  lines terminated by 'E\n' gdb_format 'nospace_filling';
+--replace_result $MYSQLTEST_VARDIR MYSQLTEST_VARDIR
+eval select load_file(concat('$MYSQLTEST_VARDIR/tmp', "/outfile-test"));
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test
+
+
+--echo ################################ Correct usage with funcs for nospace_filling ################################
+
+--echo "(1) enclosed and terminated are empty string, nospace_filling, lpad"
+eval select lpad(id, 10, ' '), lpad(tid, 10, ' '), lpad(sid, 10, ' '), lpad(mid, 10, ' '), lpad(bid, 10, ' '), lpad(did, 10, ' '), lpad(fid, 10, ' '), lpad(name_1, 10, ' '), lpad(name_2, 10, ' '), lpad(name_2, 10, ' ') from yxx.tt into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test" fields enclosed by '' terminated by '' lines terminated by 'E\n' gdb_format 'nospace_filling';
+--replace_result $MYSQLTEST_VARDIR MYSQLTEST_VARDIR
+eval select load_file(concat('$MYSQLTEST_VARDIR/tmp', "/outfile-test"));
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test
+
+
+--echo "(2) optional enclosed and terminated are empty string, nospace_filling, lpad"
+eval select lpad(id, 10, ' '), lpad(tid, 10, ' '), lpad(sid, 10, ' '), lpad(mid, 10, ' '), lpad(bid, 10, ' '), lpad(did, 10, ' '), lpad(fid, 10, ' '), lpad(name_1, 10, ' '), lpad(name_2, 10, ' '), lpad(name_2, 10, ' ') from yxx.tt into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test" fields optionally enclosed by '' terminated by '' lines terminated by 'E\n' gdb_format 'nospace_filling';
+--replace_result $MYSQLTEST_VARDIR MYSQLTEST_VARDIR
+eval select load_file(concat('$MYSQLTEST_VARDIR/tmp', "/outfile-test"));
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test
+
+
+--echo "(3) no enclosed, terminated are empty string, nospace_filling, lpad"
+eval select lpad(id, 10, ' '), lpad(tid, 10, ' '), lpad(sid, 10, ' '), lpad(mid, 10, ' '), lpad(bid, 10, ' '), lpad(did, 10, ' '), lpad(fid, 10, ' '), lpad(name_1, 10, ' '), lpad(name_2, 10, ' '), lpad(name_2, 10, ' ') from yxx.tt into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test" fields terminated by ''  lines terminated by 'E\n' gdb_format 'nospace_filling';
+--replace_result $MYSQLTEST_VARDIR MYSQLTEST_VARDIR
+eval select load_file(concat('$MYSQLTEST_VARDIR/tmp', "/outfile-test"));
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test
+
+
+--echo "(4) enclosed and terminated are empty string, nospace_filling, to_char"
+eval select to_char(id, 'FM0000000000'), to_char(tid, 'FM0000000000'), to_char(sid, 'FM0000000000'), to_char(mid, 'FM0000000000'), to_char(bid, 'FM0000000000'), to_char(did, 'FM000000.0000'), to_char(fid, 'FM000000.0000') from yxx.tt into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test" fields enclosed by '' terminated by '' lines terminated by 'E\n' gdb_format 'nospace_filling';
+--replace_result $MYSQLTEST_VARDIR MYSQLTEST_VARDIR
+eval select load_file(concat('$MYSQLTEST_VARDIR/tmp', "/outfile-test"));
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test
+
+
+--echo "(5) optional enclosed and terminated are empty string, nospace_filling, to_char"
+eval select to_char(id, 'FM0000000000'), to_char(tid, 'FM0000000000'), to_char(sid, 'FM0000000000'), to_char(mid, 'FM0000000000'), to_char(bid, 'FM0000000000'), to_char(did, 'FM000000.0000'), to_char(fid, 'FM000000.0000')  from yxx.tt into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test" fields optionally enclosed by '' terminated by '' lines terminated by 'E\n' gdb_format 'nospace_filling';
+--replace_result $MYSQLTEST_VARDIR MYSQLTEST_VARDIR
+eval select load_file(concat('$MYSQLTEST_VARDIR/tmp', "/outfile-test"));
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test
+
+
+--echo "(6) no enclosed, terminated are empty string, nospace_filling, to_char"
+eval select to_char(id, 'FM0000000000'), to_char(tid, 'FM0000000000'), to_char(sid, 'FM0000000000'), to_char(mid, 'FM0000000000'), to_char(bid, 'FM0000000000'), to_char(did, 'FM000000.0000'), to_char(fid, 'FM000000.0000') from yxx.tt into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test" fields terminated by ''  lines terminated by 'E\n' gdb_format 'nospace_filling';
+--replace_result $MYSQLTEST_VARDIR MYSQLTEST_VARDIR
+eval select load_file(concat('$MYSQLTEST_VARDIR/tmp', "/outfile-test"));
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test
+
+
+--echo ################################ Special cases for nospace_filling ################################
+
+--echo "(1) with escaper (default) in data"
+delete from yxx.t1;
+insert into yxx.t1 values (1,'\\\\', '@@');
+eval select lpad(c1, 10, ' '), lpad(c2, 10, ' '), lpad(c3, 10, ' ') from yxx.t1 into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test" fields enclosed by '' terminated by '' lines terminated by 'E\n' gdb_format 'nospace_filling';
+--replace_result $MYSQLTEST_VARDIR MYSQLTEST_VARDIR
+eval select load_file(concat('$MYSQLTEST_VARDIR/tmp', "/outfile-test"));
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test
+
+--echo "(2) with escaper (\) in data"
+delete from yxx.t1;
+insert into yxx.t1 values (1,'\\\\', '@@');
+eval select lpad(c1, 10, ' '), lpad(c2, 10, ' '), lpad(c3, 10, ' ') from yxx.t1 into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test" fields enclosed by '' terminated by '' escaped by '\\\\' lines terminated by 'E\n' gdb_format 'nospace_filling';
+--replace_result $MYSQLTEST_VARDIR MYSQLTEST_VARDIR
+eval select load_file(concat('$MYSQLTEST_VARDIR/tmp', "/outfile-test"));
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test
+
+--echo "(3) with escaper (@) in data"
+delete from yxx.t1;
+insert into yxx.t1 values (1,'\\\\', '@@');
+eval select lpad(c1, 10, ' '), lpad(c2, 10, ' '), lpad(c3, 10, ' ') from yxx.t1 into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test" fields enclosed by '' terminated by '' escaped by '@' lines terminated by 'E\n' gdb_format 'nospace_filling';
+--replace_result $MYSQLTEST_VARDIR MYSQLTEST_VARDIR
+eval select load_file(concat('$MYSQLTEST_VARDIR/tmp', "/outfile-test"));
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test
+
+--echo "(4) Chinese in data"
+delete from yxx.t1;
+insert into yxx.t1 values (1,'你好', '盆友');
+eval select lpad(c1, 10, ' '), lpad(c2, 10, ' '), lpad(c3, 10, ' ') from yxx.t1 into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test" fields enclosed by '' terminated by '' lines terminated by 'E\n' gdb_format 'nospace_filling';
+--replace_result $MYSQLTEST_VARDIR MYSQLTEST_VARDIR
+eval select load_file(concat('$MYSQLTEST_VARDIR/tmp', "/outfile-test"));
+--remove_file $MYSQLTEST_VARDIR/tmp/outfile-test
+
+
+--echo ################################ Incorrect usage for nospace_filling ################################
+
+--echo "(1) gdb_format 'nospace_filling' needs no field enclosement"
+--error ER_WRONG_USAGE_GDB_FORMAT
+eval select * from yxx.tt into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test" fields enclosed by '@' lines terminated by 'E\n' gdb_format 'nospace_filling';
+--replace_result $MYSQLTEST_VARDIR MYSQLTEST_VARDIR
+eval select load_file(concat('$MYSQLTEST_VARDIR/tmp', "/outfile-test"));
+
+
+--echo "(2) gdb_format 'nospace_filling' needs no field terminator"
+--error ER_WRONG_USAGE_GDB_FORMAT
+eval select * from yxx.tt into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test" fields terminated by '&&' lines terminated by 'E\n' gdb_format 'nospace_filling';
+--replace_result $MYSQLTEST_VARDIR MYSQLTEST_VARDIR
+eval select load_file(concat('$MYSQLTEST_VARDIR/tmp', "/outfile-test"));
+
+
+--echo "(3) gdb_format 'nospace_filling' needs neither field terminator nor enclosement"
+--error ER_WRONG_USAGE_GDB_FORMAT
+eval select * from yxx.tt into outfile "$MYSQLTEST_VARDIR/tmp/outfile-test" fields enclosed by '@' terminated by '&&' lines terminated by 'E\n' gdb_format 'nospace_filling';
+--replace_result $MYSQLTEST_VARDIR MYSQLTEST_VARDIR
+eval select load_file(concat('$MYSQLTEST_VARDIR/tmp', "/outfile-test"));
+
+
+enable_query_log;
+--disable_warnings
+drop database if exists yxx;
+--enable_warnings

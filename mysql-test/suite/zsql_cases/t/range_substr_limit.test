@@ -1,0 +1,412 @@
+#
+# Test：Range分区支持substr函数 测试用例
+#       本测试用例涉及 边际测试和异常测试
+#
+# Syntax:
+# substr limit column value test
+# substr less then  column value test
+# substr(x,9) out string long output
+# substr char columns value ignore space at laste of string
+# substr varchar columns value not ignore space at laste of string
+# substr …… from
+# substr …… from …… for
+# substr  max char
+# substr  max varchar
+# substr support from end of string
+# substr start pos longer than string output   ""
+# range partition substr support alter
+# range substr support differ sql_mode
+# range substr first parameter not support function
+
+create database if not exists test_ra_sub;
+use test_ra_sub;
+
+###########################################################
+--echo substr limit column value test
+###########################################################
+ CREATE TABLE test (
+  id INT,
+  name char(10),
+  unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name,1,3)) partitions 2
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN ('')
+    (subpartition s0, subpartition s1),
+  PARTITION p_kkk VALUES LESS THAN ('kkk')
+    (subpartition s2, subpartition s3));
+
+show create table test;
+drop table test;
+
+###########################################################
+--echo substr less then  column value test
+###########################################################
+--error ER_WRONG_TYPE_COLUMN_VALUE_ERROR
+ CREATE TABLE test (
+  id INT,
+  name char(10),
+  unique key(id,name))COLLATE=utf8mb4_bin
+  PARTITION BY RANGE (substr(name,1,3)) partitions 2
+  subpartition by hash (id) subpartitions 2
+ (PARTITION p_ccc VALUES LESS THAN ('')
+    (subpartition s0, subpartition s1),
+ PARTITION p_kkk VALUES LESS THAN ('kkkk')
+    (subpartition s2, subpartition s3));
+
+###########################################################
+--echo substr(x,9) out string long output
+###########################################################
+  CREATE TABLE test (
+  id INT,
+  name char(10),
+  unique key(id,name))COLLATE=utf8mb4_bin
+  PARTITION BY RANGE (substr(name,9)) partitions 2
+  subpartition by hash (id) subpartitions 2
+  ( PARTITION p_ccc VALUES LESS THAN ('')
+    (subpartition s0, subpartition s1),
+  PARTITION p_kkk VALUES LESS THAN ('kk')
+    (subpartition s2, subpartition s3));
+  show create table test ;
+  drop table test;
+
+--error ER_WRONG_TYPE_COLUMN_VALUE_ERROR
+  CREATE TABLE test (
+  id INT,
+  name char(10),
+  unique key(id,name))COLLATE=utf8mb4_bin
+  PARTITION BY RANGE (substr(name,9)) partitions 2
+  subpartition by hash (id) subpartitions 2
+  (PARTITION p_ccc VALUES LESS THAN ('')
+   (subpartition s0, subpartition s1),
+  PARTITION p_kkk VALUES LESS THAN ('kkk')
+   (subpartition s2, subpartition s3));
+
+#############################################################
+--echo substr char columns value ignore space at laste of string
+#############################################################
+CREATE TABLE test (
+  id INT,
+  name char(10),
+  unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name,1,3)) partitions 2
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN (' 1')
+    (subpartition s0, subpartition s1),
+  PARTITION p_kkk VALUES LESS THAN ('kkk     ')
+    (subpartition s2, subpartition s3));
+
+show create table test;
+drop table test;
+
+CREATE TABLE test (
+  id INT,
+  name char(10),
+  unique key(id,name))
+PARTITION BY RANGE (substr(name,1,3)) partitions 2
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN (' 1')
+    (subpartition s0, subpartition s1),
+  PARTITION p_kkk VALUES LESS THAN ('kkk     ')
+    (subpartition s2, subpartition s3));
+
+show create table test;
+drop table test;
+
+#############################################################
+--echo substr varchar columns value not ignore space at laste of string
+#############################################################
+--error ER_WRONG_TYPE_COLUMN_VALUE_ERROR
+CREATE TABLE test (
+  id INT,
+  name varchar(10),
+  unique key(id,name))
+PARTITION BY RANGE (substr(name,1,3)) partitions 2
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN (' 1')
+    (subpartition s0, subpartition s1),
+  PARTITION p_kkk VALUES LESS THAN ('kkk     ')
+    (subpartition s2, subpartition s3));
+
+--error ER_WRONG_TYPE_COLUMN_VALUE_ERROR
+CREATE TABLE test (
+  id INT,
+  name varchar(10),
+  unique key(id,name))COLLATE=utf8mb4_bin
+PARTITION BY RANGE (substr(name,1,3)) partitions 2
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN (' 1')
+    (subpartition s0, subpartition s1),
+  PARTITION p_kkk VALUES LESS THAN ('kkk     ')
+    (subpartition s2, subpartition s3));
+
+#############################################################
+--echo substr …… from
+#############################################################
+CREATE TABLE test (
+  id INT,
+  name char(10),
+  unique key(id,name))
+PARTITION BY RANGE (substr(name from 1)) partitions 2
+subpartition by hash (id) subpartitions 2
+( PARTITION p_ccc VALUES LESS THAN (' 1')
+    (subpartition s0, subpartition s1),
+  PARTITION p_kkk VALUES LESS THAN ('kk')
+    (subpartition s2, subpartition s3));
+
+explain insert into test values (1,'b  1243');
+
+show create table test;
+drop table test;
+#############################################################
+--echo substr …… from …… for
+#############################################################
+--error ER_WRONG_TYPE_COLUMN_VALUE_ERROR
+  CREATE TABLE test (
+  id INT,
+  name char(10),
+  unique key(id,name))
+  PARTITION BY RANGE (substr(name from 1 for 3)) partitions 2
+  subpartition by hash (id) subpartitions 2
+  ( PARTITION p_ccc VALUES LESS THAN (' 1')
+    (subpartition s0, subpartition s1),
+  PARTITION p_kkk VALUES LESS THAN ('kkd3')
+    (subpartition s2, subpartition s3));
+
+  CREATE TABLE test (
+  id INT,
+  name char(10),
+  unique key(id,name))
+  PARTITION BY RANGE (substr(name from 1 for 3)) partitions 2
+  subpartition by hash (id) subpartitions 2
+  ( PARTITION p_ccc VALUES LESS THAN (' 1')
+    (subpartition s0, subpartition s1),
+   PARTITION p_kkk VALUES LESS THAN ('kkd')
+    (subpartition s2, subpartition s3));
+
+show create table test;
+drop table test;
+
+#############################################################
+--echo substr  max char
+#############################################################
+CREATE TABLE test (
+  id INT,
+  name char(255),
+  unique key(id,name))
+  PARTITION BY RANGE (substr(name from 1)) partitions 2
+  subpartition by hash (id) subpartitions 2
+ (PARTITION p_ccc VALUES LESS THAN (' 1')
+    (subpartition s0, subpartition s1),
+ PARTITION p_kkk VALUES LESS THAN ('kk')
+    (subpartition s2, subpartition s3));
+ drop table test;
+
+#############################################################
+--echo substr max varchar
+#############################################################
+--error ER_PARTITION_FIELDS_TOO_LONG
+ CREATE TABLE test (   id INT,
+   name varchar(768),
+   primary key(name)) COLLATE=utf8mb4_bin
+ PARTITION BY RANGE (substr(name, 1, 3))
+ ( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+ PARTITION p_ddd VALUES LESS THAN ('ddd'),
+ PARTITION p_fff VALUES LESS THAN ('fff'),
+ PARTITION p_iii VALUES LESS THAN ('iii'),
+ PARTITION p_mmm VALUES LESS THAN ('mmm'));
+
+CREATE TABLE test (   id INT,
+   name varchar(767),
+   primary key(name)) COLLATE=utf8mb4_bin
+ PARTITION BY RANGE (substr(name, 1, 3))
+ ( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+ PARTITION p_ddd VALUES LESS THAN ('ddd'),
+ PARTITION p_fff VALUES LESS THAN ('fff'),
+ PARTITION p_iii VALUES LESS THAN ('iii'),
+ PARTITION p_mmm VALUES LESS THAN maxvalue);
+
+ show create table test;
+ insert into test values (1,'👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲');
+ select (length(name)) from test;
+ drop table test;
+
+#############################################################
+--echo emoji do as columns vlaues
+#############################################################
+ CREATE TABLE test (   id INT,
+   name varchar(767),
+   primary key(name)) COLLATE=utf8mb4_bin
+ PARTITION BY RANGE (substr(name, 1))
+ ( PARTITION p_bbb VALUES LESS THAN ('aaaaaaaaaaaa'),
+ PARTITION p_ddd VALUES LESS THAN ('ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'),
+ PARTITION p_fff VALUES LESS THAN ('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'),
+ PARTITION p_iii VALUES LESS THAN ('👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲'));
+ insert into test values (1,'👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲👲');
+ show create table test;
+ drop table test;
+
+#############################################################
+--echo substr support from end of string
+#############################################################
+ CREATE TABLE test (   id INT,
+   name varchar(10),
+   primary key(name)) COLLATE=utf8mb4_bin
+ PARTITION BY RANGE (substr(name, -10))
+ ( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+ PARTITION p_ddd VALUES LESS THAN ('ddd'),
+ PARTITION p_fff VALUES LESS THAN ('fff'),
+ PARTITION p_iii VALUES LESS THAN ('iii'),
+ PARTITION p_mmm VALUES LESS THAN ('mmm'));
+
+ explain insert into test values (1,'bbb');
+ explain insert into test values (1,'bbbbbbbbbb');
+ show create table test;
+
+ drop table test;
+ CREATE TABLE test (   id INT,
+   name char(10),
+   primary key(name)) COLLATE=utf8mb4_bin
+ PARTITION BY RANGE (substr(name, -10))
+ ( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+ PARTITION p_ddd VALUES LESS THAN ('ddd'),
+ PARTITION p_fff VALUES LESS THAN ('fff'),
+ PARTITION p_iii VALUES LESS THAN ('iii'),
+ PARTITION p_mmm VALUES LESS THAN ('mmm'));
+ explain insert into test values (1,'bbb');
+ explain insert into test values (1,'bbbbbbbbbb');
+ show create table test;
+ drop table test;
+
+#############################################################
+--echo substr start pos longer than string output
+#############################################################
+--error ER_WRONG_TYPE_COLUMN_VALUE_ERROR
+ CREATE TABLE test (   id INT,
+   name char(10),
+   primary key(name)) COLLATE=utf8mb4_bin
+ PARTITION BY RANGE (substr(name, -11))
+ ( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+ PARTITION p_ddd VALUES LESS THAN ('ddd'),
+ PARTITION p_fff VALUES LESS THAN ('fff'),
+ PARTITION p_iii VALUES LESS THAN ('iii'),
+ PARTITION p_mmm VALUES LESS THAN ('mmm'));
+
+ --error ER_WRONG_TYPE_COLUMN_VALUE_ERROR
+ CREATE TABLE test (   id INT,
+   name varchar(10),
+   primary key(name)) COLLATE=utf8mb4_bin
+ PARTITION BY RANGE (substr(name, -11))
+ ( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+ PARTITION p_ddd VALUES LESS THAN ('ddd'),
+ PARTITION p_fff VALUES LESS THAN ('fff'),
+ PARTITION p_iii VALUES LESS THAN ('iii'),
+ PARTITION p_mmm VALUES LESS THAN ('mmm'));
+
+#############################################################
+--echo substr start pos longer than string output
+#############################################################
+ CREATE TABLE test (   id INT,
+   name char(10),
+   primary key(name)) COLLATE=utf8mb4_bin
+ PARTITION BY RANGE (substr(name, -10, 3))
+ ( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+ PARTITION p_ddd VALUES LESS THAN ('ddd'),
+ PARTITION p_fff VALUES LESS THAN ('fff'),
+ PARTITION p_iii VALUES LESS THAN ('iii'),
+ PARTITION p_mmm VALUES LESS THAN ('mmm'));
+ explain insert into test values (1,'bbb');
+ explain insert into test values (1,'bbbbbbbbbb');
+ show create table test;
+ drop table test;
+
+ #############################################################
+ --echo substr support find from end and limit string length
+ #############################################################
+ CREATE TABLE test (   id INT,
+ name varchar(10),
+ primary key(name)) COLLATE=utf8mb4_bin
+ PARTITION BY RANGE (substr(name, -10, 3))
+ ( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+ PARTITION p_ddd VALUES LESS THAN ('ddd'),
+ PARTITION p_fff VALUES LESS THAN ('fff'),
+ PARTITION p_iii VALUES LESS THAN ('iii'),
+ PARTITION p_mmm VALUES LESS THAN ('mmm'));
+ explain insert into test values (1,'bbb');
+ explain insert into test values (1,'bbbbbbbbbb');
+ show create table test;
+ drop table test;
+
+ CREATE TABLE test (   id INT,
+ name varchar(10),
+ primary key(name)) COLLATE=utf8mb4_bin
+ PARTITION BY RANGE (substr(name, -10, 3))
+ ( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+ PARTITION p_ddd VALUES LESS THAN ('ddd'),
+ PARTITION p_fff VALUES LESS THAN ('fff'),
+ PARTITION p_iii VALUES LESS THAN ('iii'),
+ PARTITION p_mmm VALUES LESS THAN ('mmm'));
+ insert into test values (1,'bbb');
+ insert into test values (1,'bbbbbbbbbb');
+  select * from test PARTITION (p_bbb);
+  select * from test PARTITION (p_ddd);
+ #############################################################
+ --echo range partition substr support alter
+ #############################################################
+ --error ER_WRONG_TYPE_COLUMN_VALUE_ERROR
+ alter table test modify name varchar(9);
+ alter table test modify name char(10);
+ select * from test PARTITION (p_bbb);
+ select * from test PARTITION (p_ddd);
+ show create table test;
+ drop table test;
+
+ #############################################################
+ --echo range substr support differ sql_mode
+ #############################################################
+ set sql_mode = 'PAD_CHAR_TO_FULL_LENGTH';
+
+ CREATE TABLE test (   id INT,
+ name char(10),
+ primary key(name)) COLLATE=utf8mb4_bin
+ PARTITION BY RANGE (substr(name, -10, 3))
+ ( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+ PARTITION p_ddd VALUES LESS THAN ('ddd'),
+ PARTITION p_fff VALUES LESS THAN ('fff'),
+ PARTITION p_iii VALUES LESS THAN ('iii'),
+ PARTITION p_mmm VALUES LESS THAN ('mmm'));
+ explain insert into test values (1,'bbb');
+ explain insert into test values (1,'bbbbbbbbbb');
+ show create table test;
+ drop table test;
+
+ CREATE TABLE test (   id INT,
+   name varchar(10),
+   primary key(name)) COLLATE=utf8mb4_bin
+ PARTITION BY RANGE (substr(name, -10, 3))
+ ( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+ PARTITION p_ddd VALUES LESS THAN ('ddd'),
+ PARTITION p_fff VALUES LESS THAN ('fff'),
+ PARTITION p_iii VALUES LESS THAN ('iii'),
+ PARTITION p_mmm VALUES LESS THAN ('mmm'));
+ explain insert into test values (1,'bbb');
+ explain insert into test values (1,'bbbbbbbbbb');
+ show create table test;
+ drop table test;
+
+ #############################################################
+ --echo range substr first parameter not support function
+ #############################################################
+--error ER_PART_FUNC_TYPE_INCORRECT
+CREATE TABLE test (
+  id INT,
+  name varchar(10),
+  primary key(name)) COLLATE=utf8mb4_bin
+ PARTITION BY RANGE (substr(substr(name, 1), -10, 3))
+ ( PARTITION p_bbb VALUES LESS THAN ('bbb'),
+ PARTITION p_ddd VALUES LESS THAN ('ddd'),
+ PARTITION p_fff VALUES LESS THAN ('fff'),
+ PARTITION p_iii VALUES LESS THAN ('iii'),
+ PARTITION p_mmm VALUES LESS THAN ('mmm'));
+
+ --echo CLEAR TEST DATA
+ drop database test_ra_sub;

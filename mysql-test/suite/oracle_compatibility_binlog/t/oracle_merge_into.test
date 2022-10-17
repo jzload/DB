@@ -1,0 +1,1281 @@
+#source include/have_binlog_format_statement.inc;
+--source include/master-slave.inc
+
+call mtr.add_suppression("\\[Warning\\] \\[[^]]*\\] \\[[^]]*\\] Unsafe statement written .* = STATEMENT.");
+
+#--disable_warnings ER_BINLOG_UNSAFE_STATEMENT
+
+# preparation
+create database merge_db;
+use merge_db;
+create table tm1 (a int, b int);
+create table tm2 (a int, b int);
+create table tm3(a int,b int);
+create table tk1 (a int primary key, b int);
+create table tk2 (a int unique key, b int);
+create table auto_inc (id int primary key AUTO_INCREMENT, a int, b int);
+create table gc (a int, b int, c int GENERATED ALWAYS AS (a+b) STORED, d int GENERATED ALWAYS AS (a+b) VIRTUAL);
+create table tr1 (a int, b int);
+create table tr2 (a int, b int, c int);
+create table tr3 (a int, b int);
+
+insert into tm1 values (1,1),(1,2);
+insert into tm2 values (1,2),(2,1),(3,3),(4,4);
+insert into tm3 values (1,11),(2,12),(3,13),(4,14);
+insert into tk1 values (1,1),(2,2);
+insert into tk2 values (1,1),(2,2);
+
+SET @old_sql_mode=@@session.sql_mode;
+
+--echo ---------------------------------------------------------------
+--echo ## Test merge into for oracle compatibility
+--echo ---------------------------------------------------------------
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT
+--echo "test normal cases"
+
+--echo ---------------------------------------------------------------
+--echo ## Test_1: replication
+--echo ---------------------------------------------------------------
+--connection master
+delete from tm1;
+insert into tm1 values (1,1),(1,2),(2,1),(2,2);
+merge into tm1 using tm2 on (tm1.a = tm2.a) when matched then update set tm1.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from tm1;
+
+--enable_warnings ER_BINLOG_UNSAFE_STATEMENT
+--connection slave
+--source include/start_slave.inc
+--source include/wait_for_slave_to_start.inc
+
+--let $retries=100
+while (!`select * from merge_db.tm1 where a=4;`)
+{
+  real_sleep 0.1;
+
+  dec $retries;
+  if (!$retries)
+  {
+    die Failed to detect that client has been aborted;
+  }
+}
+
+--echo ## slave data:
+select * from merge_db.tm1;
+
+#--source include/stop_slave.inc
+#--source include/wait_for_slave_to_stop.inc
+
+--connection master
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT
+--echo ---------------------------------------------------------------
+--echo ## Test_2: target table has no key
+--echo ---------------------------------------------------------------
+delete from tm1;
+insert into tm1 values (1,1),(1,2);
+merge into tm1 using tm2 on (tm1.a = tm2.a) when not matched then insert values (tm2.a, tm2.b) when matched then update set tm1.b = tm2.b;
+select * from tm1;
+
+delete from tm1;
+insert into tm1 values (1,1),(1,2);
+merge into tm1 using tm2 on (tm1.a = tm2.a) when not matched then insert values (tm2.a, tm2.b);
+select * from tm1;
+
+delete from tm1;
+insert into tm1 values (1,1),(1,2);
+merge into tm1 using tm2 on (tm1.a = tm2.a) when matched then update set tm1.b = tm2.b;
+select * from tm1;
+
+delete from tm1;
+insert into tm1 values (1,1),(1,2);
+merge into tm1 using tm2 on (tm1.a = tm2.a) when not matched then insert (tm1.a, tm1.b) values (tm2.a, tm2.b);
+select * from tm1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_3: target table has primary key
+--echo ---------------------------------------------------------------
+--echo ## Test_3_1: primary key in on condition
+delete from tk1;
+insert into tk1 values (1,1),(2,2);
+merge into tk1 using tm2 on (tk1.a = tm2.a) when matched then update set tk1.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from tk1;
+delete from tk1;
+insert into tk1 values (1,1),(2,2);
+merge into tk1 using tm2 on (tk1.a = tm2.a) when not matched then insert values (tm2.a, tm2.b) when matched then update set tk1.b = tm2.b;
+select * from tk1;
+
+--echo ## Test_3_2: primary key not in on condition and is updated
+delete from tk1;
+insert into tk1 values (1,1),(2,2);
+merge into tk1 using tm2 on (tk1.b = tm2.b) when not matched then insert values (tm2.a, tm2.b) when matched then update set tk1.a = tm2.a + 10;
+select * from tk1;
+
+--echo ## Test_3_3: primary key is not assigned a value in insert clause
+--error ER_NO_DEFAULT_FOR_FIELD
+merge into tk1 using tm2 on (tk1.a = tm2.a) when not matched then insert (tk1.b) values (tm2.b);
+
+--echo ## Test_3_4: only primary key is assigned a value in insert clause
+delete from tk1;
+insert into tk1 values (1,1),(2,2);
+merge into tk1 using tm2 on (tk1.a = tm2.a) when not matched then insert (tk1.a) values (tm2.a);
+select * from tk1;
+
+--echo ## Test_3_5: primary key is not updated in update clause
+delete from tk1;
+insert into tk1 values (1,1),(2,2);
+merge into tk1 using tm2 on (tk1.a = tm2.a) when matched then update set tk1.b = tm2.b;
+select * from tk1;
+
+--echo ## Test_3_6: primary key is updated in update clause
+delete from tk1;
+insert into tk1 values (1,1),(2,2);
+merge into tk1 using tm2 on (tk1.b = tm2.b) when matched then update set tk1.a = tm2.a+6;
+select * from tk1;
+
+--echo ## Test_3_6: duplicate key
+--error ER_DUP_ENTRY
+merge into tk1 using tm2 on (tk1.b = tm2.b) when matched then update set tk1.a = 4;
+--error ER_DUP_ENTRY
+merge into tk1 using tm2 on (tk1.b = tm2.b) when not matched then insert values (1,1);
+
+--echo ---------------------------------------------------------------
+--echo ## Test_4: target table has unique key (default null) <secondary index>
+--echo ---------------------------------------------------------------
+--echo ## Test_4_1: normal test
+delete from tk2;
+insert into tk2 values (1,1),(2,2);
+merge into tk2 using tm2 on (tk2.a = tm2.a) when matched then update set tk2.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from tk2;
+delete from tk2;
+insert into tk2 values (1,1),(2,2);
+merge into tk2 using tm2 on (tk2.a = tm2.a) when not matched then insert values (tm2.a, tm2.b) when matched then update set tk2.b = tm2.b;
+select * from tk2;
+delete from tk2;
+insert into tk2 values (1,1),(2,2);
+merge into tk2 using tm2 on (tk2.b = tm2.b) when not matched then insert values (tm2.a, tm2.b) when matched then update set tk2.a = tm2.a + 10;
+select * from tk2;
+
+--echo ## Test_4_2: unique key is not assigned a value in insert clause
+delete from tk2;
+insert into tk2 values (1,1),(2,2);
+merge into tk2 using tm2 on (tk2.a = tm2.a) when not matched then insert (tk2.b) values (tm2.b);
+select * from tk2;
+
+--echo ## Test_4_3: duplicate key
+--error ER_DUP_ENTRY
+merge into tk2 using tm2 on (tk2.b = tm2.b) when matched then update set tk2.a = 4;
+--error ER_DUP_ENTRY
+merge into tk2 using tm2 on (tk2.a = tm2.a) when not matched then insert values (1,1);
+
+--echo ---------------------------------------------------------------
+--echo ## Test_5: target table has generated column
+--echo ---------------------------------------------------------------
+--echo ## Test_5_1: normal test
+delete from gc;
+insert into gc (a,b) values (1,1),(1,2);
+merge into gc using tm2 on (gc.a = tm2.a) when matched then update set gc.b = tm2.b when not matched then insert (gc.a,gc.b) values (tm2.a, tm2.b);
+select * from gc;
+delete from gc;
+insert into gc (a,b) values (1,1),(1,2);
+merge into gc using tm2 on (gc.a = tm2.a) when not matched then insert (gc.a, gc.b) values (tm2.a, tm2.b) when matched then update set gc.b = tm2.b;
+select * from gc;
+
+--echo ## Test_5_2: when gc corresponding columns are not all assigned a values
+delete from gc;
+insert into gc (a,b) values (1,1),(1,2);
+merge into gc using tm2 on (gc.b = tm2.b) when not matched then insert (gc.b) values (tm2.b);
+select * from gc;
+
+--echo ## Test_5_3: when STORED generated column used in on condition, corresponding columns cannot be updated
+--error ER_MERGE_INTO
+merge into gc using tm2 on (gc.c = tm2.a) when matched then update set gc.b = tm2.b when not matched then insert (gc.a,gc.b) values (tm2.a, tm2.b);
+
+--echo ## Test_5_4: when VIRTUAL generated column used in on condition, corresponding columns cannot be updated
+--error ER_MERGE_INTO
+merge into gc using tm2 on (gc.d = tm2.a) when matched then update set gc.b = tm2.b when not matched then insert (gc.a,gc.b) values (tm2.a, tm2.b);
+
+--echo ## Test_5_5: generated columns cannot be assigned in insert or update clause
+--error ER_NON_DEFAULT_VALUE_FOR_GENERATED_COLUMN
+merge into gc using tm2 on (gc.a = tm2.a) when not matched then insert (gc.a, gc.b, gc.c) values (tm2.a, tm2.b, tm2.b);
+--error ER_NON_DEFAULT_VALUE_FOR_GENERATED_COLUMN
+merge into gc using tm2 on (gc.a = tm2.a) when not matched then insert (gc.a, gc.b, gc.d) values (tm2.a, tm2.b, tm2.b);
+--error ER_NON_DEFAULT_VALUE_FOR_GENERATED_COLUMN
+merge into gc using tm2 on (gc.a = tm2.a) when matched then update set gc.c = tm2.b;
+--error ER_NON_DEFAULT_VALUE_FOR_GENERATED_COLUMN
+merge into gc using tm2 on (gc.a = tm2.a) when matched then update set gc.d = tm2.b;
+--error ER_NON_DEFAULT_VALUE_FOR_GENERATED_COLUMN
+merge into gc using tm2 on (gc.a = tm2.a) when not matched then insert (gc.c) values (tm2.a);
+--error ER_NON_DEFAULT_VALUE_FOR_GENERATED_COLUMN
+merge into gc using tm2 on (gc.a = tm2.a) when not matched then insert (gc.d) values (tm2.a);
+
+--echo ---------------------------------------------------------------
+--echo ## Test_6: target table has auto-increment column
+--echo ---------------------------------------------------------------
+#--disable_warnings ER_BINLOG_UNSAFE_STATEMENT
+--echo ## Test_6_1: auto-increment normal test
+delete from auto_inc;
+insert into auto_inc (a,b) values (1,1),(1,2);
+merge into auto_inc using tm2 on (auto_inc.a = tm2.a) when matched then update set auto_inc.b = tm2.b when not matched then insert (auto_inc.a,auto_inc.b) values (tm2.a, tm2.b);
+select last_insert_id();
+select * from auto_inc;
+delete from auto_inc;
+insert into auto_inc (a,b) values (1,1),(1,2);
+merge into auto_inc using tm2 on (auto_inc.a = tm2.a) when not matched then insert (auto_inc.a,auto_inc.b) values (tm2.a, tm2.b) when matched then update set auto_inc.b = tm2.b;
+select * from auto_inc;
+--echo ## Test_6_2: not only auto-increment column is not assigned
+delete from auto_inc;
+insert into auto_inc (a,b) values (1,1),(1,2);
+merge into auto_inc using tm2 on (auto_inc.a = tm2.a) when not matched then insert (auto_inc.b) values (tm2.b);
+select * from auto_inc;
+--echo ## Test_6_3: more auto-increment ids is reserved than used
+delete from auto_inc;
+merge into auto_inc using tm2 on (auto_inc.a = tm2.a+4) when not matched then insert (auto_inc.a,auto_inc.b) values (tm2.a, tm2.b);
+select * from auto_inc;
+merge into auto_inc using tm2 on (auto_inc.a = tm2.a+4) when not matched then insert (auto_inc.a,auto_inc.b) values (tm2.a, tm2.b);
+select * from auto_inc;
+show create table auto_inc;
+--echo ## Test_6_4: auto-increment column is assigned
+## assinged auto-increment column will not cause the increment in last_insert_id as insert-into
+select last_insert_id();
+merge into auto_inc using tm2 on (auto_inc.a = tm2.a+4) when not matched then insert values (tm2.a,tm2.b,tm2.a);
+select * from auto_inc;
+show create table auto_inc;
+merge into auto_inc using tm2 on (auto_inc.a = tm2.a+4) when not matched then insert values (tm2.a+28,tm2.b,tm2.a);
+select * from auto_inc;
+show create table auto_inc;
+select last_insert_id();
+--echo ## Test_6_5: auto-increment column is used in view
+create view va1 as select id, a from auto_inc;
+merge into va1 using tm2 on (va1.a = tm2.a+4) when not matched then insert (va1.a) values (tm2.a);
+select * from auto_inc;
+--echo ## Test_6_5: auto-increment column is not used in view
+## not-used auto-increment column in view will not cause the increment in last_insert_id as insert-into
+create view va2 as select a, b from auto_inc;
+select last_insert_id();
+merge into va2 using tm2 on (va2.a = tm2.a+4) when not matched then insert values (tm2.a, tm2.b);
+select last_insert_id();
+select * from auto_inc;
+--echo ## Test_6_6: insert with assigned duplicate auto-increment column 
+--error ER_DUP_ENTRY
+merge into auto_inc using tm2 on (auto_inc.a = tm2.a+4) when not matched then insert values (tm2.a, tm2.a, tm2.b); 
+#-enable_warnings ER_BINLOG_UNSAFE_STATEMENT
+
+--echo ---------------------------------------------------------------
+--echo ## Test_7: target table is view
+--echo ---------------------------------------------------------------
+--echo ## Test_7_1: target table is view without check option
+create view v1 as select * from tm1;
+delete from v1;
+insert into v1 values (1,1),(2,2);
+merge into v1 using tm2 on (v1.a = tm2.a) when matched then update set v1.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from v1;
+
+--echo ## Test_7_2: try insert to VIEW with fields duplicate
+create view v8 as select a a, b b, a c from tm1;
+--error ER_NON_INSERTABLE_TABLE
+merge into v8 using tm2 on (v8.a = tm2.a) when not matched then insert values (tm2.a, tm2.b, tm2.b+10);
+
+--echo ## Test_7_3: try insert to VIEW with expression in SELECT list
+create view v9 as select a+1 a, b b from tm1;
+--error ER_NONUPDATEABLE_COLUMN
+merge into v9 using tm2 on (v9.a = tm2.a) when not matched then insert values (tm2.a, tm2.b);
+
+--echo ## Test_7_4: try insert to VIEW using temporary table algorithm
+create algorithm=temptable view v10 as select * from tm1;
+--error ER_NON_INSERTABLE_TABLE
+merge into v10 using tm2 on (v10.a = tm2.a) when not matched then insert values (tm2.a, tm2.b);
+
+--echo ## Test_7_5: Trys update table from which we select using views and subqueries that uses target table
+create view v11 as select * from tm1 where 20 < (select (a) from tm1);
+--error ER_MERGE_INTO
+merge into v11 using tm2 on (v11.a = tm2.a) when not matched then insert values (tm2.a, tm2.b);
+
+#--disable_warnings ER_BINLOG_UNSAFE_STATEMENT
+--echo ## Test_7_6: Trys update table from which we select using views and subqueries that not uses target table
+create view v12 as select * from tm1 where 20 < (select (a) from tm3 limit 1);
+delete from tm1;
+insert into v12 values (1,1),(2,2);
+merge into v12 using tm2 on (v12.a = tm2.a) when not matched then insert values (tm2.a, tm2.b);
+select * from v12;
+select * from tm1;
+
+--echo ## Test_7_8: target table is ordered view
+CREATE VIEW v13 AS SELECT * FROM tm1 ORDER BY a;
+delete from v13;
+insert into v13 values (1,1),(2,2);
+merge into v13 using tm2 on (v13.a = tm2.a) when matched then update set v13.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from v13;
+#--enable_warnings ER_BINLOG_UNSAFE_STATEMENT
+
+--echo ## Test_7_9: target table is view with check option
+create view v2 as select * from tm1 where b < 3 with check option;
+--error ER_MERGE_INTO
+merge into v2 using tm2 on (v2.a = tm2.a) when matched then update set v2.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+create view v3 as select * from v2;
+--error ER_MERGE_INTO
+merge into v3 using tm2 on (v3.a = tm2.a) when matched then update set v3.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+
+--echo ## Test_7_10: target table is view of view
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+create view v4 as select * from tm1 where b < 3;
+create view v5 as select * from v4 where a > 1;
+merge into v5 using tm2 on (v5.a = tm2.a) when matched then update set v5.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from v5;
+select * from tm1;
+
+--echo ## Test_7_11: target table is joined view
+create view v6 as select tt1.a, tt2.b from tm1 tt1 join tm1 tt2 on tt1.a=tt1.b;
+--error ER_VIEW_MULTIUPDATE
+merge into v6 using tm2 on (v6.a = tm2.a) when matched then update set v6.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+create view v7 as select * from v6;
+--error ER_VIEW_MULTIUPDATE
+merge into v7 using tm2 on (v7.a = tm2.a) when matched then update set v7.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+
+--echo ## Test_7_12: target table with check option without where
+create view v14 as select * from tm1 with cascaded check option;
+merge into v14 using tm2 on (v14.a = tm2.a) when matched then update set v14.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+
+--echo ## Test_7_13: underlying view of target table with local check option
+create view v15 as select * from tm1 where b < 3 with local check option;
+--error ER_MERGE_INTO
+merge into v15 using tm2 on (v15.a = tm2.a) when matched then update set v15.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+create view v16 as select * from v15;
+--error ER_MERGE_INTO
+merge into v16 using tm2 on (v16.a = tm2.a) when matched then update set v16.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+
+--echo ## Test_7_14: underlying view of target table has where & top view with check option
+create view v17 as select * from tm1 where b < 3;
+create view v18 as select * from v17 with cascaded check option;
+--error ER_MERGE_INTO
+merge into v18 using tm2 on (v18.a = tm2.a) when matched then update set v18.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+create view v19 as select * from v17 with local check option;
+merge into v19 using tm2 on (v19.a = tm2.a) when matched then update set v19.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+
+--echo ---------------------------------------------------------------
+--echo ## Test_8: target table is derived table
+--echo ---------------------------------------------------------------
+--echo ## Test_8_1: target table is single table
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+merge into (select * from tm1)dt using tm2 on (dt.a = tm2.a) when matched then update set dt.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from tm1;
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+merge into (select * from (select * from tm1)dt) ddt using tm2 on (ddt.a = tm2.a) when matched then update set ddt.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from tm1;
+--echo ## Test_8_2: target table is multiple table
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+--error ER_VIEW_MULTIUPDATE
+merge into (select tt1.a, tt2.b from tm1 tt1 join tm1 tt2 on tt1.a=tt2.a)dt using tm2 on (dt.a = tm2.a) when matched then update set dt.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+
+--echo ---------------------------------------------------------------
+--echo ## Test_9: target table is temporary table
+--echo ---------------------------------------------------------------
+create temporary table tmp (a int, b int);
+insert tmp values (1,1),(2,2);
+merge into tmp using tm2 on (tmp.a = tm2.a) when matched then update set tmp.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from tmp;
+DROP TEMPORARY TABLE IF EXISTS tmp;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_10: target table is partition table
+--echo ---------------------------------------------------------------
+create table pt1 (a int, b int, c int) partition by range(a)(partition s1 values less than (5), partition s2 values less than (10), partition s3 values less than MAXVALUE);
+insert into pt1 values (1,1,1),(2,2,2),(6,6,6),(7,7,7),(11,11,11),(12,12,12);
+create table pts (a int, b int);
+insert into pts values (1,8),(2,13),(3,3),(5,5),(6,4),(7,13),(10,10),(11,9),(12,19),(100,100);
+
+--enable_warnings ER_BINLOG_UNSAFE_STATEMENT
+
+--echo ## Test_10_1: normal test: partition column is updated and not in on condition
+explain merge into pt1 using pts on (pt1.b = pts.a) when matched then update set pt1.a=pts.b when not matched then insert values (pts.a, pts.b, 200);
+explain format =tree merge into pt1 using pts on (pt1.b = pts.a) when matched then update set pt1.a=pts.b when not matched then insert values (pts.a, pts.b, 200);
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT ONCE
+merge into pt1 using pts on (pt1.b = pts.a) when matched then update set pt1.a=pts.b when not matched then insert values (pts.a, pts.b, 200);
+select * from pt1;
+
+--echo ## Test_10_2: normal test: partition column in on condition
+delete from pt1;
+insert into pt1 values (1,1,1),(2,2,2),(6,6,6),(7,7,7),(11,11,11),(12,12,12);
+explain merge into pt1 using pts on (pt1.a = pts.a) when matched then update set pt1.b=pts.b when not matched then insert values (pts.a, pts.b, 300);
+explain format =tree merge into pt1 using pts on (pt1.a = pts.a) when matched then update set pt1.b=pts.b when not matched then insert values (pts.a, pts.b, 300);
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT ONCE
+merge into pt1 using pts on (pt1.a = pts.a) when matched then update set pt1.b=pts.b when not matched then insert values (pts.a, pts.b, 300);
+select * from pt1;
+
+--echo ## Test_10_3: normal test: partition column in on condition and causes partition pruning
+delete from pt1;
+insert into pt1 values (1,1,1),(2,2,2),(6,6,6),(7,7,7),(11,11,11),(12,12,12);
+explain merge into pt1 using pts on ( pt1.a = pts.a and pt1.a<5) when matched then update set pt1.b=pts.b, pt1.c=500 when not matched then insert values (400,400,400);
+explain format=tree merge into pt1 using pts on ( pt1.a = pts.a and pt1.a<5) when matched then update set pt1.b=pts.b, pt1.c=500 when not matched then insert values (400,400,400);
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT ONCE
+merge into pt1 using pts on ( pt1.a = pts.a and pt1.a<5) when matched then update set pt1.b=pts.b, pt1.c=500 when not matched then insert values (400,400,400);
+select * from pt1;
+
+--echo ## Test_10_4: push-down where causes partition pruning: partition column not in on condition
+delete from pt1;
+insert into pt1 values (1,1,1),(2,2,2),(6,6,6),(7,7,7),(11,11,11),(12,12,12);
+explain merge into pt1 using tm2 on (pt1.b = tm2.b) when matched then update set pt1.a=5+pt1.a where pt1.a<10;
+explain format=tree merge into pt1 using tm2 on (pt1.b = tm2.b) when matched then update set pt1.a=5+pt1.a where pt1.a<10;
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT ONCE
+merge into pt1 using tm2 on (pt1.b = tm2.b) when matched then update set pt1.a=5+pt1.a where pt1.a<10;
+select * from pt1;
+
+--echo ## Test_10_5: push-down where causes partition pruning: partition column in on condition
+delete from pt1;
+insert into pt1 values (1,1,1),(2,2,2),(6,6,6),(7,7,7),(11,11,11),(12,12,12);
+explain merge into pt1 using pts on (pt1.a = pts.a) when matched then update set pt1.b=pts.b where pt1.a<5;
+explain format=tree merge into pt1 using pts on (pt1.a = pts.a) when matched then update set pt1.b=pts.b where pt1.a<5;
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT ONCE
+merge into pt1 using pts on (pt1.a = pts.a) when matched then update set pt1.b=pts.b where pt1.a<5;
+select * from pt1;
+
+delete from pt1;
+insert into pt1 values (1,1,1),(2,2,2),(6,6,6),(7,7,7),(11,11,11),(12,12,12);
+explain merge into pt1 using tm2 on (pt1.b = tm2.b) when matched then update set pt1.a=7 where pt1.a=2;
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT ONCE
+merge into pt1 using tm2 on (pt1.b = tm2.b) when matched then update set pt1.a=7 where pt1.a=2;
+select * from pt1;
+
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT
+--echo ---------------------------------------------------------------
+--echo ## Test_11: source table is derived table
+--echo ---------------------------------------------------------------
+--echo ## Test_11_1: source table is simple derived table
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+merge into tm1 using (select * from tm2) dt on (tm1.a = dt.a) when matched then update set tm1.b=10 when not matched then insert values (dt.a, dt.b);
+select * from tm1;
+
+--echo ## Test_11_2: source table is derived table of pruned partition table
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+merge into tm1 using (select * from pt1 where a<10) tm2 on (tm1.a = tm2.a) when matched then update set tm1.b=tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from tm1;
+
+--echo ## Test_11_3: source table is derived table of joined table
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+merge into tm1 using (select tm2.b a,tm3.b b from tm2 join tm3 on tm2.a=tm3.a) dt on (tm1.a = dt.a) when matched then update set tm1.b=dt.b when not matched then insert values (dt.a, dt.b);
+select * from tm1;
+
+--echo ## Test_11_1: source table and target table are all simple derived table
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+merge into (select * from tm1) t using (select * from tm2) dt on (t.a=dt.a+1) when matched then update set t.b=10 when not matched then insert values (dt.a, dt.b);
+select * from tm1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_12: test push down where
+--echo ---------------------------------------------------------------
+delete from tk1;
+insert into tk1 values (1,1),(2,2),(4,6);
+--enable_warnings ER_BINLOG_UNSAFE_STATEMENT
+explain merge into tk1 using tm2 on (tk1.a = tm2.a) when matched then update set tk1.b = tm2.b where tm2.a<3;
+explain format=tree merge into tk1 using tm2 on (tk1.a = tm2.a) when matched then update set tk1.b = tm2.b where tm2.a<3;
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT ONCE
+merge into tk1 using tm2 on (tk1.a = tm2.a) when matched then update set tk1.b = tm2.b where tm2.a<3;
+select * from tk1;
+
+delete from tk1;
+insert into tk1 values (1,1),(2,2);
+explain merge into tk1 using tm2 on (tk1.a = tm2.a) when not matched then insert values (tm2.a, tm2.b) where tm2.a>3;
+explain format=tree merge into tk1 using tm2 on (tk1.a = tm2.a) when not matched then insert values (tm2.a, tm2.b) where tm2.a>3;
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT ONCE
+merge into tk1 using tm2 on (tk1.a = tm2.a) when not matched then insert values (tm2.a, tm2.b) where tm2.a>3;
+select * from tk1;
+
+delete from tk1;
+insert into tk1 values (1,1),(2,2);
+explain merge into tk1 using tm2 on (tk1.a = tm2.a) when not matched then insert (tk1.a) values (tm2.a) where tm2.b<4;
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT ONCE
+merge into tk1 using tm2 on (tk1.a = tm2.a) when not matched then insert (tk1.a) values (tm2.a) where tm2.b<4;
+select * from tk1;
+
+delete from tm1;
+insert into tm1 values (1,1),(2,2),(5,5),(7,7);
+explain merge into tm1 using tm2 on (tm1.b = tm2.b) when matched then update set tm1.a=2 where tm1.a<5;
+explain format=tree merge into tm1 using tm2 on (tm1.b = tm2.b) when matched then update set tm1.a=2 where tm1.a<5;
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT ONCE
+merge into tm1 using tm2 on (tm1.b = tm2.b) when matched then update set tm1.a=2 where tm1.a<5;
+select * from tm1;
+
+#--disable_warnings ER_BINLOG_UNSAFE_STATEMENT
+
+--echo ---------------------------------------------------------------
+--echo ## Test_13: source table is the same table as target table
+--echo ---------------------------------------------------------------
+--echo ## Test_13_1: not supported cases
+--error ER_NONUNIQ_TABLE
+merge into tm1 using tm1 on (tm1.a = tm1.b) when not matched then insert values (tm1.a, tm1.b);
+--error ER_MERGE_INTO
+merge into tm1 dt using tm1 on (dt.a = tm1.b) when not matched then insert values (tm1.a, tm1.b);
+--error ER_MERGE_INTO
+merge into (select * from tm1) dt using tm1 on (dt.a = tm1.b) when not matched then insert values (tm1.a, tm1.b);
+--error ER_MERGE_INTO
+merge into tm1 using tm2 on (tm1.a = tm2.a) when not matched then insert values ((select a from tm1 limit 1), tm2.b);
+--error ER_MERGE_INTO
+merge into tm1 using tm2 on (tm1.a = tm2.a) when matched then update set tm1.b = (select a from tm1 limit 1);
+
+--echo ## Test_13_2: source table use alias
+# case oracle not support
+delete from tm1;
+insert into tm1 values (1,2),(2,1),(3,4);
+#--enable_warnings ER_BINLOG_UNSAFE_STATEMENT 
+explain merge into tm1 using tm1 dt on (tm1.a = dt.b) when not matched then insert values (dt.a, dt.b) when matched then update set tm1.b=dt.a;
+explain format=tree merge into tm1 using tm1 dt on (tm1.a = dt.b) when not matched then insert values (dt.a, dt.b) when matched then update set tm1.b=dt.a;
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT ONCE
+merge into tm1 using tm1 dt on (tm1.a = dt.b) when not matched then insert values (dt.a, dt.b) when matched then update set tm1.b=dt.a;
+select * from tm1;
+
+# case oracle support
+delete from tm1;
+insert into tm1 values (1,2),(2,1),(3,4);
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT ONCE
+merge into tm1 using tm1 dt on (tm1.a = dt.a+1) when not matched then insert values (dt.a, dt.b) when matched then update set tm1.b=dt.b+1;
+select * from tm1;
+
+--echo ## Test_13_3: source table is derived table
+# case oracle not support
+delete from tm1;
+insert into tm1 values (1,2),(2,1),(3,4);
+explain merge into tm1 using (select tm2.a,tm2.b from tm1 join tm2 on tm1.a=tm2.a) dt on (tm1.a = dt.b) when not matched then insert values (dt.a, dt.b) when matched then update set tm1.b=dt.a;
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT ONCE
+merge into tm1 using (select * from tm1) dt on (tm1.a = dt.b) when not matched then insert values (dt.a, dt.b) when matched then update set tm1.b=dt.a;
+select * from tm1;
+
+# case oracle support
+delete from tm1;
+insert into tm1 values (1,2),(2,1),(3,4);
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT ONCE
+merge into tm1 using (select * from tm1) dt on (tm1.a = dt.a+1) when not matched then insert values (dt.a, dt.b) when matched then update set tm1.b=dt.a;
+select * from tm1;
+
+--echo ## Test_13_4: source table use alias and target table use alias
+# case oracle not support
+delete from tm1;
+insert into tm1 values (1,2),(2,1),(3,4);
+explain merge into tm1 t using tm1 dt on (t.a = dt.b) when not matched then insert values (dt.a, dt.b) when matched then update set t.b=dt.a;
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT ONCE
+merge into tm1 t using (select * from tm1) dt on (t.a = dt.b) when not matched then insert values (dt.a, dt.b) when matched then update set t.b=dt.a;
+select * from tm1;
+
+# case oracle support
+delete from tm1;
+insert into tm1 values (1,2),(2,1),(3,4);
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT ONCE
+merge into tm1 t using (select * from tm1) dt on (t.a = dt.a+1) when not matched then insert values (dt.a, dt.b) when matched then update set t.b=dt.a;
+select * from tm1;
+
+--echo ## Test_13_5: target table is derived table
+# case oracle not support
+delete from tm1;
+insert into tm1 values (1,2),(2,1),(3,4);
+explain merge into (select * from tm1) t using tm1 dt on (t.a = dt.b) when not matched then insert values (dt.a, dt.b) when matched then update set t.b=dt.a;
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT ONCE
+merge into (select * from tm1) t using (select * from tm1) dt on (t.a = dt.b) when not matched then insert values (dt.a, dt.b) when matched then update set t.b=dt.a;
+select * from tm1;
+
+# case oracle support
+delete from tm1;
+insert into tm1 values (1,2),(2,1),(3,4);
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT ONCE
+merge into (select * from tm1) t using (select * from tm1) dt on (t.a = dt.a+1) when not matched then insert values (dt.a, dt.b) when matched then update set t.b=dt.a;
+select * from tm1;
+
+--echo ## Test_13_6: target table is view
+delete from tm1;
+insert into tm1 values (1,2),(2,1),(3,4);
+explain merge into v1 using tm1 dt on (v1.a = dt.a+1) when not matched then insert values (dt.a, dt.b) when matched then update set v1.b=dt.a;
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT ONCE
+merge into v1 using tm1 dt on (v1.a = dt.a+1) when not matched then insert values (dt.a, dt.b) when matched then update set v1.b=dt.a;
+select * from tm1;
+
+--echo ## Test_13_7: target table is partition table
+delete from pt1;
+insert into pt1 values (1,1,1),(2,2,2),(6,6,6),(7,7,7),(11,11,11),(12,12,12);
+explain merge into pt1 using pt1 pts on (pt1.a = pts.a+1) when matched then update set pt1.b=pts.b when not matched then insert values (pts.a, pts.b, 999);
+explain format =tree merge into pt1 using pt1 pts on (pt1.a = pts.a+1) when matched then update set pt1.b=pts.b when not matched then insert values (pts.a, pts.b, 999);
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT ONCE
+merge into pt1 using pt1 pts on (pt1.a = pts.a+1) when matched then update set pt1.b=pts.b when not matched then insert values (pts.a, pts.b, 999);
+select * from pt1;
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT
+
+--echo ---------------------------------------------------------------
+--echo ## Test_14: test default values
+--echo ---------------------------------------------------------------
+create table dv (a int, b int, c VARCHAR(10) DEFAULT 'World', d int DEFAULT 555);
+insert into dv (a,b,c,d) values (1,1,'City',1),(2,2,'Street',2);
+merge into dv using tm2 on (dv.a = tm2.a) when matched then update set c = default, d = default when not matched then insert (a,b,c) values (tm2.a,tm2.b,default);
+select * from dv;
+delete from tm1;
+## Contrary to Oracle, we support explicit column default used for modifying views like insert/update in MySQL.
+insert into tm1 values (1,1),(1,2);
+merge into v1 using tm2 on (v1.a = tm2.a) when not matched then insert values (default,default);
+select * from v1;
+merge into v1 using tm2 on (v1.a = tm2.a) when matched then update set v1.b=default;
+select * from v1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_15: insert with not appointed column
+--echo ---------------------------------------------------------------
+delete from tm1;
+insert into tm1 values (1,1),(1,2);
+merge into tm1 using tm2 on (tm1.a = tm2.a) when not matched then insert (tm1.a) values (tm2.a);
+select * from tm1;
+delete from tm1;
+insert into tm1 values (1,1),(1,2);
+merge into tm1 using tm2 on (tm1.a = tm2.a) when not matched then insert values ();
+select * from tm1;
+## same performance like 'insert into v1 values();'
+--error ER_WRONG_VALUE_COUNT
+merge into v1 using tm2 on (v1.a = tm2.a) when not matched then insert values ();
+select * from v1;
+merge into pt1 using tm2 on (pt1.a = tm2.a) when not matched then insert values ();
+select * from pt1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_16: test error cases
+--echo ---------------------------------------------------------------
+delete from tm1;
+insert into tm1 values (1,1),(1,2);
+--error ER_WRONG_VALUE_COUNT
+merge into tm1 using tm2 on (tm1.a = tm2.a) when not matched then insert values (tm2.a);
+--error ER_PARSE_ERROR
+merge into tm1 using tm2 on tm1.a = tm2.a when matched then update set tm1.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+--echo "target table field cannot resolved in insert where"
+--error ER_BAD_FIELD_ERROR
+merge into tk1 using tm2 on (tk1.a = tm2.a) when not matched then insert values (tm2.a, tm2.b) where tk1.a>3;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_17: test explain cases
+--echo ---------------------------------------------------------------
+--enable_warnings ER_BINLOG_UNSAFE_STATEMENT
+explain merge into tm1 using tm2 on (tm1.a = tm2.a) when matched then update set tm1.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+explain format=tree merge into tm1 using tm2 on (tm1.a = tm2.a) when matched then update set tm1.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+explain format=json merge into tm1 using tm2 on (tm1.a = tm2.a) when matched then update set tm1.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT
+
+--echo ---------------------------------------------------------------
+--echo ## Test_18: test check constraint
+--echo ---------------------------------------------------------------
+CREATE TABLE ck1 (a int CHECK (a<4), b int, CHECK (a >= b));
+insert into ck1 values (1,1),(2,2);
+--error ER_CHECK_CONSTRAINT_VIOLATED
+merge into ck1 using tm2 on(ck1.a=tm2.a) when matched then update set ck1.b=tm2.b;
+--error ER_CHECK_CONSTRAINT_VIOLATED
+merge into ck1 using tm2 on(ck1.a=tm2.a) when not matched then insert values(tm2.a, tm2.b);
+CREATE TABLE ck2 (a int CHECK (a<10), b int);
+insert into ck2 values (1,1),(2,2);
+merge into ck2 using tm2 on(ck2.a=tm2.a) when matched then update set ck2.b=tm2.b when not matched then insert values(tm2.a, tm2.b);
+select * from ck2;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_19: test trigger cases
+--echo ---------------------------------------------------------------
+insert into tr1 values (1,1),(2,2);
+insert into tr2 values (1,1,1),(1,1,2);
+--delimiter ##
+create trigger trg_after_insert after insert on tr1 for each row
+begin
+    update tr2 set a = 100 where c=1;
+end
+##
+
+create trigger trg_before_insert before insert on tr1 for each row
+begin
+    update tr2 set b = 200 where c=1;
+end
+##
+
+create trigger trg_after_update after update on tr1 for each row
+begin
+    update tr2 set a = 300 where c=2;
+end
+##
+
+create trigger trg_before_update before update on tr1 for each row
+begin
+    update tr2 set b = 400 where c=2;
+end
+##
+--delimiter ;
+
+merge into tr1 using tm2 on (tr1.a = tm2.a) when matched then update set tr1.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from tr1;
+select * from tr2;
+
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+
+--delimiter ##
+create or replace trigger trg_merge before insert on tr3 for each row
+begin
+    merge into tm1 using tm2 on(tm1.a=tm2.a) when matched then update set tm1.b=tm2.b when not matched then insert values (tm2.a,tm2.b);
+end
+##
+--delimiter ;
+select * from tm1;
+insert into tr3 values (1,1);
+
+--echo ---------------------------------------------------------------
+--echo ## Test_20: test merge in procedure
+--echo ---------------------------------------------------------------
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+--DELIMITER $$
+CREATE OR REPLACE PROCEDURE test_merge()
+BEGIN
+    DECLARE t INT DEFAULT 1;
+	WHILE t < 4 DO
+	    merge into tm1 using tm2 on(tm1.a=tm2.a) when matched then update set tm1.b=tm1.b+t;
+		SELECT * FROM tm1;
+        SET t = t + 1;
+    END WHILE;
+END $$
+--DELIMITER ;
+CALL test_merge();
+
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+--DELIMITER $$
+CREATE OR REPLACE PROCEDURE test_merge2()
+BEGIN
+    DECLARE t INT DEFAULT 1;
+	WHILE t < 4 DO
+	    merge into tm1 using tm2 on(tm1.a=tm2.a) when not matched then insert values(t,t);
+		SELECT * FROM tm1;
+        SET t = t + 1;
+    END WHILE;
+END $$
+--DELIMITER ;
+CALL test_merge2();
+
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+--DELIMITER $$
+CREATE OR REPLACE PROCEDURE test_merge3()
+BEGIN
+    DECLARE t INT DEFAULT 1;
+	WHILE t < 4 DO
+	    merge into tm1 using tm2 on(tm1.a=tm2.a) when matched then update set tm1.b=tm1.b+t when not matched then insert values(t,t);
+		SELECT * FROM tm1;
+        SET t = t + 1;
+    END WHILE;
+END $$
+--DELIMITER ;
+CALL test_merge3();
+
+--echo ---------------------------------------------------------------
+--echo ## Test_21: test merge in prepare
+--echo ---------------------------------------------------------------
+PREPARE stmt_merge1 FROM 'merge into tm1 using tm2 on(tm1.a=tm2.a) when matched then update set tm1.b = ?';
+SET @a = 3;
+EXECUTE stmt_merge1 USING @a;
+select * from tm1;
+SET @a = 4;
+EXECUTE stmt_merge1 USING @a;
+select * from tm1;
+PREPARE stmt_merge2 FROM 'merge into tm1 using tm2 on(tm1.a= ? ) when matched then update set tm1.b = 5';
+set @a = 2;
+EXECUTE stmt_merge2 USING @a;
+select * from tm1;
+PREPARE stmt_merge3 FROM 'merge into tm1 using tm2 on(tm1.a=tm2.a) when not matched then insert values (?,?)';
+set @a = 10;
+set @b = 11;
+EXECUTE stmt_merge3 USING @a, @b;
+select * from tm1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_22: test event
+--echo ---------------------------------------------------------------
+--enable_warnings ER_BINLOG_UNSAFE_STATEMENT
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+drop event if exists merge_into;
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT ONCE
+CREATE EVENT merge_into ON SCHEDULE EVERY 5 SECOND on completion preserve enable
+DO merge into tm1 using tm2 on(tm1.a=tm2.a) when matched then update set tm1.b=tm2.b when not matched then insert values (tm2.a,tm2.b);
+real_sleep 1;
+if (!`select * from merge_db.tm1 where a=4;`)
+{
+  real_sleep 1;
+}
+select * from merge_db.tm1;
+alter event merge_into on completion preserve enable;
+alter event merge_into on completion  preserve disable;
+drop event merge_into;
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT
+
+--echo ---------------------------------------------------------------
+--echo ## Test_23: test transaction
+--echo ---------------------------------------------------------------
+--echo ## Test_23_1: Explicit commit
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+begin;
+merge into tm1 using tm2 on(tm1.a=tm2.a) when matched then update set tm1.b=tm2.b when not matched then insert values (tm2.a,tm2.b);
+commit;
+select * from tm1;
+--echo ## Test_23_2: Rollback
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+begin;
+merge into tm1 using tm2 on(tm1.a=tm2.a) when matched then update set tm1.b=tm2.b when not matched then insert values (tm2.a,tm2.b);
+rollback;
+select * from tm1;
+--echo ## Test_23_3: Implicit commit
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+begin;
+merge into tm1 using tm2 on(tm1.a=tm2.a) when matched then update set tm1.b=tm2.b when not matched then insert values (tm2.a,tm2.b);
+create table implicit (id int);
+rollback;
+select * from tm1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_24: test alltype
+--echo ---------------------------------------------------------------
+create table alltype(
+  id       int       primary key auto_increment,
+  tinyid   tinyint,
+  smallid  smallint,
+  medid    mediumint,
+  bigid    bigint,
+  floid    float,
+  douid    double,
+  deid     decimal(3,2),
+  dateid   date,
+  timeid   time,
+  yearid   year,
+  dtid     datetime,
+  tsid     timestamp,
+  name     varchar(25),
+  name1    char(10),
+  tbname   tinyblob,
+  txname   tinytext,
+  bname    blob,
+  tname    text,
+  mbname   mediumblob,
+  mtname   mediumtext,
+  lbname   longblob,
+  ltname   longtext,
+  a        SET('A','B','C'),
+  b        ENUM('F','M','L')
+);
+
+--enable_warnings ER_BINLOG_UNSAFE_STATEMENT
+insert into alltype values
+(1, 2, 3, 4, 5, 5.61, 5.554, 6.987, '2020-06-01', '18:18:16', 2020, '2020-06-01 00:00:00', '2020-06-01 00:00:00', 'ss', 'ss', 'xx', 'xx', 'ss', 'ss', 'xx', 'xx', 's', 'x', 'A', 'M'), 
+(2, 2, 3, 4, 5, 5.61, 5.554, 6.987, '2020-06-01', '18:18:16', 2020, '2020-06-01 00:00:00', '2020-06-01 00:00:00', 'ss', 'ss', 'xx', 'xx', 'ss', 'ss', 'xx', 'xx', 's', 'x', 'B', 'F');
+let $have_binlog_format_stmt= `SELECT @@binlog_format LIKE 'STATEMENT'`;
+if ($have_binlog_format_stmt)
+{
+  --disable_warnings ER_BINLOG_UNSAFE_STATEMENT ONCE
+}
+merge into alltype using tm2 on(alltype.id = tm2.a) 
+when matched then update set 
+  alltype.tinyid = tm2.a,
+  alltype.smallid = tm2.a, 
+  alltype.medid = tm2.b, 
+  alltype.bigid = tm2.b, 
+  alltype.floid = 6.99, 
+  alltype.douid = 6.999,
+  alltype.deid = 6.999,
+  alltype.dateid = '2020-09-09',
+  alltype.timeid = '13:50:16',
+  alltype.yearid = 2021,
+  alltype.dtid = '2020-09-09 12:12:12',
+  alltype.tsid = '2020-09-09 12:12:12',
+  alltype.name = 'abc',
+  alltype.name1 = 'abcd',
+  alltype.tbname = 'abcde',
+  alltype.txname = 'abcdef',
+  alltype.bname = 'abcdefg',
+  alltype.tname = 'abcdefgh',
+  alltype.mbname = 'abcdefghl',
+  alltype.mtname = 'abcdefghlm',
+  alltype.lbname = 'abcdefghlmn',
+  alltype.ltname = 'abcdefghlmno',
+  alltype.a = 'C',
+  alltype.b = 'L'
+when not matched then insert 
+(tinyid,smallid,medid,bigid,floid,douid,deid,dateid,timeid,yearid,dtid,tsid,name,name1,tbname,txname,bname,tname,mbname,mtname,lbname,ltname,a,b) values
+(tm2.a, tm2.a, tm2.b, tm2.b, 5.61, 5.554, 6.987, '2020-06-01', '18:18:16', 2020, '2020-06-01 00:00:00', '2020-06-01 00:00:00', 'ss', 'ss', 'xx', 'xx', 'ss', 'ss', 'xx', 'xx', 's', 'x', 'A', 'M');
+select * from alltype;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_25: source table and target table from different database
+--echo ---------------------------------------------------------------
+create database merge_db2;
+create table merge_db2.tm2 (a int, b int);
+insert into merge_db2.tm2 values (1,7),(2,8),(5,5),(6,6);
+delete from tm1;
+insert into tm1 values (1,1),(1,2),(2,1),(2,2);
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT ONCE
+merge into tm1 using merge_db2.tm2 on (tm1.a = tm2.a) when matched then update set tm1.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from tm1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_26: json_table
+--echo ---------------------------------------------------------------
+set @str='{"name":[{"a":"1","b":"2"},  {"a":"2","b":"1"},{"a":"3","b":"3"}]}';
+--echo ## Test_26_1: source table is json_table
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT ONCE
+merge into tm1 using  json_table(@str,'$.name[*]' columns (a int path '$.a', b int path '$.b')) as tt on (tm1.a=tt.a) when matched then update set tm1.b=tt.b when not matched then insert values (tt.a,tt.b);
+select * from tm1;
+--echo ## Test_26_2: target table is json_table
+--error ER_NON_UPDATABLE_TABLE
+merge into json_table(@str,'$.name[*]' columns (a int path '$.a', b int path '$.b')) t using tm1 on(t.a=tm1.a) when matched then update set t.b=100;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_27: MERGE INTO accepts invalid date from default val
+--echo ---------------------------------------------------------------
+
+SET @@session.sql_mode='';
+
+CREATE TABLE default_date(a DATE NOT NULL DEFAULT '0000-00-00', b int);
+
+INSERT INTO default_date VALUES();
+INSERT INTO default_date VALUES(DEFAULT, DEFAULT);
+
+SET @@session.sql_mode='STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE';
+SET binlog_row_image = FULL;
+
+--error ER_TRUNCATED_WRONG_VALUE
+merge into default_date using tm2 on(default_date.b=tm2.a) when not matched then insert values();
+
+--error ER_TRUNCATED_WRONG_VALUE
+merge into default_date using tm2 on(default_date.b=tm2.a) when not matched then insert values(default,1);
+
+--error ER_TRUNCATED_WRONG_VALUE
+merge into default_date using tm2 on(default_date.b=tm2.a) when not matched then insert values ('0000-00-00',2);
+--error ER_TRUNCATED_WRONG_VALUE
+merge into default_date using tm2 on(default_date.b=tm2.a) when not matched then insert (a,b) values ('0000-00-00',2);
+
+--error ER_TRUNCATED_WRONG_VALUE
+merge into default_date using default_date dt on(default_date.b=dt.b+1) when not matched then insert (a,b) values (dt.a,dt.b);
+
+SELECT * FROM default_date;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_27: MERGE INTO accepts function default datetime
+--echo ---------------------------------------------------------------
+SET binlog_row_image = MINIMAL;
+CREATE TABLE default_date2(a timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP, b int);
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT ONCE
+merge into default_date2 using tm2 on(default_date2.b=tm2.a) when not matched then insert values();
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT ONCE
+merge into default_date2 using tm2 on(default_date2.b=tm2.a) when not matched then insert values(default,tm2.b);
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT ONCE
+merge into default_date2 using tm2 on(default_date2.b=tm2.a) when matched then update set default_date2.a=default;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_28: MERGE INTO json partial update
+--echo ---------------------------------------------------------------
+SET @old_binlog_row_value_options = @@session.binlog_row_value_options;
+SET @old_binlog_row_image = @@session.binlog_row_image;
+--disable_warnings ER_WARN_BINLOG_PARTIAL_UPDATES_DISABLED ONCE
+SET @@session.binlog_row_value_options = PARTIAL_JSON;
+SET @@session.binlog_row_image = MINIMAL;
+
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT
+
+CREATE TABLE json_partial(id INT PRIMARY KEY AUTO_INCREMENT,
+               json_col JSON,
+               name VARCHAR(100) AS (json_col->>'$.name'),
+               age INT AS (json_col->'$.age'));
+
+INSERT INTO json_partial(json_col) VALUES
+(JSON_OBJECT('name', 'Joe', 'age', 24,
+             'data', REPEAT('x', 10 * 1000 * 1000))),
+(JSON_OBJECT('name', 'Sue', 'age', 32,
+             'data', REPEAT('y', 10 * 1000 * 1000))),
+(JSON_OBJECT('name', 'Pete', 'age', 40,
+             'data', REPEAT('z', 10 * 1000 * 1000))),
+(JSON_OBJECT('name', 'Jenny', 'age', 27,
+             'data', REPEAT('w', 10 * 1000 * 1000)));
+
+INSERT INTO json_partial(json_col) SELECT json_col FROM json_partial;
+INSERT INTO json_partial(json_col) SELECT json_col FROM json_partial;
+
+create table json_p_s (a int,b int);
+insert into json_p_s select id,id from json_partial;
+
+merge into json_partial using json_p_s on (json_partial.id=json_p_s.a) when matched then update set json_partial.json_col = json_set(json_col, '$.age', age + 1);
+--enable_warnings ER_BINLOG_UNSAFE_STATEMENT
+
+SET @@session.binlog_row_value_options = @old_binlog_row_value_options;
+SET @@session.binlog_row_image = @old_binlog_row_image;
+--disable_warnings ER_BINLOG_UNSAFE_STATEMENT
+
+--echo ---------------------------------------------------------------
+--echo ## Test_29: MERGE INTO + start with connect by
+--echo ---------------------------------------------------------------
+create table nums (pid int primary key, ppid int);
+insert into nums values (1, 0);
+insert into nums values (2, 0);
+insert into nums values (3, 2);
+insert into nums values (4, 2);
+insert into nums values (5, 2);
+insert into nums values (6, 1);
+insert into nums values (7, 1);
+insert into nums values (8, 2);
+insert into nums values (9, 6);
+insert into nums values (10,6);
+
+--disable_result_log
+--error ER_NON_UPDATABLE_TABLE
+merge into (select * from nums start with pid = 1 connect by ppid = prior pid) dt using tm2 on(dt.pid=tm2.a) when matched then update set dt.ppid=tm2.b when not matched then insert values (tm2.a,tm2.b);
+--enable_result_log
+
+delete from tm1;
+insert into tm1 values(1,1),(6,6);
+merge into tm1 using (select * from nums start with pid = 1 connect by ppid = prior pid) dt on(dt.pid=tm1.a) when matched then update set tm1.b=dt.ppid when not matched then insert values (dt.pid,dt.ppid);
+select * from tm1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_30: MERGE INTO + minus
+--echo ---------------------------------------------------------------
+merge into tm1 using (select * from tm1 minus select * from tm2) dt on(tm1.a=dt.a) when matched then update set tm1.b=1 when not matched then insert values (dt.a,dt.b);
+select * from tm1;
+--error ER_NON_UPDATABLE_TABLE
+merge into (select * from tm1 minus select * from tm2) dt using tm1 on(tm1.b=dt.b) when matched then update set dt.a=2 when not matched then insert values (tm1.a,tm1.b);
+
+--echo ---------------------------------------------------------------
+--echo ## Test_31: MERGE INTO + full join
+--echo ---------------------------------------------------------------
+merge into tm1 using (select tm1.a a, tm1.b b, tm2.a c, tm2.a d from tm1 full join tm2 on tm1.a=tm2.a) dt on(tm1.a=dt.a) when matched then update set tm1.b=1 when not matched then insert values (dt.a,dt.b);
+select * from tm1;
+# error result with random msg
+--disable_result_log
+--error ER_NON_UPDATABLE_TABLE
+merge into (select tm1.a a, tm1.b b, tm2.a c, tm2.a d from tm1 full join tm2 on tm1.a=tm2.a) dt using tm1 on(tm1.b=dt.b) when matched then update set dt.a=2 when not matched then insert values (tm1.a,tm1.b);
+--enable_result_log
+
+--echo ---------------------------------------------------------------
+--echo ## Test_32: Empty source table
+--echo ---------------------------------------------------------------
+create table et (a int, b int);
+merge into tm1 using et on (tm1.a=et.a) when matched then update set tm1.b=et.b when not matched then insert values (et.a, et.b);
+select * from tm1;
+
+if (!$have_binlog_format_stmt)
+{
+  --enable_warnings ER_BINLOG_UNSAFE_STATEMENT
+}
+
+--echo ---------------------------------------------------------------
+--echo ## Test_33: Empty target table
+--echo ---------------------------------------------------------------
+truncate tm1;
+merge into tm1 using tm2 on (tm1.a=tm2.a) when matched then update set tm1.b=tm2.b when not matched then insert values (tm2.a,tm2.b);
+select * from tm1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_34: Source table is partition table
+--echo ---------------------------------------------------------------
+merge into tm1 using pt1 on (tm1.a=pt1.a) when matched then update set tm1.b=pt1.b when not matched then insert values (pt1.a,pt1.b);
+select * from tm1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_35: Source table is view
+--echo ---------------------------------------------------------------
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+create view vs as select * from tm2;
+merge into tm1 using vs on (tm1.a=vs.a) when matched then update set tm1.b=vs.b when not matched then insert values (vs.a,vs.b);
+select * from tm1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_36: Source table has primary key
+--echo ---------------------------------------------------------------
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+delete from tk1;
+insert into tk1 values (1,2),(2,1),(3,3),(4,4);
+merge into tm1 using tk1 on (tm1.a=tk1.a) when matched then update set tm1.b=tk1.b when not matched then insert values (tk1.a,tk1.b);
+select * from tm1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_37: Source table has unique key <secondary index>
+--echo ---------------------------------------------------------------
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+delete from tk2;
+insert into tk2 values (1,2),(2,1),(3,3),(4,4);
+merge into tm1 using tk2 on (tm1.a=tk2.a) when matched then update set tm1.b=tk2.b when not matched then insert values (tk2.a,tk2.b);
+select * from tm1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_38: Columns have same type and different precision
+--echo ---------------------------------------------------------------
+create table prec1 (a int, b decimal(7,4));
+create table prec2 (a int, b decimal(10,6));
+insert into prec1 values (1, 1.5),(2, 2.5),(3, 3.5);
+insert into prec2 values (1, 321.2566),(2, 32.23572),(3, 2222.5555),(4, 4.2626),(5, 24.23444),(6, 2422.4444);
+merge into prec1 using prec2 on (prec1.a=prec2.a) when matched then update set prec1.b=prec2.b where prec2.a<3 when not matched then insert values (prec2.a,prec2.b) where prec2.a in (4,5);
+select * from prec1;
+--error ER_WARN_DATA_OUT_OF_RANGE
+merge into prec1 using prec2 on (prec1.a=prec2.a) when matched then update set prec1.b=prec2.b where prec2.a=3;
+--error ER_WARN_DATA_OUT_OF_RANGE
+merge into prec1 using prec2 on (prec1.a=prec2.a) when not matched then insert values (prec2.a,prec2.b) where prec2.a=6;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_39: Columns have different and substitutable types
+--echo ---------------------------------------------------------------
+create table sub1 (a int, b float);
+create table sub2 (a int, b decimal(10,4));
+insert into sub1 values (1, 1.5),(2, 2.5);
+insert into sub2 values (1, 1.22),(2, 2.22),(3, 3.22),(4, 4.22);
+merge into sub1 using sub2 on(sub1.a=sub2.a) when matched then update set sub1.b=sub2.b when not matched then insert values (sub2.a,sub2.b);
+select * from sub1;
+
+create table sub3 (a int, b float);
+create table sub4 (a int, b decimal(10,4));
+insert into sub3 values (1, 1.54252),(2, 11143114.335),(3, 254.333), (4, 1.54252),(5, 11143114.335),(6, 254.333);
+insert into sub4 values (1, 1.22),(2, 2.22),(3, 3.22);
+merge into sub4 using sub3 on(sub4.a=sub3.a) when matched then update set sub4.b=sub3.b where sub3.a!=2 when not matched then insert values (sub3.a,sub3.b) where sub3.a!=5;
+select * from sub4;
+--error ER_WARN_DATA_OUT_OF_RANGE
+merge into sub4 using sub3 on(sub4.a=sub3.a) when matched then update set sub4.b=sub3.b where sub3.a=2;
+--error ER_WARN_DATA_OUT_OF_RANGE
+merge into sub4 using sub3 on(sub4.a=sub3.a) when not matched then insert values (sub3.a,sub3.b) where sub3.a=5;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_40: Non-stable set use first record to update
+--echo ---------------------------------------------------------------
+delete from tm1;
+delete from tm2;
+insert into tm1 values (1,1),(2,2);
+insert into tm2 values (1,11),(2,12),(1,21),(2,22),(1,31),(2,32);
+merge into tm1 using tm2 on (tm1.a = tm2.a) when matched then update set tm1.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from tm1;
+
+delete from tk1;
+insert into tk1 values (1,1),(2,2);
+merge into tk1 using tm2 on (tk1.a = tm2.a) when matched then update set tk1.b = tm2.b when not matched then insert values (tm2.a, tm2.b);
+select * from tk1;
+
+insert into tm2 values (5,41),(6,42),(5,47),(6,44);
+merge into pt1 using tm2 on (pt1.a = tm2.a) when matched then update set pt1.b=tm2.b;
+select * from pt1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_41: Keywords
+--echo ---------------------------------------------------------------
+## matched
+create database matched;
+create table matched.matched (matched int);
+drop database matched;
+
+## merge
+--error ER_PARSE_ERROR
+create database merge;
+--error ER_PARSE_ERROR
+create table merge (a int);
+--error ER_PARSE_ERROR
+create tabel t_m (merge int);
+
+create table t_m (a int) engine=merge;
+create table t_m2 (a int) SECONDARY_ENGINE=merge;
+create table t_m3(a int);
+alter table t_m3 engine=merge;
+--error ER_PARTITION_MERGE_ERROR
+create table pt_m (a int, b int) partition by range(a)(partition s1 values less than (5) engine=merge, partition s2 values less than MAXVALUE engine=merge);
+set @saved_engine=@@session.default_storage_engine;
+set @saved_tmp_engine=@@session.default_tmp_storage_engine;
+set @@session.default_storage_engine=MERGE,@@session.default_tmp_storage_engine=MERGE;
+set @@session.default_storage_engine=@saved_engine,@@session.default_tmp_storage_engine=@saved_tmp_engine;
+create algorithm=merge view v_m as select * from t_m;
+--disable_result_log
+show engine merge status;
+--enable_result_log
+
+--echo ---------------------------------------------------------------
+--echo ## Test_42: Cocurrent test
+--echo ---------------------------------------------------------------
+
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+delete from tm2;
+insert into tm2 values (1,2),(2,1),(3,3),(4,4);
+
+--exec_in_background $MYSQL_SLAP -$MYSQL_SLAP --silent --concurrency=5 --iterations=20 --number-int-cols=2 --number-char-cols=3 --auto-generate-sql 2>&1
+
+--disable_result_log
+--exec $MYSQL_SLAP --create-schema=merge_db --delimiter=";" --iterations=100 --query="merge into tm1 using tm2 on (tm1.a = tm2.a) when matched then update set tm1.b = tm1.b+1 when not matched then insert values (tm2.a, tm2.b);" --concurrency=10
+--enable_result_log
+
+select * from tm1;
+
+--echo ---------------------------------------------------------------
+--echo ## Test_43: Subqueries & explain format=json
+--echo ---------------------------------------------------------------
+## subqueries in insert value list, update value list, insert where, update where
+if ($have_binlog_format_stmt)
+{
+  --enable_warnings ER_BINLOG_UNSAFE_STATEMENT
+}
+
+explain format=json merge into tm1 using tm2 on (tm1.a=tm2.a) when matched then update set tm1.b = (select a from tm3 where rownum<=1) where tm2.b< (select a from tm3 where rownum<=1) when not matched then insert values ((select a from tm3 where rownum<=1), (select b from tm3 where rownum<=1)) where tm2.b< (select a from tm3 where rownum<=1);
+explain format=json merge into tm1 using tm2 on (tm1.a=tm2.a) when matched then update set tm1.b = 2 where tm2.b< (select a from tm3 where rownum<=1);
+explain format=json merge into tm1 using tm2 on (tm1.a=tm2.a) when not matched then insert values (1,1) where tm2.b< (select a from tm3 where rownum<=1);
+if ($have_binlog_format_stmt)
+{
+  --disable_warnings ER_BINLOG_UNSAFE_STATEMENT
+}
+
+delete from tm1;
+insert into tm1 values (1,1),(2,2);
+merge into tm1 using tm2 on (tm1.a=tm2.a) when matched then update set tm1.b = (select a from tm3 where rownum<=1) where tm2.b< (select a from tm3 where rownum<=1) when not matched then insert values ((select a from tm3 where rownum<=1), (select b from tm3 where rownum<=1)) where tm2.b< (select a from tm3 where rownum<=1);
+select * from tm1;
+
+## subqueries in where condition of source derived table (oracle succeed)
+merge into (select tm1.a, tm1.b b from tm1 where a<= (select a from tm3 where rownum<=1)) dt using tm2 on(dt.a=tm2.a)when matched then update set b=10 when not matched then insert values (10,10);
+
+## This sql can be executed in Oracle (insert clause without assigned columns will lead to Oracle core dump but succeed with assigned update/insert column)
+## oracle failed with "ORA-01733: virtual column not allowed here"
+--error ER_NONUPDATEABLE_COLUMN
+merge into (select tm1.a, tm1.b b, (select a from tm3 where rownum<=1) e from tm1) dt using tm2 on(dt.a=tm2.a) when matched then update set e=10;
+## oracle failed with "ORA-00947: not enough values"), but mysql success because mysql use target base table columns to fill the insert column list.
+## That values list changes to (1,1,1) leads to Oracle core dump
+merge into (select tm1.a, tm1.b b, (select a from tm3 where rownum<=1) e from tm1) dt using tm2 on(dt.a=tm2.a) when not matched then insert values (10,10);
+--error ER_NONUPDATEABLE_COLUMN
+merge into (select tm1.a, tm1.b b, (select a from tm3 where rownum<=1) e from tm1) dt using tm2 on(dt.a=tm2.a) when not matched then insert (e) values (10);
+
+--echo ---------------------------------------------------------------
+--echo ## Test_44: source table use the same alias as base table of target table
+--echo ---------------------------------------------------------------
+merge into tm1 dt using tm2 tm1 on (dt.a=tm1.a) when not matched then insert values(1,1) when matched then update set dt.b=10;
+merge into tm1 using tm2 tm1 on (1!=1) when not matched then insert values(10,10);
+
+--echo ---------------------------------------------------------------
+--echo ## End test merge into
+--echo ---------------------------------------------------------------
+if ($have_binlog_format_stmt) {
+  --enable_warnings ER_BINLOG_UNSAFE_STATEMENT
+}
+--connection slave
+#--source include/stop_slave.inc
+#--source include/wait_for_slave_to_stop.inc
+#--let $gtid_slave = query_get_value(show slave status, Retrieved_Gtid_Set, 1)
+
+--connection master
+#--let $gtid_master= query_get_value(show master status, Executed_Gtid_Set, 1)
+#if ($gtid_slave != $gtid_master) {
+#  die Failed to replicate from master to slave;  
+#}
+drop database if exists merge_db;
+drop database if exists merge_db2;
+SET @@session.sql_mode=@old_sql_mode;
+
+#--connection slave
+#drop database if exists merge_db;
+#drop database if exists merge_db2;
+
+--source include/rpl_end.inc
+#--source include/force_restart.inc

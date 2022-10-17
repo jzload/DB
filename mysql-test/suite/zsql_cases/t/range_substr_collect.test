@@ -1,0 +1,106 @@
+# functional ora range substr
+# 本用例主要检查在utf8mb4_bin collect时insert 空格会影响分区 
+
+drop database if exists range_substr_test;
+create database if not exists range_substr_test;
+use range_substr_test;
+--echo varchar utf8mb4_0900_ai_ci
+create table if not exists t1
+( id1 int, name char(15), city varchar(15), country char(7), primary key (id1,city)) 
+partition by range (substr(city,8,5)) 
+(PARTITION part_0 VALUES less than (' '), 
+PARTITION part_1 VALUES less than ('11'), 
+PARTITION part_2 VALUES less than ('1XX'),
+PARTITION part_3 VALUES less than ('55'), 
+PARTITION part_4 VALUES less than ('5XX'), 
+PARTITION part_5 VALUES less than ('99'), 
+PARTITION part_6 VALUES less than ('9XX X'), 
+PARTITION part_7 VALUES less than ('zz')) ;
+explain insert into t1 values (1,'sacac','02 2349','sce');
+explain insert into t1 values (1,'sacac','02 2349 ','sce');
+explain insert into t1 values (1,'sacac','02 2349  ','sce');
+explain insert into t1 values (1,'sacac','02 2349   ','sce');
+insert into t1 values (1,'sacac','02 2349','sce');
+insert into t1 values (1,'sacac','02 2349 ','sce');
+insert into t1 values (1,'sacac','02 2349  ','sce');
+insert into t1 values (1,'sacac','02 2349   ','sce');
+select * from t1;
+--echo varchar utf8mb4_bin
+create table if not exists t2
+( id1 int, name char(15), city varchar(15), country char(7),
+primary key (id1,city)) COLLATE=utf8mb4_bin 
+partition by range (substr(city,8,5)) 
+(PARTITION part_0 VALUES less than (' '), 
+PARTITION part_1 VALUES less than ('11'), 
+PARTITION part_2 VALUES less than ('1XX'),
+PARTITION part_3 VALUES less than ('55'), 
+PARTITION part_4 VALUES less than ('5XX'), 
+PARTITION part_5 VALUES less than ('99'), 
+PARTITION part_6 VALUES less than ('9XX X'), 
+PARTITION part_7 VALUES less than ('zz')) ;
+
+explain insert into t2 values (1,'sacac','02 2349','sce');
+explain insert into t2 values (1,'sacac','02 2349 ','sce');
+explain insert into t2 values (1,'sacac','02 2349  ','sce');
+explain insert into t2 values (1,'sacac','02 2349   ','sce');
+insert into t2 values (1,'sacac','02 2349','sce');
+--error 1062
+insert into t2 values (1,'sacac','02 2349 ','sce');
+--error 1062
+insert into t2 values (1,'sacac','02 2349  ','sce');
+--error 1062
+insert into t2 values (1,'sacac','02 2349   ','sce');
+select * from t2;
+
+--echo char utf8mb4_0900_ai_ci
+create table if not exists t3
+( id1 int, name char(15), city char(15), country char(7), primary key (id1,city)) 
+partition by range (substr(city,8,5)) 
+(PARTITION part_0 VALUES less than (' '), 
+PARTITION part_1 VALUES less than ('11'), 
+PARTITION part_2 VALUES less than ('1XX'),
+PARTITION part_3 VALUES less than ('55'), 
+PARTITION part_4 VALUES less than ('5XX'), 
+PARTITION part_5 VALUES less than ('99'), 
+PARTITION part_6 VALUES less than ('9XX X'), 
+PARTITION part_7 VALUES less than ('zz')) ;
+explain insert into t3 values (1,'sacac','02 2349','sce');
+explain insert into t3 values (1,'sacac','02 2349 ','sce');
+explain insert into t3 values (1,'sacac','02 2349  ','sce');
+explain insert into t3 values (1,'sacac','02 2349   ','sce');
+insert into t3 values (1,'sacac','02 2349','sce');
+--error 1062
+insert into t3 values (1,'sacac','02 2349 ','sce');
+--error 1062
+insert into t3 values (1,'sacac','02 2349  ','sce');
+--error 1062
+insert into t3 values (1,'sacac','02 2349   ','sce');
+select * from t3;
+--echo char utf8mb4_bin
+create table if not exists t4
+( id1 int, name char(15), city char(15), country char(7),
+primary key (id1,city)) COLLATE=utf8mb4_bin 
+partition by range (substr(city,8,5)) 
+(PARTITION part_0 VALUES less than (' '), 
+PARTITION part_1 VALUES less than ('11'), 
+PARTITION part_2 VALUES less than ('1XX'),
+PARTITION part_3 VALUES less than ('55'), 
+PARTITION part_4 VALUES less than ('5XX'), 
+PARTITION part_5 VALUES less than ('99'), 
+PARTITION part_6 VALUES less than ('9XX X'), 
+PARTITION part_7 VALUES less than ('zz')) ;
+
+explain insert into t4 values (1,'sacac','02 2349','sce');
+explain insert into t4 values (1,'sacac','02 2349 ','sce');
+explain insert into t4 values (1,'sacac','02 2349  ','sce');
+explain insert into t4 values (1,'sacac','02 2349   ','sce');
+insert into t4 values (1,'sacac','02 2349','sce');
+--error 1062
+insert into t4 values (1,'sacac','02 2349 ','sce');
+--error 1062
+insert into t4 values (1,'sacac','02 2349  ','sce');
+--error 1062
+insert into t4 values (1,'sacac','02 2349   ','sce');
+select * from t4;
+drop database range_substr_test;
+

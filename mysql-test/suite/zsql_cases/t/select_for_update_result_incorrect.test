@@ -1,0 +1,43 @@
+##########################################################
+# test cases for "transaction_max_binlog_size"
+##########################################################
+--source include/have_debug.inc
+
+--echo ##########################################################
+--echo # create database table
+--echo ##########################################################
+--disable_warnings
+drop database if exists linpin_sfu;
+--enable_warnings
+create database linpin_sfu;
+use linpin_sfu;
+
+--disable_warnings
+CREATE TABLE `t_orderby` (
+  `id1` int(11) NOT NULL,
+  `id2` int(11) NOT NULL,
+  `id3` varchar(64) COLLATE utf8_bin NOT NULL,
+  `id4` int(11) DEFAULT NULL,
+  `id5` int(11) DEFAULT NULL,
+  `id6` varchar(64) COLLATE utf8_bin DEFAULT NULL,
+  PRIMARY KEY (`id1`,`id2`,`id3`),
+  KEY `id4` (`id4`,`id5`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin; 
+--enable_warnings
+
+load data infile '../../std_data/t_orderby.csv' into table t_orderby FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' 
+LINES TERMINATED BY '\n';
+
+set session debug="d,compare_end_range";
+
+--disable_result_log
+select * from t_orderby where id1>1 and id1<23;
+--enable_result_log
+
+select * from t_orderby where id1 = 1 for update;
+
+drop database if exists linpin_sfu;
+
+
+
+

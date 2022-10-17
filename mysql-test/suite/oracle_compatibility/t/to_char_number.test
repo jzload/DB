@@ -1,0 +1,653 @@
+#
+#Test to_char
+#
+#no field
+#1、不指定格式的 TO_CHAR函数将数值转换成简单字符串形式。
+
+select '01.01.1' as _CASE_;
+select to_char(123) from dual;
+select '01.01.2' as _CASE_;
+select to_char(-123) from dual;
+select '01.01.3' as _CASE_;
+select to_char("exit") from dual;
+select '01.01.4' as _CASE_;
+select to_char("&&$$!@~&^&@~!%#%") from dual;
+select '01.01.5' as _CASE_;
+select to_char(000) from dual;
+
+#2.元素9
+#原串及格式前后长度 出错处理
+select '01.01.6' as _CASE_;
+select  TO_CHAR(1234,'9999') from dual;
+select '01.01.7' as _CASE_;
+select  TO_CHAR(234,'99999') from dual;
+select '01.01.8' as _CASE_;
+select  TO_CHAR(1234,'999') from dual;
+select '01.01.9' as _CASE_;
+select  TO_CHAR(-1234,'9999') from dual;
+select '01.01.10' as _CASE_;
+select  TO_CHAR(-234,'99999') from dual;
+select '01.01.11' as _CASE_;
+select  TO_CHAR(-1234,'999') from dual;
+
+
+#整数
+select '01.01.12-17' as _CASE_;
+select TO_CHAR(567,'9999.99') from dual;
+select TO_CHAR(1234567,'9999.99') from dual;
+select TO_CHAR(1234,'9999.99') from dual;
+select TO_CHAR(12345,'9999.99') from dual;
+select TO_CHAR(-123456,'9999.99') from dual;
+select TO_CHAR(45.789,'9999.99')  from dual;
+
+
+#整数+小数
+select '01.01.18-22' as _CASE_;
+select TO_CHAR(567.001,'9999.99') from dual;
+select TO_CHAR(567,'9999.99') from dual;
+select TO_CHAR(567.999,'9999.99') from dual;
+select TO_CHAR(567.99,'9999.99') from dual;
+select TO_CHAR(567.9,'9999.99') from dual;
+
+select '01.01.23-30' as _CASE_;
+select TO_CHAR(45.6789,'9,9.99')  from dual;
+select TO_CHAR(45.6,'9')  from dual;
+select TO_CHAR(0.0006,'99')  from dual;
+select TO_CHAR(0,'.99S')  from dual;
+select TO_CHAR(0,'.99')  from dual;
+select TO_CHAR(0,'s.99')  from dual;
+select TO_CHAR(0,'99.99')  from dual;
+select TO_CHAR(-0,'99.99')  from dual;
+select '01.01.31-34' as _CASE_;
+select TO_CHAR(0.0006,'99.99')  from dual;
+select TO_CHAR(0.0006,'99.999')  from dual;
+select TO_CHAR(0.0006,'99.9999')  from dual;
+select TO_CHAR(0.0006,'99.99999')  from dual;
+
+select '01.01.35-37' as _CASE_;
+select TO_CHAR(0.0006,'99.9')  from dual;
+select TO_CHAR(0.6,'99')  from dual;
+select TO_CHAR(0.677,'99')  from dual;
+
+select '01.01.38-40' as _CASE_;
+select TO_CHAR(12345.677,'99,$99,9')  from dual;
+select TO_CHAR(12345.677,'99,99,9.99')  from dual;
+select TO_CHAR(12345.677,'99,$99,9.99')  from dual;
+
+select '01.01.41-45' as _CASE_;
+select TO_CHAR(45.6,'99')  from dual;
+select TO_CHAR(45.6,'9,9')  from dual;
+select TO_CHAR(45.6,'99,9')  from dual;
+select TO_CHAR(45.6,'99,9.99')  from dual;
+select TO_CHAR(45.69,'99,9.99')  from dual;
+select '01.01.46-50' as _CASE_;
+select TO_CHAR(45.6789,'99,9.99')  from dual;
+select TO_CHAR(45.6789,'9,9,9.99')  from dual;
+select TO_CHAR(45.99999,'9,9.9999')  from dual;
+select TO_CHAR(45.99999,'99,9.9999')  from dual;
+select TO_CHAR(45.99999,'9,9,9.9999')  from dual;
+
+select '01.01.51-58' as _CASE_;
+select TO_CHAR(45.6,'99,9')  from dual;
+select TO_CHAR(0.6,'99,9')  from dual;
+select TO_CHAR(0.6,'9,9,9,9')  from dual;
+select TO_CHAR(0.6,'99,9,9,9')  from dual;
+select TO_CHAR(0.6,'99,9,9,99')  from dual;
+select TO_CHAR(0.6,'99,9,9,99.9')  from dual;
+select TO_CHAR(0.6,'99,9,9,99.99')  from dual;
+select TO_CHAR(123.6,'99,9,9,99.99')  from dual;
+
+
+#小数
+#无进位
+select '01.01.59-60' as _CASE_;
+select TO_CHAR(0.56784,'9,9.9999')  from dual;
+select TO_CHAR(0.56789,'9,9.9999')  from dual;
+#进位
+select '01.01.61-66' as _CASE_;
+select TO_CHAR(0.99999,'9,9.9999')  from dual;
+select TO_CHAR(0.99999,'99,9.9999')  from dual;
+select TO_CHAR(0.99999,'9,9,9.9999')  from dual;
+select TO_CHAR(0.099999,'9,9,9.9999')  from dual;
+select TO_CHAR(0.0099999,'9,9,9.9999')  from dual;
+select TO_CHAR(-0.0099999,'9,9,9.9999')  from dual;
+
+
+#3 元素0
+#原串及格式前后长度 出错处理
+select '01.02.1-6' as _CASE_;
+select  TO_CHAR(1234,'0000') from dual;
+select  TO_CHAR(234,'00999') from dual;
+select  TO_CHAR(1234,'000') from dual;
+select  TO_CHAR(-1234,'0000') from dual;
+select  TO_CHAR(-234,'00000') from dual;
+select  TO_CHAR(-1234,'000') from dual;
+
+
+
+#整数
+select '01.02.7-12' as _CASE_;
+select TO_CHAR(567,'0099.99') from dual;
+select TO_CHAR(1234567,'0099.99') from dual;
+select TO_CHAR(1234,'9999.00') from dual;
+select TO_CHAR(12345,'9900.99') from dual;
+select TO_CHAR(-123456,'0999.99') from dual;
+select TO_CHAR(45.789,'0099.99')  from dual;
+
+#0 位置 从前到后
+select '01.02.13-23' as _CASE_;
+select TO_CHAR(345.789,'0099.99')  from dual;
+select TO_CHAR(345.789,'099.99')  from dual;
+select TO_CHAR(345.789,'909.99')  from dual;
+select TO_CHAR(345.789,'90.99')  from dual;
+select TO_CHAR(345.789,'9090.09')  from dual;
+select TO_CHAR(345.789,'9900.09')  from dual;
+select TO_CHAR(345.789,'09090.00')  from dual;
+select TO_CHAR(345.789,'09990.00')  from dual;
+select TO_CHAR(345.789,'90990.090')  from dual;
+select TO_CHAR(345.789,'99990.0900')  from dual;
+select TO_CHAR(345.789,'9099.9990')  from dual;
+
+#0  ， 9 混合
+select '01.02.24-28' as _CASE_;
+select TO_CHAR(345.789,'90,990.090')  from dual;
+select TO_CHAR(345.789,'9,0990.090')  from dual;
+select TO_CHAR(345.789,'9,0,9,9,0.090')  from dual;
+select TO_CHAR(345.789,'909,9,0.090')  from dual;
+select TO_CHAR(345.789,'90,99,990.090')  from dual;
+
+select '01.02.29-35' as _CASE_;
+select TO_CHAR(345.789,'909,9,0.090$')  from dual;
+select TO_CHAR(345.789,'909,9,0.090MI')  from dual;
+select TO_CHAR(-345.789,'909,9,0.090MI')  from dual;
+select TO_CHAR(-345.789,'$909,9,0.090MI')  from dual;
+select TO_CHAR(-345.789,'$909,9,0.090')  from dual;
+select TO_CHAR(-345.789,'9909,9,0.090MI')  from dual;
+select TO_CHAR(-345.789,'9909,9,0.090')  from dual;
+
+
+#整数+小数
+select '01.02.36-41' as _CASE_;
+select TO_CHAR(45.6789,'0,9.99')  from dual;
+select TO_CHAR(45.6789,'09,9.99')  from dual;
+select TO_CHAR(45.6789,'0,0,9.99')  from dual;
+select TO_CHAR(45.99999,'9,0.9999')  from dual;
+select TO_CHAR(45.99999,'90,9.9999')  from dual;
+select TO_CHAR(45.99999,'0,9,9.9999')  from dual;
+
+#小数
+#无进位
+select '01.02.42-43' as _CASE_;
+select TO_CHAR(0.56784,'0,0.0999')  from dual;
+select TO_CHAR(0.56789,'0,0.0999')  from dual;
+#进位
+select '01.02.44-50' as _CASE_;
+select TO_CHAR(0.99999,'0,0.9999')  from dual;
+select TO_CHAR(0.99999,'00,9.9999')  from dual;
+select TO_CHAR(0.99999,'0,0,9.9999')  from dual;
+select TO_CHAR(0.099999,'0,0,0.0999')  from dual;
+select TO_CHAR(0.0099999,'0,0,0.0999')  from dual;
+select TO_CHAR(-0.0099999,'0,0,0.0999')  from dual;
+
+select TO_CHAR(-0.0099999,'0.00000999')  from dual;
+
+
+
+
+
+#EEEE 科学计数法
+select '01.03.1-4' as _CASE_;
+select  TO_CHAR(567,'9.9EEEE') from dual;
+select  TO_CHAR(45,'9.9EEEE')   from dual;
+select  TO_CHAR(0.0666,'9.9EEEE') from dual;
+select  TO_CHAR(2008032001,'9.9EEEE')  from dual;
+
+select '01.03.5-9' as _CASE_;
+select TO_CHAR(2008032001,'9.9EEEE') from dual;
+select TO_CHAR(0.0666,'9.9EEEE') from dual;
+select TO_CHAR(0.0666,'9.99EEEE') from dual;
+select TO_CHAR(0.0666,'9.999EEEE') from dual;
+
+select '01.03.10-12' as _CASE_;
+select TO_CHAR(0.0999,'9.999EEEE') from dual;
+select TO_CHAR(0.099,'9.999EEEE') from dual;
+select TO_CHAR(0.09,'9.999EEEE') from dual;
+
+select '01.03.13-16' as _CASE_;
+select TO_CHAR(0.0999,'9.9EEEE') from dual;
+select TO_CHAR(0.0999,'9.99EEEE') from dual;
+select TO_CHAR(0.09999,'9.99EEEE') from dual;
+select TO_CHAR(0.099,'9.999EEEE') from dual;
+
+select '01.03.17-19' as _CASE_;
+select TO_CHAR(0.00,'9.99EEEE') from dual;
+select TO_CHAR(0.00,'9.999EEEE') from dual;
+select TO_CHAR(0.0000,'9.999EEEE') from dual;
+
+select '01.03.20-21' as _CASE_;
+select TO_CHAR(1.9995,'9.999EEEE') from dual;
+select TO_CHAR(1.99,'9.999EEEE') from dual;
+
+select '01.03.22-25' as _CASE_;
+select TO_CHAR(388.99,'9.999EEEE') from dual;
+select TO_CHAR(388.94,'9.9999EEEE') from dual;
+
+select TO_CHAR(388.99,'9.99999EEEE') from dual;
+select TO_CHAR(388.94,'9.999999EEEE') from dual;
+
+select '01.03.26-27' as _CASE_;
+select TO_CHAR(9.99,'9.9EEEE') from dual;
+select TO_CHAR(9.99,'0.0EEEE') from dual;
+
+select '01.03.28-32' as _CASE_;
+select TO_CHAR(9.99,'9EEEE') from dual;
+select TO_CHAR(123.99,'9EEEE') from dual;
+select TO_CHAR(993.99,'9EEEE') from dual;
+select TO_CHAR(933.99,'9EEEE') from dual;
+select TO_CHAR(995.45678,'99999EEEE') from dual;
+
+select '01.03.33-36' as _CASE_;
+select TO_CHAR(9.99,'0EEEE') from dual;
+select TO_CHAR(5,'9.99EEEE') from dual;
+select TO_CHAR(0.5,'9EEEE') from dual;
+select TO_CHAR(0.5,'9.9EEEE') from dual;
+
+select '01.03.37-40' as _CASE_;
+select TO_CHAR(0.0045678,'9EEEE') from dual;
+select TO_CHAR(0.0045678,'9.9EEEE') from dual;
+select TO_CHAR(0.0045678,'9.99EEEE') from dual;
+
+select TO_CHAR(0.00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000099,'9.999EEEE') from dual;
+
+
+select '01.03.41-45' as _CASE_;
+select  to_char(12345,'9099') from dual;
+select TO_CHAR(123444444,'99900099.0000') from dual;
+
+select to_char(1234,'99099') from dual;
+select to_char(1234,'9099') from dual;
+select to_char(12,'90099')  from dual;
+
+
+
+ #4 fm去除空格
+#select to_char(5,'fm000') from dual;
+#select to_char(5,'fm000999') from dual;
+#select to_char(5,'fm99') from dual;
+
+
+#5 美元$
+select '01.05.1-5' as _CASE_;
+select TO_CHAR(1234,'$9999')   from dual;
+select TO_CHAR(-567,'$9999')   from dual;
+select TO_CHAR(-567,'99,$99')   from dual;
+select TO_CHAR(-999,'99,999$')   from dual;
+select TO_CHAR(-999,'99$')   from dual;
+
+#6 空格B  如果被转换数值整数部分是0就显示为空格
+select '01.06.1-2' as _CASE_;
+select TO_CHAR(567,'B999.9') from dual;
+select TO_CHAR(0567,'B999.9') from dual;
+#select TO_CHAR(567,'B999.9') from dual; 567.0
+#select TO_CHAR(507,'B9999.9') from dual; 空格567.0
+#select TO_CHAR(-567,'B999.9') from dual; -567.0
+#select TO_CHAR(0.44,'B999.9') from dual; .4
+#select  'S'||TO_CHAR(1234,'99B99')   from dual;  ='S 1234';
+
+
+
+#7 用元素MI的格式  负数则转换成末尾带减号的数
+select '01.07.1-2' as _CASE_;
+select TO_CHAR(567,'999MI') from dual;
+select TO_CHAR(-567,'999MI') from dual;
+
+select '01.07.3-6' as _CASE_;
+select TO_CHAR(567.56,'999.99MI') from dual;
+select TO_CHAR(-567.56,'999,9.99MI') from dual;
+select TO_CHAR(567.56,'999.9MI') from dual;
+select TO_CHAR(-567.56,'999.9MI') from dual;
+
+select '01.07.7-12' as _CASE_;
+select TO_CHAR(-0.9,'999.9MI') from dual;
+select TO_CHAR(-0.99,'999.9MI') from dual;
+select TO_CHAR(0.99,'999.9MI') from dual;
+select TO_CHAR(-567.56,'999.9S') from dual;
+
+--error 1583
+select TO_CHAR(-567,'MI999') from dual;
+--error 1583
+select TO_CHAR(-567,'99MI9') from dual;
+
+
+#8 用元素D的格式  在指定位置插入小数点
+select '01.08.1-4' as _CASE_;
+select TO_CHAR(567,'9999D99')  from dual;
+select TO_CHAR(-567,'9999D99') from dual;
+select TO_CHAR(567.866,'9999D99')  from dual;
+select TO_CHAR(567.866,'9999.99')  from dual;
+
+#9 用元素PR的格式  用尖括号包围负数
+select '01.09.1-2' as _CASE_;
+select TO_CHAR(567,'9999PR')  from dual;
+select TO_CHAR(-567,'9999PR') from dual;
+
+
+#10 用元素S的格式  转换成带有正负号的数字字符
+select '01.10.1-4' as _CASE_;
+select TO_CHAR(567,'S999')  from dual;
+select TO_CHAR(-567,'S999') from dual;
+select TO_CHAR(567,'999S')  from dual;
+select TO_CHAR(-567,'999S') from dual;
+
+select '01.10.5-8' as _CASE_;
+select TO_CHAR(567.678,'S999.999')  from dual;
+select TO_CHAR(-567.678,'S99,9.999') from dual;
+select TO_CHAR(567.678,'9,9,9.999S')  from dual;
+select TO_CHAR(-567.678,'9,99.99S') from dual;
+
+
+select '01.10.9-14' as _CASE_;
+select TO_CHAR(-567,'9999S') from dual;
+
+select TO_CHAR(-567,'99S') from dual;
+
+Select TO_CHAR(567,'$9999S') from dual;
+
+--error 1583
+Select TO_CHAR(567,'$S9999') from dual;
+
+select TO_CHAR(-567,'$9999S') from dual;
+select TO_CHAR(-567,'99PR') from dual;
+
+# The main testing script for to_char(number)
+
+select TO_CHAR(0)  from dual;
+
+select TO_CHAR(-0)  from dual;
+
+select TO_CHAR(123)  from dual;
+
+select TO_CHAR(-123) from dual;
+
+select to_char(123456789012345678901234567890123456789012345678901234567890123456789012345678901) from dual;
+
+select to_char(1234567890123456789012345678901234567890123456789012345678901234567890123456789012) from dual;
+
+select to_char(-123456789012345678901234567890123456789012345678901234567890123456789012345678901) from dual;
+
+select to_char(-1234567890123456789012345678901234567890123456789012345678901234567890123456789012) from dual;
+
+select to_char(1.234) from dual;
+
+select to_char(0.123) from dual;
+
+select to_char(1.234567890123456789012345678901234567890123456789012345678901234567890123) from dual;
+
+select to_char(1.2345678901234567890123456789012345678901234567890123456789012345678901234) from dual;
+
+select to_char(-1.234) from dual;
+
+select to_char(-0.123) from dual;
+
+select to_char(-1.234567890123456789012345678901234567890123456789012345678901234567890123) from dual;
+
+select to_char(-1.2345678901234567890123456789012345678901234567890123456789012345678901234) from dual;
+
+select to_char(10*123) from dual;
+
+select to_char(9994567890123456789012345678901234567890123456789012345678901234567890123456*99999) from dual;
+
+--error 1690
+select to_char(9994567890123456789012345678901234567890123456789012345678901234567890123456*100001) from dual;
+
+select to_char(-10*123) from dual;
+
+select to_char(-10*-123) from dual;
+
+select to_char(-9994567890123456789012345678901234567890123456789012345678901234567890123456*99999) from dual;
+
+--error 1690
+select to_char(-9994567890123456789012345678901234567890123456789012345678901234567890123456*100001) from dual;
+
+select to_char(1/4) from dual;
+
+select to_char(1/3) from dual;
+
+select to_char(0/3) from dual;
+
+select to_char(3/3) from dual;
+
+select to_char(3/0) from dual;
+
+select to_char(3+0) from dual;
+
+select to_char(3+10) from dual;
+
+select to_char(3.3+10.7) from dual;
+
+select to_char(3-10) from dual;
+
+select to_char(3-0) from dual;
+
+select to_char(3.0-0) from dual;
+
+select to_char('3.3+10.7') from dual;
+
+select to_char('3.3*10.7') from dual;
+
+select to_char('3/0') from dual;
+
+select to_char('3+') from dual;
+
+select to_char('3*') from dual;
+
+select to_char('12345678901234567890123456789012345678901234567890123456789012345678901234567890123567890123567890123567890123567890123567890') from dual;
+
+select to_char('<345>') from dual;
+
+select to_char(to_char(123));
+
+
+select  TO_CHAR(1234,'9999') from dual;
+ 
+select  TO_CHAR(1234,'09999') from dual;
+ 
+select  TO_CHAR(1234,'990099') from dual;
+
+select  TO_CHAR(1234,'0990099') from dual;
+
+select  TO_CHAR(567,'9999') from dual;
+
+select  TO_CHAR(-567,'9999') from dual;
+
+select  TO_CHAR(1234567,'9999') from dual;
+
+select  TO_CHAR(45.789,'9999') from dual;
+  
+select  TO_CHAR(567,'9999.99') from dual;
+  
+select  TO_CHAR(-567,'9999.99')  from dual;
+ 
+select  TO_CHAR(1234567,'9999.99') from dual;
+
+select  TO_CHAR(45.789,'9999.99') from dual;
+
+select  TO_CHAR(567,'9,999,999')  from dual;
+  
+select  TO_CHAR(-567,'9,999,999') from dual;
+  
+select  TO_CHAR(1234567,'9,9999,999') from dual;
+	
+select  TO_CHAR(0.44,'9,999,999')  from dual;
+
+select  TO_CHAR(1234,'$9999') from dual;
+
+select  TO_CHAR(-567,'$9999') from dual;
+
+select  TO_CHAR(567,'B999.9')  from dual;
+
+select  TO_CHAR(-567,'B999.9') from dual;
+
+select  TO_CHAR(0.44,'B999.9')  from dual;
+ 
+select  TO_CHAR(567,'999MI')  from dual;
+
+select  TO_CHAR(-567,'999MI') from dual;
+
+select  TO_CHAR(567,'S999')  from dual;
+
+select  TO_CHAR(-567,'S999')  from dual;
+
+select  TO_CHAR(567,'999S')   from dual;
+
+select  TO_CHAR(-567,'999S')  from dual;
+
+select  TO_CHAR(567,'9999PR')  from dual;
+
+select  TO_CHAR(-567,'9999PR')  from dual;
+select  TO_CHAR(123456.123456,'999999999.999999999')  from dual;
+
+select  TO_CHAR(123456.123456,'FM999999999.999999999')  from dual;
+
+select  TO_CHAR(123456.123456,'fm999999999.999999999')  from dual;
+
+select  TO_CHAR(123456.123456,'fM999999999.999999999')  from dual;
+
+select  TO_CHAR(123456.123456,'Fm999999999.999999999')  from dual;
+
+select  TO_CHAR(-123456.123456,'FM999999999.999999999')  from dual;
+
+select  TO_CHAR(123456.123456,'FM099999999.999999999')  from dual;
+
+select  TO_CHAR(123456.123456,'FM999999999.999999900')  from dual;
+
+select  TO_CHAR(123456.123456,'FM999999999.999990099')  from dual;
+
+select  TO_CHAR(-123456.123456,'FM9,99,999.999990099')  from dual;
+
+select  TO_CHAR(567,'9999D99')  from dual;
+
+select  TO_CHAR(-567,'9999D99') from dual;
+
+select  TO_CHAR(567.866,'9999D99') from dual;
+
+--error 1583
+select  TO_CHAR(1234,'   9999') result from dual;
+
+--error 1583
+select  TO_CHAR(1234,'99a99') result from dual;
+
+--error 1583
+select  TO_CHAR(123456.123456,'999999999.99.9999999')  from dual;
+
+--error 1583
+select  TO_CHAR(123456.123456,'999999D999.999999999')  from dual;
+
+--error 1583
+select  TO_CHAR(123456.123456,'999999999.999D999999')  from dual;
+
+--error 1583
+select  TO_CHAR(123456.123456,'999999D999D999999999')  from dual;
+ 
+select  TO_CHAR(123456.123456,'999999,999.999990099')  from dual;
+
+select  TO_CHAR(123456.123456,'9999,99,999.999990099')  from dual;
+
+select  TO_CHAR(123456.123456,'99,99,99,999.999990099')  from dual;
+
+select  TO_CHAR(123456.123456,'FM,99,99,999.999990099')  from dual;
+
+--error 1583
+select  TO_CHAR(123456.123456,'99,99,99,999.999,90099')  from dual;
+
+select  TO_CHAR(567,'9.9EEEE') from dual;
+
+select  TO_CHAR(45,'9.9EEEE') from dual;
+
+select  TO_CHAR(0.0666,'9.9EEEE') from dual;
+
+select  TO_CHAR(1234,9999) from dual;
+
+select  TO_CHAR(1234,09999) from dual;
+
+select  TO_CHAR(1234,00009999) from dual;
+
+select  TO_CHAR(1234,900009999) from dual;
+
+select  TO_CHAR(123456789,9999999999999999999) from dual;
+
+select  TO_CHAR(1.2,9.9) from dual;
+
+select  TO_CHAR(12.34,99.99) from dual;
+
+select  TO_CHAR(123456789.123456789,99999999999999.999999999) from dual;
+
+select  TO_CHAR(123456789.123456789,009999999999.9999999999) from dual;
+
+--error 1583
+select  TO_CHAR(-123456789,9999999999999999999MI) from dual;
+
+--error 1583
+select  TO_CHAR(-123456789,99999999s99999999999) from dual;
+
+--error 1583
+select  TO_CHAR(1234,MISS) from dual;
+
+select  TO_CHAR(1234,'MISS') from dual;
+
+select  TO_CHAR(2020-04-15,9999) from dual;
+
+--error 1583
+select  TO_CHAR('2020/04/15','9999') from dual;
+
+select  TO_CHAR(           123 ,'9999') from dual;
+
+select  TO_CHAR( '          123' ,'9999') from dual;
+
+select  TO_CHAR( '123' ,'9999') from dual;
+
+--error 1054
+select  TO_CHAR( $123 ,'9999') from dual;
+
+--error 1583
+select  TO_CHAR( '$123' ,'9999') from dual;
+
+--error 1583
+select  TO_CHAR( '$123' ,'999999999999') from dual;
+
+--error 1064
+select to_char(99.4.9,'99.99') result from dual;
+
+--error 1583
+select to_char('99.4.9','99.99') result from dual;
+
+--error 1583
+select to_char('--123','9.9EEEE') from dual;
+
+select to_char(123456789012345678901234567890123456789012345678901234567890123456789012345678901235678901235678901235678901235678,'9999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999');
+
+select to_char(99.99,'099') result from dual;
+
+select to_char(99.9999,'099.99') result from dual;
+
+select to_char(99.9999,'99') result from dual;
+
+select to_char(99.4999,'99') result from dual;
+
+select to_char(99.4999,'099.99') result from dual;
+
+select to_char(99.4949,'99.99') result from dual;
+
+select to_char(99.49,'099') result from dual;
+
+select to_char(99.49,'99') result from dual;
+
+select to_char(0,'9990.99') from dual;
+
+select to_char(0,'9900.99') from dual;
+ 
+select to_char(0,'9999.99') from dual;
+  
+select to_char(0,'0990.99') from dual;
+
+select lower(to_char('SQL Course')) from dual;

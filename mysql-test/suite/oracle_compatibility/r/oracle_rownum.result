@@ -1,0 +1,1068 @@
+SET @old_session_sql_mode=@@SESSION.sql_mode;
+SET @@SESSION.sql_mode='STRICT_TRANS_TABLES';
+Warnings:
+Warning	3135	'NO_ZERO_DATE', 'NO_ZERO_IN_DATE' and 'ERROR_FOR_DIVISION_BY_ZERO' sql modes should be used with strict mode. They will be merged with strict mode in a future release.
+DROP DATABASE IF EXISTS test_db_rownum;
+Warnings:
+Note	1008	Can't drop database 'test_db_rownum'; database doesn't exist
+CREATE DATABASE test_db_rownum;
+USE test_db_rownum;
+CREATE TABLE testtb (id INT PRIMARY KEY, name VARCHAR(10) , phone int);
+INSERT INTO testtb VALUES (1,'abc',1);
+INSERT INTO testtb VALUES (2,'def',2);
+INSERT INTO testtb VALUES (3,'fgh',3);
+INSERT INTO testtb VALUES (4,'asf',4);
+INSERT INTO testtb VALUES (5,'asdff',5);
+INSERT INTO testtb VALUES (6,'abc',6);
+INSERT INTO testtb VALUES (7,'a',7);
+INSERT INTO testtb VALUES (8,'a',8);
+INSERT INTO testtb VALUES (9,'b',9);
+INSERT INTO testtb VALUES (10,'d',10);
+CREATE TABLE testtb2 (id INT PRIMARY KEY, name VARCHAR(10) , phone int);
+INSERT INTO testtb2 VALUES (1,'abc',1);
+INSERT INTO testtb2 VALUES (3,'fgh',3);
+INSERT INTO testtb2 VALUES (6,'asf',6);
+CREATE TABLE testtb3 (id INT PRIMARY KEY, name VARCHAR(10) , phone int);
+INSERT INTO testtb3 VALUES (1,'abc',1);
+INSERT INTO testtb3 VALUES (2,'def',2);
+INSERT INTO testtb3 VALUES (5,'abc',5);
+INSERT INTO testtb3 VALUES (9,'fgh',9);
+INSERT INTO testtb3 VALUES (10,'asf',10);
+CREATE TABLE testtb4 (id INT PRIMARY KEY, name VARCHAR(10) , phone int);
+INSERT INTO testtb4 VALUES (1,'a',1);
+INSERT INTO testtb4 VALUES (2,'b',2);
+INSERT INTO testtb4 VALUES (3,'c',3);
+INSERT INTO testtb4 VALUES (4,'d',4);
+INSERT INTO testtb4 VALUES (5,'e',5);
+INSERT INTO testtb4 VALUES (6,'a',6);
+INSERT INTO testtb4 VALUES (7,'b',7);
+INSERT INTO testtb4 VALUES (8,'c',8);
+CREATE TABLE testtb5 (id INT PRIMARY KEY, name VARCHAR(10) , phone int);
+ALTER TABLE testtb5 ADD INDEX(id,name,phone);
+INSERT INTO testtb5 SELECT * FROM testtb4;
+CREATE TABLE testtb6 (id INT, name VARCHAR(10) , phone int);
+ALTER TABLE testtb6 ADD INDEX(id,name,phone);
+INSERT INTO testtb6 SELECT * FROM testtb4;
+CREATE TABLE testtb8 (id INT, name VARCHAR(10) , phone int);
+INSERT INTO testtb8 SELECT * FROM testtb4;
+SELECT ROWNUM;
+rownum
+1
+SELECT ROWNUM FROM testtb;
+rownum
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+SELECT floor(ROWNUM), ceil(ROWNUM), abs(ROWNUM) FROM testtb;
+floor(ROWNUM)	ceil(ROWNUM)	abs(ROWNUM)
+1	1	1
+2	2	2
+3	3	3
+4	4	4
+5	5	5
+6	6	6
+7	7	7
+8	8	8
+9	9	9
+10	10	10
+SELECT (ROWNUM+1) FROM testtb;
+(ROWNUM+1)
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+SELECT ROWNUM*2 FROM testtb;
+ROWNUM*2
+2
+4
+6
+8
+10
+12
+14
+16
+18
+20
+SELECT * FROM testtb WHERE ROWNUM < 5;
+id	name	phone
+1	abc	1
+2	def	2
+3	fgh	3
+4	asf	4
+SELECT id, ROWNUM FROM testtb WHERE ROWNUM !=4;
+id	rownum
+1	1
+2	2
+3	3
+SELECT id, ROWNUM FROM testtb WHERE ROWNUM <=4;
+id	rownum
+1	1
+2	2
+3	3
+4	4
+SELECT id, ROWNUM FROM testtb WHERE ROWNUM >4;
+id	rownum
+SELECT id FROM testtb WHERE ROWNUM > 1;
+id
+SELECT id FROM testtb WHERE ROWNUM < 1;
+id
+SELECT id FROM testtb WHERE ROWNUM >= 1;
+id
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+SELECT id FROM testtb WHERE ROWNUM > 0;
+id
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+SELECT id FROM testtb WHERE ROWNUM > -1;
+id
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+SELECT id FROM testtb WHERE ROWNUM in (1,3,5);
+id
+1
+SELECT id FROM testtb WHERE ROWNUM between 1 AND 3;
+id
+1
+2
+3
+SELECT * FROM testtb WHERE ROWNUM<(ROWNUM+1);
+id	name	phone
+1	abc	1
+2	def	2
+3	fgh	3
+4	asf	4
+5	asdff	5
+6	abc	6
+7	a	7
+8	a	8
+9	b	9
+10	d	10
+SELECT id, name, phone ,ROWNUM FROM testtb4 WHERE ROWNUM>2 OR name='a';
+id	name	phone	rownum
+1	a	1	1
+6	a	6	2
+7	b	7	3
+8	c	8	4
+SELECT id FROM testtb WHERE name>'a' AND ROWNUM < 3;
+id
+1
+2
+SELECT id FROM testtb WHERE name>'a' AND (name<'e' AND ROWNUM < 3);
+id
+1
+2
+SELECT id FROM testtb WHERE name>'a' AND (name<'e' AND ROWNUM < 3);
+id
+1
+2
+SELECT id FROM testtb WHERE name>'a' OR (name<'e' AND ROWNUM < 3);
+id
+1
+2
+3
+4
+5
+6
+9
+10
+SELECT id FROM testtb2 WHERE(ROWNUM);
+id
+1
+3
+6
+SELECT MIN(ROWNUM), MAX(ROWNUM), AVG(ROWNUM), SUM(ROWNUM) FROM testtb4;
+MIN(ROWNUM)	MAX(ROWNUM)	AVG(ROWNUM)	SUM(ROWNUM)
+1	8	4.5000	36
+SELECT MIN(ROWNUM), MAX(ROWNUM), AVG(ROWNUM), SUM(ROWNUM) FROM testtb4 WHERE ROWNUM<4;
+MIN(ROWNUM)	MAX(ROWNUM)	AVG(ROWNUM)	SUM(ROWNUM)
+1	3	2.0000	6
+SELECT MIN(ROWNUM), MAX(ROWNUM), AVG(ROWNUM), SUM(ROWNUM) FROM testtb4 GROUP BY name;
+MIN(ROWNUM)	MAX(ROWNUM)	AVG(ROWNUM)	SUM(ROWNUM)
+1	6	3.5000	7
+2	7	4.5000	9
+3	8	5.5000	11
+4	4	4.0000	4
+5	5	5.0000	5
+SELECT *, ROWNUM FROM testtb4 GROUP BY ROWNUM;
+id	name	phone	rownum
+1	a	1	1
+2	b	2	2
+3	c	3	3
+4	d	4	4
+5	e	5	5
+6	a	6	6
+7	b	7	7
+8	c	8	8
+SELECT *, COUNT(name) FROM testtb4 WHERE ROWNUM<4 GROUP BY id;
+id	name	phone	COUNT(name)
+1	a	1	1
+2	b	2	1
+3	c	3	1
+SELECT * FROM testtb4 GROUP BY name HAVING SUM(ROWNUM)>3;
+id	name	phone
+1	a	1
+2	b	2
+3	c	3
+4	d	4
+5	e	5
+SELECT *, ROWNUM FROM testtb4 GROUP BY name HAVING SUM(ROWNUM)>3;
+id	name	phone	rownum
+1	a	1	1
+2	b	2	2
+3	c	3	3
+4	d	4	4
+5	e	5	5
+SELECT *, ROWNUM FROM testtb4 GROUP BY ROWNUM HAVING SUM(ROWNUM)>3;
+id	name	phone	rownum
+4	d	4	4
+5	e	5	5
+6	a	6	6
+7	b	7	7
+8	c	8	8
+SELECT name,SUM(ROWNUM) FROM testtb4 WHERE id>3 AND id<8 GROUP BY (name) HAVING SUM(ROWNUM)<10;
+name	SUM(ROWNUM)
+d	1
+e	2
+a	3
+b	4
+SELECT *, ROWNUM FROM testtb4 WHERE ROWNUM<7 GROUP BY name HAVING SUM(ROWNUM)>3;
+id	name	phone	rownum
+1	a	1	1
+4	d	4	4
+5	e	5	5
+SELECT name FROM testtb4 WHERE ROWNUM<=8 GROUP BY (name) HAVING COUNT(name)>1;
+name
+a
+b
+c
+SELECT * FROM (SELECT name FROM testtb4 GROUP BY (name) HAVING COUNT(name)>1) a WHERE ROWNUM<=1;
+name
+a
+SELECT ROWNUM FROM testtb4 HAVING ROWNUM>1;
+rownum
+2
+3
+4
+5
+6
+7
+8
+SELECT ROWNUM FROM testtb4 WHERE ROWNUM<8 HAVING ROWNUM>1;
+rownum
+2
+3
+4
+5
+6
+7
+SELECT ROWNUM FROM testtb4 WHERE ROWNUM<8 GROUP BY ROWNUM HAVING ROWNUM>1;
+rownum
+2
+3
+4
+5
+6
+7
+SELECT ROWNUM FROM testtb4 WHERE ROWNUM>1 GROUP BY ROWNUM HAVING ROWNUM<8;
+rownum
+SELECT ROWNUM FROM testtb4 GROUP BY name HAVING ROWNUM>1;
+rownum
+2
+3
+4
+5
+SELECT ROWNUM FROM testtb4 GROUP BY name HAVING ROWNUM<8;
+rownum
+1
+2
+3
+4
+5
+SELECT sum(ROWNUM) FROM testtb4 GROUP BY name HAVING sum(ROWNUM)<8;
+sum(ROWNUM)
+7
+4
+5
+SELECT SUM(PHONE) FROM testtb4 HAVING ROWNUM>1;
+SUM(PHONE)
+SELECT SUM(PHONE) FROM testtb4 HAVING ROWNUM<8;
+SUM(PHONE)
+36
+SELECT sum(ROWNUM) FROM testtb4 HAVING sum(ROWNUM)=36;
+sum(ROWNUM)
+36
+SELECT ROWNUM FROM testtb4 HAVING ROWNUM<5 ORDER BY NAME;
+rownum
+1
+2
+3
+4
+SELECT ROWNUM FROM testtb4 HAVING ROWNUM>5 ORDER BY NAME;
+rownum
+6
+7
+8
+SELECT name FROM testtb4 HAVING ROWNUM<5 ORDER BY NAME;
+name
+a
+b
+c
+d
+SELECT name FROM testtb4 HAVING ROWNUM>5 ORDER BY NAME;
+name
+a
+b
+c
+SELECT name, ROWNUM FROM testtb4 GROUP BY name HAVING (ROWNUM,ROWNUM)>(1,1);
+name	rownum
+b	2
+c	3
+d	4
+e	5
+SELECT name, ROWNUM FROM testtb4 GROUP BY name HAVING (ROWNUM,ROWNUM)=(1,1);
+name	rownum
+a	1
+SELECT distinct name FROM testtb4 HAVING (ROWNUM,ROWNUM)>(1,1);
+name
+b
+c
+d
+e
+SELECT distinct name FROM testtb4 HAVING (ROWNUM,ROWNUM)=(1,1);
+name
+a
+SELECT *  FROM testtb4 WHERE ROWNUM < 6  ORDER BY phone DESC;
+id	name	phone
+5	e	5
+4	d	4
+3	c	3
+2	b	2
+1	a	1
+SELECT * FROM (SELECT *  FROM testtb4 ORDER BY phone DESC)a WHERE ROWNUM < 6;
+id	name	phone
+8	c	8
+7	b	7
+6	a	6
+5	e	5
+4	d	4
+SELECT a.R , ROWNUM R2 FROM (SELECT ROWNUM R FROM testtb4 ORDER BY phone DESC) a;
+R	R2
+8	1
+7	2
+6	3
+5	4
+4	5
+3	6
+2	7
+1	8
+SELECT a.id,b.id,ROWNUM FROM testtb a JOIN testtb2 b ON a.id=b.id WHERE ROWNUM <3;
+id	id	rownum
+1	1	1
+3	3	2
+SELECT a.id,b.id,ROWNUM FROM testtb a JOIN testtb2 b JOIN testtb3 c ON a.id=b.id AND b.name=c.name;
+id	id	rownum
+1	1	1
+1	1	2
+3	3	3
+6	6	4
+SELECT *,ROWNUM FROM testtb a JOIN (SELECT * FROM testtb2 WHERE ROWNUM <4) b  ON a.id=b.id WHERE ROWNUM <3;
+id	name	phone	id	name	phone	rownum
+1	abc	1	1	abc	1	1
+3	fgh	3	3	fgh	3	2
+SELECT * FROM ((SELECT a.id,a.name FROM testtb a)union (SELECT b.id ,b.name FROM testtb2 b))c WHERE ROWNUM<2;
+id	name
+1	abc
+(SELECT id,name FROM testtb WHERE ROWNUM<2)union (SELECT id ,name FROM testtb4 WHERE ROWNUM<2);
+id	name
+1	abc
+1	a
+SELECT DISTINCT ROWNUM FROM testtb4;
+rownum
+1
+2
+3
+4
+5
+6
+7
+8
+SELECT DISTINCT id FROM testtb4 ORDER BY ROWNUM;
+id
+1
+2
+3
+4
+5
+6
+7
+8
+SELECT DISTINCT ROWNUM FROM testtb4 ORDER BY ROWNUM;
+rownum
+1
+2
+3
+4
+5
+6
+7
+8
+SELECT DISTINCT name FROM testtb4 WHERE ROWNUM<8;
+name
+a
+b
+c
+d
+e
+SELECT DISTINCT ROWNUM FROM testtb4 WHERE ROWNUM<8;
+rownum
+1
+2
+3
+4
+5
+6
+7
+SELECT DISTINCT name FROM testtb4 WHERE ROWNUM<10 ORDER BY ROWNUM;
+name
+a
+b
+c
+d
+e
+SELECT DISTINCT name FROM testtb4 ORDER BY ROWNUM;
+name
+a
+b
+c
+d
+e
+SELECT * FROM testtb4 WHERE ROWNUM<6 limit 2;
+id	name	phone
+1	a	1
+2	b	2
+SELECT * FROM testtb4 WHERE ROWNUM<4 limit 2 offset 2;
+id	name	phone
+3	c	3
+SELECT ROWNUM, SUM(ROWNUM) over() FROM testtb4;
+rownum	SUM(ROWNUM) over()
+1	36
+2	36
+3	36
+4	36
+5	36
+6	36
+7	36
+8	36
+SELECT ROWNUM, SUM(ROWNUM) over(ORDER BY ROWNUM desc) FROM testtb4;
+rownum	SUM(ROWNUM) over(ORDER BY ROWNUM desc)
+8	8
+7	15
+6	21
+5	26
+4	30
+3	33
+2	35
+1	36
+SELECT ROWNUM, rank() over(ORDER BY name desc) FROM testtb4;
+rownum	rank() over(ORDER BY name desc)
+5	1
+4	2
+3	3
+8	3
+2	5
+7	5
+1	7
+6	7
+SELECT ROWNUM, rank() over(ORDER BY ROWNUM desc) FROM testtb4;
+rownum	rank() over(ORDER BY ROWNUM desc)
+8	1
+7	2
+6	3
+5	4
+4	5
+3	6
+2	7
+1	8
+SELECT phone, SUM(phone) OVER(ORDER BY name) FROM testtb4 HAVING PHONE<5 AND ROWNUM<4;
+phone	SUM(phone) OVER(ORDER BY name)
+1	1
+2	3
+3	6
+SELECT phone, SUM(phone) OVER(PARTITION BY name) FROM testtb4 HAVING PHONE<5 AND ROWNUM<4;
+phone	SUM(phone) OVER(PARTITION BY name)
+1	1
+2	2
+3	3
+SELECT ROWNUM, phone, SUM(phone) OVER(PARTITION BY name) FROM testtb4 HAVING PHONE<5;
+rownum	phone	SUM(phone) OVER(PARTITION BY name)
+1	1	1
+2	2	2
+3	3	3
+4	4	4
+SELECT phone, SUM(phone) OVER(ORDER BY name) FROM testtb4 GROUP BY name HAVING PHONE<5 AND ROWNUM<4;
+phone	SUM(phone) OVER(ORDER BY name)
+1	1
+2	3
+3	6
+SELECT ROWNUM, phone, name, SUM(phone) OVER(PARTITION BY name) FROM testtb4 HAVING PHONE<7 AND ROWNUM<7 ORDER BY name DESC;
+rownum	phone	name	SUM(phone) OVER(PARTITION BY name)
+5	5	e	5
+4	4	d	4
+3	3	c	3
+2	2	b	2
+1	1	a	7
+6	6	a	7
+SELECT ROWNUM, phone, name, SUM(phone) OVER(PARTITION BY phone) FROM testtb4 GROUP BY name HAVING PHONE<7 AND ROWNUM<7 ORDER BY name DESC;
+rownum	phone	name	SUM(phone) OVER(PARTITION BY phone)
+5	5	e	5
+4	4	d	4
+3	3	c	3
+2	2	b	2
+1	1	a	1
+SELECT a.id, SUM(a.id) FROM testtb2 a GROUP BY a.name HAVING a.name IN (SELECT testtb.name FROM testtb WHERE ROWNUM<5) AND a.id > (SELECT MIN(ROWNUM) FROM testtb);
+id	SUM(a.id)
+3	3
+6	6
+SELECT SUM(a.id) FROM testtb2 a GROUP BY a.name HAVING a.name IN (SELECT testtb.name FROM testtb WHERE ROWNUM<5);
+SUM(a.id)
+1
+3
+6
+SELECT SUM(testtb2.id) FROM testtb2 GROUP BY testtb2.name HAVING testtb2.name IN (SELECT testtb.name FROM testtb WHERE ROWNUM<5) AND testtb2.name > (SELECT MIN(testtb.name) FROM testtb);
+SUM(testtb2.id)
+1
+3
+6
+CREATE TABLE st1 (a int, b int);
+CREATE TABLE st2 (c int, d int);
+INSERT INTO st1 VALUES (1,1),(1,2),(2,1),(2,2),(3,1),(3,3);
+INSERT INTO st2 VALUES (1,1),(1,2),(2,1),(2,2),(3,1),(3,3);
+SELECT /*+ NO_BNL()*/ * FROM st1,st2 WHERE a<=c and ROWNUM<2 ORDER BY a;
+a	b	c	d
+1	1	1	1
+SELECT * FROM (SELECT ROWNUM FROM testtb) a JOIN testtb2 b ON a.ROWNUM=b.id;
+rownum	id	name	phone
+1	1	abc	1
+3	3	fgh	3
+6	6	asf	6
+SELECT a.name,b.name FROM testtb a LEFT JOIN testtb2 b ON a.name>b.name WHERE ROWNUM<4;
+name	name
+def	abc
+fgh	abc
+asf	abc
+SELECT *, ROWNUM FROM testtb a LEFT JOIN testtb4 b ON a.name>b.name;
+id	name	phone	id	name	phone	rownum
+1	abc	1	1	a	1	1
+2	def	2	1	a	1	2
+3	fgh	3	1	a	1	3
+4	asf	4	1	a	1	4
+5	asdff	5	1	a	1	5
+6	abc	6	1	a	1	6
+9	b	9	1	a	1	7
+10	d	10	1	a	1	8
+2	def	2	2	b	2	9
+3	fgh	3	2	b	2	10
+10	d	10	2	b	2	11
+2	def	2	3	c	3	12
+3	fgh	3	3	c	3	13
+10	d	10	3	c	3	14
+2	def	2	4	d	4	15
+3	fgh	3	4	d	4	16
+3	fgh	3	5	e	5	17
+1	abc	1	6	a	6	18
+2	def	2	6	a	6	19
+3	fgh	3	6	a	6	20
+4	asf	4	6	a	6	21
+5	asdff	5	6	a	6	22
+6	abc	6	6	a	6	23
+9	b	9	6	a	6	24
+10	d	10	6	a	6	25
+2	def	2	7	b	7	26
+3	fgh	3	7	b	7	27
+10	d	10	7	b	7	28
+2	def	2	8	c	8	29
+3	fgh	3	8	c	8	30
+10	d	10	8	c	8	31
+7	a	7	NULL	NULL	NULL	32
+8	a	8	NULL	NULL	NULL	33
+SELECT ROWNUM, sum(ROWNUM), sum(a.id), sum(b.id) FROM testtb a LEFT JOIN testtb4 b ON a.name>b.name;
+rownum	sum(ROWNUM)	sum(a.id)	sum(b.id)
+1	561	163	129
+SELECT *, ROWNUM FROM testtb3 c WHERE c.name in (SELECT a.name FROM testtb a LEFT JOIN testtb4 b ON a.name>b.name);
+id	name	phone	rownum
+1	abc	1	1
+2	def	2	2
+5	abc	5	3
+9	fgh	9	4
+10	asf	10	5
+SELECT *, ROWNUM FROM  (SELECT * FROM testtb4 d WHERE d.name in (SELECT e.name FROM testtb e LEFT JOIN testtb2 f ON e.name>f.name ))a GROUP BY a.name ORDER BY a.phone;
+id	name	phone	rownum
+1	a	1	1
+2	b	2	2
+4	d	4	3
+SELECT *, ROWNUM FROM  (SELECT *, ROWNUM r FROM testtb4 d WHERE d.phone in (SELECT ROWNUM FROM testtb e LEFT JOIN testtb2 f ON e.name>f.name ) ORDER BY r desc)a GROUP BY a.name ORDER BY a.phone;
+id	name	phone	r	rownum
+4	d	4	4	5
+5	e	5	5	4
+6	a	6	6	3
+7	b	7	7	2
+8	c	8	8	1
+SELECT e.id,e.name,f.name FROM testtb e LEFT JOIN testtb3 f ON e.name<f.name WHERE ROWNUM=1;
+id	name	name
+7	a	abc
+SELECT ROWNUM, a.*, b.* ,c.* FROM testtb4 a left join testtb3 b on a.name>b.name left join testtb2 c on b.name>c.name;
+rownum	id	name	phone	id	name	phone	id	name	phone
+1	5	e	5	2	def	2	1	abc	1
+2	2	b	2	10	asf	10	1	abc	1
+3	3	c	3	10	asf	10	1	abc	1
+4	4	d	4	10	asf	10	1	abc	1
+5	5	e	5	10	asf	10	1	abc	1
+6	7	b	7	10	asf	10	1	abc	1
+7	8	c	8	10	asf	10	1	abc	1
+8	5	e	5	2	def	2	6	asf	6
+9	2	b	2	1	abc	1	NULL	NULL	NULL
+10	3	c	3	1	abc	1	NULL	NULL	NULL
+11	4	d	4	1	abc	1	NULL	NULL	NULL
+12	5	e	5	1	abc	1	NULL	NULL	NULL
+13	7	b	7	1	abc	1	NULL	NULL	NULL
+14	8	c	8	1	abc	1	NULL	NULL	NULL
+15	2	b	2	5	abc	5	NULL	NULL	NULL
+16	3	c	3	5	abc	5	NULL	NULL	NULL
+17	4	d	4	5	abc	5	NULL	NULL	NULL
+18	5	e	5	5	abc	5	NULL	NULL	NULL
+19	7	b	7	5	abc	5	NULL	NULL	NULL
+20	8	c	8	5	abc	5	NULL	NULL	NULL
+21	1	a	1	NULL	NULL	NULL	NULL	NULL	NULL
+22	6	a	6	NULL	NULL	NULL	NULL	NULL	NULL
+SELECT *, ROWNUM FROM testtb4 d WHERE d.name in (SELECT e.name FROM testtb e LEFT JOIN testtb2 f ON e.name>f.name);
+id	name	phone	rownum
+1	a	1	1
+2	b	2	2
+4	d	4	3
+6	a	6	4
+7	b	7	5
+SELECT COUNT(*), GROUP_CONCAT(ROWNUM), GROUP_CONCAT(DISTINCT b.name) FROM testtb5 b JOIN (testtb a LEFT JOIN testtb2 c ON a.name>c.name ) ON a.name>b.name GROUP BY b.id ORDER BY GROUP_CONCAT(DISTINCT b.name);
+COUNT(*)	GROUP_CONCAT(ROWNUM)	GROUP_CONCAT(DISTINCT b.name)
+12	1,18,16,20,22,28,35,8,43,45,51,53	a
+12	54,40,44,5,48,52,17,19,32,21,13,25	a
+6	36,29,23,46,2,9	b
+6	26,14,49,6,41,33	b
+6	37,3,10,24,47,30	c
+6	34,27,7,50,42,15	c
+4	4,38,31,11	d
+2	12,39	e
+SELECT * FROM testtb WHERE id in (SELECT ROWNUM FROM testtb3);
+id	name	phone
+1	abc	1
+2	def	2
+3	fgh	3
+4	asf	4
+5	asdff	5
+SELECT name FROM testtb6 WHERE ROWNUM<4 GROUP BY name;
+name
+a
+b
+c
+SELECT MAX(id),name FROM testtb6 GROUP BY name having ROWNUM<4;
+MAX(id)	name
+6	a
+7	b
+8	c
+CREATE OR REPLACE VIEW  v_test AS SELECT a.id a_id, a.name a_name,b.phone b_phone,ROWNUM R FROM testtb a JOIN testtb4 b ON a.id=b.id WHERE ROWNUM <5;
+SELECT * FROM v_test WHERE ROWNUM<3;
+a_id	a_name	b_phone	R
+1	abc	1	1
+2	def	2	2
+EXPLAIN FORMAT=TREE SELECT id FROM testtb WHERE name>'a' AND (name<'e' AND ROWNUM < 3);
+EXPLAIN
+-> ROWNUM with filter: (rownum < 3)
+    -> Filter: ((testtb.`name` > 'a') and (testtb.`name` < 'e'))  (cost=1.25 rows=1)
+        -> Table scan on testtb  (cost=1.25 rows=10)
+
+EXPLAIN FORMAT=TREE SELECT id FROM testtb WHERE name>'a' OR (name<'e' AND ROWNUM < 3);
+EXPLAIN
+-> ROWNUM
+    -> Filter: ((testtb.`name` > 'a') or ((testtb.`name` < 'e') and (rownum < 3)))  (cost=1.25 rows=6)
+        -> Table scan on testtb  (cost=1.25 rows=10)
+
+EXPLAIN FORMAT=TREE SELECT *,ROWNUM FROM testtb a JOIN (SELECT * FROM testtb2 WHERE ROWNUM <4) b ON a.id=b.id WHERE ROWNUM <3;
+EXPLAIN
+-> ROWNUM with filter: (rownum < 3)
+    -> Nested loop inner join
+        -> Table scan on b
+            -> Materialize
+                -> ROWNUM with filter: (rownum < 4)
+                    -> Table scan on testtb2  (cost=0.55 rows=3)
+        -> Single-row index lookup on a using PRIMARY (id=b.id)  (cost=0.28 rows=1)
+
+EXPLAIN FORMAT=TREE SELECT * FROM testtb WHERE id in (SELECT ROWNUM FROM testtb3);
+EXPLAIN
+-> Filter: <in_optimizer>(testtb.id,testtb.id in (select #2))  (cost=1.25 rows=10)
+    -> Table scan on testtb  (cost=1.25 rows=10)
+    -> Select #2 (subquery in condition; run only once)
+        -> ROWNUM
+            -> Index scan on testtb3 using PRIMARY  (cost=0.75 rows=5)
+
+EXPLAIN FORMAT=TREE SELECT a.R , ROWNUM R2 FROM (SELECT ROWNUM R FROM testtb4 ORDER BY phone DESC) a;
+EXPLAIN
+-> ROWNUM
+    -> Table scan on a
+        -> Materialize
+            -> Sort: <temporary>.phone DESC
+                -> Stream results
+                    -> ROWNUM
+                        -> Table scan on testtb4  (cost=1.05 rows=8)
+
+DELETE FROM testtb6 limit 7;
+EXPLAIN FORMAT=TREE SELECT name FROM testtb6 WHERE rownum<4 GROUP BY name;
+EXPLAIN
+-> Table scan on <temporary>
+    -> Temporary table with deduplication
+        -> ROWNUM with filter: (rownum < 4)
+            -> Index scan on testtb6 using id  (cost=0.35 rows=1)
+
+EXPLAIN FORMAT=TREE SELECT phone, SUM(phone) OVER(ORDER BY name) FROM testtb4 HAVING PHONE<5 AND ROWNUM<4;
+EXPLAIN
+-> Window aggregate with buffering
+    -> Filter: ((testtb4.phone < 5) and (rownum < 4))
+        -> Sort: <temporary>.name
+            -> Table scan on <temporary>
+                -> Temporary table
+                    -> ROWNUM
+                        -> Table scan on testtb4  (cost=1.05 rows=8)
+
+EXPLAIN SELECT name FROM testtb6 WHERE ROWNUM<4;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	testtb6	NULL	index	NULL	id	53	NULL	1	100.00	Using index
+Warnings:
+Note	1003	/* select#1 */ select `test_db_rownum`.`testtb6`.`name` AS `name` from `test_db_rownum`.`testtb6` where (rownum < 4)
+EXPLAIN SELECT * FROM testtb6 WHERE name LIKE "a%" and ROWNUM<4;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	testtb6	NULL	index	id	id	53	NULL	1	100.00	Using where; Using index
+Warnings:
+Note	1003	/* select#1 */ select `test_db_rownum`.`testtb6`.`id` AS `id`,`test_db_rownum`.`testtb6`.`name` AS `name`,`test_db_rownum`.`testtb6`.`phone` AS `phone` from `test_db_rownum`.`testtb6` where ((`test_db_rownum`.`testtb6`.`name` like 'a%')) and (rownum < 4)
+select * from testtb2 full join (select id from testtb)dt5 on testtb2.id=dt5.id where rownum<3;
+id	name	phone	id
+1	abc	1	1
+3	fgh	3	3
+select * from testtb2 full join (select id from testtb)dt5 on testtb2.id=rownum where rownum<3;
+ERROR HY000: Cannot use ROWNUM in ON condition
+create table tm1(a int,b int);
+create table tm2(c int,d int);
+insert into tm1 values(1,1),(2,2);
+insert into tm2 values(3,3),(4,4);
+create table tm3(e int,f int);
+insert into tm3 values(2,2);
+select * from (select * from tm1 left join tm2 on tm1.a=tm2.c union all select * from tm1 right join tm2 on tm1.a=tm2.c)dt where rownum<4;
+a	b	c	d
+1	1	NULL	NULL
+2	2	NULL	NULL
+NULL	NULL	3	3
+select * from (select * from tm1 left join tm3 on tm1.a=tm3.e union all select * from tm1 left join tm2 on tm1.a=tm2.c union all select * from tm1 right join tm2 on tm1.a=tm2.c) dt where rownum<6;
+a	b	e	f
+2	2	2	2
+1	1	NULL	NULL
+1	1	NULL	NULL
+2	2	NULL	NULL
+NULL	NULL	3	3
+insert into tm2 values(2,2),(5,5),(1,1),(6,6);
+select * from (select * from tm1 left join tm2 on tm1.a=tm2.c union all select * from tm1 right join tm2 on tm1.a=tm2.c)dt where dt.a<2 or rownum>2;
+a	b	c	d
+1	1	1	1
+1	1	1	1
+2	2	2	2
+NULL	NULL	3	3
+NULL	NULL	4	4
+NULL	NULL	5	5
+NULL	NULL	6	6
+select *, rownum from tm1 left join tm2 on tm1.a=rownum;
+ERROR HY000: Cannot use ROWNUM in ON condition
+select *, rownum from tm1 left join tm2 on tm1.a=rownum left join tm3 on tm3.e=rownum;
+ERROR HY000: Cannot use ROWNUM in ON condition
+select *, rownum from tm1 join tm2 on tm1.a=rownum join tm3 on tm3.e=(rownum+1);
+ERROR HY000: Cannot use ROWNUM in ON condition
+PREPARE stmt_rownum FROM 'SELECT id FROM testtb WHERE ROWNUM < ?';
+SET @a = 3;
+EXECUTE stmt_rownum USING @a;
+id
+1
+2
+UPDATE testtb8 SET phone = ROWNUM;
+SELECT * FROM testtb8;
+id	name	phone
+1	a	1
+2	b	2
+3	c	3
+4	d	4
+5	e	5
+6	a	6
+7	b	7
+8	c	8
+UPDATE testtb8 set phone = ROWNUM WHERE id=7;
+SELECT * FROM testtb8;
+id	name	phone
+1	a	1
+2	b	2
+3	c	3
+4	d	4
+5	e	5
+6	a	6
+7	b	1
+8	c	8
+UPDATE testtb8 set phone = ROWNUM WHERE id>=6;
+SELECT * FROM testtb8;
+id	name	phone
+1	a	1
+2	b	2
+3	c	3
+4	d	4
+5	e	5
+6	a	1
+7	b	2
+8	c	3
+UPDATE testtb8 set phone = 100;
+UPDATE testtb8 set phone = ROWNUM WHERE ROWNUM<3;
+SELECT * FROM testtb8;
+id	name	phone
+1	a	1
+2	b	2
+3	c	100
+4	d	100
+5	e	100
+6	a	100
+7	b	100
+8	c	100
+UPDATE testtb8 a, testtb4 b set a.phone = ROWNUM WHERE b.name = a.name;
+SELECT * FROM testtb8;
+id	name	phone
+1	a	1
+2	b	3
+3	c	5
+4	d	7
+5	e	8
+6	a	9
+7	b	11
+8	c	13
+DELETE FROM testtb8 WHERE ROWNUM=7;
+SELECT * FROM testtb8;
+id	name	phone
+1	a	1
+2	b	3
+3	c	5
+4	d	7
+5	e	8
+6	a	9
+7	b	11
+8	c	13
+DELETE FROM testtb8 WHERE ROWNUM<2;
+SELECT * FROM testtb8;
+id	name	phone
+2	b	3
+3	c	5
+4	d	7
+5	e	8
+6	a	9
+7	b	11
+8	c	13
+DELETE FROM testtb8 WHERE ROWNUM<=2;
+SELECT * FROM testtb8;
+id	name	phone
+4	d	7
+5	e	8
+6	a	9
+7	b	11
+8	c	13
+DELETE FROM testtb8 WHERE ROWNUM!=2;
+SELECT * FROM testtb8;
+id	name	phone
+5	e	8
+6	a	9
+7	b	11
+8	c	13
+TRUNCATE testtb8;
+INSERT INTO testtb8 (SELECT id, name, phone FROM testtb4 WHERE ROWNUM<5 );
+SELECT * FROM testtb8;
+id	name	phone
+1	a	1
+2	b	2
+3	c	3
+4	d	4
+INSERT INTO testtb8 (SELECT id, name, ROWNUM FROM testtb4 WHERE ROWNUM<5 );
+SELECT * FROM testtb8;
+id	name	phone
+1	a	1
+2	b	2
+3	c	3
+4	d	4
+1	a	1
+2	b	2
+3	c	3
+4	d	4
+INSERT INTO testtb8 VALUES(9,'g',ROWNUM),(10,'g',ROWNUM), (11,'g',ROWNUM);
+SELECT * FROM testtb8;
+id	name	phone
+1	a	1
+2	b	2
+3	c	3
+4	d	4
+1	a	1
+2	b	2
+3	c	3
+4	d	4
+9	g	1
+10	g	1
+11	g	1
+REPLACE INTO testtb8 VALUES(8,'g',ROWNUM);
+SELECT * FROM testtb8;
+id	name	phone
+1	a	1
+2	b	2
+3	c	3
+4	d	4
+1	a	1
+2	b	2
+3	c	3
+4	d	4
+9	g	1
+10	g	1
+11	g	1
+8	g	1
+CREATE OR REPLACE PROCEDURE test_select()
+BEGIN
+DECLARE t INT DEFAULT 1;
+WHILE t < 3 DO
+SELECT * FROM testtb4 WHERE rownum<3;
+SET t = t + 1;
+END WHILE;
+END $$
+CALL test_select();
+id	name	phone
+1	a	1
+2	b	2
+id	name	phone
+1	a	1
+2	b	2
+CREATE OR REPLACE PROCEDURE test_update()
+BEGIN
+DECLARE t INT DEFAULT 1;
+WHILE t < 3 DO
+UPDATE testtb8 SET phone = rownum;
+SELECT * FROM testtb8;
+SET t = t + 1;
+END WHILE;
+END $$
+CALL test_update();
+id	name	phone
+1	a	1
+2	b	2
+3	c	3
+4	d	4
+1	a	5
+2	b	6
+3	c	7
+4	d	8
+9	g	9
+10	g	10
+11	g	11
+8	g	12
+id	name	phone
+1	a	1
+2	b	2
+3	c	3
+4	d	4
+1	a	5
+2	b	6
+3	c	7
+4	d	8
+9	g	9
+10	g	10
+11	g	11
+8	g	12
+CREATE OR REPLACE PROCEDURE test_delete()
+BEGIN
+DECLARE t INT DEFAULT 1;
+WHILE t < 3 DO
+DELETE FROM testtb8 WHERE rownum <2;
+SELECT * FROM testtb8;
+SET t = t + 1;
+END WHILE;
+END $$
+CALL test_delete();
+id	name	phone
+2	b	2
+3	c	3
+4	d	4
+1	a	5
+2	b	6
+3	c	7
+4	d	8
+9	g	9
+10	g	10
+11	g	11
+8	g	12
+id	name	phone
+3	c	3
+4	d	4
+1	a	5
+2	b	6
+3	c	7
+4	d	8
+9	g	9
+10	g	10
+11	g	11
+8	g	12
+SELECT a.name,b.name FROM testtb a JOIN testtb2 b ON a.ROWNUM=b.ROWNUM;
+ERROR 42S22: Unknown column 'a.ROWNUM' in 'on clause'
+UPDATE testtb8 SET phone = ROWNUM ORDER BY name;
+ERROR HY000: Cannot use ROWNUM in UPDATE statement with ORDER BY
+UPDATE testtb8 SET phone = 1 WHERE ROWNUM<4 ORDER BY name;
+ERROR HY000: Cannot use ROWNUM in UPDATE statement with ORDER BY
+DELETE FROM testtb8 WHERE ROWNUM<4 ORDER BY name;
+ERROR HY000: Cannot use ROWNUM in DELETE statement with ORDER BY
+SELECT name,SUM(ROWNUM),ROWNUM FROM testtb8 GROUP BY name with rollup;
+ERROR HY000: Cannot use ROWNUM with ROLLUP at the same time
+START TRANSACTION;
+UPDATE test_db_rownum.testtb SET phone=1 WHERE id<3;
+SELECT * FROM test_db_rownum.testtb WHERE ROWNUM<4 FOR UPDATE;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+commit;
+DROP DATABASE IF EXISTS test_db_rownum;
+SET @@SESSION.sql_mode=@old_session_sql_mode;

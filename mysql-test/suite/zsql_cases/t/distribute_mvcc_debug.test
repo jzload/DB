@@ -1,0 +1,28 @@
+-- source include/have_debug.inc
+SET @transaction_isolation_session_orig = @@global.transaction_isolation;
+SET global transaction_isolation= 'READ-COMMITTED';
+SET session transaction_isolation= 'READ-COMMITTED';
+
+CREATE TABLE t2 (  a int not null,  GTID bigint) ENGINE=InnoDB;
+SET GLOBAL innodb_purge_stop_now = ON;
+
+insert into t2 values(1,9); 
+insert into t2 values(2,10); 
+insert into t2 values(3,11); 
+insert into t2 values(4,12); 
+insert into t2 values(6,13); 
+insert into t2 values(7,20); 
+insert into t2 values(8,21);
+/*+GTID=13*/update t2 set GTID=13 where a = 1;
+alter table t2 add primary key PI(a) , ALGORITHM=INPLACE;
+
+select /*+ SET_VAR(active_gtm_gtid_list='CwAAAAAAAAANAAAAAAAAAA==') SET_VAR(next_gtm_gtid=20)*/ a, GTID from t2;
+select /*+ SET_VAR(active_gtm_gtid_list='CwAAAAAAAAANAAAAAAAAAA==') SET_VAR(next_gtm_gtid=20)*/ count(*) from t2;
+SET GLOBAL innodb_purge_run_now=ON;
+--error ER_TABLE_DEF_CHANGED
+select /*+ SET_VAR(active_gtm_gtid_list='CwAAAAAAAAANAAAAAAAAAA==') SET_VAR(next_gtm_gtid=20)*/ count(*) from t2;
+--echo ## clean up
+--sleep 1
+SET global transaction_isolation= @transaction_isolation_session_orig;
+set session transaction_isolation= @transaction_isolation_session_orig;
+drop table t2;

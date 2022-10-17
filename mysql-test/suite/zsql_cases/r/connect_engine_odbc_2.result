@@ -1,0 +1,322 @@
+##########################################################
+# prepare for connect engine test
+##########################################################
+install plugin connect soname 'ha_connect.so';
+create database if not exists test_connect_engine;
+use test_connect_engine;
+drop table if exists runSQL;
+create table runSQL
+(
+command varchar(128) flag=0, 
+number int(5) flag=1,
+message varchar(255) flag=2
+)
+engine=connect table_type=odbc
+Connection='DSN=mysrc'
+option_list='Execsrc=1';
+##########################################################
+# test1: test for reserved GTID field in oracle
+##########################################################
+select * from runSQL where command = 'drop table pet_gtid_2';
+select * from runSQL where command =
+'create table pet_gtid_2
+( 
+  name VARCHAR(20) , 
+  species VARCHAR(20),
+  age INT, 
+  birth DATE,
+  GTID INT
+)';
+command	number	message
+create table pet_gtid_2
+( 
+  name VARCHAR(20) , 
+  species VARCHAR(20),
+  age INT, 
+  birth DATE,
+  GTID INT
+)	-1	Affected rows
+drop table if exists ora_pet_gtid_2;
+create table ora_pet_gtid_2
+( 
+name VARCHAR(20) , 
+species VARCHAR(20),
+age INT, 
+birth DATE,
+GTID bigint(20) unsigned not null default '0'
+)
+engine=CONNECT 
+table_type=ODBC 
+tabname='pet_gtid_2' 
+Connection='DSN=mysrc';
+insert into ora_pet_gtid_2 values ('Puff','bird', 1, date'1999-03-30',110);
+insert into ora_pet_gtid_2(name,species,age,birth,GTID) values ('Fluffy','cat', 2 , date'1993-02-04',1111111);
+insert into ora_pet_gtid_2(name,species,age,birth) values ('Fang','dog', 3 , date'1980-08-27');
+select * from ora_pet_gtid_2 order by age;
+name	species	age	birth	GTID
+Puff	bird	1	1999-03-30	0
+Fluffy	cat	2	1993-02-04	0
+Fang	dog	3	1980-08-27	0
+select name,age,birth,GTID from ora_pet_gtid_2 order by age;
+name	age	birth	GTID
+Puff	1	1999-03-30	0
+Fluffy	2	1993-02-04	0
+Fang	3	1980-08-27	0
+select name,age,GTID from ora_pet_gtid_2 where age=1;
+name	age	GTID
+Puff	1	0
+select name,age,GTID from ora_pet_gtid_2 where GTID=0;
+name	age	GTID
+update ora_pet_gtid_2 set age=11 where name='Puff';
+select * from ora_pet_gtid_2 order by age;
+name	species	age	birth	GTID
+Fluffy	cat	2	1993-02-04	0
+Fang	dog	3	1980-08-27	0
+Puff	bird	11	1999-03-30	0
+update ora_pet_gtid_2 set age=11,GTID=111 where name='Puff';
+select * from ora_pet_gtid_2 order by age;
+name	species	age	birth	GTID
+Fluffy	cat	2	1993-02-04	0
+Fang	dog	3	1980-08-27	0
+Puff	bird	11	1999-03-30	0
+update ora_pet_gtid_2 set GTID=112 where age=11;
+select * from ora_pet_gtid_2 order by age;
+name	species	age	birth	GTID
+Fluffy	cat	2	1993-02-04	0
+Fang	dog	3	1980-08-27	0
+Puff	bird	11	1999-03-30	0
+update ora_pet_gtid_2 set ora_pet_gtid_2.GTID=113 where age=11;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "ORA_PET_GTID_2"."GTID": invalid identifier
+' from CONNECT
+update ora_pet_gtid_2 set age=12 where GTID=112;
+select * from ora_pet_gtid_2 order by age;
+name	species	age	birth	GTID
+Fluffy	cat	2	1993-02-04	0
+Fang	dog	3	1980-08-27	0
+Puff	bird	12	1999-03-30	0
+update ora_pet_gtid_2 set age=13 where ora_pet_gtid_2.GTID=112;
+select * from ora_pet_gtid_2 order by age;
+name	species	age	birth	GTID
+Fluffy	cat	2	1993-02-04	0
+Fang	dog	3	1980-08-27	0
+Puff	bird	13	1999-03-30	0
+delete from ora_pet_gtid_2 where GTID=0;
+select * from ora_pet_gtid_2 order by age;
+name	species	age	birth	GTID
+Fluffy	cat	2	1993-02-04	0
+Fang	dog	3	1980-08-27	0
+Puff	bird	13	1999-03-30	0
+delete from ora_pet_gtid_2 where GTID=112;
+select * from ora_pet_gtid_2 order by age;
+name	species	age	birth	GTID
+Fluffy	cat	2	1993-02-04	0
+Fang	dog	3	1980-08-27	0
+delete from ora_pet_gtid_2 where name='Fluffy' and GTID=0;
+delete from ora_pet_gtid_2 where name='Fluffy';
+select * from ora_pet_gtid_2 order by age;
+name	species	age	birth	GTID
+Fang	dog	3	1980-08-27	0
+##########################################################
+# test2: test for reserved GDB_BID field in oracle
+##########################################################
+select * from runSQL where command = 'drop table pet_gdbbid_2';
+select * from runSQL where command =
+'create table pet_gdbbid_2
+( 
+  name VARCHAR(20) , 
+  species VARCHAR(20),
+  age INT, 
+  birth DATE,
+  GDB_BID INT
+)';
+command	number	message
+create table pet_gdbbid_2
+( 
+  name VARCHAR(20) , 
+  species VARCHAR(20),
+  age INT, 
+  birth DATE,
+  GDB_BID INT
+)	-1	Affected rows
+drop table if exists ora_pet_gdbbid_2;
+create table ora_pet_gdbbid_2
+( 
+name VARCHAR(20) , 
+species VARCHAR(20),
+age INT, 
+birth DATE,
+GDB_BID int(11) NOT NULL DEFAULT '-1'
+)
+engine=CONNECT 
+table_type=ODBC 
+tabname='pet_gdbbid_2' 
+Connection='DSN=mysrc';
+insert into ora_pet_gdbbid_2 values ('Puff','bird', 1, date'1999-03-30',110);
+insert into ora_pet_gdbbid_2(name,species,age,birth,GDB_BID) values ('Fluffy','cat', 2 , date'1993-02-04',1111111);
+insert into ora_pet_gdbbid_2(name,species,age,birth) values ('Fang','dog', 3 , date'1980-08-27');
+select * from ora_pet_gdbbid_2 order by age;
+name	species	age	birth	GDB_BID
+Puff	bird	1	1999-03-30	-1
+Fluffy	cat	2	1993-02-04	-1
+Fang	dog	3	1980-08-27	-1
+select name,age,birth,GDB_BID from ora_pet_gdbbid_2 order by age;
+name	age	birth	GDB_BID
+Puff	1	1999-03-30	-1
+Fluffy	2	1993-02-04	-1
+Fang	3	1980-08-27	-1
+select name,age,GDB_BID from ora_pet_gdbbid_2 where age=1;
+name	age	GDB_BID
+Puff	1	-1
+select name,age,GDB_BID from ora_pet_gdbbid_2 where GDB_BID=0;
+name	age	GDB_BID
+select name,age,GDB_BID from ora_pet_gdbbid_2 where GDB_BID=-1 order by age;
+name	age	GDB_BID
+update ora_pet_gdbbid_2 set age=11 where name='Puff';
+select * from ora_pet_gdbbid_2 order by age;
+name	species	age	birth	GDB_BID
+Fluffy	cat	2	1993-02-04	-1
+Fang	dog	3	1980-08-27	-1
+Puff	bird	11	1999-03-30	-1
+update ora_pet_gdbbid_2 set age=11,GDB_BID=111 where name='Puff';
+select * from ora_pet_gdbbid_2 order by age;
+name	species	age	birth	GDB_BID
+Fluffy	cat	2	1993-02-04	-1
+Fang	dog	3	1980-08-27	-1
+Puff	bird	11	1999-03-30	-1
+update ora_pet_gdbbid_2 set GDB_BID=112 where age=11;
+select * from ora_pet_gdbbid_2 order by age;
+name	species	age	birth	GDB_BID
+Fluffy	cat	2	1993-02-04	-1
+Fang	dog	3	1980-08-27	-1
+Puff	bird	11	1999-03-30	-1
+update ora_pet_gdbbid_2 set ora_pet_gdbbid_2.GDB_BID=113 where age=11;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "ORA_PET_GDBBID_2"."GDB_BID": invalid identifier' from CONNECT
+update ora_pet_gdbbid_2 set age=12 where GDB_BID=112;
+select * from ora_pet_gdbbid_2 order by age;
+name	species	age	birth	GDB_BID
+Fluffy	cat	2	1993-02-04	-1
+Fang	dog	3	1980-08-27	-1
+Puff	bird	12	1999-03-30	-1
+update ora_pet_gdbbid_2 set age=13 where ora_pet_gdbbid_2.GDB_BID=112;
+select * from ora_pet_gdbbid_2 order by age;
+name	species	age	birth	GDB_BID
+Fluffy	cat	2	1993-02-04	-1
+Fang	dog	3	1980-08-27	-1
+Puff	bird	13	1999-03-30	-1
+delete from ora_pet_gdbbid_2 where GDB_BID=0;
+select * from ora_pet_gdbbid_2 order by age;
+name	species	age	birth	GDB_BID
+Fluffy	cat	2	1993-02-04	-1
+Fang	dog	3	1980-08-27	-1
+Puff	bird	13	1999-03-30	-1
+delete from ora_pet_gdbbid_2 where GDB_BID=112;
+select * from ora_pet_gdbbid_2 order by age;
+name	species	age	birth	GDB_BID
+Fluffy	cat	2	1993-02-04	-1
+Fang	dog	3	1980-08-27	-1
+delete from ora_pet_gdbbid_2 where name='Fluffy' and GDB_BID=0;
+delete from ora_pet_gdbbid_2 where name='Fluffy';
+select * from ora_pet_gdbbid_2 order by age;
+name	species	age	birth	GDB_BID
+Fang	dog	3	1980-08-27	-1
+##########################################################
+# test3: test for reserved GTID and GDB_BID field in oracle
+##########################################################
+select * from runSQL where command = 'drop table pet_gtid_gdbbid_2';
+select * from runSQL where command =
+'create table pet_gtid_gdbbid_2
+( 
+  name VARCHAR(20) , 
+  species VARCHAR(20),
+  age INT, 
+  birth DATE,
+  GDB_BID INT,
+  GTID INT
+)';
+command	number	message
+create table pet_gtid_gdbbid_2
+( 
+  name VARCHAR(20) , 
+  species VARCHAR(20),
+  age INT, 
+  birth DATE,
+  GDB_BID INT,
+  GTID I	-1	Affected rows
+drop table if exists ora_pet_gtid_gdbbid_2;
+create table ora_pet_gtid_gdbbid_2
+( 
+name VARCHAR(20) , 
+species VARCHAR(20),
+age INT, 
+birth DATE,
+GDB_BID int(11) NOT NULL DEFAULT '-1',
+GTID bigint(20) unsigned not null default '0'
+)
+engine=CONNECT 
+table_type=ODBC 
+tabname='pet_gtid_gdbbid_2' 
+Connection='DSN=mysrc';
+insert into ora_pet_gtid_gdbbid_2 values ('Puff','bird', 1, date'1999-03-30',110,100001);
+insert into ora_pet_gtid_gdbbid_2(name,species,age,birth,GDB_BID,GTID) values ('Fluffy','cat', 2 , date'1993-02-04',111,100002);
+insert into ora_pet_gtid_gdbbid_2(name,species,age,birth) values ('Fang','dog', 3 , date'1980-08-27');
+select * from ora_pet_gtid_gdbbid_2 order by age;
+name	species	age	birth	GDB_BID	GTID
+Puff	bird	1	1999-03-30	-1	0
+Fluffy	cat	2	1993-02-04	-1	0
+Fang	dog	3	1980-08-27	-1	0
+select name,age,birth,GDB_BID,GTID from ora_pet_gtid_gdbbid_2 order by age;
+name	age	birth	GDB_BID	GTID
+Puff	1	1999-03-30	-1	0
+Fluffy	2	1993-02-04	-1	0
+Fang	3	1980-08-27	-1	0
+select name,age,GDB_BID,GTID from ora_pet_gtid_gdbbid_2 where age=1;
+name	age	GDB_BID	GTID
+Puff	1	-1	0
+select name,age,GDB_BID,GTID from ora_pet_gtid_gdbbid_2 where GDB_BID=-1 order by age;
+name	age	GDB_BID	GTID
+select name,age,GDB_BID,GTID from ora_pet_gtid_gdbbid_2 where GTID=-1;
+name	age	GDB_BID	GTID
+select name,age,GDB_BID,GTID from ora_pet_gtid_gdbbid_2 where GDB_BID=0;
+name	age	GDB_BID	GTID
+select name,age,GDB_BID,GTID from ora_pet_gtid_gdbbid_2 where GTID=0;
+name	age	GDB_BID	GTID
+select name,age,GDB_BID,GTID from ora_pet_gtid_gdbbid_2 where GDB_BID=-1 and GTID=0;
+name	age	GDB_BID	GTID
+update ora_pet_gtid_gdbbid_2 set age=11 where name='Puff';
+select * from ora_pet_gtid_gdbbid_2 order by age;
+name	species	age	birth	GDB_BID	GTID
+Fluffy	cat	2	1993-02-04	-1	0
+Fang	dog	3	1980-08-27	-1	0
+Puff	bird	11	1999-03-30	-1	0
+update ora_pet_gtid_gdbbid_2 set age=11,GDB_BID=111 where name='Puff';
+update ora_pet_gtid_gdbbid_2 set age=11,GTID=100011 where name='Puff';
+update ora_pet_gtid_gdbbid_2 set GDB_BID=112,GTID=100012 where age=11;
+update ora_pet_gtid_gdbbid_2 set ora_pet_gtid_gdbbid_2.GDB_BID=113 where age=11;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "ORA_PET_GTID_GDBBID_2"."GDB_BID": invalid ident' from CONNECT
+update ora_pet_gtid_gdbbid_2 set ora_pet_gtid_gdbbid_2.GTID=100013 where age=11;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "ORA_PET_GTID_GDBBID_2"."GTID": invalid identifi' from CONNECT
+update ora_pet_gtid_gdbbid_2 set ora_pet_gtid_gdbbid_2.GDB_BID=113, ora_pet_gtid_gdbbid_2.GTID=100013 where age=11;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "ORA_PET_GTID_GDBBID_2"."GTID": invalid identifi' from CONNECT
+update ora_pet_gtid_gdbbid_2 set age=12 where GDB_BID=-1;
+update ora_pet_gtid_gdbbid_2 set age=12 where GTID=0;
+update ora_pet_gtid_gdbbid_2 set age=12 where GDB_BID=-1 and GTID=0;
+update ora_pet_gtid_gdbbid_2 set age=12 where ora_pet_gtid_gdbbid_2.GDB_BID=-1;
+ERROR HY000: Got error 122 'Remote SQLExecDirect: [Oracle][ODBC][Ora]ORA-00904: "ORA_PET_GTID_GDBBID_2"."GDB_BID": invalid ident' from CONNECT
+update ora_pet_gtid_gdbbid_2 set age=12 where ora_pet_gtid_gdbbid_2.GTID=-1;
+update ora_pet_gtid_gdbbid_2 set age=12 where ora_pet_gtid_gdbbid_2.GTID=0 and ora_pet_gtid_gdbbid_2.GDB_BID=-1;
+delete from ora_pet_gtid_gdbbid_2 where GDB_BID=110;
+delete from ora_pet_gtid_gdbbid_2 where GTID=100001;
+delete from ora_pet_gtid_gdbbid_2 where GDB_BID=-1;
+delete from ora_pet_gtid_gdbbid_2 where GTID=-1;
+delete from ora_pet_gtid_gdbbid_2 where GDB_BID=112 and GTID=100012;
+delete from ora_pet_gtid_gdbbid_2 where name='Fluffy' and GDB_BID=-1;
+delete from ora_pet_gtid_gdbbid_2 where name='Fluffy' and GTID=0;
+delete from ora_pet_gtid_gdbbid_2 where name='Fluffy';
+select * from ora_pet_gtid_gdbbid_2 order by age;
+name	species	age	birth	GDB_BID	GTID
+Fang	dog	3	1980-08-27	-1	0
+##########################################################
+# end
+##########################################################
+drop database if exists test_connect_engine;
+uninstall plugin connect;

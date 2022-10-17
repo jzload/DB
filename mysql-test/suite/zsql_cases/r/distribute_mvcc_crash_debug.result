@@ -1,0 +1,13 @@
+CREATE TABLE t (  id int primary key,  name varchar(20), GTID bigint) ENGINE=InnoDB;
+set session debug ='+d,ib_force_crash_after_prepare';
+begin;
+/*+GTID=6920195024*/insert into t values(1, 'a', 6920195024), (2, 'laala',6920195024),(3, 'xa',6920195024);
+commit;
+ERROR HY000: Lost connection to MySQL server during query
+CREATE TABLE t2 (  id varchar(200) primary key,  name varchar(20), GTID bigint) ENGINE=InnoDB;
+set session debug ='+d,ib_force_crash_after_prepare';
+begin;
+/*+GTID=6920195024*/insert into t2 values('xxxxxxxx', 'a', 6920195024), ('5', 'laala',6920195024),('33333333333', 'xa',6920195024);
+commit;
+ERROR HY000: Lost connection to MySQL server during query
+drop table t,t2;

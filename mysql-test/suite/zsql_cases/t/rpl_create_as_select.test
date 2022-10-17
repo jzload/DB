@@ -1,0 +1,105 @@
+
+--let $use_gtids= 1
+--let $rpl_gtid_utils= 1
+--let $rpl_topology= 1->2
+--source include/rpl_init.inc
+--source include/have_log_bin.inc
+--source include/have_binlog_format_row.inc
+--source include/rpl_default_connections.inc
+--source include/rpl_reset.inc
+
+--source include/rpl_connection_slave.inc
+--error 1146
+SHOW CREATE TABLE t1;
+
+
+--source include/rpl_connection_master.inc
+select @@gtid_mode;
+create table t (a bigint primary key, b varchar(100));
+insert into t values (1, 'a'), (2, 'b'),(3, 'c');
+create table t1 as select * from t;
+--echo # 1. Create table and have data
+--source include/rpl_sync.inc
+
+SHOW CREATE TABLE t1;
+select * from t1;
+--echo # check the data wether same
+--let $diff_tables= server_1:test.t1, server_2:test.t1
+--source include/diff_tables.inc
+--echo # check the executed_Gtid_set is continuous
+let gtids_executed= query_get_value(SHOW MASTER STATUS, Executed_Gtid_Set, 1);
+perl;
+my $gtids_executed = $ENV{'gtids_executed'} or die;
+$loc = index($gtids_executed, ",");
+print "$loc\n";
+EOF
+
+--echo # 2. master delete can rpl to salve
+connection server_1;
+delete  from t1;
+--source include/rpl_sync.inc
+connection server_2;
+select * from t1;
+
+--echo # 3. select some column to create 
+--source include/rpl_connection_master.inc
+begin;
+insert into t values (4, 'd');
+create table t2 as select a from t;
+commit;
+--source include/rpl_sync.inc
+--source include/rpl_connection_slave.inc
+select * from t2;
+--echo # check the data wether same
+--let $diff_tables= server_1:test.t2, server_2:test.t2
+--source include/diff_tables.inc
+connection server_2;
+--let retrieved_gtids= query_get_value(SHOW SLAVE STATUS, Retrieved_Gtid_Set, 1)
+perl;
+my $retrieved_gtids = $ENV{'retrieved_gtids'} or die;
+my $count = () = $retrieved_gtids  =~ /:/g;
+print " $count\n";
+EOF
+
+--echo # 4. select not exist table to create 
+--source include/rpl_connection_master.inc
+--error 1146
+create table t4 as select a from t3;
+
+--echo # 5 . create as select not affect the normal create table
+--source include/rpl_connection_master.inc
+drop table t2;
+create table t2 as select a from t;
+create table t3(a bigint primary key);
+--source include/rpl_sync.inc
+--source include/rpl_connection_slave.inc
+select * from t2;
+select * from t3;
+
+--echo # 6. Create table not with binlog_format
+set @sav_binlog_format=  @@session.binlog_format;
+set @@session.binlog_format= statement;
+--error 1786
+create table t11 as select * from t;
+set @@session.binlog_format= @sav_binlog_format;
+
+--echo # 7 . create as select 
+--source include/rpl_connection_master.inc
+drop table t2;
+create table t2(a int primary key, b varchar(20), key(a, b)) as select a from t;
+--source include/rpl_sync.inc
+--source include/rpl_connection_slave.inc
+show create table t2;
+
+connection server_1;
+DROP TABLE t;
+DROP TABLE t1;
+DROP TABLE t2;
+DROP TABLE t3;
+SET sql_mode = default;
+--source include/rpl_sync.inc
+connection server_2;
+--error 1146
+SHOW CREATE TABLE t1;
+
+--source include/rpl_end.inc

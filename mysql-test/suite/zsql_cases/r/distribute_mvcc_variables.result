@@ -1,0 +1,29 @@
+# 1. simple test
+set global innodb_purge_stop_now = on;
+# restart: 
+# 2.  after sql backgroud, test
+set global innodb_purge_run_now = on;
+set global innodb_purge_stop_now = on;
+set global innodb_purge_run_now = on;
+set global innodb_purge_stop_now = on;
+set global innodb_purge_run_now = on;
+set global innodb_purge_stop_now = on;
+set global innodb_purge_run_now = on;
+set global innodb_purge_stop_now = on;
+set global innodb_purge_run_now = on;
+set global innodb_purge_stop_now = on;
+set global innodb_purge_run_now = on;
+set global innodb_purge_stop_now = on;
+set global innodb_purge_run_now = on;
+set global innodb_purge_stop_now = on;
+set global innodb_purge_run_now = on;
+set global innodb_purge_stop_now = on;
+set global innodb_purge_run_now = on;
+set global innodb_purge_stop_now = on;
+set global innodb_purge_run_now = on;
+set global innodb_purge_stop_now = on;
+set global innodb_purge_stop_now = on;
+# restart: 
+# 3.   sql backgroud, set variable backgroud test 
+set global innodb_purge_stop_now = on;
+# restart: 

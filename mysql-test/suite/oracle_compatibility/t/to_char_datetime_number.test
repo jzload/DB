@@ -1,0 +1,291 @@
+# The main testing script for to_char
+
+#to_char(datetime)
+
+--disable_warnings
+drop database if exists to_char_test1;
+--enable_warnings
+
+create database to_char_test1;
+use to_char_test1;
+
+--disable_warnings
+DROP TABLE IF EXISTS datatime6_tab;
+--enable_warnings
+
+CREATE TABLE datatime6_tab (`ts_col` timestamp(6));
+INSERT INTO datatime6_tab VALUES ('2019-12-02 14:00:05.123456');
+INSERT INTO datatime6_tab VALUES ('1999-12-31 23:59:59.999999');
+INSERT INTO datatime6_tab VALUES ('2000-01-01 00:00:00.000001');
+INSERT INTO datatime6_tab VALUES ('2008-05-08 09:09:09.001001');
+INSERT INTO datatime6_tab VALUES ('2008-05-12 13:13:09.000000');
+
+SELECT * FROM datatime6_tab;
+
+select to_char(ts_col,'dd-month-YYYY HH24:MI:SS.FF1') from datatime6_tab;
+select to_char(ts_col,'dd-month-YYYY HH24:MI:SS.FF2') from datatime6_tab;
+select to_char(ts_col,'dd-month-YYYY HH24:MI:SS.FF3') from datatime6_tab;
+select to_char(ts_col,'dd-month-YYYY HH:MI:SS.FF3') from datatime6_tab;
+select to_char(ts_col,'FF4') from datatime6_tab;
+select to_char(ts_col,'FF5') from datatime6_tab;
+select to_char(ts_col,'FF6') from datatime6_tab;
+select to_char(ts_col,'FF7') from datatime6_tab;
+select to_char(ts_col,'FF8') from datatime6_tab;
+select to_char(ts_col,'FF9') from datatime6_tab;
+
+--error 1583
+select to_char(ts_col,'FF0') from datatime6_tab;
+
+--error 1583
+select to_char(ts_col,'dd-month-YYYY HH24:MI:SS.FF10') from datatime6_tab;
+
+--error 1583
+select to_char(ts_col,'FF11') from datatime6_tab;
+
+--error 1583
+select to_char(ts_col,'dd-month-YYYY HH24:MI:SS.FF19') from datatime6_tab;
+
+SELECT TO_CHAR('2000-01-01 00:00:00.9999994', 'FF8') FROM dual;
+SELECT TO_CHAR('2000-01-01 00:00:00.9999995', 'FF8') FROM dual;
+SELECT TO_CHAR('2000-01-01 00:00:00.000000', 'FF8') FROM dual;
+
+--error 1583
+SELECT TO_CHAR('2000-01-01 00:00:00.123456', '0FF') FROM dual;
+
+--error 1583
+SELECT TO_CHAR('2000-01-01 00:00:00.123456', '1FF') FROM dual;
+
+--error 1583
+SELECT TO_CHAR('2000-01-01 00:00:00.123456', '9FF') FROM dual;
+
+--disable_warnings
+DROP TABLE IF EXISTS datatime3_tab;
+--enable_warnings
+
+CREATE TABLE datatime3_tab (`ts_col` timestamp(3));
+INSERT INTO datatime3_tab VALUES ('2019-12-02 14:00:05.123456');
+INSERT INTO datatime3_tab VALUES ('1999-12-31 23:59:59.999999');
+INSERT INTO datatime3_tab VALUES ('2000-01-01 00:00:00.000001');
+INSERT INTO datatime3_tab VALUES ('2008-05-08 09:09:09.001001');
+INSERT INTO datatime3_tab VALUES ('2008-05-12 13:13:09.000000');
+
+SELECT * FROM datatime3_tab;
+
+select to_char(ts_col,'dd-month-YYYY HH24:MI:SS.FF1') from datatime3_tab;
+select to_char(ts_col,'dd-month-YYYY HH24:MI:SS.FF2') from datatime3_tab;
+select to_char(ts_col,'dd-month-YYYY HH24:MI:SS.FF3') from datatime3_tab;
+select to_char(ts_col,'dd-month-YYYY HH:MI:SS.FF3') from datatime6_tab;
+select to_char(ts_col,'FF4') from datatime3_tab;
+select to_char(ts_col,'FF5') from datatime3_tab;
+select to_char(ts_col,'FF6') from datatime3_tab;
+select to_char(ts_col,'FF7') from datatime3_tab;
+select to_char(ts_col,'FF8') from datatime3_tab;
+select to_char(ts_col,'FF9') from datatime3_tab;
+
+--error 1583
+select to_char(ts_col,'FF0') from datatime3_tab;
+
+--error 1583
+select to_char(ts_col,'dd-month-YYYY HH24:MI:SS.FF10') from datatime3_tab;
+
+--error 1583
+select to_char(ts_col,'FF11') from datatime3_tab;
+
+--error 1583
+select to_char(ts_col,'dd-month-YYYY HH24:MI:SS.FF19') from datatime3_tab;
+
+SELECT TO_CHAR(ts_col, 'd  dd-month-YYYY HH24:MI:SS') FROM datatime3_tab;
+SELECT TO_CHAR(ts_col, 'dd-mon-YYYY HH24:MI:SS') FROM datatime3_tab;
+SELECT TO_CHAR(ts_col, 'MM HH24:MI:SS: FF6') FROM datatime3_tab;
+
+#repeated time format
+
+SELECT TO_CHAR(ts_col, 'dd-month-YYYY HH24:MI:SS dd-month-YYYY HH24:MI:SS') FROM datatime3_tab;
+SELECT TO_CHAR(ts_col, 'MM HH24:MI:SS.FF6  MM HH24:MI:SS.FF6') FROM datatime3_tab;
+
+
+select to_char(ts_col,'fm dd-month-YYYY HH:MI:SS.FF3') from datatime6_tab;
+select to_char(ts_col,'FM dd-month-YYYY HH:MI:SS.FF3') from datatime6_tab;
+select to_char(ts_col,'fmdd-month-YYYY HH:MI:SS.FF3') from datatime6_tab;
+select to_char(ts_col,'FMdd-month-YYYY HH:MI:SS.FF3') from datatime6_tab;
+select to_char(ts_col,'dd-month-YYYY fmHH:MI:SS.FF3') from datatime6_tab;
+select to_char(ts_col,'dd-month-YYYY FMHH:MI:SS.FF3') from datatime6_tab;
+select to_char(ts_col,'dd-month-YYYY fm HH:MI:SS.FF3') from datatime6_tab;
+select to_char(ts_col,'dd-month-YYYY FM HH:MI:SS.FF3') from datatime6_tab;
+
+DROP TABLE datatime3_tab;
+DROP TABLE datatime6_tab;
+drop database to_char_test1;
+
+#to_char(number)
+
+select TO_CHAR(0)  from dual;
+select TO_CHAR(123)  from dual;
+select TO_CHAR(-123) from dual;
+select  TO_CHAR(1234,'9999') from dual;
+select  TO_CHAR(1234,'09999') from dual;
+select  TO_CHAR(1234,'990099') from dual;
+select  TO_CHAR(1234,'0990099') from dual;
+select  TO_CHAR(567,'9999') from dual;
+select  TO_CHAR(-567,'9999') from dual;
+select  TO_CHAR(1234567,'9999') from dual;
+select  TO_CHAR(45.789,'9999') from dual;
+select  TO_CHAR(567,'9999.99') from dual;
+select  TO_CHAR(-567,'9999.99')  from dual;  
+select  TO_CHAR(1234567,'9999.99') from dual;
+select  TO_CHAR(45.789,'9999.99') from dual; 
+select  TO_CHAR(567,'9,999,999')  from dual; 
+select  TO_CHAR(-567,'9,999,999') from dual; 
+select  TO_CHAR(1234567,'9,9999,999') from dual;
+select  TO_CHAR(0.44,'9,999,999')  from dual;
+select  TO_CHAR(1234,'$9999') from dual;
+select  TO_CHAR(-567,'$9999') from dual;
+select  TO_CHAR(567,'B999.9')  from dual;
+select  TO_CHAR(-567,'B999.9') from dual;
+select  TO_CHAR(0.44,'B999.9')  from dual;
+select  TO_CHAR(567,'999MI')  from dual;
+select  TO_CHAR(-567,'999MI') from dual;
+select  TO_CHAR(567,'S999')  from dual;
+select  TO_CHAR(-567,'S999')  from dual;
+select  TO_CHAR(567,'999S')   from dual;
+select  TO_CHAR(-567,'999S')  from dual;
+select  TO_CHAR(567,'9999PR')  from dual;
+select  TO_CHAR(-567,'9999PR')  from dual;
+select  TO_CHAR(567,'9999D99')  from dual;
+select  TO_CHAR(-567,'9999D99') from dual;
+select  TO_CHAR(567.866,'9999D99') from dual;
+select  TO_CHAR(567,'9.9EEEE') from dual;
+select  TO_CHAR(45,'9.9EEEE') from dual;
+select  TO_CHAR(0.0666,'9.9EEEE') from dual;
+
+--disable_warnings
+create database if not exists oracle_bq;
+--enable_warnings
+
+use oracle_bq;
+
+create table if not exists t1(id int primary key,float_1 float,char_1 char(15),char_2 char(25),year_1 year,date_1 date,timestamp_1 timestamp,timestamp_2 timestamp(3),timestamp_3 timestamp(6));
+
+start transaction;
+insert into t1 (id, float_1,char_1,char_2,year_1,date_1,timestamp_1,timestamp_2,timestamp_3) values (1,99.99,'20190101','1999101212.1212','1999','1999-01-04','1999-01-05 08:15:15','1999-01-05 15:15:15.456','1999-01-05 08:15:15.123456');
+insert into t1 (id, float_1,char_1,char_2,year_1,date_1,timestamp_1,timestamp_2,timestamp_3) values (11,89.99,'20050202','2005101214.1212','1999','1999-06-04','1999-01-05 15:15:15','1999-01-05 15:15:15.456','1999-01-05 15:35:15.123456');
+insert into t1 (id, float_1,char_1,char_2,year_1,date_1,timestamp_1,timestamp_2,timestamp_3) values (111,97.87,'19991212','2020101223.1212','1999','1999-12-04','1999-01-05 23:15:15','1999-01-05 15:15:15.456','1999-01-05 15:15:15.123456');
+insert into t1 (id, float_1,char_1,char_2,year_1,date_1,timestamp_1,timestamp_2,timestamp_3) values (2,99.99,'20190101','1999101212.1212','2005','2005-01-04','2005-01-05 08:15:15','2005-01-05 15:15:15.456','2005-01-05 08:15:15.123456');
+insert into t1 (id, float_1,char_1,char_2,year_1,date_1,timestamp_1,timestamp_2,timestamp_3) values (22,89.99,'20050202','2005101214.1212','2005','2005-06-04','2005-01-05 15:15:15','2005-01-05 15:15:15.456','2005-01-05 15:35:15.123456');
+insert into t1 (id, float_1,char_1,char_2,year_1,date_1,timestamp_1,timestamp_2,timestamp_3) values (222,97.87,'19991212','2020101223.1212','2005','2005-12-04','2005-01-05 23:15:15','2005-01-05 15:15:15.456','2005-01-05 15:15:15.123456');
+insert into t1 (id, float_1,char_1,char_2,year_1,date_1,timestamp_1,timestamp_2,timestamp_3) values (3,99.99,'20190101','1999101212.1212','2012','2012-01-04','2012-01-05 08:15:15','2012-01-05 15:15:15.456','2012-01-05 08:15:15.123456');
+insert into t1 (id, float_1,char_1,char_2,year_1,date_1,timestamp_1,timestamp_2,timestamp_3) values (33,89.99,'20050202','2005101214.1212','2012','2012-06-04','2012-01-05 15:15:15','2012-01-05 15:15:15.456','2012-01-05 15:35:15.123456');
+insert into t1 (id, float_1,char_1,char_2,year_1,date_1,timestamp_1,timestamp_2,timestamp_3) values (333,97.87,'19991212','2020101223.1212','2012','2012-12-04','2012-01-05 23:15:15','2012-01-05 15:15:15.456','2012-01-05 15:15:15.123456');
+insert into t1 (id, float_1,char_1,char_2,year_1,date_1,timestamp_1,timestamp_2,timestamp_3) values (4,99.99,'20190101','1999101212.1212','2020','2020-01-04','2020-01-05 08:15:15','2020-01-05 15:15:15.456','2020-01-05 08:15:15.123456');
+insert into t1 (id, float_1,char_1,char_2,year_1,date_1,timestamp_1,timestamp_2,timestamp_3) values (44,89.99,'20050202','2005101214.1212','2020','2020-06-04','2020-01-05 15:15:15','2020-01-05 15:15:15.456','2020-01-05 15:35:15.123456');
+insert into t1 (id, float_1,char_1,char_2,year_1,date_1,timestamp_1,timestamp_2,timestamp_3) values (444,97.87,'19991212','2020101223.1212','2020','2020-04-17','2020-01-05 23:15:15','2020-01-05 15:15:15.456','2020-01-05 15:15:15.123456');
+insert into t1 (id) values (88888);
+commit;
+
+select to_char(char_1,'09999999'),char_1 from t1;
+
+select to_char(char_2,'0000099999D9999'),char_2 from t1;
+
+select to_char(99999999.9,'09999999') from dual;
+
+select to_char(99999999,'09999') from dual;
+
+select to_char(99999.123,'09999D999') from dual;
+
+select to_char(99999.123,'09999D99') from dual;
+
+select to_char(99999999.9,'09999999D9') from dual;
+
+select to_char(18,'fm09') from dual;
+
+select to_char(18,'fm0999') from dual;
+
+select to_char(18,'fm0999D999') from dual;
+
+select to_char(18.567,'fm099D999') from dual;
+
+select to_char(18.5678,'fm099D999') from dual;
+
+select to_char(18888.567,'fm099D999') from dual;
+
+select to_char('2020-01-20 16:35:16.123456','yyyy yyyy') from dual;
+
+--echo ---------------------------------------------------------------
+--echo ## case 1: test different string types
+--echo ---------------------------------------------------------------
+create table if not exists t2(a int primary key, b char(32), c varchar(32), d varchar2(32 char), e text(32), f blob(32));
+
+insert into t2 values(1, '123','123.123', '123456.123','123456789.123456','1234567890.1234567');
+
+select to_char(b,'99G999G999G999.999999') as t_b,to_char(c,'99G999G999G999.999999') as t_c,to_char(d,'99G999G999G999.999999') as t_d,to_char(e,'99G999G999G999.999999') as t_e, to_char(f,'99G999G999G999.999999') as t_f from t2;
+
+--echo ---------------------------------------------------------------
+--echo ## case 2: test in where clause
+--echo ---------------------------------------------------------------
+select a from t2 where to_char(t2.d,'999,999.999') = ' 123,456.123';
+
+--echo ---------------------------------------------------------------
+--echo ## case 3: test in subquery
+--echo ---------------------------------------------------------------
+select a from t2 where ((select to_char(d,'999,999.999') from t2) = ' 123,456.123');
+
+--echo ---------------------------------------------------------------
+--echo ## case 4: test the return value
+--echo ---------------------------------------------------------------
+insert into t2 values(2,to_char(223,'99G999G999G999.999999'),to_char(223.123,'99G999G999G999.999999'),to_char(223456.123,'99G999G999G999.999999'),to_char(223456789.123456,'99G999G999G999.999999'),to_char(2234567890.1234567,'99G999G999G999.999999'));
+
+--echo ---------------------------------------------------------------
+--echo ## case 5: the parameter is function
+--echo ---------------------------------------------------------------
+select to_char(b, '999G999D999'), length(to_char(b, '999G999D999')), to_char(length(to_char(b, '999G999D999'))) from t2 where a=1;
+
+--echo ---------------------------------------------------------------
+--echo ## case 6: test in order by clause
+--echo ---------------------------------------------------------------
+select a from t2 order by to_char(t2.c,'999.999');
+
+--echo ---------------------------------------------------------------
+--echo ## case 7: test in group by clause
+--echo ---------------------------------------------------------------
+insert into t2 values(4, '123','323.123', '123456.123','123456789.123456','1234567890.1234567');
+insert into t2 values(5, '123','323.123', '123456.123','123456789.123456','1234567890.1234567');
+insert into t2 values(6, '123','123.123', '123456.123','123456789.123456','1234567890.1234567');
+insert into t2 values(7, '123','123.123', '123456.123','123456789.123456','1234567890.1234567');
+insert into t2 values(8, '123','223.123', '123456.123','123456789.123456','1234567890.1234567');
+insert into t2 values(9, '123','223.123', '123456.123','123456789.123456','1234567890.1234567');
+SET @org_mode=@@sql_mode;
+--disable_warnings
+SET @@sql_mode='STRICT_TRANS_TABLES';
+--enable_warnings
+
+select c from t2 group by to_char(t2.c,'999.999');
+
+SET @@sql_mode= @org_mode;
+
+--echo ---------------------------------------------------------------
+--echo ## case 8: test different languages
+--echo ---------------------------------------------------------------
+insert into t2 values(3,to_char('ZX'),to_char('中兴'),to_char('ZX中兴'),to_char('中兴ZX'),to_char('中兴ZX'));
+select * from t2;
+
+--echo ---------------------------------------------------------------
+--echo ## case 9: test prepare statement
+--echo ---------------------------------------------------------------
+prepare stmt1 from "select to_char(?, 'YYYY-MM-DD HH24:MI:SS.ff6') from dual";
+set @arg1='2020-12-12 11:12:12.123';
+execute stmt1 using @arg1;
+prepare stmt2 from "select to_char(?, '999G999G9999D999') from dual";
+set @arg2='123456789.8888';
+execute stmt2 using @arg2;
+deallocate prepare stmt1;
+deallocate prepare stmt2;
+
+--echo ---------------------------------------------------------------
+--echo ## case 10: test if field value in query would be modified by to_char()
+--echo ---------------------------------------------------------------
+create table t10(a int primary key, b double, c double, d char(10), e varchar(10));
+insert into t10 values(1, 99999999.4, 99999999.5, '99999999.4', '99999999.5');
+insert into t10(a,b,d) values(2, 99999999.4, '99999999.4');
+select to_char(b,'09999999') as tb, b, to_char(c, '09999999') as tc, c, to_char(d, '09999999') as td, d, to_char(e, '09999999') as te, e from t10;
+
+drop database oracle_bq;

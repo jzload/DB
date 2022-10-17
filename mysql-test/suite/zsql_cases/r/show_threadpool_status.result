@@ -1,0 +1,142 @@
+SELECT @@GLOBAL.thread_handling;
+@@GLOBAL.thread_handling
+pool-of-threads
+##########################################################
+# test case 1: grammer error
+##########################################################
+show thread pool status;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'thread pool status' at line 1
+##########################################################
+#  test case 2: allow in transaction
+##########################################################
+drop database if exists test_db;
+create database test_db;
+create table test_db.tb1(id int primary key, c1 int);
+start transaction ;
+insert into test_db.tb1 values(1,1);
+insert into test_db.tb1 values(2,2);
+show threadpool status;
+Group	Super_queue_events	High_queue_events	Low_queue_events	Threadpool_active_threads	Threadpool_waiting_threads	Threadpool_idle_threads	Wait_time
+0	0	0	0	1	0	1	0
+commit;
+##########################################################
+#  test case 2: test  thread status
+##########################################################
+##########################################################
+#  test case 2.1: test  thread status-innodb lock wait
+##########################################################
+# active:1 waiting:0 idle:1
+show threadpool status;
+Group	Super_queue_events	High_queue_events	Low_queue_events	Threadpool_active_threads	Threadpool_waiting_threads	Threadpool_idle_threads	Wait_time
+0	0	0	0	1	0	1	0
+show status like '%threadpool%';
+Variable_name	Value
+Com_show_threadpool_status	1
+Threadpool_active_threads	1
+Threadpool_idle_threads	1
+Threadpool_threads	2
+Threadpool_waiting_threads	0
+start transaction ;
+update test_db.tb1 set c1=2 where id=1;
+update test_db.tb1 set c1=3 where id=1;
+update test_db.tb1 set c1=4 where id=1;
+# active:1 waiting:2 idle:0
+show threadpool status;
+Group	Super_queue_events	High_queue_events	Low_queue_events	Threadpool_active_threads	Threadpool_waiting_threads	Threadpool_idle_threads	Wait_time
+0	0	0	0	1	2	0	0
+show status like '%threadpool%';
+Variable_name	Value
+Com_show_threadpool_status	2
+Threadpool_active_threads	1
+Threadpool_idle_threads	0
+Threadpool_threads	3
+Threadpool_waiting_threads	2
+commit;
+# active:1 waiting:0 idle:2
+show threadpool status;
+Group	Super_queue_events	High_queue_events	Low_queue_events	Threadpool_active_threads	Threadpool_waiting_threads	Threadpool_idle_threads	Wait_time
+0	0	0	0	1	0	3	0
+show status like '%threadpool%';
+Variable_name	Value
+Com_show_threadpool_status	3
+Threadpool_active_threads	1
+Threadpool_idle_threads	3
+Threadpool_threads	4
+Threadpool_waiting_threads	0
+# active:1 waiting:0 idle:0
+show threadpool status;
+Group	Super_queue_events	High_queue_events	Low_queue_events	Threadpool_active_threads	Threadpool_waiting_threads	Threadpool_idle_threads	Wait_time
+0	0	0	0	1	0	0	0
+show status like '%threadpool%';
+Variable_name	Value
+Com_show_threadpool_status	4
+Threadpool_active_threads	1
+Threadpool_idle_threads	0
+Threadpool_threads	1
+Threadpool_waiting_threads	0
+##########################################################
+#  test case 2.2: test  thread status-MDL lock wait
+##########################################################
+# active:1 waiting:0 idle:1
+show threadpool status;
+Group	Super_queue_events	High_queue_events	Low_queue_events	Threadpool_active_threads	Threadpool_waiting_threads	Threadpool_idle_threads	Wait_time
+0	0	0	0	1	0	1	0
+show status like '%threadpool%';
+Variable_name	Value
+Com_show_threadpool_status	5
+Threadpool_active_threads	1
+Threadpool_idle_threads	1
+Threadpool_threads	2
+Threadpool_waiting_threads	0
+start transaction ;
+select count(*) from test_db.tb1;
+count(*)
+2
+alter table test_db.tb1 add column c2 int;
+alter table test_db.tb1 add column c3 int;
+# active:1 waiting:2 idle:0
+show threadpool status;
+Group	Super_queue_events	High_queue_events	Low_queue_events	Threadpool_active_threads	Threadpool_waiting_threads	Threadpool_idle_threads	Wait_time
+0	0	0	0	1	2	0	0
+show status like '%threadpool%';
+Variable_name	Value
+Com_show_threadpool_status	6
+Threadpool_active_threads	1
+Threadpool_idle_threads	0
+Threadpool_threads	3
+Threadpool_waiting_threads	2
+commit;
+# active:1 waiting:0 idle:2
+show threadpool status;
+Group	Super_queue_events	High_queue_events	Low_queue_events	Threadpool_active_threads	Threadpool_waiting_threads	Threadpool_idle_threads	Wait_time
+0	0	0	0	1	0	2	0
+show status like '%threadpool%';
+Variable_name	Value
+Com_show_threadpool_status	7
+Threadpool_active_threads	1
+Threadpool_idle_threads	2
+Threadpool_threads	3
+Threadpool_waiting_threads	0
+# active:1 waiting:0 idle:0
+show threadpool status;
+Group	Super_queue_events	High_queue_events	Low_queue_events	Threadpool_active_threads	Threadpool_waiting_threads	Threadpool_idle_threads	Wait_time
+0	0	0	0	1	0	0	0
+show status like '%threadpool%';
+Variable_name	Value
+Com_show_threadpool_status	8
+Threadpool_active_threads	1
+Threadpool_idle_threads	0
+Threadpool_threads	1
+Threadpool_waiting_threads	0
+##########################################################
+#  test case 3: change the size of threadpool 
+##########################################################
+set global thread_pool_size=4;
+include/assert.inc [show threadpool status: sum of Threadpool_active_threads must be 1]
+include/assert.inc [show status like '%threadpool%': Threadpool_active_threads must be 1]
+set global thread_pool_size=0;
+show threadpool status;
+Group	Super_queue_events	High_queue_events	Low_queue_events	Threadpool_active_threads	Threadpool_waiting_threads	Threadpool_idle_threads	Wait_time
+0	0	0	0	1	0	0	0
+include/assert.inc [show status like '%threadpool%': Threadpool_active_threads must be 1]
+drop database test_db;
