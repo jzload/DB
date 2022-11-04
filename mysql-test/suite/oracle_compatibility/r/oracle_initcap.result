@@ -1,0 +1,252 @@
+#
+# 准备
+#
+drop database if exists initcap_test;
+Warnings:
+Note	1008	Can't drop database 'initcap_test'; database doesn't exist
+create database initcap_test;
+use initcap_test;
+create table tab1(id int not null primary key,string varchar(255));
+create table tab2(id int not null primary key,string varchar(255));
+insert into tab1 values (1,'');
+insert into tab1 values (2,' ');
+insert into tab1 values (3,NULL);
+insert into tab1 values (4,'str1 str2');
+insert into tab1 values (5,' str1 str2 ');
+insert into tab1 values (6,'str1 str2');
+insert into tab1 values (7,'str1!str2');
+insert into tab1 values (8,'str12str2');
+insert into tab1 values (9,'str12str2');
+insert into tab2 values (1,'');
+insert into tab2 values (2,' ');
+insert into tab2 values (3,NULL);
+insert into tab2 values (4,'str1 str2');
+insert into tab2 values (5,' str1 str2 ');
+insert into tab2 values (6,'str1 str2');
+insert into tab2 values (7,'str1!str2');
+insert into tab2 values (8,'str12str2');
+insert into tab2 values (9,'str1 A str2');
+select initcap from dual;
+ERROR 42S22: Unknown column 'initcap' in 'field list'
+select initcap() from dual;
+ERROR 42000: Incorrect parameter count in the call to native function 'initcap'
+select initcap(,) from dual;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near ',) from dual' at line 1
+select initcap('') from dual;
+initcap('')
+
+select initcap(' ') from dual;
+initcap(' ')
+ 
+select initcap(NULL) from dual;
+initcap(NULL)
+NULL
+select initcap (string) from tab1 where id = 1;
+initcap (string)
+
+select initcap (string) from tab1 where id = 2;
+initcap (string)
+ 
+select initcap (string) from tab1 where id = 3;
+initcap (string)
+NULL
+select initcap (string) from tab1 where id = 4;
+initcap (string)
+Str1 Str2
+select initcap (string) from tab1 where id = 5;
+initcap (string)
+ Str1 Str2 
+select initcap (string) from tab1 where id = 6;
+initcap (string)
+Str1 Str2
+select initcap (string) from tab1 where id = 7;
+initcap (string)
+Str1!Str2
+select initcap (string) from tab1 where id = 8;
+initcap (string)
+Str12str2
+select initcap (string) from tab1 where id = 9;
+initcap (string)
+Str12str2
+select initcap(*) from dual;
+ERROR 42000: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '*) from dual' at line 1
+select initcap(a) from dual;
+ERROR 42S22: Unknown column 'a' in 'field list'
+select initcap(A) from dual;
+ERROR 42S22: Unknown column 'A' in 'field list'
+select initcap(Aa) from dual;
+ERROR 42S22: Unknown column 'Aa' in 'field list'
+select initcap(1) from dual;
+initcap(1)
+1
+select initcap(1.1) from dual;
+initcap(1.1)
+1.1
+select initcap('a\'b') from dual;
+initcap('a\'b')
+A'B
+select initcap('\'a\'b\'') from dual;
+initcap('\'a\'b\'')
+'A'B'
+select initcap('~aa~bb~') from dual;
+initcap('~aa~bb~')
+~Aa~Bb~
+select initcap('!aa!bb!') from dual;
+initcap('!aa!bb!')
+!Aa!Bb!
+select initcap('#aa#bb#') from dual;
+initcap('#aa#bb#')
+#Aa#Bb#
+select initcap('$aa$bb$') from dual;
+initcap('$aa$bb$')
+$Aa$Bb$
+select initcap('%aa%bb%') from dual;
+initcap('%aa%bb%')
+%Aa%Bb%
+select initcap('^aa^bb^') from dual;
+initcap('^aa^bb^')
+^Aa^Bb^
+select initcap('&aa&bb&') from dual;
+initcap('&aa&bb&')
+&Aa&Bb&
+select initcap('*aa*bb*') from dual;
+initcap('*aa*bb*')
+*Aa*Bb*
+select initcap('(aa(bb(') from dual;
+initcap('(aa(bb(')
+(Aa(Bb(
+select initcap(')aa)bb)') from dual;
+initcap(')aa)bb)')
+)Aa)Bb)
+select initcap('-aa-bb-') from dual;
+initcap('-aa-bb-')
+-Aa-Bb-
+select initcap('_aa_bb_') from dual;
+initcap('_aa_bb_')
+_Aa_Bb_
+select initcap('+aa+bb+') from dual;
+initcap('+aa+bb+')
++Aa+Bb+
+select initcap('=aa=bb=') from dual;
+initcap('=aa=bb=')
+=Aa=Bb=
+select initcap('~aa!bb@cc#dd$ee%ff^gg&hh*ii(jj)kk_ll+mm') from dual;
+initcap('~aa!bb@cc#dd$ee%ff^gg&hh*ii(jj)kk_ll+mm')
+~Aa!Bb@Cc#Dd$Ee%Ff^Gg&Hh*Ii(Jj)Kk_Ll+Mm
+select initcap("aa'bb") from dual;
+initcap("aa'bb")
+Aa'Bb
+select initcap('aa"bb') from dual;
+initcap('aa"bb')
+Aa"Bb
+select initcap('This Is A Test Str') from dual;
+initcap('This Is A Test Str')
+This Is A Test Str
+select initcap('tHIS iS a tEST sTR') from dual;
+initcap('tHIS iS a tEST sTR')
+This Is A Test Str
+select initcap('this is a test str') from dual;
+initcap('this is a test str')
+This Is A Test Str
+select initcap('THIS IS A TEST STR') from dual;
+initcap('THIS IS A TEST STR')
+This Is A Test Str
+select initcap(trim(string)) from tab1 where id = 4;
+initcap(trim(string))
+Str1 Str2
+select trim((select initcap(string) from tab1 where id =4)) from dual;
+trim((select initcap(string) from tab1 where id =4))
+Str1 Str2
+insert into tab1 values (10,(select initcap(string) from tab2 where id = 4));
+update tab1 set string = initcap('str3 str4') where id = 4;
+delete from tab1 where string = initcap('str1 str2') and id = 4;
+select (select initcap(string) from tab1 where id =4 ) from dual;
+(select initcap(string) from tab1 where id =4 )
+Str3 Str4
+select * from tab1 where string = initcap('str1 str2');
+id	string
+6	str1 str2
+10	Str1 Str2
+select * from tab1 where string in (select initcap(string) from
+tab1 where id =4);
+id	string
+4	Str3 Str4
+select * from tab1 where string in (select initcap(string) as
+nls_show from tab1 where id =4);
+id	string
+4	Str3 Str4
+select * from tab1 where string in (select initcap(string) from
+tab1 where id =4 or id =5) order by id;
+id	string
+4	Str3 Str4
+5	 str1 str2 
+select * from tab1 where string not in (select initcap(string) from
+tab1 where id =4 or id =5) order by id;
+id	string
+2	 
+4	Str3 Str4
+5	 str1 str2 
+6	str1 str2
+7	str1!str2
+8	str12str2
+9	str12str2
+10	Str1 Str2
+select * from tab1 where string = (select initcap(string) from
+tab1 where id =4 ) order by id;
+id	string
+4	Str3 Str4
+select * from tab1 where string != (select initcap(string) from
+tab1 where id =4 ) order by id;
+id	string
+1	
+2	 
+5	 str1 str2 
+6	str1 str2
+7	str1!str2
+8	str12str2
+9	str12str2
+10	Str1 Str2
+select * from tab1 order by initcap('str1 str2');
+id	string
+1	
+2	 
+3	NULL
+4	Str3 Str4
+5	 str1 str2 
+6	str1 str2
+7	str1!str2
+8	str12str2
+9	str12str2
+10	Str1 Str2
+prepare stmt_initcap from 'select initcap(?) from dual';
+set @a = 'this is test str for prepare';
+execute stmt_initcap using @a;
+initcap(?)
+This Is Test Str For Prepare
+DROP PREPARE stmt_initcap;
+create view v_tab1 as select id, string from tab1;
+select initcap(string) from v_tab1 where id = 4;
+initcap(string)
+Str3 Str4
+drop view v_tab1;
+select initcap('goldenDB数据库 ok') from dual;
+initcap('goldenDB数据库 ok')
+Goldendb数据库 Ok
+set character_set_connection = gbk;
+select initcap('goldenDB数据库数据 ok') from dual;
+initcap('goldenDB数据库数据 ok')
+Goldendb数据库数据 Ok
+set character_set_connection = utf8;
+Warnings:
+Warning	3719	'utf8' is currently an alias for the character set UTF8MB3, but will be an alias for UTF8MB4 in a future release. Please consider using UTF8MB4 in order to be unambiguous.
+select initcap('goldenDB数据库数据 ok') from dual;
+initcap('goldenDB数据库数据 ok')
+Goldendb数据库数据 Ok
+set character_set_connection = utf8mb4;
+select initcap('goldenDB数据库数据 ok') from dual;
+initcap('goldenDB数据库数据 ok')
+Goldendb数据库数据 Ok
+set character_set_connection = latin1;
+drop table tab1;
+drop table tab2;
+drop database initcap_test;

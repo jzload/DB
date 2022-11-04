@@ -1,0 +1,160 @@
+#
+# Test：ZSQL兼容Oracle的 INITCAP 函数
+#
+# Syntax:
+#    INITCAP(string1)
+#
+
+--echo #
+--echo # 准备
+--echo #
+drop database if exists initcap_test;
+create database initcap_test;
+use initcap_test;
+
+
+create table tab1(id int not null primary key,string varchar(255));
+create table tab2(id int not null primary key,string varchar(255));
+insert into tab1 values (1,'');
+insert into tab1 values (2,' ');
+insert into tab1 values (3,NULL);
+insert into tab1 values (4,'str1 str2');
+insert into tab1 values (5,' str1 str2 ');
+insert into tab1 values (6,'str1 str2');
+insert into tab1 values (7,'str1!str2');
+insert into tab1 values (8,'str12str2');
+insert into tab1 values (9,'str12str2');
+insert into tab2 values (1,'');
+insert into tab2 values (2,' ');
+insert into tab2 values (3,NULL);
+insert into tab2 values (4,'str1 str2');
+insert into tab2 values (5,' str1 str2 ');
+insert into tab2 values (6,'str1 str2');
+insert into tab2 values (7,'str1!str2');
+insert into tab2 values (8,'str12str2');
+insert into tab2 values (9,'str1 A str2');
+
+
+# 语法错误
+--error ER_BAD_FIELD_ERROR
+select initcap from dual;
+--error ER_WRONG_PARAMCOUNT_TO_NATIVE_FCT
+select initcap() from dual;
+--error ER_PARSE_ERROR
+select initcap(,) from dual;
+
+# NULL、空串、空格串
+select initcap('') from dual;
+select initcap(' ') from dual;
+select initcap(NULL) from dual;
+
+# 表格字段为NULL、空串、前后多空格或正常串
+select initcap (string) from tab1 where id = 1;
+select initcap (string) from tab1 where id = 2;
+select initcap (string) from tab1 where id = 3;
+select initcap (string) from tab1 where id = 4;
+select initcap (string) from tab1 where id = 5;
+select initcap (string) from tab1 where id = 6;
+select initcap (string) from tab1 where id = 7;
+select initcap (string) from tab1 where id = 8;
+select initcap (string) from tab1 where id = 9;
+
+
+
+# 串类型
+--error ER_PARSE_ERROR
+select initcap(*) from dual;
+--error ER_BAD_FIELD_ERROR
+select initcap(a) from dual;
+--error ER_BAD_FIELD_ERROR
+select initcap(A) from dual;
+--error ER_BAD_FIELD_ERROR
+select initcap(Aa) from dual;
+select initcap(1) from dual;
+select initcap(1.1) from dual;
+
+# 支持转义字符
+select initcap('a\'b') from dual;
+select initcap('\'a\'b\'') from dual;
+
+# 支持各类特殊字符划分大小写
+select initcap('~aa~bb~') from dual;
+select initcap('!aa!bb!') from dual;
+select initcap('#aa#bb#') from dual;
+select initcap('$aa$bb$') from dual;
+select initcap('%aa%bb%') from dual;
+select initcap('^aa^bb^') from dual;
+select initcap('&aa&bb&') from dual;
+select initcap('*aa*bb*') from dual;
+select initcap('(aa(bb(') from dual;
+select initcap(')aa)bb)') from dual;
+select initcap('-aa-bb-') from dual;
+select initcap('_aa_bb_') from dual;
+select initcap('+aa+bb+') from dual;
+select initcap('=aa=bb=') from dual;
+select initcap('~aa!bb@cc#dd$ee%ff^gg&hh*ii(jj)kk_ll+mm') from dual;
+
+
+# 支持单双引号，且支持单引号双引号嵌套
+select initcap("aa'bb") from dual;
+select initcap('aa"bb') from dual;
+
+# 大小写转换
+select initcap('This Is A Test Str') from dual;
+select initcap('tHIS iS a tEST sTR') from dual;
+select initcap('this is a test str') from dual;
+select initcap('THIS IS A TEST STR') from dual;
+
+# 语句嵌套
+select initcap(trim(string)) from tab1 where id = 4;
+select trim((select initcap(string) from tab1 where id =4)) from dual;
+insert into tab1 values (10,(select initcap(string) from tab2 where id = 4));
+update tab1 set string = initcap('str3 str4') where id = 4;
+delete from tab1 where string = initcap('str1 str2') and id = 4;
+
+
+# from子查询
+select (select initcap(string) from tab1 where id =4 ) from dual;
+
+# where子查询
+select * from tab1 where string = initcap('str1 str2');
+select * from tab1 where string in (select initcap(string) from
+  tab1 where id =4);
+select * from tab1 where string in (select initcap(string) as
+  nls_show from tab1 where id =4);
+select * from tab1 where string in (select initcap(string) from
+  tab1 where id =4 or id =5) order by id;
+select * from tab1 where string not in (select initcap(string) from
+  tab1 where id =4 or id =5) order by id;
+select * from tab1 where string = (select initcap(string) from
+  tab1 where id =4 ) order by id;
+select * from tab1 where string != (select initcap(string) from
+  tab1 where id =4 ) order by id;
+
+# order by 子查询
+select * from tab1 order by initcap('str1 str2');
+
+# prepare
+prepare stmt_initcap from 'select initcap(?) from dual';
+set @a = 'this is test str for prepare';
+execute stmt_initcap using @a;
+DROP PREPARE stmt_initcap;
+
+#  view
+create view v_tab1 as select id, string from tab1;
+select initcap(string) from v_tab1 where id = 4;
+drop view v_tab1;
+
+# 多字节
+select initcap('goldenDB数据库 ok') from dual;
+set character_set_connection = gbk;
+select initcap('goldenDB数据库数据 ok') from dual;
+set character_set_connection = utf8;
+select initcap('goldenDB数据库数据 ok') from dual;
+set character_set_connection = utf8mb4;
+select initcap('goldenDB数据库数据 ok') from dual;
+set character_set_connection = latin1;
+
+drop table tab1;
+drop table tab2;
+drop database initcap_test;
