@@ -559,6 +559,7 @@ SET(SQL_SHARED_SOURCES
   oracle_compatibility/to_number.cc
   oracle_compatibility/convert_number.cc
   oracle_compatibility/nvl.cc
+  oracle_compatibility/nls_initcap.cc
   oracle_compatibility/decode.cc
   oracle_compatibility/rownum.cc
   oracle_compatibility/update_set_multicol.cc

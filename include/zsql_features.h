@@ -96,4 +96,9 @@
 // ZSQL feature: merge into
 #define HAVE_ZSQL_MERGE_INTO
 
+// ZSQL feature: initcap
+#define HAVE_ZSQL_INITCAP
+
+
+
 #endif // ZSQL_FEATURES_H

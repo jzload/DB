@@ -86,6 +86,7 @@
 #include "sql/oracle_compatibility/decode.h"
 #include "sql/oracle_compatibility/months_between.h"
 #include "sql/zsql_features/encryption_funcs/encryption_func.h"
+#include "sql/oracle_compatibility/nls_initcap.h"
 
 
 /**
@@ -1564,6 +1565,12 @@ static const std::pair<const char *, Create_func *> func_array[] = {
     {"MONTHNAME", SQL_FN(Item_func_monthname, 1)},
     {"NAME_CONST", SQL_FN(Item_name_const, 2)},
     {"NULLIF", SQL_FN(Item_func_nullif, 2)},
+#ifdef HAVE_ZSQL_NLS_INITCAP
+    {"NLS_INITCAP", SQL_FN_V(Item_func_oracle_nls_initcap, 1, 2)},
+#endif //HAVE_ZSQL_NLS_INITCAP
+#ifdef HAVE_ZSQL_INITCAP
+    {"INITCAP", SQL_FN(Item_func_oracle_initcap, 1)},
+#endif //HAVE_ZSQL_INITCAP
     {"OCT", SQL_FACTORY(Oct_instantiator)},
     {"OCTET_LENGTH", SQL_FN(Item_func_length, 1)},
     {"ORD", SQL_FN(Item_func_ord, 1)},
