@@ -1,0 +1,370 @@
+##
+## prepare
+##
+create database delete_disable_full_table_scan_in_delete;
+use delete_disable_full_table_scan_in_delete;
+create table t1(a int primary key, b int, c int, key b (b), key bc (c,b));
+create table t2(a int not null auto_increment, b int unique key, c int, primary key (a), key bc ((b+c)));
+insert into t1 values (1,1,1),(2,2,2),(3,3,3),(4,1,3),(5,2,2),(6,3,2);
+insert into t2 (b,c) values (2,1),(1,2),(3,3),(5,3),(6,2),(7,2);
+analyze table t1;
+Table	Op	Msg_type	Msg_text
+delete_disable_full_table_scan_in_delete.t1	analyze	status	OK
+SET @old_lock_wait_timeout=@@global.lock_wait_timeout;
+SET @old_innodb_lock_wait_timeout=@@global.innodb_lock_wait_timeout;
+SET @@global.lock_wait_timeout=1;
+SET @@global.innodb_lock_wait_timeout=1;
+set @old_disable_full_table_scan_in_delete=@@session.disable_full_table_scan_in_delete;
+##
+## Test 1 Use primary key
+##
+use delete_disable_full_table_scan_in_delete;
+begin;
+select * from t1 where a=4 for update;
+a	b	c
+4	1	3
+use delete_disable_full_table_scan_in_delete;
+set disable_full_table_scan_in_delete = on;
+explain delete from t1 where a in (1,2,3,5,6,7,8,9,10,11,12);
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	DELETE	t1	NULL	range	PRIMARY	PRIMARY	4	const	11	100.00	Using where
+Warnings:
+Note	1003	delete from `delete_disable_full_table_scan_in_delete`.`t1` where (`delete_disable_full_table_scan_in_delete`.`t1`.`a` in (1,2,3,5,6,7,8,9,10,11,12))
+set disable_full_table_scan_in_delete = off;
+explain delete from t1 where a in (1,2,3,5,6,7,8,9,10,11,12);
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	DELETE	t1	NULL	ALL	PRIMARY	NULL	NULL	NULL	6	100.00	Using where
+Warnings:
+Note	1003	delete from `delete_disable_full_table_scan_in_delete`.`t1` where (`delete_disable_full_table_scan_in_delete`.`t1`.`a` in (1,2,3,5,6,7,8,9,10,11,12))
+begin;
+delete from t1 where a in (1,2,3,5,6,7,8,9,10,11,12);
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+set disable_full_table_scan_in_delete = on;
+delete from t1 where a in (1,2,3,5,6,7,8,9,10,11,12);
+commit;
+commit;
+use delete_disable_full_table_scan_in_delete;
+insert into t1 values (1,1,1),(2,2,2),(3,3,3),(5,2,2),(6,3,2);
+##
+## Test 2 Use normal key
+##
+begin;
+select * from t1 where b=2 for update;
+a	b	c
+2	2	2
+5	2	2
+use delete_disable_full_table_scan_in_delete;
+set disable_full_table_scan_in_delete = on;
+explain delete from t1 where b in (1,3,4,5,6,7,8,9,10,11,12);
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	DELETE	t1	NULL	range	b	b	5	const	13	100.00	Using where
+Warnings:
+Note	1003	delete from `delete_disable_full_table_scan_in_delete`.`t1` where (`delete_disable_full_table_scan_in_delete`.`t1`.`b` in (1,3,4,5,6,7,8,9,10,11,12))
+set disable_full_table_scan_in_delete = off;
+explain delete from t1 where b in (1,3,4,5,6,7,8,9,10,11,12);
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	DELETE	t1	NULL	ALL	b	NULL	NULL	NULL	5	100.00	Using where
+Warnings:
+Note	1003	delete from `delete_disable_full_table_scan_in_delete`.`t1` where (`delete_disable_full_table_scan_in_delete`.`t1`.`b` in (1,3,4,5,6,7,8,9,10,11,12))
+begin;
+delete from t1 where b in (1,3,4,5,6,7,8,9,10,11,12);
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+set disable_full_table_scan_in_delete = on;
+delete from t1 where b in (1,3,4,5,6,7,8,9,10,11,12);
+commit;
+commit;
+use delete_disable_full_table_scan_in_delete;
+insert into t1 values (1,1,1),(3,3,3),(4,1,3),(6,3,2);
+##
+## Test 3 Use composite index
+##
+alter table t1 drop index b;
+begin;
+select * from t1 where b=3 and c=3 for update;
+a	b	c
+3	3	3
+use delete_disable_full_table_scan_in_delete;
+set disable_full_table_scan_in_delete = on;
+explain delete from t1 where (b=1 or b=2 or b=6 or b=7 or b=8 or b=9) and (c=1 or c=3 or c=4 or c=5);
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	DELETE	t1	NULL	range	bc	bc	10	const,const	24	100.00	Using where
+Warnings:
+Note	1003	delete from `delete_disable_full_table_scan_in_delete`.`t1` where (((`delete_disable_full_table_scan_in_delete`.`t1`.`b` = 1) or (`delete_disable_full_table_scan_in_delete`.`t1`.`b` = 2) or (`delete_disable_full_table_scan_in_delete`.`t1`.`b` = 6) or (`delete_disable_full_table_scan_in_delete`.`t1`.`b` = 7) or (`delete_disable_full_table_scan_in_delete`.`t1`.`b` = 8) or (`delete_disable_full_table_scan_in_delete`.`t1`.`b` = 9)) and ((`delete_disable_full_table_scan_in_delete`.`t1`.`c` = 1) or (`delete_disable_full_table_scan_in_delete`.`t1`.`c` = 3) or (`delete_disable_full_table_scan_in_delete`.`t1`.`c` = 4) or (`delete_disable_full_table_scan_in_delete`.`t1`.`c` = 5)))
+set disable_full_table_scan_in_delete = off;
+explain delete from t1 where (b=1 or b=2 or b=6 or b=7 or b=8 or b=9) and (c=1 or c=3 or c=4 or c=5);
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	DELETE	t1	NULL	ALL	bc	NULL	NULL	NULL	6	100.00	Using where
+Warnings:
+Note	1003	delete from `delete_disable_full_table_scan_in_delete`.`t1` where (((`delete_disable_full_table_scan_in_delete`.`t1`.`b` = 1) or (`delete_disable_full_table_scan_in_delete`.`t1`.`b` = 2) or (`delete_disable_full_table_scan_in_delete`.`t1`.`b` = 6) or (`delete_disable_full_table_scan_in_delete`.`t1`.`b` = 7) or (`delete_disable_full_table_scan_in_delete`.`t1`.`b` = 8) or (`delete_disable_full_table_scan_in_delete`.`t1`.`b` = 9)) and ((`delete_disable_full_table_scan_in_delete`.`t1`.`c` = 1) or (`delete_disable_full_table_scan_in_delete`.`t1`.`c` = 3) or (`delete_disable_full_table_scan_in_delete`.`t1`.`c` = 4) or (`delete_disable_full_table_scan_in_delete`.`t1`.`c` = 5)))
+begin;
+delete from t1 where (b=1 or b=2 or b=6 or b=7 or b=8 or b=9) and (c=1 or c=3 or c=4 or c=5);
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+set disable_full_table_scan_in_delete = on;
+delete from t1 where (b=1 or b=2 or b=6 or b=7 or b=8 or b=9) and (c=1 or c=3 or c=4 or c=5);
+commit;
+commit;
+use delete_disable_full_table_scan_in_delete;
+insert into t1 values (1,1,1),(4,1,3);
+begin;
+select * from t1 where c=3 for update;
+a	b	c
+4	1	3
+3	3	3
+use delete_disable_full_table_scan_in_delete;
+set disable_full_table_scan_in_delete = on;
+explain delete from t1 where c=1 or c=2 or c=4 or c=5 or c=6 or c=7;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	DELETE	t1	NULL	range	bc	bc	5	const	8	100.00	Using where
+Warnings:
+Note	1003	delete from `delete_disable_full_table_scan_in_delete`.`t1` where ((`delete_disable_full_table_scan_in_delete`.`t1`.`c` = 1) or (`delete_disable_full_table_scan_in_delete`.`t1`.`c` = 2) or (`delete_disable_full_table_scan_in_delete`.`t1`.`c` = 4) or (`delete_disable_full_table_scan_in_delete`.`t1`.`c` = 5) or (`delete_disable_full_table_scan_in_delete`.`t1`.`c` = 6) or (`delete_disable_full_table_scan_in_delete`.`t1`.`c` = 7))
+set disable_full_table_scan_in_delete = off;
+explain delete from t1 where c=1 or c=2 or c=4 or c=5 or c=6 or c=7;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	DELETE	t1	NULL	ALL	bc	NULL	NULL	NULL	5	100.00	Using where
+Warnings:
+Note	1003	delete from `delete_disable_full_table_scan_in_delete`.`t1` where ((`delete_disable_full_table_scan_in_delete`.`t1`.`c` = 1) or (`delete_disable_full_table_scan_in_delete`.`t1`.`c` = 2) or (`delete_disable_full_table_scan_in_delete`.`t1`.`c` = 4) or (`delete_disable_full_table_scan_in_delete`.`t1`.`c` = 5) or (`delete_disable_full_table_scan_in_delete`.`t1`.`c` = 6) or (`delete_disable_full_table_scan_in_delete`.`t1`.`c` = 7))
+begin;
+delete from t1 where c=1 or c=2 or c=4 or c=5 or c=6 or c=7;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+set disable_full_table_scan_in_delete = on;
+delete from t1 where c=1 or c=2 or c=4 or c=5 or c=6 or c=7;
+commit;
+commit;
+use delete_disable_full_table_scan_in_delete;
+insert into t1 values (1,1,1),(2,2,2),(5,2,2),(6,3,2);
+##
+## Test 4 Use auto-increment column
+##
+begin;
+select * from t2 where a=4 for update;
+a	b	c
+4	5	3
+use delete_disable_full_table_scan_in_delete;
+set disable_full_table_scan_in_delete = on;
+explain delete from t2 where a in (1,2,3,5,6,7,8,9,10,11,12);
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	DELETE	t2	NULL	range	PRIMARY	PRIMARY	4	const	11	100.00	Using where
+Warnings:
+Note	1003	delete from `delete_disable_full_table_scan_in_delete`.`t2` where (`delete_disable_full_table_scan_in_delete`.`t2`.`a` in (1,2,3,5,6,7,8,9,10,11,12))
+set disable_full_table_scan_in_delete = off;
+explain delete from t2 where a in (1,2,3,5,6,7,8,9,10,11,12);
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	DELETE	t2	NULL	ALL	PRIMARY	NULL	NULL	NULL	6	100.00	Using where
+Warnings:
+Note	1003	delete from `delete_disable_full_table_scan_in_delete`.`t2` where (`delete_disable_full_table_scan_in_delete`.`t2`.`a` in (1,2,3,5,6,7,8,9,10,11,12))
+begin;
+delete from t2 where a in (1,2,3,5,6,7,8,9,10,11,12);
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+set disable_full_table_scan_in_delete = on;
+delete from t2 where a in (1,2,3,5,6,7,8,9,10,11,12);
+commit;
+commit;
+use delete_disable_full_table_scan_in_delete;
+truncate t2;
+insert into t2 (b,c) values (2,1),(1,2),(3,3),(5,3),(6,2),(7,2);
+##
+## Test 5 Use unique key
+##
+analyze table t2;
+Table	Op	Msg_type	Msg_text
+delete_disable_full_table_scan_in_delete.t2	analyze	status	OK
+begin;
+select * from t2 where b=2 for update;
+a	b	c
+1	2	1
+use delete_disable_full_table_scan_in_delete;
+set disable_full_table_scan_in_delete = on;
+explain delete from t2 where b in (1,3,4,5,6,7,8,9,10,11,12);
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	DELETE	t2	NULL	range	b	b	5	const	11	100.00	Using where
+Warnings:
+Note	1003	delete from `delete_disable_full_table_scan_in_delete`.`t2` where (`delete_disable_full_table_scan_in_delete`.`t2`.`b` in (1,3,4,5,6,7,8,9,10,11,12))
+set disable_full_table_scan_in_delete = off;
+explain delete from t2 where b in (1,3,4,5,6,7,8,9,10,11,12);
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	DELETE	t2	NULL	ALL	b	NULL	NULL	NULL	6	100.00	Using where
+Warnings:
+Note	1003	delete from `delete_disable_full_table_scan_in_delete`.`t2` where (`delete_disable_full_table_scan_in_delete`.`t2`.`b` in (1,3,4,5,6,7,8,9,10,11,12))
+begin;
+delete from t2 where b in (1,3,4,5,6,7,8,9,10,11,12);
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+set disable_full_table_scan_in_delete = on;
+delete from t2 where b in (1,3,4,5,6,7,8,9,10,11,12);
+commit;
+commit;
+use delete_disable_full_table_scan_in_delete;
+truncate t2;
+insert into t2 (b,c) values (2,1),(1,2),(3,3),(5,3),(6,2),(7,2);
+##
+## Test 6 Use Functional Key Parts
+##
+analyze table t2;
+Table	Op	Msg_type	Msg_text
+delete_disable_full_table_scan_in_delete.t2	analyze	status	OK
+begin;
+select * from t2 where (b+c)=8 for update;
+a	b	c
+4	5	3
+5	6	2
+use delete_disable_full_table_scan_in_delete;
+set disable_full_table_scan_in_delete = on;
+explain delete from t2 where (b+c) in (1,2,3,4,5,6,7,9,10,11);
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	DELETE	t2	NULL	range	bc	bc	9	const	11	100.00	Using where
+Warnings:
+Note	1003	delete from `delete_disable_full_table_scan_in_delete`.`t2` where ((`delete_disable_full_table_scan_in_delete`.`t2`.`b` + `delete_disable_full_table_scan_in_delete`.`t2`.`c`) in (1,2,3,4,5,6,7,9,10,11))
+set disable_full_table_scan_in_delete = off;
+explain delete from t2 where (b+c) in (1,2,3,4,5,6,7,9,10,11);
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	DELETE	t2	NULL	ALL	bc	NULL	NULL	NULL	6	100.00	Using where
+Warnings:
+Note	1003	delete from `delete_disable_full_table_scan_in_delete`.`t2` where ((`delete_disable_full_table_scan_in_delete`.`t2`.`b` + `delete_disable_full_table_scan_in_delete`.`t2`.`c`) in (1,2,3,4,5,6,7,9,10,11))
+begin;
+delete from t2 where (b+c) in (1,2,3,4,5,6,7,9,10,11);
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+set disable_full_table_scan_in_delete = on;
+delete from t2 where (b+c) in (1,2,3,4,5,6,7,9,10,11);
+commit;
+commit;
+use delete_disable_full_table_scan_in_delete;
+truncate t2;
+insert into t2 (b,c) values (2,1),(1,2),(3,3),(5,3),(6,2),(7,2);
+##
+## Test 7 Use Prefix Key
+##
+create table t3 (a int primary key, b varchar(200), index b (b(3)));
+insert into t3 values (1,'aaarewg'),(2,'aaawwgw'),(3,'aacefg'),(4,'abcwgg'),(5,'qqfvav'),(6,'abasss'),(7,'ewgfge');
+begin;
+select * from t3 where b like "aa%" for update;
+a	b
+1	aaarewg
+2	aaawwgw
+3	aacefg
+begin;
+set disable_full_table_scan_in_delete = on;
+explain delete from t3 where b in ('abcwgg','qqfvav','ewgfge','fewf','eswfeww','ewgggg','yjudt');
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	DELETE	t3	NULL	range	b	b	15	const	6	100.00	Using where
+Warnings:
+Note	1003	delete from `delete_disable_full_table_scan_in_delete`.`t3` where (`delete_disable_full_table_scan_in_delete`.`t3`.`b` in ('abcwgg','qqfvav','ewgfge','fewf','eswfeww','ewgggg','yjudt'))
+set disable_full_table_scan_in_delete = off;
+explain delete from t3 where b in ('abcwgg','qqfvav','ewgfge','fewf','eswfeww','ewgggg','yjudt');
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	DELETE	t3	NULL	ALL	b	NULL	NULL	NULL	7	100.00	Using where
+Warnings:
+Note	1003	delete from `delete_disable_full_table_scan_in_delete`.`t3` where (`delete_disable_full_table_scan_in_delete`.`t3`.`b` in ('abcwgg','qqfvav','ewgfge','fewf','eswfeww','ewgggg','yjudt'))
+delete from t3 where b in ('abcwgg','qqfvav','ewgfge','fewf','eswfeww','ewgggg','yjudt');
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+set disable_full_table_scan_in_delete = on;
+delete from t3 where b in ('abcwgg','qqfvav','ewgfge','fewf','eswfeww','ewgggg','yjudt');
+commit;
+commit;
+##
+## Test 8 TEST PREPARE
+##
+use delete_disable_full_table_scan_in_delete;
+begin;
+select * from t1 where a=4 for update;
+a	b	c
+4	1	3
+use delete_disable_full_table_scan_in_delete;
+PREPARE stmt1 FROM 'delete from t1 where a in (1,2,3,5,6,7,8,9,10,11,12)';
+set disable_full_table_scan_in_delete = off;
+execute stmt1;
+ERROR HY000: Lock wait timeout exceeded; try restarting transaction
+set disable_full_table_scan_in_delete = on;
+execute stmt1;
+commit;
+##
+## Test 9 TEST use table scan when no range scan is available
+##
+set disable_full_table_scan_in_delete = true;
+explain delete from t1;
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	DELETE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	NULL
+Warnings:
+Note	1003	delete from `delete_disable_full_table_scan_in_delete`.`t1`
+explain delete from t1 where b in (1,2,3,5,6,7,8,9,10,11,12);
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	DELETE	t1	NULL	ALL	NULL	NULL	NULL	NULL	1	100.00	Using where
+Warnings:
+Note	1003	delete from `delete_disable_full_table_scan_in_delete`.`t1` where (`delete_disable_full_table_scan_in_delete`.`t1`.`b` in (1,2,3,5,6,7,8,9,10,11,12))
+SET @@global.lock_wait_timeout=@old_lock_wait_timeout;
+SET @@global.innodb_lock_wait_timeout=@old_innodb_lock_wait_timeout;
+drop database delete_disable_full_table_scan_in_delete;
+set disable_full_table_scan_in_delete = @old_disable_full_table_scan_in_delete;
+#########################################################
+#Test: sysvar: disable_full_table_scan_in_delete
+#########################################################
+show variables like "disable_full_table_scan_in_delete";
+Variable_name	Value
+disable_full_table_scan_in_delete	OFF
+set disable_full_table_scan_in_delete = on;
+show variables like "disable_full_table_scan_in_delete";
+Variable_name	Value
+disable_full_table_scan_in_delete	ON
+set disable_full_table_scan_in_delete = off;
+show variables like "disable_full_table_scan_in_delete";
+Variable_name	Value
+disable_full_table_scan_in_delete	OFF
+set disable_full_table_scan_in_delete = ON;
+show variables like "disable_full_table_scan_in_delete";
+Variable_name	Value
+disable_full_table_scan_in_delete	ON
+set disable_full_table_scan_in_delete = OFF;
+show variables like "disable_full_table_scan_in_delete";
+Variable_name	Value
+disable_full_table_scan_in_delete	OFF
+set disable_full_table_scan_in_delete = true;
+show variables like "disable_full_table_scan_in_delete";
+Variable_name	Value
+disable_full_table_scan_in_delete	ON
+set disable_full_table_scan_in_delete = false;
+show variables like "disable_full_table_scan_in_delete";
+Variable_name	Value
+disable_full_table_scan_in_delete	OFF
+set disable_full_table_scan_in_delete = 1;
+show variables like "disable_full_table_scan_in_delete";
+Variable_name	Value
+disable_full_table_scan_in_delete	ON
+set disable_full_table_scan_in_delete = 0;
+show variables like "disable_full_table_scan_in_delete";
+Variable_name	Value
+disable_full_table_scan_in_delete	OFF
+set session disable_full_table_scan_in_delete = on;
+show variables like "disable_full_table_scan_in_delete";
+Variable_name	Value
+disable_full_table_scan_in_delete	ON
+set session disable_full_table_scan_in_delete = off;
+show variables like "disable_full_table_scan_in_delete";
+Variable_name	Value
+disable_full_table_scan_in_delete	OFF
+set global disable_full_table_scan_in_delete = on;
+show variables like "disable_full_table_scan_in_delete";
+Variable_name	Value
+disable_full_table_scan_in_delete	OFF
+set global disable_full_table_scan_in_delete = off;
+show variables like "disable_full_table_scan_in_delete";
+Variable_name	Value
+disable_full_table_scan_in_delete	OFF
+--> connection conn1
+set global disable_full_table_scan_in_delete = TRUE;
+show variables like "disable_full_table_scan_in_delete";
+Variable_name	Value
+disable_full_table_scan_in_delete	ON
+--> connection conn2
+show variables like "disable_full_table_scan_in_delete";
+Variable_name	Value
+disable_full_table_scan_in_delete	ON
+--> connection conn1
+set global disable_full_table_scan_in_delete = FALSE;
+show variables like "disable_full_table_scan_in_delete";
+Variable_name	Value
+disable_full_table_scan_in_delete	ON
+--> connection conn2
+show variables like "disable_full_table_scan_in_delete";
+Variable_name	Value
+disable_full_table_scan_in_delete	ON
+--> disconnection conn1
+--> disconnection conn2
+set global disable_full_table_scan_in_delete = @old_disable_full_table_scan_in_delete;

@@ -6203,6 +6203,15 @@ static Sys_var_gtid_set Sys_gtid_next_list(
 export sys_var *Sys_gtid_next_list_ptr = &Sys_gtid_next_list;
 #endif  // HAVE_GTID_NEXT_LIST
 
+#ifdef HAVE_ZSQL_DISABLE_FULL_TABLE_SCAN
+static Sys_var_bool Sys_disable_full_table_scan(
+    "disable_full_table_scan_in_delete",
+    "Whether to disable full table scan in single table deletion.",
+    SESSION_VAR(disable_full_table_scan),
+    CMD_LINE(OPT_ARG),
+    DEFAULT(false));
+#endif //HAVE_ZSQL_DISABLE_FULL_TABLE_SCAN
+
 static Sys_var_gtid_next Sys_gtid_next(
     "gtid_next",
     "Specifies the Global Transaction Identifier for the following "

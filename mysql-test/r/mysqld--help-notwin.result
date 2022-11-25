@@ -296,6 +296,9 @@ The following options may be given as the first argument:
  client that does INSERT DELAYED will wait until there is
  room in the queue again. This variable is deprecated
  along with INSERT DELAYED.
+ --disable-full-table-scan-in-delete 
+ Whether to disable full table scan in single table
+ deletion.
  --disable-tcp-connection 
  Disable tcp connections(0 by default, 1 means disable). 
  --disabled-storage-engines=name 
@@ -1600,6 +1603,7 @@ delay-key-write ON
 delayed-insert-limit 100
 delayed-insert-timeout 300
 delayed-queue-size 1000
+disable-full-table-scan-in-delete FALSE
 disable-tcp-connection FALSE
 disabled-storage-engines 
 disconnect-on-expired-password TRUE

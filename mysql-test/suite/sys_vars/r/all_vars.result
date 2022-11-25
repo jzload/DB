@@ -30,6 +30,8 @@ default_date_format
 default_date_format
 default_timestamp_format
 default_timestamp_format
+disable_full_table_scan_in_delete
+disable_full_table_scan_in_delete
 disable_tcp_connection
 disable_tcp_connection
 disabled_storage_engines

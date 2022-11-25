@@ -99,6 +99,10 @@
 // ZSQL feature: initcap
 #define HAVE_ZSQL_INITCAP
 
+// ZSQL feature: disable full table scan for single table deletion
+#define HAVE_ZSQL_DISABLE_FULL_TABLE_SCAN
+
+
 
 
 #endif // ZSQL_FEATURES_H

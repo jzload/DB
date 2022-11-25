@@ -378,7 +378,11 @@ bool Sql_cmd_delete::delete_from_single_table(THD *thd) {
       no_rows = test_quick_select(thd, keys_to_use, 0, limit, safe_update,
                                   ORDER_NOT_RELEVANT, &qep_tab, conds,
                                   &needed_reg_dummy, &qck,
-                                  qep_tab.table()->force_index) < 0;
+                                  (qep_tab.table()->force_index
+#ifdef HAVE_ZSQL_DISABLE_FULL_TABLE_SCAN
+                                  || thd->variables.disable_full_table_scan
+#endif
+                                  )) < 0;
       qep_tab.set_quick(qck);
     }
     if (thd->is_error())  // test_quick_select() has improper error propagation

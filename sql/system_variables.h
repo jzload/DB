@@ -443,6 +443,10 @@ struct System_variables {
   char *default_timestamp_format;
 
   ulong nls_length_semantics;
+
+#ifdef HAVE_ZSQL_DISABLE_FULL_TABLE_SCAN
+  bool disable_full_table_scan;
+#endif
 };
 
 /**
