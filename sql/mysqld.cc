@@ -1181,6 +1181,10 @@ bool host_cache_size_specified = false;
 bool table_definition_cache_specified = false;
 ulong locked_account_connection_count = 0;
 
+#ifdef HAVE_ZSQL_DISABLE_FULL_TABLE_SCAN
+bool g_disable_full_table_scan = false;
+#endif //HAVE_ZSQL_DISABLE_FULL_TABLE_SCAN
+
 /**
   Limit of the total number of prepared statements in the server.
   Is necessary to protect the server against out-of-memory attacks.

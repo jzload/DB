@@ -380,7 +380,7 @@ bool Sql_cmd_delete::delete_from_single_table(THD *thd) {
                                   &needed_reg_dummy, &qck,
                                   (qep_tab.table()->force_index
 #ifdef HAVE_ZSQL_DISABLE_FULL_TABLE_SCAN
-                                  || thd->variables.disable_full_table_scan
+                                  || g_disable_full_table_scan
 #endif
                                   )) < 0;
       qep_tab.set_quick(qck);

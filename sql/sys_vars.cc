@@ -6207,7 +6207,7 @@ export sys_var *Sys_gtid_next_list_ptr = &Sys_gtid_next_list;
 static Sys_var_bool Sys_disable_full_table_scan(
     "disable_full_table_scan_in_delete",
     "Whether to disable full table scan in single table deletion.",
-    SESSION_VAR(disable_full_table_scan),
+    GLOBAL_VAR(g_disable_full_table_scan),
     CMD_LINE(OPT_ARG),
     DEFAULT(false));
 #endif //HAVE_ZSQL_DISABLE_FULL_TABLE_SCAN

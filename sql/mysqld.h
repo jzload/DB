@@ -340,6 +340,10 @@ enum enum_binlog_error_action {
 };
 extern const char *binlog_error_action_list[];
 
+#ifdef HAVE_ZSQL_DISABLE_FULL_TABLE_SCAN
+extern bool g_disable_full_table_scan;
+#endif //HAVE_ZSQL_DISABLE_FULL_TABLE_SCAN
+
 extern ulong stored_program_cache_size;
 extern ulong back_log;
 extern "C" MYSQL_PLUGIN_IMPORT ulong server_id;

@@ -17,7 +17,7 @@ SET @old_lock_wait_timeout=@@global.lock_wait_timeout;
 SET @old_innodb_lock_wait_timeout=@@global.innodb_lock_wait_timeout;
 SET @@global.lock_wait_timeout=1;
 SET @@global.innodb_lock_wait_timeout=1;
-set @old_disable_full_table_scan_in_delete=@@session.disable_full_table_scan_in_delete;
+set @old_disable_full_table_scan_in_delete=@@global.disable_full_table_scan_in_delete;
 
 connect (conn1, 127.0.0.1,root,,);
 connect (conn2, 127.0.0.1,root,,);
@@ -32,14 +32,14 @@ select * from t1 where a=4 for update;
 
 connection conn2;
 use delete_disable_full_table_scan_in_delete;
-set disable_full_table_scan_in_delete = on;
+set global disable_full_table_scan_in_delete = on;
 explain delete from t1 where a in (1,2,3,5,6,7,8,9,10,11,12);
-set disable_full_table_scan_in_delete = off;
+set global disable_full_table_scan_in_delete = off;
 explain delete from t1 where a in (1,2,3,5,6,7,8,9,10,11,12);
 begin;
 --error ER_LOCK_WAIT_TIMEOUT
 delete from t1 where a in (1,2,3,5,6,7,8,9,10,11,12);
-set disable_full_table_scan_in_delete = on;
+set global disable_full_table_scan_in_delete = on;
 delete from t1 where a in (1,2,3,5,6,7,8,9,10,11,12);
 commit;
 
@@ -57,14 +57,14 @@ select * from t1 where b=2 for update;
 
 connection conn2;
 use delete_disable_full_table_scan_in_delete;
-set disable_full_table_scan_in_delete = on;
+set global disable_full_table_scan_in_delete = on;
 explain delete from t1 where b in (1,3,4,5,6,7,8,9,10,11,12);
-set disable_full_table_scan_in_delete = off;
+set global disable_full_table_scan_in_delete = off;
 explain delete from t1 where b in (1,3,4,5,6,7,8,9,10,11,12);
 begin;
 --error ER_LOCK_WAIT_TIMEOUT
 delete from t1 where b in (1,3,4,5,6,7,8,9,10,11,12);
-set disable_full_table_scan_in_delete = on;
+set global disable_full_table_scan_in_delete = on;
 delete from t1 where b in (1,3,4,5,6,7,8,9,10,11,12);
 commit;
 
@@ -83,14 +83,14 @@ select * from t1 where b=3 and c=3 for update;
 
 connection conn2;
 use delete_disable_full_table_scan_in_delete;
-set disable_full_table_scan_in_delete = on;
+set global disable_full_table_scan_in_delete = on;
 explain delete from t1 where (b=1 or b=2 or b=6 or b=7 or b=8 or b=9) and (c=1 or c=3 or c=4 or c=5);
-set disable_full_table_scan_in_delete = off;
+set global disable_full_table_scan_in_delete = off;
 explain delete from t1 where (b=1 or b=2 or b=6 or b=7 or b=8 or b=9) and (c=1 or c=3 or c=4 or c=5);
 begin;
 --error ER_LOCK_WAIT_TIMEOUT
 delete from t1 where (b=1 or b=2 or b=6 or b=7 or b=8 or b=9) and (c=1 or c=3 or c=4 or c=5);
-set disable_full_table_scan_in_delete = on;
+set global disable_full_table_scan_in_delete = on;
 delete from t1 where (b=1 or b=2 or b=6 or b=7 or b=8 or b=9) and (c=1 or c=3 or c=4 or c=5);
 commit;
 
@@ -104,14 +104,14 @@ select * from t1 where c=3 for update;
 
 connection conn2;
 use delete_disable_full_table_scan_in_delete;
-set disable_full_table_scan_in_delete = on;
+set global disable_full_table_scan_in_delete = on;
 explain delete from t1 where c=1 or c=2 or c=4 or c=5 or c=6 or c=7;
-set disable_full_table_scan_in_delete = off;
+set global disable_full_table_scan_in_delete = off;
 explain delete from t1 where c=1 or c=2 or c=4 or c=5 or c=6 or c=7;
 begin;
 --error ER_LOCK_WAIT_TIMEOUT
 delete from t1 where c=1 or c=2 or c=4 or c=5 or c=6 or c=7;
-set disable_full_table_scan_in_delete = on;
+set global disable_full_table_scan_in_delete = on;
 delete from t1 where c=1 or c=2 or c=4 or c=5 or c=6 or c=7;
 commit;
 
@@ -128,14 +128,14 @@ select * from t2 where a=4 for update;
 
 connection conn2;
 use delete_disable_full_table_scan_in_delete;
-set disable_full_table_scan_in_delete = on;
+set global disable_full_table_scan_in_delete = on;
 explain delete from t2 where a in (1,2,3,5,6,7,8,9,10,11,12);
-set disable_full_table_scan_in_delete = off;
+set global disable_full_table_scan_in_delete = off;
 explain delete from t2 where a in (1,2,3,5,6,7,8,9,10,11,12);
 begin;
 --error ER_LOCK_WAIT_TIMEOUT
 delete from t2 where a in (1,2,3,5,6,7,8,9,10,11,12);
-set disable_full_table_scan_in_delete = on;
+set global disable_full_table_scan_in_delete = on;
 delete from t2 where a in (1,2,3,5,6,7,8,9,10,11,12);
 commit;
 
@@ -156,14 +156,14 @@ select * from t2 where b=2 for update;
 
 connection conn2;
 use delete_disable_full_table_scan_in_delete;
-set disable_full_table_scan_in_delete = on;
+set global disable_full_table_scan_in_delete = on;
 explain delete from t2 where b in (1,3,4,5,6,7,8,9,10,11,12);
-set disable_full_table_scan_in_delete = off;
+set global disable_full_table_scan_in_delete = off;
 explain delete from t2 where b in (1,3,4,5,6,7,8,9,10,11,12);
 begin;
 --error ER_LOCK_WAIT_TIMEOUT
 delete from t2 where b in (1,3,4,5,6,7,8,9,10,11,12);
-set disable_full_table_scan_in_delete = on;
+set global disable_full_table_scan_in_delete = on;
 delete from t2 where b in (1,3,4,5,6,7,8,9,10,11,12);
 commit;
 
@@ -183,14 +183,14 @@ select * from t2 where (b+c)=8 for update;
 
 connection conn2;
 use delete_disable_full_table_scan_in_delete;
-set disable_full_table_scan_in_delete = on;
+set global disable_full_table_scan_in_delete = on;
 explain delete from t2 where (b+c) in (1,2,3,4,5,6,7,9,10,11);
-set disable_full_table_scan_in_delete = off;
+set global disable_full_table_scan_in_delete = off;
 explain delete from t2 where (b+c) in (1,2,3,4,5,6,7,9,10,11);
 begin;
 --error ER_LOCK_WAIT_TIMEOUT
 delete from t2 where (b+c) in (1,2,3,4,5,6,7,9,10,11);
-set disable_full_table_scan_in_delete = on;
+set global disable_full_table_scan_in_delete = on;
 delete from t2 where (b+c) in (1,2,3,4,5,6,7,9,10,11);
 commit;
 
@@ -210,13 +210,13 @@ select * from t3 where b like "aa%" for update;
 
 connection conn2;
 begin;
-set disable_full_table_scan_in_delete = on;
+set global disable_full_table_scan_in_delete = on;
 explain delete from t3 where b in ('abcwgg','qqfvav','ewgfge','fewf','eswfeww','ewgggg','yjudt');
-set disable_full_table_scan_in_delete = off;
+set global disable_full_table_scan_in_delete = off;
 explain delete from t3 where b in ('abcwgg','qqfvav','ewgfge','fewf','eswfeww','ewgggg','yjudt');
 --error ER_LOCK_WAIT_TIMEOUT
 delete from t3 where b in ('abcwgg','qqfvav','ewgfge','fewf','eswfeww','ewgggg','yjudt');
-set disable_full_table_scan_in_delete = on;
+set global disable_full_table_scan_in_delete = on;
 delete from t3 where b in ('abcwgg','qqfvav','ewgfge','fewf','eswfeww','ewgggg','yjudt');
 commit;
 
@@ -235,19 +235,20 @@ use delete_disable_full_table_scan_in_delete;
 
 PREPARE stmt1 FROM 'delete from t1 where a in (1,2,3,5,6,7,8,9,10,11,12)';
 
-set disable_full_table_scan_in_delete = off;
+set global disable_full_table_scan_in_delete = off;
 --error ER_LOCK_WAIT_TIMEOUT
 execute stmt1;
-set disable_full_table_scan_in_delete = on;
+set global disable_full_table_scan_in_delete = on;
 execute stmt1;
 
 connection conn1;
 commit;
+insert into t1 values (1,1,1),(2,2,2),(3,3,3),(5,2,2),(6,3,2);
 
 --echo ##
 --echo ## Test 9 TEST use table scan when no range scan is available
 --echo ##
-set disable_full_table_scan_in_delete = true;
+set global disable_full_table_scan_in_delete = true;
 
 explain delete from t1;
 # t1 has primary key a and composite key bc (c,b)
@@ -260,43 +261,37 @@ SET @@global.innodb_lock_wait_timeout=@old_innodb_lock_wait_timeout;
 
 drop database delete_disable_full_table_scan_in_delete;
 
-set disable_full_table_scan_in_delete = @old_disable_full_table_scan_in_delete;
+set global disable_full_table_scan_in_delete = @old_disable_full_table_scan_in_delete;
 
 --echo #########################################################
 --echo #Test: sysvar: disable_full_table_scan_in_delete
 --echo #########################################################
 show variables like "disable_full_table_scan_in_delete";
 
-set disable_full_table_scan_in_delete = on;
-show variables like "disable_full_table_scan_in_delete";
-set disable_full_table_scan_in_delete = off;
-show variables like "disable_full_table_scan_in_delete";
-
-set disable_full_table_scan_in_delete = ON;
-show variables like "disable_full_table_scan_in_delete";
-set disable_full_table_scan_in_delete = OFF;
-show variables like "disable_full_table_scan_in_delete";
-
-set disable_full_table_scan_in_delete = true;
-show variables like "disable_full_table_scan_in_delete";
-set disable_full_table_scan_in_delete = false;
-show variables like "disable_full_table_scan_in_delete";
-
-set disable_full_table_scan_in_delete = 1;
-show variables like "disable_full_table_scan_in_delete";
-set disable_full_table_scan_in_delete = 0;
-show variables like "disable_full_table_scan_in_delete";
-
-set session disable_full_table_scan_in_delete = on;
-show variables like "disable_full_table_scan_in_delete";
-set session disable_full_table_scan_in_delete = off;
-show variables like "disable_full_table_scan_in_delete";
-
 set global disable_full_table_scan_in_delete = on;
 show variables like "disable_full_table_scan_in_delete";
-
 set global disable_full_table_scan_in_delete = off;
 show variables like "disable_full_table_scan_in_delete";
+
+set global disable_full_table_scan_in_delete = ON;
+show variables like "disable_full_table_scan_in_delete";
+set global disable_full_table_scan_in_delete = OFF;
+show variables like "disable_full_table_scan_in_delete";
+
+set global disable_full_table_scan_in_delete = true;
+show variables like "disable_full_table_scan_in_delete";
+set global disable_full_table_scan_in_delete = false;
+show variables like "disable_full_table_scan_in_delete";
+
+set global disable_full_table_scan_in_delete = 1;
+show variables like "disable_full_table_scan_in_delete";
+set global disable_full_table_scan_in_delete = 0;
+show variables like "disable_full_table_scan_in_delete";
+
+--error ER_GLOBAL_VARIABLE
+set session disable_full_table_scan_in_delete = on;
+--error ER_GLOBAL_VARIABLE
+set disable_full_table_scan_in_delete = on;
 
 --echo --> connection conn1
 connection conn1;
