@@ -344,6 +344,10 @@ extern const char *binlog_error_action_list[];
 extern bool g_disable_full_table_scan;
 #endif //HAVE_ZSQL_DISABLE_FULL_TABLE_SCAN
 
+#ifdef HAVE_ZSQL_REMOVE_PARTITION_KEY_LIMITATION
+extern bool g_remove_partition_key_limitation;
+#endif // HAVE_ZSQL_REMOVE_PARTITION_KEY_LIMITATION
+
 extern ulong stored_program_cache_size;
 extern ulong back_log;
 extern "C" MYSQL_PLUGIN_IMPORT ulong server_id;

@@ -1070,6 +1070,10 @@ The following options may be given as the first argument:
  transaction processed
  --relay-log-space-limit=# 
  Maximum space to use for all relay logs
+ --remove-partition-key-limitation 
+ Whether to remove_partition key limitation. Default is
+ OFF.If set to ON, it's allowed to create partition table
+ whose partition key is not in primary or unique key
  --replicate-do-db=name 
  Tells the slave thread to restrict replication to the
  specified database. To specify more than one database,
@@ -1836,6 +1840,7 @@ relay-log-info-repository TABLE
 relay-log-purge TRUE
 relay-log-recovery FALSE
 relay-log-space-limit 0
+remove-partition-key-limitation FALSE
 replicate-same-server-id FALSE
 report-host (No default value)
 report-password (No default value)

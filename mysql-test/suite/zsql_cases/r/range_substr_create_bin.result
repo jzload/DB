@@ -366,7 +366,7 @@ test	CREATE TABLE `test` (
 /*!50100 PARTITION BY RANGE (substr(`name`,1))
 (PARTITION p0 VALUES LESS THAN ('ccc') ENGINE = InnoDB) */
 drop table if exists test;
-substr函数的字段必须是主键的一部分(若表中含有主键)
+substr函数的字段不必须是主键的一部分(若表中含有主键)
 CREATE TABLE test (
 id INT primary key,
 name char(7))COLLATE=utf8mb4_bin

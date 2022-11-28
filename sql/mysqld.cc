@@ -1185,6 +1185,12 @@ ulong locked_account_connection_count = 0;
 bool g_disable_full_table_scan = false;
 #endif //HAVE_ZSQL_DISABLE_FULL_TABLE_SCAN
 
+#ifdef HAVE_ZSQL_REMOVE_PARTITION_KEY_LIMITATION
+/* global vairiable, the flag to enable to remove partition key limitation,
+ * default is false */
+bool g_remove_partition_key_limitation = false;
+#endif // HAVE_ZSQL_REMOVE_PARTITION_KEY_LIMITATION
+
 /**
   Limit of the total number of prepared statements in the server.
   Is necessary to protect the server against out-of-memory attacks.

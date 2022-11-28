@@ -1040,9 +1040,19 @@ static bool check_primary_key(TABLE *table) {
     check_fields_in_PF(table->part_info->full_part_field_array, &all_fields,
                        &some_fields);
     clear_indicator_in_key_fields(table->key_info + primary_key);
-    if (unlikely(!all_fields)) {
-      my_error(ER_UNIQUE_KEY_NEED_ALL_FIELDS_IN_PF, MYF(0), "PRIMARY KEY");
-      result = true;
+ 
+ #ifdef HAVE_ZSQL_REMOVE_PARTITION_KEY_LIMITATION
+    if (g_remove_partition_key_limitation) {
+      if (!all_fields) {
+        table->part_info->partition_key_not_in_pk_uk = true;
+      }
+    } else
+ #endif // HAVE_ZSQL_REMOVE_PARTITION_KEY_LIMITATION
+    {
+      if (unlikely(!all_fields)) {
+        my_error(ER_UNIQUE_KEY_NEED_ALL_FIELDS_IN_PF, MYF(0), "PRIMARY KEY");
+        result = true;
+      }
     }
   }
   return result;
@@ -1075,6 +1085,13 @@ static bool check_unique_keys(TABLE *table) {
   uint i;
   DBUG_TRACE;
 
+#ifdef HAVE_ZSQL_REMOVE_PARTITION_KEY_LIMITATION
+  if (g_remove_partition_key_limitation &&
+      table->part_info->partition_key_not_in_pk_uk) {
+    // has been checked.
+     return false;
+#endif //HAVE_ZSQL_REMOVE_PARTITION_KEY_LIMITATION
+
   for (i = 0; i < keys; i++) {
     if (table->key_info[i].flags & HA_NOSAME)  // Unique index
     {
@@ -1082,6 +1099,15 @@ static bool check_unique_keys(TABLE *table) {
       check_fields_in_PF(table->part_info->full_part_field_array, &all_fields,
                          &some_fields);
       clear_indicator_in_key_fields(table->key_info + i);
+
+#ifdef HAVE_ZSQL_REMOVE_PARTITION_KEY_LIMITATION
+      if (g_remove_partition_key_limitation) {
+        if (!all_fields) {
+          table->part_info->partition_key_not_in_pk_uk = true;
+          break;
+        }
+      } else
+#endif //HAVE_ZSQL_REMOVE_PARTITION_KEY_LIMITATION
       if (unlikely(!all_fields)) {
         my_error(ER_UNIQUE_KEY_NEED_ALL_FIELDS_IN_PF, MYF(0), "UNIQUE INDEX");
         result = true;

@@ -1,0 +1,304 @@
+
+#
+# Test：分区表取消分区键需要在主键、唯一键中的限制
+#
+
+create database if not exists testdb_partition_cancel_limit_switch;
+use testdb_partition_cancel_limit_switch;
+
+###############################
+--echo # 1. Create table with partition
+###############################
+
+###############################
+--echo ## 1.1 表有主键，分区键为主键（DB原有功能）
+CREATE TABLE employee(
+    id INT NOT NULL,
+    fname VARCHAR(30),
+    store_id INT NOT NULL,
+    primary key (id)
+) PARTITION BY RANGE (id) (
+    PARTITION p0 VALUES LESS THAN (2),
+    PARTITION p1 VALUES LESS THAN (10),
+    PARTITION p2 VALUES LESS THAN (MAXVALUE)
+);
+show create table employee;
+
+insert into employee values (1, 'ab', 10);
+insert into employee values (5, 'abc', 11);
+select * from employee order by id;
+drop table employee;
+
+
+###############################
+--echo ## 1.2 表有主键，分区键不是主键
+--error ER_UNIQUE_KEY_NEED_ALL_FIELDS_IN_PF
+CREATE TABLE employee(
+    id INT NOT NULL,
+    fname VARCHAR(30),
+    store_id INT NOT NULL,
+    primary key (id)
+) PARTITION BY RANGE (store_id) (
+    PARTITION p0 VALUES LESS THAN (5),
+    PARTITION p1 VALUES LESS THAN (10),
+    PARTITION p2 VALUES LESS THAN (MAXVALUE)
+);
+
+###############################
+--echo ## 1.3 表有联合主键，分区键是联合主键的一部分（DB原有功能）
+CREATE TABLE employee(
+    id INT NOT NULL,
+    fname VARCHAR(30),
+    store_id INT NOT NULL,
+    primary key (id, store_id)
+) PARTITION BY RANGE (store_id) (
+    PARTITION p0 VALUES LESS THAN (5),
+    PARTITION p1 VALUES LESS THAN (10),
+    PARTITION p2 VALUES LESS THAN (MAXVALUE)
+);
+show create table employee;
+
+drop table employee;
+
+###############################
+--echo ## 1.4 表有联合主键，分区键不是联合主键的一部分
+--error ER_UNIQUE_KEY_NEED_ALL_FIELDS_IN_PF
+CREATE TABLE employee(
+    id INT NOT NULL,
+    id2 INT NOT NULL,
+    fname VARCHAR(30),
+    store_id INT NOT NULL,
+    primary key (id, id2)
+) PARTITION BY RANGE (store_id) (
+    PARTITION p0 VALUES LESS THAN (5),
+    PARTITION p1 VALUES LESS THAN (10),
+    PARTITION p2 VALUES LESS THAN (MAXVALUE)
+);
+
+###############################
+--echo ## 1.5 表有UK键，分区键为UK键(DB原有功能)
+CREATE TABLE employee(
+    id INT NOT NULL,
+    fname VARCHAR(30),
+    store_id INT NOT NULL,
+    unique key (id)
+) PARTITION BY RANGE (id) (
+    PARTITION p0 VALUES LESS THAN (2),
+    PARTITION p1 VALUES LESS THAN (10),
+    PARTITION p2 VALUES LESS THAN (MAXVALUE)
+);
+
+drop table employee;
+
+
+###############################
+--echo ## 1.6 表有UK键，分区键不是UK键, uk为NOT NULL
+--error ER_UNIQUE_KEY_NEED_ALL_FIELDS_IN_PF
+CREATE TABLE employee(
+    id INT NOT NULL,
+    fname VARCHAR(30),
+    store_id INT NOT NULL,
+    unique key (id)
+) PARTITION BY RANGE (store_id) (
+    PARTITION p0 VALUES LESS THAN (5),
+    PARTITION p1 VALUES LESS THAN (10),
+    PARTITION p2 VALUES LESS THAN (MAXVALUE)
+);
+
+
+###############################
+--echo ## 1.7 表有PK, UK键，分区键不是PK,UK键
+--error ER_UNIQUE_KEY_NEED_ALL_FIELDS_IN_PF
+CREATE TABLE employee(
+    id INT NOT NULL,
+    id2 INT NOT NULL,
+    fname VARCHAR(30),
+    store_id INT NOT NULL,
+    primary key (id),
+    unique key (id2)
+) PARTITION BY RANGE (store_id) (
+    PARTITION p0 VALUES LESS THAN (5),
+    PARTITION p1 VALUES LESS THAN (10),
+    PARTITION p2 VALUES LESS THAN (MAXVALUE)
+);
+
+
+###############################
+--echo ## 1.8 表没有PK, UK键（DB原有功能）
+CREATE TABLE employee(
+    id INT NOT NULL,
+    id2 INT NOT NULL,
+    fname VARCHAR(30),
+    store_id INT NOT NULL
+) PARTITION BY RANGE (store_id) (
+    PARTITION p0 VALUES LESS THAN (5),
+    PARTITION p1 VALUES LESS THAN (10),
+    PARTITION p2 VALUES LESS THAN (MAXVALUE)
+);
+
+show create table employee;
+
+insert into employee values (1, 2, 'ab', 3);
+insert into employee values (5, 6, 'abc', 8);
+select * from employee order by id;
+drop table employee;
+
+
+###############################
+--echo ## 1.9 create table as select, 没有主键、唯一键
+drop table if exists employee_source;
+CREATE TABLE employee_source(
+    id INT NOT NULL,
+    id2 INT NOT NULL,
+    fname VARCHAR(30),
+    store_id INT NOT NULL,
+    primary key (id)
+);
+insert into employee_source values (1, 2, 'ab', 3);
+insert into employee_source values (2, 6, 'abc', 11);
+insert into employee_source values (3, 6, 'abc', 12);
+
+drop table if exists employee;
+
+CREATE TABLE employee(
+    id INT NOT NULL,
+    id2 INT NOT NULL,
+    fname VARCHAR(30),
+    store_id INT NOT NULL
+) PARTITION BY RANGE (store_id) (
+    PARTITION p0 VALUES LESS THAN (5),
+    PARTITION p1 VALUES LESS THAN (10),
+    PARTITION p2 VALUES LESS THAN (MAXVALUE)
+) as select * from employee_source where id < 3;
+
+show create table employee;
+
+select * from employee order by id;
+
+drop table employee;
+
+###############################
+--echo ## 1.10 create table as select, 有主键，分区键不在主键中
+drop table if exists employee_source;
+CREATE TABLE employee_source(
+    id INT NOT NULL,
+    id2 INT NOT NULL,
+    fname VARCHAR(30),
+    store_id INT NOT NULL
+);
+insert into employee_source values (1, 2, 'ab', 3);
+insert into employee_source values (2, 6, 'abc', 11);
+insert into employee_source values (1, 6, 'abc', 12);
+
+drop table if exists employee;
+
+--error ER_UNIQUE_KEY_NEED_ALL_FIELDS_IN_PF
+CREATE TABLE employee(
+    id INT NOT NULL,
+    id2 INT NOT NULL,
+    fname VARCHAR(30),
+    store_id INT NOT NULL,
+    primary key (id)
+) PARTITION BY RANGE (store_id) (
+    PARTITION p0 VALUES LESS THAN (5),
+    PARTITION p1 VALUES LESS THAN (10),
+    PARTITION p2 VALUES LESS THAN (MAXVALUE)
+) as select * from employee_source where id < 3;
+
+
+
+###############################
+--echo ## 1.11 表有联合主键，分区键是联合主键的一部分
+CREATE TABLE employee(
+    id INT NOT NULL,
+    id2 INT NOT NULL,
+    fname VARCHAR(30),
+    store_id INT NOT NULL,
+    primary key (id, store_id)
+) PARTITION BY RANGE (store_id) (
+    PARTITION p0 VALUES LESS THAN (5),
+    PARTITION p1 VALUES LESS THAN (10),
+    PARTITION p2 VALUES LESS THAN (MAXVALUE)
+);
+
+drop table if exists employee;
+
+###############################
+--echo ## 1.12 表有联合主键，分区键是联合UK的一部分
+CREATE TABLE employee(
+    id INT NOT NULL,
+    id2 INT NOT NULL,
+    fname VARCHAR(30),
+    store_id INT NOT NULL,
+    unique key (id, store_id)
+) PARTITION BY RANGE (store_id) (
+    PARTITION p0 VALUES LESS THAN (5),
+    PARTITION p1 VALUES LESS THAN (10),
+    PARTITION p2 VALUES LESS THAN (MAXVALUE)
+);
+
+drop table if exists employee;
+
+
+###############################
+--echo ## 1.13 表有联合主键，分区键是联合主键, UK的一部分
+CREATE TABLE employee(
+    id INT NOT NULL,
+    id2 INT NOT NULL,
+    fname VARCHAR(30),
+    store_id INT NOT NULL,
+    primary key (id, store_id),
+    unique key (id2, store_id)
+) PARTITION BY RANGE (store_id) (
+    PARTITION p0 VALUES LESS THAN (5),
+    PARTITION p1 VALUES LESS THAN (10),
+    PARTITION p2 VALUES LESS THAN (MAXVALUE)
+);
+
+drop table if exists employee;
+
+
+###############################
+--echo ## 1.14 表有联合主键，分区键是联合主键的一部分，却不是UK的一部分
+--error ER_UNIQUE_KEY_NEED_ALL_FIELDS_IN_PF
+CREATE TABLE employee(
+    id INT NOT NULL,
+    id2 INT NOT NULL,
+    fname VARCHAR(30),
+    store_id INT NOT NULL,
+    primary key (id, store_id),
+    unique key (id2, fname)
+) PARTITION BY RANGE (store_id) (
+    PARTITION p0 VALUES LESS THAN (5),
+    PARTITION p1 VALUES LESS THAN (10),
+    PARTITION p2 VALUES LESS THAN (MAXVALUE)
+);
+
+drop table if exists employee;
+
+###############################
+--echo ## 1.15 表有联合主键，分区键是UK的一部分，却不是PK的一部分
+--error ER_UNIQUE_KEY_NEED_ALL_FIELDS_IN_PF
+CREATE TABLE employee(
+    id INT NOT NULL,
+    id2 INT NOT NULL,
+    fname VARCHAR(30),
+    store_id INT NOT NULL,
+    primary key (id, id2),
+    unique key (id2, store_id)
+) PARTITION BY RANGE (store_id) (
+    PARTITION p0 VALUES LESS THAN (5),
+    PARTITION p1 VALUES LESS THAN (10),
+    PARTITION p2 VALUES LESS THAN (MAXVALUE)
+);
+
+drop table if exists employee;
+
+
+
+
+
+############
+# 清理
+drop database testdb_partition_cancel_limit_switch;
+

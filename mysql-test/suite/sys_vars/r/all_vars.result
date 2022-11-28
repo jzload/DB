@@ -93,6 +93,8 @@ regexp_stack_limit
 regexp_stack_limit
 regexp_time_limit
 regexp_time_limit
+remove_partition_key_limitation
+remove_partition_key_limitation
 resultset_metadata
 rpl_semi_sync_master_group1
 rpl_semi_sync_master_group1

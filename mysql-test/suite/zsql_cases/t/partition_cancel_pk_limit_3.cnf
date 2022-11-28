@@ -1,0 +1,4 @@
+!include suite/rpl_gtid/my.cnf
+
+[mysqld.1]
+remove_partition_key_limitation=on

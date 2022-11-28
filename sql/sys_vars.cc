@@ -6212,6 +6212,16 @@ static Sys_var_bool Sys_disable_full_table_scan(
     DEFAULT(false));
 #endif //HAVE_ZSQL_DISABLE_FULL_TABLE_SCAN
 
+#ifdef HAVE_ZSQL_REMOVE_PARTITION_KEY_LIMITATION
+static Sys_var_bool Sys_remove_partition_key_limitation(
+    "remove_partition_key_limitation",
+    "Whether to remove_partition key limitation. Default is OFF."
+    "If set to ON, it's allowed to create partition table whose partition key is not in primary or unique key",
+    GLOBAL_VAR(g_remove_partition_key_limitation),
+    CMD_LINE(OPT_ARG),
+    DEFAULT(false));
+#endif // HAVE_ZSQL_REMOVE_PARTITION_KEY_LIMITATION
+
 static Sys_var_gtid_next Sys_gtid_next(
     "gtid_next",
     "Specifies the Global Transaction Identifier for the following "
