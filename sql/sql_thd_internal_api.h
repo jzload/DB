@@ -40,7 +40,6 @@
 #include "sql/handler.h"  // enum_tx_isolation
 
 #include "my_time.h"
-#include "zsql_features.h"
 
 class THD;
 class partition_info;

@@ -60,7 +60,6 @@ Data dictionary interface */
 #endif /* !UNIV_HOTBACKUP */
 #include "mysql_version.h"
 
-#include "zsql_features.h"
 #ifdef HAVE_ZSQL_DISTRIBUTE_MVCC
 #define GTMGTID_COL "GTID"
 #endif //HAVE_ZSQL_DISTRIBUTE_MVCC

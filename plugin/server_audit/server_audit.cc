@@ -25,7 +25,6 @@
 #include <string.h>
 #include <fcntl.h>
 
-#include "zsql_features.h"
 
 #ifndef _WIN32
 #include <syslog.h>

@@ -95,7 +95,6 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #include "page0size.h"
 #else
 
-#include "zsql_features.h"
 
 /** Structure with state of srv background threads. */
 Srv_threads srv_threads;

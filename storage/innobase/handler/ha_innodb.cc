@@ -187,7 +187,6 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #include "log0log.h"
 #include "os0file.h"
 
-#include "zsql_features.h"
 
 #include <mutex>
 #include <string>

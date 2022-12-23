@@ -24,7 +24,6 @@
 #ifndef CURRENT_THD_INCLUDED
 #define CURRENT_THD_INCLUDED
 
-#include "zsql_features.h"
 
 class THD;
 

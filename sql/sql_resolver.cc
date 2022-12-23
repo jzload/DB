@@ -87,7 +87,6 @@
 #include "sql/window.h"
 #include "template_utils.h"
 
-#include "zsql_features.h"
 #include "sql/zsql_features/minus/minus.h"
 
 /**

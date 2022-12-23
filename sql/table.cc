@@ -122,7 +122,6 @@
 #include "thr_mutex.h"
 
 #include "sql/create_options.h"
-#include "zsql_features.h"
 
 /* INFORMATION_SCHEMA name */
 LEX_CSTRING INFORMATION_SCHEMA_NAME = {STRING_WITH_LEN("information_schema")};

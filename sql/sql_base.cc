@@ -146,7 +146,6 @@
 #include "sql_string.h"
 #include "template_utils.h"
 #include "thr_mutex.h"
-#include "zsql_features.h"
 #include "sql/zsql_features/full_join/full_join_field.h"
 #include "sql/oracle_compatibility/start_with_connect_by.h" //HAVE_ZSQL_START_WITH_CONNECT_BY
 

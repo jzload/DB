@@ -122,7 +122,6 @@ Note: YYTHD is passed as an argument to yyparse(), and subsequently to yylex().
 #include "sql/thr_malloc.h"                        // sql_calloc
 #include "sql/oracle_compatibility/listagg.h"
 
-#include "zsql_features.h"                         // HAVE_ZSQL_ORACLE_COMPATIBILITY
 #include "sql/oracle_compatibility/rownum.h"       // ROWNUM
 #include "sql/zsql_features/full_join/full_join.h"    // FULL JOIN
 #include "sql/oracle_compatibility/systimestamp.h" // SYSTIMESTAMP

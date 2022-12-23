@@ -37,7 +37,6 @@
 #include "sql/sql_yacc.h"
 #include "sql/system_variables.h"
 
-#include "zsql_features.h"
 
 class PT_hint_list;
 

@@ -30,7 +30,6 @@
 #include "create_field.h"
 #include "sql/log.h"
 
-#include "zsql_features.h"
 
 LEX_CSTRING tabname_str = {STRING_WITH_LEN("tabname")};
 LEX_CSTRING option_list_str = {STRING_WITH_LEN("option_list")};

@@ -62,7 +62,6 @@
 #include "sql/temp_table_param.h"
 #include "thr_lock.h"
 
-#include "zsql_features.h"
 #include "sql/zsql_features/full_join/full_join_field.h"
 
 class Opt_trace_context;

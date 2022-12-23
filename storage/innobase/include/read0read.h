@@ -39,7 +39,6 @@ this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "read0types.h"
 #include "univ.i"
-#include "zsql_features.h"
 
 /** The MVCC read view manager */
 class MVCC {

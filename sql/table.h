@@ -61,7 +61,6 @@
 #include "typelib.h"
 
 #include "sql/handler.h"       // ha_table_option_struct
-#include "zsql_features.h"
 #include "sql/zsql_features/full_join/full_join_field.h"
 
 #include "sql/mem_root_array.h"

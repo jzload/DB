@@ -65,7 +65,6 @@
 #include "sql_string.h"
 #include "template_utils.h"
 
-#include "zsql_features.h"
 
 class Item;
 class Item_field;

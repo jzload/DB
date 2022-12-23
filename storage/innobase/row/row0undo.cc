@@ -51,7 +51,6 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #include "trx0trx.h"
 #include "trx0undo.h"
 
-#include "zsql_features.h"
 
 /* How to undo row operations?
 (1) For an insert, we have stored a prefix of the clustered index record

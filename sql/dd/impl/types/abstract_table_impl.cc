@@ -54,7 +54,6 @@
 #include "sql/dd/types/view.h"  // View
 #include "sql/dd/types/weak_object.h"
 
-#include "zsql_features.h"
 
 using dd::tables::Columns;
 using dd::tables::Tables;

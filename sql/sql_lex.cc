@@ -69,7 +69,6 @@
 #include "sql_update.h"  // Sql_cmd_update
 #include "template_utils.h"
 
-#include "zsql_features.h"
 #include "sql/zsql_features/minus/minus.h"
 
 extern int HINT_PARSER_parse(THD *thd, Hint_scanner *scanner,

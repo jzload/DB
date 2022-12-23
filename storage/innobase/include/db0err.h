@@ -34,7 +34,6 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #ifndef db0err_h
 #define db0err_h
 
-#include "zsql_features.h"
 
 /* Do not include univ.i because univ.i includes this. */
 

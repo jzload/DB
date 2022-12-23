@@ -37,7 +37,6 @@
 #include "my_inttypes.h"
 #include "my_macros.h"
 
-#include "zsql_features.h"
 
 /* The following is bits in the flag parameter to ha_open() */
 

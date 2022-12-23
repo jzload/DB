@@ -105,7 +105,6 @@
 #include "thr_lock.h"
 #include "sql/oracle_compatibility/rownum.h" //ROWNUM
 
-#include "zsql_features.h"
 class COND_EQUAL;
 class Item_exists_subselect;
 

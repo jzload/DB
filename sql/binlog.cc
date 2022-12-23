@@ -129,6 +129,7 @@
 #include "sql/replication.h"
 #include "sql/threadpool.h"
 #include <mysql/psi/mysql_idle.h>
+#include "zsql_features.h"
 
 class Item;
 

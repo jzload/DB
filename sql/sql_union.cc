@@ -84,7 +84,6 @@
 #include "sql/window.h"  // Window
 #include "template_utils.h"
 
-#include "zsql_features.h"
 #include "sql/zsql_features/full_join/full_join_field.h"
 #include "sql/zsql_features/minus/minus.h"
 

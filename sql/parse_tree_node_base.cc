@@ -25,7 +25,6 @@
 
 #include "sql/sql_class.h"
 #include "sql/sql_lex.h"
-#include "zsql_features.h"
 Parse_context::Parse_context(THD *thd_arg, SELECT_LEX *sl_arg)
     : thd(thd_arg), mem_root(thd->mem_root), select(sl_arg) 
 #ifdef HAVE_ZSQL_ORACLE_COMPATIBILITY

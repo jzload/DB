@@ -48,7 +48,6 @@
 #include "mysql/psi/psi_memory.h"
 #include "mysql/service_mysql_alloc.h"  // my_free
 
-#include "zsql_features.h"
 
 struct MEM_ROOT;
 

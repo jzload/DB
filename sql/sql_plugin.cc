@@ -118,7 +118,6 @@
 #include "thr_mutex.h"
 #include "typelib.h"
 
-#include "zsql_features.h"
 
 /* clang-format off */
 /**

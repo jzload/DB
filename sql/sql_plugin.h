@@ -35,7 +35,6 @@
 #include "sql/sql_cmd.h"         // Sql_cmd
 #include "sql/sql_plugin_ref.h"  // plugin_ref
 
-#include "zsql_features.h"
 
 class THD;
 class i_string;

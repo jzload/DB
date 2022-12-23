@@ -55,7 +55,6 @@
 #include "sql/sql_list.h"
 #include "sql/system_variables.h"
 #include "sql_string.h"
-#include "zsql_features.h"
 
 #ifdef HAVE_ZSQL_START_WITH_CONNECT_BY
 

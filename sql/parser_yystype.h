@@ -45,7 +45,6 @@
 #include "trigger_def.h"          // enum_trigger_order_type
 #include "window_lex.h"           // enum_window_frame_unit
 #include "xa.h"                   // xa_option_words
-#include "zsql_features.h"
 
 class PT_ddl_table_option;
 class PT_json_table_column;

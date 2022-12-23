@@ -69,7 +69,6 @@
 #include "typelib.h"
 
 #include "my_dir.h"
-#include "zsql_features.h"
 
 class Alter_info;
 class Candidate_table_order;

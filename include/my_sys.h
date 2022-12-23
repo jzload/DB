@@ -68,7 +68,6 @@
 #include "mysql/psi/psi_base.h"
 #include "sql/stream_cipher.h"
 
-#include "zsql_features.h"
 
 struct CHARSET_INFO;
 struct MY_CHARSET_LOADER;

@@ -95,7 +95,6 @@
 #include "thr_lock.h"  // thr_lock_type
 #include "violite.h"   // SSL_type
 
-#include "zsql_features.h"
 
 #include "sql/oracle_compatibility/rownum_controller.h"
 #include "sql/zsql_features/full_join/full_join_field.h"

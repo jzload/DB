@@ -49,7 +49,6 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #ifndef srv0srv_h
 #define srv0srv_h
 
-#include "zsql_features.h"
 
 #include "buf0checksum.h"
 #include "fil0fil.h"
@@ -69,7 +68,6 @@ this program; if not, write to the Free Software Foundation, Inc.,
 
 #include <future>
 
-#include "zsql_features.h"
 
 /* Global counters used inside InnoDB. */
 struct srv_stats_t {

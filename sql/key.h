@@ -34,7 +34,6 @@
 #include "sql/key_spec.h"       /* fk_option */
 #include "sql/sql_plugin_ref.h" /* plugin_ref */
 
-#include "zsql_features.h"
 
 class Field;
 class String;

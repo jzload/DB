@@ -60,7 +60,6 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #include "mysql/components/services/log_builtins.h"
 #include "sql/derror.h"
 
-#include "zsql_features.h"
 
 namespace ut {
 ulong spin_wait_pause_multiplier = 50;

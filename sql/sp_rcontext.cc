@@ -47,7 +47,6 @@
 
 #include "sql/item_func.h"           // Item_func_udf_str
 #include "sql/item_strfunc.h"
-#include "zsql_features.h"
 
 class SELECT_LEX_UNIT;
 

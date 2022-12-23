@@ -18,7 +18,6 @@
   Atomic copy of table;  COPY TABLE t1 to t2, tmp to t1 [,...]
 */
 
-#include "zsql_features.h"
 
 #ifdef HAVE_ZSQL_COPY_TABLE
 

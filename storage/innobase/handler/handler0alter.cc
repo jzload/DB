@@ -102,7 +102,6 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #include "ha_innopart.h"
 #include "partition_info.h"
 
-#include "zsql_features.h"
 
 /** Flags indicating if current operation can be done instantly */
 enum class Instant_Type : uint16_t {

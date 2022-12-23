@@ -53,7 +53,6 @@
 #include "sql/system_variables.h"
 #include "template_utils.h"
 #include "sql/transaction.h"  // trans_commit_stmt
-#include "zsql_features.h"
 
 using std::max;
 

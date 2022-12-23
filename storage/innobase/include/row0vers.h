@@ -44,7 +44,6 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #include "trx0types.h"
 #include "univ.i"
 
-#include "zsql_features.h"
 // Forward declaration
 class ReadView;
 

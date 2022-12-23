@@ -47,7 +47,6 @@
 #include "sql/sql_select.h"
 #include "sql/table.h"
 
-#include "zsql_features.h"
 
 struct MEM_ROOT;
 

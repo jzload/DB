@@ -100,7 +100,6 @@
 #include "sql/sql_insert.h"
 #include "sql/oracle_compatibility/insert_all.h"
 
-#include "zsql_features.h"
 #include "sql/zsql_features/minus/minus.h" // Query_Blocks_Linkage_Type
 
 class Opt_trace_context;

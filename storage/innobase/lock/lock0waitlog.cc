@@ -24,7 +24,6 @@ The transaction lock system
 Created 25/5/2010 Sunny Bains
 *******************************************************/
 
-#include "zsql_features.h"
 
 #ifdef HAVE_ZSQL_TSN_AND_LOCK_WAIT
 

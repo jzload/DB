@@ -36,7 +36,6 @@
 #include "sql/mem_root_array.h"
 #include "sql/parse_location.h"
 #include "sql/sql_const.h"
-#include "zsql_features.h"
 #include "my_sys.h"
 #include "mysqld_error.h"
 class SELECT_LEX;

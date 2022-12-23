@@ -44,7 +44,6 @@
 // be in ctime until C++17
 #include <time.h>  // time_t, timespec
 
-#include "zsql_features.h"
 
 /**
    Set the value of a timespec object to the current time plus a

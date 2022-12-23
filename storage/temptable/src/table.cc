@@ -44,7 +44,6 @@ TempTable Table implementation. */
 #include "storage/temptable/include/temptable/row.h"
 #include "storage/temptable/include/temptable/table.h"
 
-#include "zsql_features.h"
 
 namespace temptable {
 

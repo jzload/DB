@@ -107,7 +107,6 @@
 #include "sql_string.h"
 #include "typelib.h"
 
-#include "zsql_features.h"
 
 namespace dd {
 

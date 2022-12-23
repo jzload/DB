@@ -94,7 +94,6 @@
 #include "sql/xa.h"
 #include "thr_mutex.h"
 #include "tztime.h"
-#include "zsql_features.h"
 #include "base64.h"
 #include "m_string.h"
 

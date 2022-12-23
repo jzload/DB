@@ -1,4 +1,3 @@
-/* Copyright (c) 2000, 2019, Oracle and/or its affiliates. All rights reserved.
 
    This program is free software; you can redistribute it and/or modify
    it under the terms of the GNU General Public License, version 2.0,
@@ -30,8 +29,6 @@
 #include "my_pointer_arithmetic.h"
 #include "my_sys.h"
 #include "mysql_com.h"  // MAX_BIGINT_WIDTH
-
-#include "zsql_features.h"
 
 using std::max;
 using std::min;

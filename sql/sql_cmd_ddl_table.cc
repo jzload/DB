@@ -59,7 +59,6 @@
 #include "sql/table.h"
 #include "thr_lock.h"
 
-#include "zsql_features.h"
 
 #ifndef DBUG_OFF
 #include "sql/current_thd.h"

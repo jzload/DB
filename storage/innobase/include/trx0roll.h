@@ -44,7 +44,6 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #include "que0que.h"
 #endif /* UNIV_HOTBACKUP */
 
-#include "zsql_features.h"
 
 /** Determines if this transaction is rolling back an incomplete transaction
  in crash recovery.

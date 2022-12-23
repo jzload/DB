@@ -58,7 +58,6 @@ this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "current_thd.h"
 
-#include "zsql_features.h"
 
 /** This many pages must be undone before a truncate is tried within
 rollback */

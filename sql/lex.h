@@ -29,7 +29,6 @@
 #include "m_string.h"
 #include "sql/lex_symbol.h"
 
-#include "zsql_features.h"
 
 /* We don't want to include sql_yacc.h into gen_lex_hash */
 #ifdef NO_YACC_SYMBOLS

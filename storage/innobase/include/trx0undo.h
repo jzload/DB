@@ -42,7 +42,6 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #include "trx0xa.h"
 #include "univ.i"
 
-#include "zsql_features.h"
 #ifndef UNIV_HOTBACKUP
 /** Returns TRUE if the roll pointer is of the insert type.
  @return true if insert undo log */

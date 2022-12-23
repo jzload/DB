@@ -73,7 +73,6 @@ this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "my_dbug.h"
 
-#include "zsql_features.h"
 
 /** structure associates a name string with a file page type and/or buffer
 page state. */

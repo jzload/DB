@@ -42,7 +42,6 @@
 #include "template_utils.h"
 
 #include "mysqld_error.h"
-#include "zsql_features.h"
 
 /* Forward Declarations */
 class Alter_info;

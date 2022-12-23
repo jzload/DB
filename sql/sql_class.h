@@ -110,7 +110,6 @@
 #include "sql_string.h"
 #include "thr_lock.h"
 #include "violite.h"
-#include "zsql_features.h"
 
 enum enum_check_fields : int;
 enum enum_tx_isolation : int;

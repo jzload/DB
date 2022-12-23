@@ -38,7 +38,6 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #include "trx0sys.h"
 
 #include "sql_thd_internal_api.h"
-#include "zsql_features.h"
 /*
 -------------------------------------------------------------------------------
 FACT A: Cursor read view on a secondary index sees only committed versions

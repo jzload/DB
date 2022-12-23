@@ -53,7 +53,6 @@
 #include "sql/dd/types/object_table.h"
 #include "sql/dd/types/weak_object.h"
 
-#include "zsql_features.h"
 
 using dd::tables::Column_type_elements;
 using dd::tables::Columns;

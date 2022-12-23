@@ -31,7 +31,6 @@
   Errors a handler can give you
 */
 
-#include "zsql_features.h"
 
 static const char *handler_error_messages[] = {
     "Didn't find key on read or update",

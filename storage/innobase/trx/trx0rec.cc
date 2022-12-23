@@ -58,7 +58,6 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #include "my_dbug.h"
 
 #include "row0gtmvers.h"
-#include "zsql_features.h"
 
 namespace dd {
 class Spatial_reference_system;

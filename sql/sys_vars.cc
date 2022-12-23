@@ -153,7 +153,6 @@
 #include "sql/rpl_semisync_master_plugin.h"
 #include "sql/rpl_semisync_slave_plugin.h"
 
-#include "zsql_features.h"
 #include "base64.h"
 
 #define MAX_CONNECTIONS 100000

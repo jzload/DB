@@ -36,7 +36,6 @@
 #include "sql/sql_error.h"
 #include "sql/table.h"
 #include "sql/item_func.h"     // Item_func_cursor_attribute
-#include "zsql_features.h"
 
 class Field;
 class Query_arena;

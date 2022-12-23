@@ -44,7 +44,6 @@
 #include "sql/sql_resolver.h"
 #include "sql/uniques.h"  // Unique_on_insert
 
-#include "zsql_features.h"
 
 bool setup_merge_where_cond(THD *thd, Item **where_cond, SELECT_LEX *select);
 static Name_resolution_context *create_context(THD *thd, TABLE_LIST *table_list,

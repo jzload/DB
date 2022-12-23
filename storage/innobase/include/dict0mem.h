@@ -76,7 +76,6 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #include <set>
 #include <vector>
 
-#include "zsql_features.h"
 
 /* Forward declaration. */
 struct ib_rbt_t;

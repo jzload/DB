@@ -40,7 +40,6 @@
 #include "sql/sql_lex.h"
 #include "sql/sql_parse.h"
 
-#include "zsql_features.h"
 
 using Mysql::Nullable;
 

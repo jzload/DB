@@ -118,7 +118,6 @@
 
 #include "sql/oracle_compatibility/rownum.h" // ROWNUM
 
-#include "zsql_features.h"
 
 using std::max;
 using std::min;

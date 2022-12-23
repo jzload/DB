@@ -44,7 +44,6 @@
 #include "sql/sql_show.h"        // append_identifier
 #include "sql_string.h"          // String
 
-#include "zsql_features.h"
 
 class Item;
 class JOIN;

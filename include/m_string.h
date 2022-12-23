@@ -43,7 +43,6 @@
 #include "my_inttypes.h"
 #include "my_macros.h"
 
-#include "zsql_features.h"
 
 #ifdef HAVE_ZSQL_CONNECT_ENGINE
 #if !defined(bzero)

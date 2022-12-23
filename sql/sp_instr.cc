@@ -76,7 +76,6 @@
 #include "sql/trigger_def.h"
 #include "unsafe_string_append.h"
 #include "sql/derror.h"
-#include "zsql_features.h"
 
 class Cmp_splocal_locations {
  public:

@@ -38,7 +38,6 @@
 #include "mysql/psi/mysql_cond.h"
 #include "mysql/psi/mysql_mutex.h"
 
-#include "zsql_features.h"
 
 extern mysql_mutex_t THR_LOCK_lock;
 

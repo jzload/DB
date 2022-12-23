@@ -80,7 +80,6 @@
 #include "template_utils.h"
 #include "typelib.h"
 #include "unsafe_string_append.h"
-#include "zsql_features.h"
 #include "sql/oracle_compatibility/start_with_connect_by.h"
 
 using std::max;

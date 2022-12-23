@@ -45,7 +45,6 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #include <set>
 #include <vector>
 
-#include "zsql_features.h"
 //#include <unordered_set>
 
 /** printf(3) format used for printing DB_TRX_ID and other system fields */

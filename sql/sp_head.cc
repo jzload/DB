@@ -90,7 +90,6 @@
 #include "sql_string.h"
 #include "template_utils.h"  // pointer_cast
 #include "thr_lock.h"
-#include "zsql_features.h"
 
 /**
   @page stored_programs Stored Programs

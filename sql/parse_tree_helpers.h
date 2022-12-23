@@ -40,7 +40,6 @@
 #include "sql/resourcegroups/resource_group_basic_types.h"  // resourcegroups::Range
 #include "sql/set_var.h"                                    // enum_var_type
 #include "sql/sql_list.h"
-#include "zsql_features.h"
 
 class String;
 class THD;

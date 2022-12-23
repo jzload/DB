@@ -116,7 +116,6 @@ void mysql_compress_context_init(mysql_compress_context *cmp_ctx,
                                  enum enum_compression_algorithm algorithm,
                                  unsigned int compression_level);
 void mysql_compress_context_deinit(mysql_compress_context *mysql_compress_ctx);
-#include "zsql_features.h"
 enum SERVER_STATUS_flags_enum {
   SERVER_STATUS_IN_TRANS = 1,
   SERVER_STATUS_AUTOCOMMIT = 2,

@@ -44,7 +44,6 @@
 #include "sql/sql_list.h"              // List
 #include "sql/thr_malloc.h"
 
-#include "zsql_features.h"
 
 class Create_field;
 class FOREIGN_KEY;

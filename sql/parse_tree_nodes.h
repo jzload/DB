@@ -85,7 +85,6 @@
 #include "sql_string.h"
 #include "thr_lock.h"
 
-#include "zsql_features.h"
 
 #include "sql/oracle_compatibility/insert_all.h"
 

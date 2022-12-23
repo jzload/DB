@@ -50,8 +50,6 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #endif /* UNIV_HOTBACKUP */
 #include "lock0prdt.h"
 
-#include "zsql_features.h"  // HAVE_ZSQL_TSN_AND_LOCK_WAIT
-
 // Forward declaration
 class ReadView;
 

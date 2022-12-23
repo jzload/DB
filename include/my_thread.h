@@ -40,7 +40,6 @@
 #include "my_inttypes.h"
 #include "my_macros.h"
 
-#include "zsql_features.h"
 
 #ifndef ETIME
 #define ETIME ETIMEDOUT /* For FreeBSD */

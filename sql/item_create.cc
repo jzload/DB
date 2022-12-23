@@ -77,7 +77,6 @@
 #include "sql_string.h"
 #include "sql/parse_tree_items.h"
 #include "sql/oracle_compatibility/translate.h"
-#include "zsql_features.h"
 #include "sql/oracle_compatibility/oracle_func.h"
 #include "sql/oracle_compatibility/to_char.h"
 #include "sql/oracle_compatibility/to_date.h"

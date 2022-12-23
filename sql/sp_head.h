@@ -49,7 +49,6 @@
 #include "sql/sql_list.h"
 #include "sql/system_variables.h"
 #include "sql/table.h"
-#include "zsql_features.h"
 
 class Item;
 class Item_trigger_field;

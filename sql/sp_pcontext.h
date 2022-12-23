@@ -37,7 +37,6 @@
 #include "sql/sql_error.h"
 #include "sql/sql_list.h"
 #include "sql/item.h"
-#include "zsql_features.h"
 
 class Item;
 class String;

@@ -173,6 +173,7 @@ When one supplies long data for a placeholder:
 #include "sql/window.h"
 #include "sql_string.h"
 #include "violite.h"
+#include "zsql_features.h"
 
 namespace resourcegroups {
 class Resource_group;

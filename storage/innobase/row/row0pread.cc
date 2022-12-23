@@ -42,7 +42,6 @@ Created 2018-01-27 by Sunny Bains */
 #include "ut0new.h"
 
 
-#include "zsql_features.h"
 #include "row0gtmvers.h"
 
 

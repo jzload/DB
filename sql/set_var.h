@@ -52,7 +52,6 @@
 #include "sql/sql_plugin_ref.h"  // plugin_ref
 #include "typelib.h"             // TYPELIB
 
-#include "zsql_features.h"
 
 class Item;
 class Item_func_set_user_var;

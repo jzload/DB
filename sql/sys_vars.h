@@ -75,7 +75,6 @@
 #include "typelib.h"
 
 #include "base64.h"
-#include "zsql_features.h"
 
 class Sys_var_bit;
 class Sys_var_bool;

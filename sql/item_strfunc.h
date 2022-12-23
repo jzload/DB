@@ -48,7 +48,6 @@
 #include "sql/sql_const.h"
 #include "sql/sql_digest.h"  // DIGEST_HASH_TO_STRING[_LENGTH]
 #include "sql_string.h"
-#include "zsql_features.h"
 
 class MY_LOCALE;
 class PT_item_list;

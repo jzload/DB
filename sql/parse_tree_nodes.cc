@@ -70,7 +70,6 @@
 #include "sql_string.h"
 
 #include "sql/create_options.h"
-#include "zsql_features.h"
 #include "sql/oracle_compatibility/start_with_connect_by.h"
 
 PT_joined_table *PT_table_reference::add_cross_join(PT_cross_join *cj) {

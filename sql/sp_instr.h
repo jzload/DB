@@ -43,7 +43,6 @@
 #include "sql/sql_lex.h"
 #include "sql/sql_list.h"
 #include "sql_string.h"
-#include "zsql_features.h"
 
 class Item;
 class Item_case_expr;

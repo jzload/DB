@@ -60,7 +60,6 @@
 #include "violite.h"
 
 #include "sql/tztime.h"
-#include "zsql_features.h"
 
 struct mysql_cond_t;
 struct mysql_mutex_t;

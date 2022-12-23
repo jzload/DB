@@ -39,7 +39,6 @@ this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "trx0types.h"
 
-#include "zsql_features.h"
 #include "read0gtmtypes.h"
 
 // Friend declaration

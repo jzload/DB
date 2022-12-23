@@ -23,7 +23,6 @@
 #ifndef PSI_MEMORY_KEY_INCLUDED
 #define PSI_MEMORY_KEY_INCLUDED
 
-#include "zsql_features.h"
 
 /**
   Instrumented memory key.

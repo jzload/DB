@@ -73,7 +73,6 @@ Data dictionary interface */
 #include "sql_table.h"
 #endif /* !UNIV_HOTBACKUP */
 
-#include "zsql_features.h"
 
 const char *DD_instant_col_val_coder::encode(const byte *stream, size_t in_len,
                                              size_t *out_len) {

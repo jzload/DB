@@ -85,7 +85,6 @@
 #include "sql/tztime.h"                      // my_tz_SYSTEM
 
 #include "sql/create_options.h"
-#include "zsql_features.h"
 
 /* @see dynamic_privileges_table.cc */
 bool iterate_all_dynamic_privileges(THD *thd,

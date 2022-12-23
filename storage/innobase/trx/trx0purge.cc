@@ -65,7 +65,6 @@ this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "sql/current_thd.h"
 #include "debug_sync.h"
-#include "zsql_features.h"
 
 /** Maximum allowable purge history length.  <=0 means 'infinite'. */
 ulong srv_max_purge_lag = 0;

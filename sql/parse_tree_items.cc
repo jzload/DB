@@ -37,7 +37,6 @@
 #include "sql/sql_udf.h"
 #include "sql/table.h"
 #include "sql/trigger_def.h"
-#include "zsql_features.h"
 #include "sql/oracle_compatibility/start_with_connect_by.h"
 
 /**

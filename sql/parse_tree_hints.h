@@ -38,7 +38,6 @@
 #include "sql/sql_show.h"
 #include "sql_string.h"
 
-#include "zsql_features.h"
 class Item;
 class THD;
 struct MEM_ROOT;

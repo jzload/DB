@@ -44,7 +44,6 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #include "trx0types.h"
 #include "univ.i"
 
-#include "zsql_features.h"
 /** Converts an implict lock on the record to explict in case of partial
  rollback.
 @param[in]	cursor		cursor to record

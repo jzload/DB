@@ -127,7 +127,6 @@
 #include "template_utils.h"       // pointer_cast
 #include "thr_mutex.h"
 #include "sql/sp_rcontext.h"
-#include "zsql_features.h"
 
 using std::max;
 using std::min;

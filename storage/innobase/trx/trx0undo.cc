@@ -54,7 +54,6 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #include "trx0rec.h"
 #include "trx0rseg.h"
 #include "trx0trx.h"
-#include "zsql_features.h"
 
 /* How should the old versions in the history list be managed?
    ----------------------------------------------------------

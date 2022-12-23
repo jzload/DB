@@ -30,7 +30,6 @@
 #include "my_inttypes.h"
 #include "sql/sql_class.h"
 #include "sql_string.h"
-#include "zsql_features.h"
 
 bool sp_condition_value::equals(const sp_condition_value *cv) const {
   DBUG_ASSERT(cv);

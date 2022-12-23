@@ -47,7 +47,6 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #include "trx0sys.h"
 #endif /* UNIV_HOTBACKUP */
 
-#include "zsql_features.h"
 /** The global data structure coordinating a purge */
 extern trx_purge_t *purge_sys;
 

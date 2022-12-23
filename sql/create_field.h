@@ -37,7 +37,6 @@
 #include "sql/field.h"
 #include "sql/gis/srid.h"
 
-#include "zsql_features.h"
 
 class Item;
 class String;

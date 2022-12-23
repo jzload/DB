@@ -68,7 +68,6 @@
 #include "sql/table.h"
 #include "sql_string.h"
 
-#include "zsql_features.h"
 
 using std::min;
 using std::string;

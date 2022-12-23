@@ -82,6 +82,7 @@
 #include "sql/window.h"
 #include "template_utils.h"
 #include "conn_handler/connection_handler_manager.h" // Connection_handler_manager::SCHEDULER_THREAD_POOL
+#include "zsql_features.h"
 
 using std::max;
 using std::min;

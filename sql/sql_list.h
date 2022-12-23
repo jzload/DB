@@ -35,7 +35,6 @@
 #include "my_sharedlib.h"
 #include "sql/thr_malloc.h"
 
-#include "zsql_features.h"
 
 /**
   Simple intrusive linked list.

@@ -64,7 +64,6 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #include "mysql/plugin.h"
 #include "mysql/psi/psi_thread.h"
 
-#include "zsql_features.h"
 #include "row0gtmvers.h"
 
 /* Flag to enable/disable deadlock detector. */

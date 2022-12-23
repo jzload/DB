@@ -131,7 +131,6 @@
 #include "uniques.h"  // Unique_on_insert
 #include "varlen_sort.h"
 
-#include "zsql_features.h"
 
 /**
   @def MYSQL_TABLE_IO_WAIT

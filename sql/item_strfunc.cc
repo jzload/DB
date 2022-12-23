@@ -102,7 +102,6 @@
 #include "sql/val_int_compare.h"  // Integer_value
 #include "template_utils.h"
 #include "typelib.h"
-#include "zsql_features.h"
 
 using std::max;
 using std::min;

@@ -39,7 +39,6 @@
 #include "my_config.h"
 
 #include "my_inttypes.h"
-#include "zsql_features.h"
 
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>  // clock_gettime()

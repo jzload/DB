@@ -92,7 +92,6 @@
 #include "typelib.h"
 
 #include "sql/create_options.h"
-#include "zsql_features.h"
 
 namespace histograms {
 class Histogram;

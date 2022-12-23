@@ -55,7 +55,6 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #include "current_thd.h"
 #include "debug_sync.h"
 
-#include "zsql_features.h"
 /* Considerations on undoing a modify operation.
 (1) Undoing a delete marking: all index records should be found. Some of
 them may have delete mark already FALSE, if the delete mark operation was

@@ -58,7 +58,6 @@ this program; if not, write to the Free Software Foundation, Inc.,
 #include "my_dbug.h"
 
 #include "row0gtmvers.h"
-#include "zsql_features.h"
 
 /** Check whether all non-virtual columns in a index entries match
 @param[in]	index		the secondary index

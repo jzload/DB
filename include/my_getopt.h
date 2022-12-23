@@ -39,7 +39,6 @@
 #include "my_macros.h"
 #include "my_sys.h" /* loglevel */
 
-#include "zsql_features.h"
 
 #define GET_NO_ARG 1
 #define GET_BOOL 2

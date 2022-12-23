@@ -35,7 +35,6 @@
 #include "sql/rpl_gtid.h"        // Gitd_specification
 #include "sql/sql_plugin_ref.h"  // plugin_ref
 
-#include "zsql_features.h"
 
 class MY_LOCALE;
 class Time_zone;

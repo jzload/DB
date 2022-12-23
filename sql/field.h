@@ -64,7 +64,6 @@
 #include "sql/thr_malloc.h"
 #include "sql_string.h"  // String
 
-#include "zsql_features.h"
 #ifdef HAVE_ZSQL_FULL_JOIN
 /* FULL JOIN */
 class Full_join_field;
