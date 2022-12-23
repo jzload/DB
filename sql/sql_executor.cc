@@ -4117,8 +4117,13 @@ int report_handler_error(TABLE *table, int error) {
     Do not spam the error log with these temporary errors:
        LOCK_DEADLOCK LOCK_WAIT_TIMEOUT TABLE_DEF_CHANGED HA_ERR_TOO_MANY_LOCKS
     Also skip printing to error log if the current thread has been killed.
+    #BUG-103159: HA_ERR_NO_WAIT_LOCK error is common for `select for update nowait`,
+    so should also be filtered.
   */
   if (error != HA_ERR_LOCK_DEADLOCK && error != HA_ERR_LOCK_WAIT_TIMEOUT &&
+#ifdef HAVE_ZSQL_FIX_ORIGINAL_BUGS
+      error != HA_ERR_NO_WAIT_LOCK &&
+#endif /* HAVE_ZSQL_FIX_ORIGINAL_BUGS */
       error != HA_ERR_TABLE_DEF_CHANGED &&
 #ifdef HAVE_ZSQL_LOCK_DEPTH_LIMIT
 	  error != HA_ERR_TOO_MANY_LOCKS &&

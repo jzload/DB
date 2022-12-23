@@ -1,0 +1,38 @@
+#
+# Bug #103159	error log reports `Got error 203 when reading table` frequently
+#
+
+connect (con1,localhost,root,,);
+connect (con2,localhost,root,,);
+
+create database yxx;
+
+create table yxx.tt(id int primary key, age int, c1 int, unique key (c1));
+insert into yxx.tt values (1,1,1), (2,2,2), (3,3,3), (4,4,4), (5,5,5);
+
+
+
+# Switch to connection con1
+connection con1;
+
+begin;
+select * from yxx.tt for update;
+
+
+# Switch to connection con2
+connection con2;
+
+--error ER_LOCK_NOWAIT
+select * from yxx.tt where id = 2 for update nowait;
+
+--error ER_LOCK_NOWAIT
+select * from yxx.tt where c1 = 3 for update nowait;
+
+
+# Switch to connection con1
+connection con1;
+
+rollback;
+
+
+drop database yxx;

@@ -1,0 +1,17 @@
+create database yxx;
+create table yxx.tt(id int primary key, age int, c1 int, unique key (c1));
+insert into yxx.tt values (1,1,1), (2,2,2), (3,3,3), (4,4,4), (5,5,5);
+begin;
+select * from yxx.tt for update;
+id	age	c1
+1	1	1
+2	2	2
+3	3	3
+4	4	4
+5	5	5
+select * from yxx.tt where id = 2 for update nowait;
+ERROR HY000: Statement aborted because lock(s) could not be acquired immediately and NOWAIT is set.
+select * from yxx.tt where c1 = 3 for update nowait;
+ERROR HY000: Statement aborted because lock(s) could not be acquired immediately and NOWAIT is set.
+rollback;
+drop database yxx;
