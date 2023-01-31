@@ -11,6 +11,8 @@
 #include "sql/query_result.h"  // Query_result_interceptor
 #include "sql/sql_cmd_dml.h"   // Sql_cmd_dml
 #include "sql/sql_list.h"
+#include "sql/item_cmpfunc.h"
+#include "zsql_features.h"
 
 class COPY_INFO;
 class Copy_field;
@@ -20,10 +22,11 @@ class THD;
 class Temp_table_param;
 struct TABLE;
 struct TABLE_LIST;
+class Parse_tree_item;
 class Unique_on_insert;
 
-//#define  ORA_MERGE_INTO_WITH_UPDATE  (1U << 1)
-//#define  ORA_MERGE_INTO_WITH_INSERT  (1U << 2)
+void set_merge_into_target_table_trg_map(SELECT_LEX *select_lex,
+                                         uint8 new_trg_event_map);
 
 struct Merge_fields_values {
 public:
@@ -42,7 +45,6 @@ public:
   }
 };
 
-class Parse_tree_item;
 /**
  * Reference class: PTI_context
  * PTI_context has specific context once created.

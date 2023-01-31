@@ -70,6 +70,7 @@
 #include "template_utils.h"
 
 #include "sql/zsql_features/minus/minus.h"
+#include "sql/oracle_compatibility/merge_into.h"
 
 extern int HINT_PARSER_parse(THD *thd, Hint_scanner *scanner,
                              PT_hint_list **ret);

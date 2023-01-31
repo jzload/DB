@@ -30,4 +30,18 @@
 #define ZSQL_OPTION_PUMP_EXPORT_JCSV    (1ULL << 1)
 #define ZSQL_OPTION_END    (1ULL << 64) // ATTENTION ! This is END !!!
 
+// oracle options
+/**
+ * This part defines option flags for oracle_options in lex
+ */
+// oracle_options: create or replace view_or_trigger_or_sp_or_event
+#define ORA_CREATE_OR_REPLACE (1ULL << 0)
+// oracle_options: merge option of merge into
+// also used in merge_option of Sql_cmd_merge and Query_result_merge
+#define ORA_MERGE_INTO_WITH_UPDATE  (1ULL << 1)
+#define ORA_MERGE_INTO_WITH_INSERT  (1ULL << 2)
+#define ORA_FLASHBACK_DROP_OR_TRUNCATE  (1ULL << 3)
+#define ORA_OPTION_END    (1ULL << 64) // ATTENTION ! This is END !!!
+
+
 #endif // ZSQL_FEATURES_H

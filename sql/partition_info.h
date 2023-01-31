@@ -407,6 +407,17 @@ class partition_info {
 
   bool is_range_str; // only for range (substr())
 
+#ifdef HAVE_ZSQL_REMOVE_PARTITION_KEY_LIMITATION
+  /* Is partition key not in Primary key or Unique key?
+  * The value is true only in below conditions:
+  *     The table is partition table,
+  *     and parimary key(or unique key) exists,
+  *     and the partition key is not in Primary key or Unique key.
+  */
+  bool partition_key_not_in_pk_uk;
+#endif // HAVE_ZSQL_REMOVE_PARTITION_KEY_LIMITATION
+
+
   /**
     True if pruning has been completed and can not be pruned any further,
     even if there are subqueries or stored programs in the condition.
@@ -468,6 +479,9 @@ class partition_info {
         has_null_value(false),
         column_list(false),
         is_range_str(false),
+#ifdef HAVE_ZSQL_REMOVE_PARTITION_KEY_LIMITATION
+        partition_key_not_in_pk_uk(false),
+#endif // HAVE_ZSQL_REMOVE_PARTITION_KEY_LIMITATION
         is_pruning_completed(false) {
     partitions.empty();
     temp_partitions.empty();
