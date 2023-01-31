@@ -68,6 +68,7 @@ struct Field_separators {
   }
 };
 
+#ifdef HAVE_ZSQL_GDB_FORMAT
 /**
   Helper for the sql_exchange class
 */
@@ -96,6 +97,7 @@ struct Datapump_format {
     pump_type = s.pump_type;
   }
 };
+#endif /* HAVE_ZSQL_GDB_FORMAT */
 
 /**
   Used to hold information about file and file structure in exchange
@@ -112,7 +114,9 @@ class sql_exchange final {
   bool dumpfile;
   unsigned long skip_lines;
   const CHARSET_INFO *cs;
+#ifdef HAVE_ZSQL_GDB_FORMAT
   Datapump_format datapump;
+#endif /* HAVE_ZSQL_GDB_FORMAT */
   sql_exchange(const char *name, bool dumpfile_flag,
                enum_filetype filetype_arg = FILETYPE_CSV);
   bool escaped_given(void);

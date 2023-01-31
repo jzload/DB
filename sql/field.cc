@@ -6379,7 +6379,7 @@ String *Field_string::val_str(String *val_buffer MY_ATTRIBUTE((unused)),
   if (table->in_use->lex->zsql_options & ZSQL_OPTION_PUMP_EXPORT_JCSV) {
     length = field_length / field_charset->mbmaxlen;
   } else
-#endif /*HAVE_ZSQL_GDB_FORMAT*/
+#endif /* HAVE_ZSQL_GDB_FORMAT */
   if (table->in_use->variables.sql_mode & MODE_PAD_CHAR_TO_FULL_LENGTH)
     length = my_charpos(field_charset, ptr, ptr + field_length,
                         field_length / field_charset->mbmaxlen);

@@ -311,7 +311,8 @@ class Security_context {
                                            bool cumulative = false);
   bool has_table_access(ulong priv, TABLE_LIST *table);
 
- public:
+ public:    // HAVE_ZSQL_CONNECT_ENGINE private -> public
+
   /**
     m_user - user of the client, set to NULL until the user has been read from
              the connection

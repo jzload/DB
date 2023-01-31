@@ -2374,7 +2374,7 @@ void warn_about_deprecated_binary(THD *thd)
 /*
    Tokens from ZSQL Independent research and development
 */
-%token<lexer.keyword> GDB_FORMAT_SYM        /* GOLDENDB */
+%token<lexer.keyword> GDB_FORMAT_SYM        /* HAVE_ZSQL_GDB_FORMAT */
 %token<lexer.keyword> FLAG_SYM
 %token<lexer.keyword> OPTION_LIST_SYM
 %token<lexer.keyword> TABLE_TYPE_SYM
@@ -2807,7 +2807,7 @@ void warn_about_deprecated_binary(THD *thd)
 
 %type <field_separators> field_term field_term_list opt_field_term
 
-%type <datapump_format> opt_export_format opt_import_format
+%type <datapump_format> opt_export_format opt_import_format /* HAVE_ZSQL_GDB_FORMAT */
 
 %type <into_destination> into_destination into_clause
 
@@ -14851,8 +14851,10 @@ into_clause:
 into_destination:
           OUTFILE TEXT_STRING_filesystem
           opt_load_data_charset
+          // HAVE_ZSQL_GDB_FORMAT add opt_export_format
           opt_field_term opt_line_term opt_export_format
           {
+            // HAVE_ZSQL_GDB_FORMAT add $6
             $$= NEW_PTN PT_into_destination_outfile(@$, $2, $3, $4, $5, $6);
           }
         | DUMPFILE TEXT_STRING_filesystem
@@ -16968,6 +16970,7 @@ line_term:
           }
         ;
 
+// HAVE_ZSQL_GDB_FORMAT begin
 opt_export_format:
           /* empty */ { Lex->datapump_csv = false; $$.cleanup(); }
         | GDB_FORMAT_SYM text_string
@@ -17013,7 +17016,7 @@ opt_import_format:
               MYSQL_YYABORT;
             }
           }
-
+// HAVE_ZSQL_GDB_FORMAT end
 
 opt_xml_rows_identified_by:
           /* empty */                            { $$= nullptr; }
@@ -17769,7 +17772,7 @@ ident_keywords_ambiguous_2_labels:
         | UNICODE_SYM
         | UNINSTALL_SYM
         | XA_SYM
-        | GDB_FORMAT_SYM
+        | GDB_FORMAT_SYM // HAVE_ZSQL_GDB_FORMAT
         | IMMEDIATE_SYM
         | COPY_SYM
         | WITHIN_SYM

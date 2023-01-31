@@ -41,7 +41,9 @@
 #include "mysql_com.h"  // USERNAME_LENGTH
 #include "template_utils.h"
 
+#ifdef HAVE_ZSQL_CONNECT_ENGINE
 #include "mysqld_error.h"
+#endif // HAVE_ZSQL_CONNECT_ENGINE
 
 /* Forward Declarations */
 class Alter_info;

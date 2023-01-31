@@ -4003,7 +4003,9 @@ struct LEX : public Query_tables_list {
 
  public:
   ulong spec_lock_wait_time;
+#ifdef HAVE_ZSQL_GDB_FORMAT
   bool datapump_csv;
+#endif /* HAVE_ZSQL_GDB_FORMAT */
   bool slave_stop_fast;
   /* HAVE_ZSQL_ORACLE_COMPATIBILITY */
   ulonglong oracle_options;

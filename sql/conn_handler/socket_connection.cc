@@ -271,7 +271,9 @@ class Channel_info_tcpip_socket : public Channel_info {
   }
 #endif
 
+#ifdef HAVE_ZSQL_DISABLE_TCP_CONNECTION
   bool is_tcpip_socket() { return true; }
+#endif /* HAVE_ZSQL_DISABLE_TCP_CONNECTION */
 };
 
 ///////////////////////////////////////////////////////////////////////////

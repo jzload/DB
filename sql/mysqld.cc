@@ -1232,7 +1232,10 @@ std::atomic<int32> g_quick_sync_err_flag;      // set with variables rpl_semi_sy
 std::atomic<int32> g_is_quick_sync_enabled;    // 1 is quick_sync_mode, 0 is not
 std::atomic<int64> binlog_current_timestamp{0};
 
+#ifdef HAVE_ZSQL_DISABLE_TCP_CONNECTION
 bool g_disable_tcp_connection; /* 1 is disabled, 0 is not */
+#endif /* HAVE_ZSQL_DISABLE_TCP_CONNECTION */
+
 bool service_available_even_bellow_lwm = 0;// 1 is allowed, 0 is not
 
 bool opt_table_encryption_privilege_check = false;
@@ -9150,7 +9153,9 @@ static int mysql_init_variables() {
   server_operational_state = SERVER_BOOTING;
   aborted_threads = 0;
   delayed_insert_threads = delayed_insert_writes = delayed_rows_in_use = 0;
+#ifdef HAVE_ZSQL_DISABLE_TCP_CONNECTION
   g_disable_tcp_connection = false;
+#endif /* HAVE_ZSQL_DISABLE_TCP_CONNECTION */
   delayed_insert_errors = 0;
   specialflag = 0;
   binlog_cache_use = binlog_cache_disk_use = 0;

@@ -68,7 +68,9 @@
 #include "thr_lock.h"            // thr_lock_type
 #include "typelib.h"
 
+#ifdef HAVE_ZSQL_CONNECT_ENGINE
 #include "my_dir.h"
+#endif // HAVE_ZSQL_CONNECT_ENGINE
 
 class Alter_info;
 class Candidate_table_order;

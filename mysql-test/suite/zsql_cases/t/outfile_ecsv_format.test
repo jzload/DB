@@ -1,4 +1,6 @@
 ################################################################################
+# HAVE_ZSQL_GDB_FORMAT
+#
 # this is the test for funtion [select into outfile gdb_format 'ecsv']
 # we will test the common field terminater, field encloser, line terminater \
 # and escaping charactor, where [field encloser " and escaping charactor "] \

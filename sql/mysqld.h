@@ -329,7 +329,10 @@ extern std::atomic<int32> g_quick_sync_err_flag;
 extern std::atomic<int32> g_is_quick_sync_enabled;
 extern std::atomic<int64> binlog_current_timestamp;
 
+#ifdef HAVE_ZSQL_DISABLE_TCP_CONNECTION
 extern bool g_disable_tcp_connection;
+#endif /* HAVE_ZSQL_DISABLE_TCP_CONNECTION */
+
 extern bool service_available_even_bellow_lwm;
 
 enum enum_binlog_error_action {

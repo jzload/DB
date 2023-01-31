@@ -92,7 +92,9 @@ class Channel_info {
 
   virtual bool is_admin_connection() const { return false; }
 
+#ifdef HAVE_ZSQL_DISABLE_TCP_CONNECTION
   virtual bool is_tcpip_socket() { return false; }
+#endif /* HAVE_ZSQL_DISABLE_TCP_CONNECTION */
 };
 
 #endif  // SQL_CHANNEL_INFO_INCLUDED.

@@ -128,7 +128,9 @@ sql_exchange::sql_exchange(const char *name, bool flag,
       filetype == FILETYPE_CSV ? &default_line_term : &default_xml_row_term;
   field.escaped = &default_escaped;
   cs = NULL;
+#ifdef HAVE_ZSQL_GDB_FORMAT
   datapump.pump_type = PUMP_UNKNOWN;
+#endif /* HAVE_ZSQL_GDB_FORMAT */
 }
 
 bool sql_exchange::escaped_given(void) {
@@ -371,7 +373,13 @@ bool Query_result_export::start_execution(THD *thd) {
   return false;
 }
 
-
+#ifndef HAVE_ZSQL_GDB_FORMAT
+#define NEED_ESCAPING(x)                              \
+  ((int)(uchar)(x) == escape_char ||                  \
+   (enclosed ? (int)(uchar)(x) == field_sep_char      \
+             : (int)(uchar)(x) == field_term_char) || \
+   (int)(uchar)(x) == line_sep_char || !(x))
+#else
 #define NEED_ESCAPING(x)                               \
   ((exchange->datapump.pump_type == PUMP_EXPORT_ECSV) ?       \
   (NEED_ESCAPING_ECSV(x)) :                            \
@@ -391,6 +399,7 @@ bool Query_result_export::start_execution(THD *thd) {
    (enclosed ? (int)(uchar)(x) == field_sep_char       \
              : (int)(uchar)(x) == field_term_char) ||  \
    (int)(uchar)(x) == line_sep_char || !(x))
+#endif /* HAVE_ZSQL_GDB_FORMAT */
 
 /*
   For PUMP_EXPORT_NOSPACE_CSV and PUMP_EXPORT_JCSV, no space will be appended when 
@@ -479,7 +488,11 @@ bool Query_result_export::send_data(THD *thd, List<Item> &items) {
         goto err;
     }
     if (!res) {  // NULL
-      if (!fixed_row_size && !thd->variables.export_null_as_space) {
+      if (!fixed_row_size
+#ifdef HAVE_ZSQL_EXPORT_NULL_AS_SPACE
+        && !thd->variables.export_null_as_space
+#endif /* HAVE_ZSQL_EXPORT_NULL_AS_SPACE */
+        ) {
         if (escape_char != -1)  // Use \N syntax
         {
           null_buff[0] = escape_char;

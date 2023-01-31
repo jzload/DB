@@ -4623,6 +4623,7 @@ static Sys_var_ulong Sys_parse_mode(
     VALID_RANGE(1, 2), DEFAULT(1), BLOCK_SIZE(1));
 #endif
 
+#ifdef HAVE_ZSQL_EXPORT_NULL_AS_SPACE
 static Sys_var_bool Sys_export_null_as_space(
     "export_null_as_space",
     "When exports data, replace null to 0 length space",
@@ -4638,6 +4639,7 @@ static Sys_var_bool Sys_import_space_as_null(
     CMD_LINE(OPT_ARG),
     DEFAULT(false), NO_MUTEX_GUARD, NOT_IN_BINLOG,
     ON_CHECK(0), ON_UPDATE(0));
+#endif /* HAVE_ZSQL_EXPORT_NULL_AS_SPACE */
 
 #ifdef HAVE_POOL_OF_THREADS
 
@@ -7440,12 +7442,14 @@ static Sys_var_ulong Sys_rpl_semi_sync_slave_trace_level(
         ON_CHECK(0), ON_UPDATE(fix_rpl_semi_sync_trace_level));
 
 
+#ifdef HAVE_ZSQL_DISABLE_TCP_CONNECTION
 static Sys_var_bool Sys_disable_tcp_connection(
     "disable_tcp_connection",
     "Disable tcp connections(0 by default, 1 means disable). ",
     GLOBAL_VAR(g_disable_tcp_connection),
     CMD_LINE(OPT_ARG),
     DEFAULT(false));
+#endif /* HAVE_ZSQL_DISABLE_TCP_CONNECTION */
 
 static Sys_var_charptr Sys_default_date_format(
     "default_date_format", "Default date format for TO_DATE().",

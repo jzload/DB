@@ -487,7 +487,9 @@ void LEX::reset() {
   option_type = OPT_DEFAULT;
   force_iterator_executor = false;
   spec_lock_wait_time = 0;
+#ifdef HAVE_ZSQL_GDB_FORMAT
   datapump_csv = false;
+#endif /* HAVE_ZSQL_GDB_FORMAT */
   slave_stop_fast = false;
   zsql_options = 0;
   oracle_options = 0;
@@ -3737,7 +3739,9 @@ LEX::LEX()
       binlog_need_explicit_defaults_ts(false),
       will_contextualize(true),
       spec_lock_wait_time(0),
+#ifdef HAVE_ZSQL_GDB_FORMAT
       datapump_csv(false),
+#endif /* HAVE_ZSQL_GDB_FORMAT */
       slave_stop_fast(false),
       // HAVE_ZSQL_ORACLE_COMPATIBILITY
       oracle_options(0),

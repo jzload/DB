@@ -258,12 +258,14 @@ bool Connection_handler_manager::unload_connection_handler() {
 
 void Connection_handler_manager::process_new_connection(
     Channel_info *channel_info) {
+#ifdef HAVE_ZSQL_DISABLE_TCP_CONNECTION
   if(g_disable_tcp_connection && channel_info->is_tcpip_socket())
   {
     channel_info->send_error_and_close_channel(ER_DISABLE_TCP_CONNETION, 0, true);
     delete channel_info;
     return;
   }
+#endif /* HAVE_ZSQL_DISABLE_TCP_CONNECTION */
 
   if (connection_events_loop_aborted() ||
       !check_and_incr_conn_count(channel_info->is_admin_connection())) {

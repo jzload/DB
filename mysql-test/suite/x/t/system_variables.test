@@ -92,7 +92,9 @@ let $wait_condition=
 --let $assert_cond= [select VARIABLE_VALUE like "*" as Value from performance_schema.global_variables WHERE VARIABLE_NAME like "Mysqlx_bind_address", Value, 1] = 1
 --source include/assert.inc
 
+# HAVE_ZSQL_DISABLE_TCP_CONNECTION 0 seconds, the default value -> 120 seconds
 --let $assert_text= Mysqlx_port_open_timeout must be 120 seconds
+# HAVE_ZSQL_DISABLE_TCP_CONNECTION 0->120
 --let $assert_cond= [SHOW GLOBAL VARIABLES LIKE "Mysqlx_port_open_timeout", Value, 1] = 120
 --source include/assert.inc
 

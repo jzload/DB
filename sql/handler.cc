@@ -7883,10 +7883,12 @@ int handler::ha_write_row(uchar *buf) {
 
   if (unlikely(error)) return error;
 
+#ifdef HAVE_ZSQL_CONNECT_ENGINE
   // NULL != table_share->option_list 
   // means we are inserting/deleting/updating 
   // a CONNECT engine table, for distributed scenario
   // the operation should not be recorded.
+#endif // HAVE_ZSQL_CONNECT_ENGINE
   if (
 #ifdef HAVE_ZSQL_CONNECT_ENGINE
       NULL == table_share->option_list &&
@@ -7922,7 +7924,7 @@ int handler::ha_update_row(const uchar *old_data, uchar *new_data) {
 
   if (unlikely(error)) return error;
 
-  // see ha_write_row
+  // see ha_write_row // HAVE_ZSQL_CONNECT_ENGINE
   if (
 #ifdef HAVE_ZSQL_CONNECT_ENGINE
       NULL == table_share->option_list &&
@@ -7954,7 +7956,7 @@ int handler::ha_delete_row(const uchar *buf) {
 
   if (unlikely(error)) return error;
 
-  // see ha_write_row
+  // see ha_write_row // HAVE_ZSQL_CONNECT_ENGINE
   if (
 #ifdef HAVE_ZSQL_CONNECT_ENGINE
       NULL == table_share->option_list &&

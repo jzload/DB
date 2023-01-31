@@ -63,6 +63,7 @@ loose-performance-schema-consumer-events-waits-history-long=ON
 loose-performance-schema-consumer-global-instrumentation=ON
 loose-performance-schema-consumer-thread-instrumentation=ON
 
+# HAVE_ZSQL_DISABLE_TCP_CONNECTION
 loose-mysqlx-port-open-timeout=120
 
 # Set LOG_ERROR_VERBOSITY to 3 as default for MTR tests. This will

@@ -861,6 +861,7 @@ class Field_tmp_nullability_guard {
   Field *m_field;
 };
 
+#ifdef HAVE_ZSQL_EXPORT_NULL_AS_SPACE
 bool Sql_cmd_load_table::is_null_field(THD *thd, READ_INFO &read_info,
                                        size_t enclosed_length,
                                        uchar *field_value,
@@ -876,6 +877,7 @@ bool Sql_cmd_load_table::is_null_field(THD *thd, READ_INFO &read_info,
 
   return false;
 }
+#endif /* HAVE_ZSQL_EXPORT_NULL_AS_SPACE */
 
 /**
   @returns true if error
@@ -929,7 +931,13 @@ bool Sql_cmd_load_table::read_sep_field(THD *thd, COPY_INFO &info,
 
       Field_tmp_nullability_guard fld_tmp_nullability_guard(real_item);
 
+#ifdef HAVE_ZSQL_EXPORT_NULL_AS_SPACE
       if (is_null_field(thd, read_info, enclosed_length, pos, length)) {
+#else
+      if ((!read_info.enclosed && (enclosed_length && length == 4 &&
+                                   !memcmp(pos, STRING_WITH_LEN("NULL")))) ||
+          (length == 1 && read_info.found_null)) {
+#endif /* HAVE_ZSQL_EXPORT_NULL_AS_SPACE */
         if (real_item->type() == Item::FIELD_ITEM) {
           Field *field = ((Item_field *)real_item)->field;
           if (field->reset())  // Set to 0

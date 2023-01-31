@@ -635,7 +635,9 @@ union YYSTYPE {
   } load_set_list;
   ts_alter_tablespace_type alter_tablespace_type;
   Sql_cmd_srs_attributes *sql_cmd_srs_attributes;
+#ifdef HAVE_ZSQL_GDB_FORMAT
   struct Datapump_format datapump_format;
+#endif /* HAVE_ZSQL_GDB_FORMAT */
 #ifdef HAVE_ZSQL_INSERT_ALL
   struct {
     List<table_values_pair> *table_values_list;

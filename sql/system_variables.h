@@ -426,8 +426,10 @@ struct System_variables {
   */
   uint32_t generated_random_password_length;
 
+#ifdef HAVE_ZSQL_EXPORT_NULL_AS_SPACE
   bool export_null_as_space;
   bool import_space_as_null;
+#endif /* HAVE_ZSQL_EXPORT_NULL_AS_SPACE */
   uint64_t transaction_max_binlog_size;
 #ifdef HAVE_ZSQL_TEMPTABLE
   uint64_t tmp_table_max_rows;

@@ -1685,6 +1685,7 @@ public:
   */
   bool get_time_from_non_temporal(MYSQL_TIME *ltime);
 
+ // protected:  // HAVE_ZSQL_CONNECT_ENGINE
   /* Helper functions, see item_sum.cc */
   String *val_string_from_real(String *str);
   String *val_string_from_int(String *str);

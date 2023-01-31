@@ -36,7 +36,9 @@ SELECT COUNT(@@local.Mysqlx_port_open_timeout);
 --Error ER_INCORRECT_GLOBAL_LOCAL_VAR
 SELECT COUNT(@@SESSION.Mysqlx_port_open_timeout);
 
+# HAVE_ZSQL_DISABLE_TCP_CONNECTION 0->120
 --let $assert_text= Mysqlx_port_open_timeout global variable must is read-only, should hold to 120
+# HAVE_ZSQL_DISABLE_TCP_CONNECTION 0->120
 --let $assert_cond= [SELECT @@GLOBAL.Mysqlx_port_open_timeout as Result;, Result, 1] =120
 --source include/assert.inc
 

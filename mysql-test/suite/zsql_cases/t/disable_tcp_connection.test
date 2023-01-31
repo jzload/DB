@@ -1,4 +1,5 @@
 #
+# HAVE_ZSQL_DISABLE_TCP_CONNECTION
 # test the disable tcp/ip connection
 #
 

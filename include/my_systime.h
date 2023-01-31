@@ -38,7 +38,9 @@
 
 #include "my_config.h"
 
+#ifdef HAVE_ZSQL_CONNECT_ENGINE
 #include "my_inttypes.h"
+#endif // HAVE_ZSQL_CONNECT_ENGINE
 
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>  // clock_gettime()

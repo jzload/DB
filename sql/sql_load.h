@@ -108,8 +108,10 @@ class Sql_cmd_load_table final : public Sql_cmd {
   bool read_fixed_length(THD *thd, COPY_INFO &info, TABLE_LIST *table_list,
                          READ_INFO &read_info, ulong skip_lines);
 
+#ifdef HAVE_ZSQL_EXPORT_NULL_AS_SPACE
   bool is_null_field(THD *thd, READ_INFO &read_info, size_t enclosed_length,
                      uchar *field_value, uint field_length);
+#endif /* HAVE_ZSQL_EXPORT_NULL_AS_SPACE */
 
   bool read_sep_field(THD *thd, COPY_INFO &info, TABLE_LIST *table_list,
                       READ_INFO &read_info, const String &enclosed,

@@ -1704,13 +1704,18 @@ class PT_into_destination_outfile final : public PT_into_destination {
   PT_into_destination_outfile(const POS &pos, const LEX_STRING &file_name_arg,
                               const CHARSET_INFO *charset_arg,
                               const Field_separators &field_term_arg,
-                              const Line_separators &line_term_arg,
-                              const Datapump_format &datapump_format)
+                              const Line_separators &line_term_arg
+#ifdef HAVE_ZSQL_GDB_FORMAT
+                              , const Datapump_format &datapump_format
+#endif /* HAVE_ZSQL_GDB_FORMAT */
+                              )
       : PT_into_destination(pos), m_exchange(file_name_arg.str, false) {
     m_exchange.cs = charset_arg;
     m_exchange.field.merge_field_separators(field_term_arg);
     m_exchange.line.merge_line_separators(line_term_arg);
+#ifdef HAVE_ZSQL_GDB_FORMAT
     m_exchange.datapump.merge_data_format(datapump_format);
+#endif /* HAVE_ZSQL_GDB_FORMAT */
   }
 
   bool contextualize(Parse_context *pc) override {
