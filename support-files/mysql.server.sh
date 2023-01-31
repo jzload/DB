@@ -316,6 +316,7 @@ case "$mode" in
     w2log "mysql.server restart begin with stop and start."
     if $0 stop  $other_args; then
       $0 start $other_args
+      exit $?
     else
       log_failure_msg "Failed to stop running server, so refusing to try to start."
       exit 1
