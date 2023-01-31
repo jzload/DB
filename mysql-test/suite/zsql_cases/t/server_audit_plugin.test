@@ -6,6 +6,8 @@
 --echo ## Test 1 install server_audit plugin.
 --echo ## 
 INSTALL PLUGIN server_audit SONAME 'server_audit.so';
+set global server_audit_logging=ON;
+set global server_audit_logging=OFF;
 
 --echo ##
 --echo ## Test 2 show all variables.
@@ -27,5 +29,4 @@ show variables like 'server_audit_syslog_facility';
 --echo ## Test 5 uninstall server_audit plugin.
 --echo ## 
 UNINSTALL PLUGIN server_audit;
-
 

@@ -1993,6 +1993,8 @@ extern "C" void auditing(MYSQL_THD thd, unsigned int event_class, const void *ev
   if (!thd || internal_stop_logging)
     return;
 
+  if (!logging) return; 
+
   flogger_mutex_lock(&lock_operations);
 
   if (maria_55_started && debug_server_started &&

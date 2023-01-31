@@ -5,6 +5,8 @@
 ## Test 1 install server_audit plugin.
 ## 
 INSTALL PLUGIN server_audit SONAME 'server_audit.so';
+set global server_audit_logging=ON;
+set global server_audit_logging=OFF;
 ##
 ## Test 2 show all variables.
 ## 
@@ -32,7 +34,7 @@ server_audit_syslog_priority	LOG_INFO
 show status like '%audit%';
 Variable_name	Value
 server_audit_active	OFF
-server_audit_current_log	
+server_audit_current_log	server_audit.log
 server_audit_last_error	
 server_audit_writes_failed	0
 ##
