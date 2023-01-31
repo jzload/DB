@@ -183,8 +183,28 @@ class MDL_map {
     */
     int32 unused_locks = ++m_unused_lock_objects;
 
-    while (unused_locks > mdl_locks_unused_locks_low_water &&
-           (unused_locks > m_locks.count * MDL_LOCKS_UNUSED_LOCKS_MIN_RATIO)) {
+#ifdef HAVE_ZSQL_FIX_ORIGINAL_BUGS
+    /*
+      #BUG-103195: previously we didn't consider dummy nodes while releasing
+      unused locks. If there are too many dummy nodes and too little unused
+      locks, it become pretty difficult to find enough unused lock objects.
+      As I tested, after creating and droping a database with 30000 tables,
+      number of buckets will be increase to about 4 million, and there are few
+      MDL_lock objects after droping database, so when we have to release a
+      unused lock, we have to traverse too many dummy nodes, which exausts
+      a lot of time (I noticed it costs 38ms to find a unused lock once). It
+      is better to consider count of buckets (each bucket has a dummy node 
+      after initialized) while making a decision to unused locks or not, and
+      we use count of buckets to represent count of dummy nodes approximately.
+      Avoiding too many unused locks, we mark a upper-limit of memory, exceeded
+      locks will be released anyway.
+    */
+    while ((unused_locks > mdl_locks_unused_locks_low_water &&
+           (unused_locks > (m_locks.count + m_locks.size) * MDL_LOCKS_UNUSED_LOCKS_MIN_RATIO))
+           ||
+           (m_locks.element_size > 0 && 
+           (MDL_LOCKS_UNUSED_LOCKS_MAX_MEMORY / m_locks.element_size < (uint)unused_locks)) ) {
+#endif /* HAVE_ZSQL_FIX_ORIGINAL_BUGS */
       /*
         If number of unused lock objects exceeds low water threshold and
         unused/total objects ratio is high enough - try to do random dive

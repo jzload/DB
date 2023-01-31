@@ -1703,21 +1703,30 @@ extern ulong max_write_lock_count;
 
 extern int32 mdl_locks_unused_locks_low_water;
 
+#ifdef HAVE_ZSQL_FIX_ORIGINAL_BUGS
 /**
   Default value for threshold for number of unused MDL_lock objects after
   exceeding which we start considering freeing them. Only unit tests use
   different threshold value.
 */
-const int32 MDL_LOCKS_UNUSED_LOCKS_LOW_WATER_DEFAULT = 1000;
+const int32 MDL_LOCKS_UNUSED_LOCKS_LOW_WATER_DEFAULT = 10000;
 
 /**
-  Ratio of unused/total MDL_lock objects after exceeding which we
-  start trying to free unused MDL_lock objects (assuming that
+  Ratio of unused/(total MDL_lock objects + count of buckets) after exceeding
+  which we start trying to free unused MDL_lock objects (assuming that
   mdl_locks_unused_locks_low_water threshold is passed as well).
   Note that this value should be high enough for our algorithm
   using random dives into hash to work well.
 */
-const double MDL_LOCKS_UNUSED_LOCKS_MIN_RATIO = 0.25;
+const double MDL_LOCKS_UNUSED_LOCKS_MIN_RATIO = 0.125;
+
+/**
+  Max memory usage of unused MDL_lock objects, now default 100MB.
+  If memory of unused locks exceeds this number, force-release will happen.
+*/
+const int32 MDL_LOCKS_UNUSED_LOCKS_MAX_MEMORY = 100*1024*1024;
+#endif /* HAVE_ZSQL_FIX_ORIGINAL_BUGS */
+
 
 int32 mdl_get_unused_locks_count();
 
